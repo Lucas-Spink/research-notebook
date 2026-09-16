@@ -1,6 +1,7 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    if let Err(error) = tauri::Builder::default().run(tauri::generate_context!()) {
+        eprintln!("error while running tauri application: {error}");
+        std::process::exit(1);
+    }
 }
