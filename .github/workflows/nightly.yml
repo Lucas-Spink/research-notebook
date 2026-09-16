@@ -1,0 +1,139 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  long-property:
+    name: Long property tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    env:
+      FC_NUM_RUNS: "100000"
+      PROPTEST_CASES: "100000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:property
+      - run: pnpm test:rust
+
+  e2e:
+    name: End-to-end (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots-${{ matrix.os }}
+          path: apps/desktop/e2e/output/
+
+  handoff-create:
+    name: Handoff create (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm handoff:create "${{ runner.temp }}/handoff"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: handoff-from-${{ matrix.os }}
+          path: ${{ runner.temp }}/handoff
+          include-hidden-files: true
+
+  handoff-verify:
+    name: Handoff ${{ matrix.from }} to ${{ matrix.on }}
+    needs: handoff-create
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { from: windows-latest, on: macos-latest }
+          - { from: macos-latest, on: windows-latest }
+    runs-on: ${{ matrix.on }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: handoff-from-${{ matrix.from }}
+          path: ${{ runner.temp }}/handoff
+      - run: pnpm handoff:verify "${{ runner.temp }}/handoff"
+
+  pdfa:
+    name: PDF/A validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - name: Export typical fixture
+        run: >
+          cargo run --manifest-path apps/desktop/src-tauri/Cargo.toml
+          -p nb-export --example export_fixture --
+          fixtures/projects/format-v1/typical "$RUNNER_TEMP/export"
+      - name: Validate with veraPDF
+        run: docker run --rm -v "$RUNNER_TEMP/export:/data" verapdf/cli --flavour 3b /data/project.pdf
+
+  bench:
+    name: Benchmarks (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fixtures:generate
+      - run: pnpm bench --outputJson "${{ runner.temp }}/bench.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.os }}
+          path: ${{ runner.temp }}/bench.json

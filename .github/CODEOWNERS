@@ -1,0 +1,20 @@
+# Replace @Lucas-Spink with the maintainer's GitHub username.
+# Every path here requires maintainer review (AGENTS.md section 6).
+
+/AGENTS.md                                      @Lucas-Spink
+/CLAUDE.md                                      @Lucas-Spink
+/.github/                                       @Lucas-Spink
+/deny.toml                                      @Lucas-Spink
+/clippy.toml                                    @Lucas-Spink
+/.dependency-cruiser.cjs                        @Lucas-Spink
+/eslint.config.*                                @Lucas-Spink
+/tsconfig*.json                                 @Lucas-Spink
+/docs/format/                                   @Lucas-Spink
+/docs/adr/                                      @Lucas-Spink
+/fixtures/projects/                             @Lucas-Spink
+/packages/format/src/schema/                    @Lucas-Spink
+/packages/format/migrations/                    @Lucas-Spink
+/apps/desktop/src-tauri/capabilities/           @Lucas-Spink
+/apps/desktop/src-tauri/tauri.conf.json         @Lucas-Spink
+/apps/desktop/src-tauri/crates/nb-fs/           @Lucas-Spink
+/apps/desktop/src-tauri/crates/nb-archive/      @Lucas-Spink

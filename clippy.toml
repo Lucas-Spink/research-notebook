@@ -1,0 +1,13 @@
+# Filesystem and process access is centralised. Only nb-fs (and nb-git / opener
+# modules for processes) may allow these lints, each with a justification comment.
+disallowed-methods = [
+  { path = "std::fs::write", reason = "Use nb_fs::write_atomic so writes are crash-safe and confined to _notebook/" },
+  { path = "std::fs::rename", reason = "Use nb_fs, which validates destinations and retries on Windows" },
+  { path = "std::fs::copy", reason = "Use nb_fs::capture_copy, which hashes and verifies" },
+  { path = "std::fs::remove_file", reason = "Use nb_fs::move_to_trash; the app never deletes user content directly" },
+  { path = "std::fs::remove_dir", reason = "Use nb_fs::move_to_trash" },
+  { path = "std::fs::remove_dir_all", reason = "Use nb_fs::move_to_trash" },
+  { path = "std::fs::File::create", reason = "Use nb_fs::write_atomic" },
+  { path = "std::fs::OpenOptions::new", reason = "Use nb_fs" },
+  { path = "std::process::Command::new", reason = "Use nb_git or the opener module" },
+]

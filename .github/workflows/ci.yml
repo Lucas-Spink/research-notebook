@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      FC_NUM_RUNS: "1000"
+      PROPTEST_CASES: "1000"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Static checks (lint, types, format, boundaries)
+        run: pnpm check:static
+
+      - name: Rust format and clippy
+        run: |
+          pnpm format:rust
+          pnpm lint:rust
+
+      - name: No skipped or focused tests
+        shell: bash
+        run: node scripts/check-no-skipped-tests.mjs $(git ls-files '*.test.ts' '*.test.tsx')
+
+      - name: Unit and component tests
+        run: pnpm test:unit
+
+      - name: Property tests (short)
+        run: pnpm test:property
+
+      - name: Golden tests
+        run: pnpm test:golden
+
+      - name: Fixture compatibility
+        run: pnpm test:fixtures
+
+      - name: Rust tests
+        run: pnpm test:rust
+
+      - name: Filesystem safety
+        run: pnpm test:fs-safety
+
+      - name: VS Code extension tests
+        run: pnpm test:vscode
+
+      - name: Fixture projects contain no .gitignore
+        shell: bash
+        run: |
+          if git ls-files fixtures | grep -E '(^|/)\.gitignore$'; then
+            echo "Fixture projects must not contain .gitignore files; they would hide fixture evidence from git."
+            exit 1
+          fi
+
+      - name: Generated IPC bindings are up to date
+        shell: bash
+        run: git diff --exit-code -- apps/desktop/src/ipc
+
+      - name: Tests must leave the working tree clean
+        shell: bash
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  pandoc-recovery:
+    name: Pandoc recovery command
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install pandoc
+      - name: Render typical fixture with citations
+        shell: bash
+        run: |
+          cd fixtures/projects/format-v1/typical/_notebook/experiments/EXP-001
+          pandoc experiment.md --citeproc \
+            --bibliography ../../bibliography.json \
+            --csl "../../styles/$(ls ../../styles | head -n 1)" \
+            -o "$RUNNER_TEMP/EXP-001.html"
+          grep -q "csl-bib-body" "$RUNNER_TEMP/EXP-001.html"
+
+  licences:
+    name: Licences and advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: apps/desktop/src-tauri/Cargo.toml
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm licences:check

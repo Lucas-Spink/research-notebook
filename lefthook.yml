@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    prettier:
+      glob: "*.{ts,tsx,js,cjs,mjs,json,md,yaml,yml,css}"
+      run: pnpm prettier --check {staged_files}
+    eslint:
+      glob: "*.{ts,tsx}"
+      run: pnpm eslint --max-warnings=0 {staged_files}
+    rustfmt:
+      glob: "*.rs"
+      run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
+    no-focused-or-skipped-tests:
+      glob: "*.{ts,tsx}"
+      run: node scripts/check-no-skipped-tests.mjs {staged_files}
+
+pre-push:
+  commands:
+    check:
+      run: pnpm check

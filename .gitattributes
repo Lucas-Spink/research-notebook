@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.gz binary
+*.h5 binary
+fixtures/projects/**/evidence/** binary
+fixtures/projects/**/methods/** -text

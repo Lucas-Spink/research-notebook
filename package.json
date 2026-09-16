@@ -1,0 +1,37 @@
+{
+  "name": "research-notebook",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "pnpm check:static && pnpm test:unit && pnpm test:property && pnpm test:golden",
+    "check:static": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm deps:check",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc -b",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "deps:check": "depcruise apps packages extensions --config .dependency-cruiser.cjs",
+    "licences:check": "license-checker-rseidelsohn --production --excludePrivatePackages --excludePackages citeproc --onlyAllow \"MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC0-1.0;BlueOak-1.0.0;MPL-2.0;Unlicense;AGPL-3.0-or-later\"",
+    "lint:rust": "cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --workspace --all-targets --locked -- -D warnings",
+    "format:rust": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check",
+    "test": "pnpm test:unit && pnpm test:property && pnpm test:golden && pnpm test:fixtures && pnpm test:rust && pnpm test:fs-safety",
+    "test:unit": "vitest run --project unit --project ui",
+    "test:property": "vitest run --project property",
+    "test:golden": "vitest run --project golden",
+    "test:fixtures": "vitest run --project fixtures",
+    "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --workspace --locked",
+    "test:fs-safety": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml -p nb-fs --test fs_safety --locked",
+    "test:vscode": "pnpm --filter ./extensions/vscode test",
+    "test:e2e": "pnpm --filter ./apps/desktop e2e",
+    "test:a11y": "vitest run --project ui a11y",
+    "test:mutation": "stryker run",
+    "bench": "vitest bench --run",
+    "golden:update": "vitest run --project golden -u",
+    "fixtures:generate": "node scripts/generate-large-fixture.mjs",
+    "handoff:create": "node scripts/handoff.mjs create",
+    "handoff:verify": "node scripts/handoff.mjs verify"
+  }
+}
