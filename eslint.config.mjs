@@ -48,6 +48,12 @@ const tauriPluginPattern = {
     "The webview must not use filesystem, shell or HTTP plugins (spec 6.7).",
 };
 
+const yamlPattern = {
+  group: ["yaml"],
+  message:
+    "Notebook files are parsed and serialised only by packages/format (AGENTS.md section 2 rule 2).",
+};
+
 export default defineConfig(
   globalIgnores([
     "**/dist/**",
@@ -149,7 +155,10 @@ export default defineConfig(
     // invoke, but must not reach for these plugins either.
     files: ["apps/desktop/src/ipc/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: [tauriPluginPattern] }],
+      "no-restricted-imports": [
+        "error",
+        { patterns: [tauriPluginPattern, yamlPattern] },
+      ],
     },
   },
 
@@ -165,7 +174,7 @@ export default defineConfig(
       "no-restricted-imports": [
         "error",
         {
-          patterns: [tauriPluginPattern],
+          patterns: [tauriPluginPattern, yamlPattern],
           paths: [
             {
               name: "@tauri-apps/api/core",
@@ -191,6 +200,7 @@ export default defineConfig(
               message:
                 "extensions/vscode must not depend on apps/ (AGENTS.md section 4).",
             },
+            yamlPattern,
           ],
         },
       ],

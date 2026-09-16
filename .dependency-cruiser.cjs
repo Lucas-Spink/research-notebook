@@ -49,6 +49,14 @@ module.exports = {
       to: { path: "^apps/" },
     },
     {
+      name: "single-parser-outside-format",
+      comment:
+        "Notebook files are parsed and serialised only by packages/format (AGENTS.md section 2 rule 2).",
+      severity: "error",
+      from: { path: "^(apps/desktop/src|extensions/vscode/src)" },
+      to: { path: "node_modules/yaml" },
+    },
+    {
       name: "features-use-public-api-only",
       comment:
         "A feature may import another feature only through its index.ts.",
