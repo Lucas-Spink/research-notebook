@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/format" },
+    { "path": "packages/citations" },
+    { "path": "extensions/vscode" }
+  ]
+}
