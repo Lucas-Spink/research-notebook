@@ -33,5 +33,19 @@
     "fixtures:generate": "node scripts/generate-large-fixture.mjs",
     "handoff:create": "node scripts/handoff.mjs create",
     "handoff:verify": "node scripts/handoff.mjs verify"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "dependency-cruiser": "^18.3.1",
+    "eslint": "^10.10.0",
+    "fast-check": "^4.10.0",
+    "jsdom": "^30.0.1",
+    "lefthook": "^2.1.14",
+    "license-checker-rseidelsohn": "^5.0.1",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1"
   }
 }
