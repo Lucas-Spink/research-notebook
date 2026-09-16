@@ -1,0 +1,8 @@
+# Machine-written; pnpm regenerates this in its own format.
+pnpm-lock.yaml
+
+# Hand-authored prose. Prettier's proseWrap would fight deliberately
+# formatted technical writing (spec repo-tree blocks, ADRs), and several of
+# these live under protected paths (AGENTS.md section 6) this task has no
+# reason to touch.
+**/*.md

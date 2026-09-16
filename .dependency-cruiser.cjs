@@ -9,14 +9,16 @@ module.exports = {
     },
     {
       name: "ui-no-direct-system-plugins",
-      comment: "The webview must not use filesystem, shell or HTTP plugins (spec 6.7).",
+      comment:
+        "The webview must not use filesystem, shell or HTTP plugins (spec 6.7).",
       severity: "error",
       from: { path: "^apps/desktop/src" },
       to: { path: "node_modules/@tauri-apps/plugin-(fs|shell|http)" },
     },
     {
       name: "invoke-only-in-ipc",
-      comment: "Only generated bindings in apps/desktop/src/ipc may call Tauri invoke.",
+      comment:
+        "Only generated bindings in apps/desktop/src/ipc may call Tauri invoke.",
       severity: "error",
       from: { path: "^apps/desktop/src", pathNot: "^apps/desktop/src/ipc/" },
       to: { path: "node_modules/@tauri-apps/api/core" },
@@ -48,12 +50,16 @@ module.exports = {
     },
     {
       name: "features-use-public-api-only",
-      comment: "A feature may import another feature only through its index.ts.",
+      comment:
+        "A feature may import another feature only through its index.ts.",
       severity: "error",
       from: { path: "^apps/desktop/src/features/([^/]+)/" },
       to: {
         path: "^apps/desktop/src/features/[^/]+/",
-        pathNot: ["^apps/desktop/src/features/$1/", "^apps/desktop/src/features/[^/]+/index\\.tsx?$"],
+        pathNot: [
+          "^apps/desktop/src/features/$1/",
+          "^apps/desktop/src/features/[^/]+/index\\.tsx?$",
+        ],
       },
     },
   ],
