@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "deps:check": "depcruise apps packages extensions --config .dependency-cruiser.cjs",
-    "licences:check": "license-checker-rseidelsohn --production --excludePrivatePackages --excludePackages citeproc --onlyAllow \"MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC0-1.0;BlueOak-1.0.0;MPL-2.0;Unlicense;AGPL-3.0-or-later\"",
+    "licences:check": "license-checker-rseidelsohn --excludePrivatePackages --excludePackages citeproc --onlyAllow \"MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC0-1.0;CC-BY-3.0;CC-BY-4.0;BlueOak-1.0.0;MPL-2.0;Unlicense;AGPL-3.0-or-later\" --summary",
     "lint:rust": "cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --workspace --all-targets --locked -- -D warnings",
     "format:rust": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check",
     "test": "pnpm test:unit && pnpm test:property && pnpm test:golden && pnpm test:fixtures && pnpm test:rust && pnpm test:fs-safety",
