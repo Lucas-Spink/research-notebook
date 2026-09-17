@@ -245,13 +245,14 @@ importers:
 
   extensions/vscode: {}
 
-  packages/citations: {}
+  packages/citations:
+    dependencies:
+      citeproc:
+        specifier: 2.4.63
+        version: 2.4.63
 
   packages/format:
     dependencies:
-      yaml:
-        specifier: 2.9.1
-        version: 2.9.1
       '@tiptap/core':
         specifier: 3.31.3
         version: 3.31.3(@tiptap/pm@3.31.3)
@@ -261,6 +262,9 @@ importers:
       '@tiptap/pm':
         specifier: 3.31.3
         version: 3.31.3
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
 
 packages:
 
@@ -1290,6 +1294,9 @@ packages:
   chownr@3.0.0:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
     engines: {node: '>=18'}
+
+  citeproc@2.4.63:
+    resolution: {integrity: sha512-68F95Bp4UbgZU/DBUGQn0qV3HDZLCdI9+Bb2ByrTaNJDL5VEm9LqaiNaxljsvoaExSLEXe1/r6n2Z06SCzW3/Q==}
 
   cli-width@4.1.0:
     resolution: {integrity: sha512-ouuZd4/dm2Sw5Gmqy6bGyNNNe1qt9RpmxveLSO7KcgsTnU7RXfsw+/bukWGo1abgBiMAic068rclZsO4IWmmxQ==}
@@ -3798,6 +3805,8 @@ snapshots:
   chardet@2.2.0: {}
 
   chownr@3.0.0: {}
+
+  citeproc@2.4.63: {}
 
   cli-width@4.1.0: {}
 
