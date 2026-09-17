@@ -60,7 +60,7 @@ export default defineConfig(
     "**/target/**",
     "**/*.tsbuildinfo",
     "apps/desktop/src-tauri/gen/**",
-    "fixtures/**",
+    "fixtures/projects/**",
   ]),
 
   {
