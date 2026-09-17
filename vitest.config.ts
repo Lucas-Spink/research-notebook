@@ -10,8 +10,16 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["packages/**/*.test.ts", "extensions/vscode/src/**/*.test.ts"],
-          exclude: [...ignore, "**/*.property.test.ts", "**/*.golden.test.ts", "**/*.fixtures.test.ts"],
+          include: [
+            "packages/**/*.test.ts",
+            "extensions/vscode/src/**/*.test.ts",
+          ],
+          exclude: [
+            ...ignore,
+            "**/*.property.test.ts",
+            "**/*.golden.test.ts",
+            "**/*.fixtures.test.ts",
+          ],
         },
       },
       {
