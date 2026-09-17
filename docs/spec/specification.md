@@ -1199,6 +1199,16 @@ evidence links.
 | ADR-0007 | Typst generates PDF/A exports from JSON data. |
 | ADR-0008 | Stable and development builds use different application identifiers. |
 
+Spec section affected:
+
+   - ADR-0001 → 5, 6.5 (format files, nb-fs)
+   - ADR-0002 → 6.3 (component responsibilities)
+   - ADR-0004 → 5.6, 5.7 (reference/citation syntax)
+   - ADR-0005 → 7.3 (workspace table)
+   - ADR-0006 → 6.1 (technology stack, licences)
+   - ADR-0007 → 7.12 (PDF/A export)
+   - ADR-0008 → ADR itself / spec 9.4 area
+
 15.2 Open questions
 
 | **Question** | **Resolve by** |
