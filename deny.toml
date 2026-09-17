@@ -5,6 +5,27 @@ all-features = true
 
 [advisories]
 yanked = "deny"
+# All six ignored IDs below are "unmaintained", not known vulnerabilities,
+# and all are transitive-only via Tauri 2.11.5 (the newest stable, non-alpha
+# release) - none are direct dependencies of this project, and no safe
+# upgrade is available on stable Tauri 2.x for either cluster. Revisit when
+# Tauri bumps the dependencies named below. (S0-T09)
+#
+# unic-ucd-ident, unic-ucd-version, unic-char-property, unic-char-range,
+# unic-common: the unmaintained rust-unic project, pulled in by
+# tauri-utils's urlpattern ^0.3 dependency.
+#
+# proc-macro-error: pulled in by the GTK/glib bindings that
+# tauri-runtime-wry depends on for Linux; present in Cargo.lock even
+# though this project does not currently target Linux.
+ignore = [
+  "RUSTSEC-2025-0098",
+  "RUSTSEC-2025-0100",
+  "RUSTSEC-2025-0081",
+  "RUSTSEC-2025-0075",
+  "RUSTSEC-2025-0080",
+  "RUSTSEC-2024-0370",
+]
 
 [licenses]
 confidence-threshold = 0.9
