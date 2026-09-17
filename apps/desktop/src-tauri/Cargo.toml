@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/nb-zotero", "crates/nb-git"]
+members = [".", "crates/nb-zotero", "crates/nb-git", "crates/nb-export"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
