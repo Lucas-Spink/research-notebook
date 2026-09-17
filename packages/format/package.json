@@ -2,5 +2,10 @@
   "name": "@research-notebook/format",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@tiptap/core": "3.31.3",
+    "@tiptap/markdown": "3.31.3",
+    "@tiptap/pm": "3.31.3"
+  }
 }
