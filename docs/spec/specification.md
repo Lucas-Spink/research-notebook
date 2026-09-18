@@ -336,8 +336,11 @@ layout travels with the project.
 >
 > \- question: "01JAXA1C5D8E2F4G6H7J9K0M1N"
 >
-> experiments: \["01JAXQ8M3K7T2V9R4W6Y5Z0B1C",
-> "01JAXQ9P2L6S1U8X3Z5A7C9E0G"\]
+> experiments:
+>
+> \- "01JAXQ8M3K7T2V9R4W6Y5Z0B1C"
+>
+> \- "01JAXQ9P2M6S1T8X3Z5A7C9E0G"
 >
 > table:
 >
@@ -432,7 +435,7 @@ the artefact and version.
 > Link mode:
 >
 > \[Raw counts\](../../../data/counts.h5
-> "art:01JAXR9Q1W3E5R7T9Y1U3I5O7P")
+> "art:01JAXR9Q1W3E5R7T9Y1V3J5N7P")
 
 - The application resolves a reference by ULID and version through
   artefacts.yaml. The target path exists for readers without the
@@ -1360,7 +1363,33 @@ A.2 experiments/EXP-042/artefacts.yaml
 >
 > captured: "2026-09-05T09:40:52Z"
 >
-> \- id: "01JAXR9Q1W3E5R7T9Y1U3I5O7P"
+> \- id: "01JAXR6E1F3G5H7J9K1M3N5P7Q"
+>
+> name: "PCA by batch"
+>
+> role: "result"
+>
+> mode: "copy"
+>
+> type: "pdf"
+>
+> source: {root: "project", path: "results/pca/pca_by_batch.pdf"}
+>
+> created: "2026-09-03T14:05:30Z"
+>
+> versions:
+>
+> \- v: 1
+>
+> file: "evidence/pca_by_batch.pdf"
+>
+> sha256: "a3d5…"
+>
+> size: 79002
+>
+> captured: "2026-09-03T14:05:30Z"
+>
+> \- id: "01JAXR9Q1W3E5R7T9Y1V3J5N7P"
 >
 > name: "Raw counts"
 >
@@ -1402,7 +1431,9 @@ A.2 experiments/EXP-042/artefacts.yaml
 >
 > name: "QC"
 >
-> items: \["01JAXR6E1F3G5H7J9K1M3N5P7Q"\]
+> items:
+>
+> \- "01JAXR6E1F3G5H7J9K1M3N5P7Q"
 >
 > groups: \[\]
 
