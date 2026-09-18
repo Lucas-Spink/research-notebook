@@ -1,6 +1,6 @@
 # Notebook format, version 1
 
-Status: **draft for maintainer approval** (S2-T01). No parser or serialiser exists yet; S2-T02 starts only after this document is approved.
+Status: merged with S2-T01 (PR #14). The parser and serialiser in `packages/format` implement it as of S2-T02; the interpretations that task added to section 4.3 (marked "S2-T02" below) are for maintainer review in that pull request.
 
 This document is the normative definition of every file the application reads and writes inside `_notebook/`. It refines chapter 5 of the technical specification (`docs/spec/specification.md`) and follows the same normative language: **must**, **should** and **may** as in spec 1.6. Once approved and released, any change to it needs a format version increment, a migration, new fixtures, an ADR and maintainer approval (AGENTS.md section 2, rule 3).
 
@@ -196,13 +196,13 @@ Schema: `experiment.schema.json` (frontmatter only). Spec 5.5. Path `experiments
 
 **Body grammar.** The format layer looks at the body only for the constructs below; everything else is opaque Markdown preserved as written.
 
-1. Fenced code blocks (opened by a line of at least three backticks or tildes, closed by a line of the same character and at least the same length) are tracked so that nothing inside them is treated as a heading or marker.
+1. Fenced code blocks are tracked so that nothing inside them is treated as a heading or marker. The fence rules are those of CommonMark (S2-T02): a fence opens with up to three spaces of indentation followed by three or more backticks or three or more tildes, and a backtick fence's info string may not contain a backtick. It closes at a line with up to three spaces of indentation, the same character at least as many times as the opening fence, and nothing else but spaces or tabs. A fence that never closes runs to the end of the file.
 2. A **heading line** is a line outside a fenced code block that begins at column 0 with `## ` (two hashes and a space). The heading text is the rest of the line with surrounding whitespace trimmed. Setext headings, headings indented by one or more spaces, and headings inside block quotes or lists are not headings for this purpose. Trailing closing hashes are not stripped.
 3. A heading is **recognised** when its text, compared case-insensitively, is `methods`, `results notes` or `interpretation`. Any other level-2 heading starts an **unknown section**. Level 1 and levels 3 to 6 are ordinary body text.
-4. The **preamble** is everything between the frontmatter and the first level-2 heading of any kind. It is preserved unchanged.
+4. The **preamble** is everything between the frontmatter and the first level-2 heading of any kind. It is preserved unchanged except that blank lines at either end are removed, as for a section's text (S2-T02), so that blocks are separated by exactly one blank line when written.
 5. A **section** runs from its heading line to the line before the next level-2 heading, or before the literature block, or to the end of the file. Its **text** is the content after the heading line with leading and trailing blank lines removed; blank lines inside are preserved. Trailing spaces on a line are preserved (they are hard breaks in Markdown).
 6. A recognised heading appearing more than once is a parse error and the file opens read-only (spec 5.5 rule 5). The same unknown heading may appear more than once.
-7. The **literature block** starts at a line that is exactly `<!-- literature:start -->` and ends at the next line that is exactly `<!-- literature:end -->`, outside any fenced code block. Its content is the text between those lines with leading and trailing blank lines removed. It must be the last non-blank content in the file; text after `<!-- literature:end -->` other than blank lines, a second start marker, or a start without an end is a parse error. There is at most one block.
+7. The **literature block** starts at a line that is exactly `<!-- literature:start -->` and ends at the next line that is exactly `<!-- literature:end -->`, outside any fenced code block. Its content is the text between those lines with leading and trailing blank lines removed. It must be the last non-blank content in the file; text after `<!-- literature:end -->` other than blank lines, a second start marker, or a start without an end is a parse error. There is at most one block. Fenced code blocks are tracked inside the block too, so a marker inside a fence is text. A start marker inside the block, and an end marker with no start, are parse errors like the cases above (S2-T02).
 8. `## Literature` inside the block is part of the block, not a section. A `## Literature` heading outside the block is an unknown section.
 
 The parsed body model is `{preamble, sections, literature}`: `sections` is an ordered list of `{key, body}` for recognised sections (`methods`, `results_notes`, `interpretation`) and `{key: "unknown", heading, body}` for unknown ones; `literature` is a string or `null`. See `ExperimentBody` in `packages/format/src/schema/experiment.ts`.
@@ -211,8 +211,9 @@ The parsed body model is `{preamble, sections, literature}`: `sections` is an or
 
 - Blocks, in order: the preamble (only if non-empty), each section in its stored order, then the literature block (only if present).
 - A section block is its heading line, and, if its text is non-empty, one blank line and the text. An empty section is only its heading line.
-- A recognised heading is written in canonical form `## Methods`, `## Results notes` or `## Interpretation`. An unknown heading is written exactly as read, with its original text.
-- The literature block is `<!-- literature:start -->`, its content, `<!-- literature:end -->`, on consecutive lines.
+- A recognised heading is written in canonical form `## Methods`, `## Results notes` or `## Interpretation`. An unknown heading is written exactly as read, with its original text. The model stores the text after `## ` untrimmed for an unknown section, so padding and closing hashes survive (S2-T02).
+- The literature block is `<!-- literature:start -->`, its content, `<!-- literature:end -->`, on consecutive lines. Empty content (the empty string, as opposed to `null` for no block) is written as the two marker lines directly after each other (S2-T02).
+- A file with no blocks at all is the closing frontmatter fence followed by one LF, the same as an empty question body (S2-T02).
 
 **Creating a missing section.** The first time a missing recognised section is edited it is inserted in canonical order (Methods, Results notes, Interpretation) relative to the recognised sections that exist: immediately after the nearest preceding recognised section; if none precedes it, immediately before the nearest following one; if the file has no recognised sections, after every other section and before the literature block.
 
@@ -471,6 +472,9 @@ The specification is silent, ambiguous or self-contradictory on the points below
 | 21 | Anchors, aliases, tags, duplicate YAML keys | Rejected on read.                                                                                                                                                               | Proposed      |
 | 22 | YAML sequence indentation and flow braces   | Sequence entries indented two spaces under their key; no padding inside `{}`.                                                                                                   | Proposed      |
 | 23 | Cross-file outcomes (section 5)             | Each listed outcome (report, read-only, unavailable, ignored) is a proposal; the spec names only FR-EXP-07, FR-EXP-08 and FR-PRJ-07.                                            | Proposed      |
+| 24 | Fence recognition (S2-T02)                  | CommonMark rules: indentation up to three spaces, backtick info strings without backticks, closing fence of the same character and at least the same length, unclosed runs to the end. A misread fence would rewrite a heading inside code, so the rule follows what Markdown readers show. | Asked         |
+| 25 | Preamble and unknown heading text (S2-T02)  | The preamble loses blank lines at either end; an unknown section's heading is stored verbatim after `## `, untrimmed.                                                           | Proposed      |
+| 26 | Empty and misplaced blocks (S2-T02)         | A file with no body blocks ends at the closing fence and one LF; an empty literature block is two consecutive marker lines; a start marker inside the block or an end marker with no start is a parse error. | Proposed      |
 
 ### Open, not decided here
 

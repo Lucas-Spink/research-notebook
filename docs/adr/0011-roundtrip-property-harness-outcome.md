@@ -58,3 +58,21 @@ extend it in Stage 2 rather than replacing it. Evidence:
   whether that matches the project's dependency-pinning expectations
   (AGENTS.md section 7.4) before this becomes load-bearing test
   infrastructure.
+
+## Update from S2-T02
+
+S2-T02 implemented the file-level parser and serialiser in
+`packages/format/src/files/` and kept section text as opaque strings, as
+`docs/format/format-v1.md` section 4.3 and the `ExperimentBody` model define.
+At that layer neither collision above can occur: a `!` before an artefact
+reference and a paragraph that starts with a block marker only matter when
+section text is parsed into editor nodes. The maintainer chose to defer both
+to the first task that parses section text into nodes (S2-T12 or later),
+where the parser must either handle them correctly or make a documented
+product decision, with the generator in `test/arbitraries.ts` updated to
+test that choice. `ensureSafeParagraphStart` therefore stays until then.
+
+The file-level generators added in S2-T02 live in
+`test/file-arbitraries.ts` and `test/evidence-arbitraries.ts`, reusing the
+primitives here, because extending `arbitraries.ts` in place would have
+taken it well past the file-size guideline.
