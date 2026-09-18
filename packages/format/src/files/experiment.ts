@@ -1,8 +1,15 @@
-import type {
-  ExperimentBodyModel,
-  ExperimentFrontmatterModel,
+import {
+  parseExperimentBody,
+  serialiseExperimentBody,
+} from "../experiment-body";
+import { parseFrontmatterFile, writeFrontmatterFile } from "../frontmatter";
+import { EXPERIMENT_SHAPE } from "../key-order";
+import { ok, type FormatError, type Result } from "../result";
+import {
+  ExperimentFrontmatter,
+  type ExperimentBodyModel,
+  type ExperimentFrontmatterModel,
 } from "../schema";
-import { fail, type FormatError, type Result } from "../result";
 
 /** A parsed `experiments/<ref>/experiment.md`. */
 export interface ExperimentFile {
@@ -12,14 +19,20 @@ export interface ExperimentFile {
 
 /** Parses an experiment file. */
 export function parseExperiment(
-  _text: string,
+  text: string,
 ): Result<ExperimentFile, FormatError> {
-  void _text;
-  return fail({ kind: "frontmatter", message: "not implemented" });
+  const parsed = parseFrontmatterFile(text, ExperimentFrontmatter);
+  if (!parsed.ok) return parsed;
+  const body = parseExperimentBody(parsed.value.body);
+  if (!body.ok) return body;
+  return ok({ frontmatter: parsed.value.frontmatter, body: body.value });
 }
 
 /** Writes an experiment file in canonical form. */
-export function serialiseExperiment(_experiment: ExperimentFile): string {
-  void _experiment;
-  throw new Error("not implemented");
+export function serialiseExperiment(experiment: ExperimentFile): string {
+  return writeFrontmatterFile(
+    experiment.frontmatter,
+    EXPERIMENT_SHAPE,
+    serialiseExperimentBody(experiment.body),
+  );
 }

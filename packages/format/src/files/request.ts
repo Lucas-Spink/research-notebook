@@ -1,16 +1,16 @@
-import type { InboxRequestModel } from "../schema";
-import { fail, type FormatError, type Result } from "../result";
+import { REQUEST_SHAPE, orderByShape } from "../key-order";
+import type { FormatError, Result } from "../result";
+import { InboxRequest, type InboxRequestModel } from "../schema";
+import { parseJsonFile } from "./read";
 
-/** Parses an inbox `request.json`. */
+/** Parses an inbox `request.json`. Unknown keys are accepted and kept. */
 export function parseRequest(
-  _text: string,
+  text: string,
 ): Result<InboxRequestModel, FormatError> {
-  void _text;
-  return fail({ kind: "syntax", message: "not implemented" });
+  return parseJsonFile(text, InboxRequest);
 }
 
-/** Writes `request.json` in canonical form. */
-export function serialiseRequest(_request: InboxRequestModel): string {
-  void _request;
-  throw new Error("not implemented");
+/** Writes `request.json` in canonical form (format-v1.md 3.5). */
+export function serialiseRequest(request: InboxRequestModel): string {
+  return `${JSON.stringify(orderByShape(request, REQUEST_SHAPE), null, 2)}\n`;
 }

@@ -1,16 +1,20 @@
-import type { ProjectYamlModel } from "../schema";
-import { fail, type FormatError, type Result } from "../result";
+import { PROJECT_SHAPE, orderByShape } from "../key-order";
+import type { FormatError, Result } from "../result";
+import { ProjectYaml, type ProjectYamlModel } from "../schema";
+import { writeYaml } from "../yaml/write";
+import { parseYamlFile } from "./read";
 
-/** Parses `project.yaml`. */
+/** Table columns are the one list of objects written in flow style (format-v1.md 3.4). */
+const FLOW_PATHS = ["table.columns.*"];
+
+/** Parses `project.yaml`. Unknown keys are kept at every level. */
 export function parseProject(
-  _text: string,
+  text: string,
 ): Result<ProjectYamlModel, FormatError> {
-  void _text;
-  return fail({ kind: "syntax", message: "not implemented" });
+  return parseYamlFile(text, ProjectYaml);
 }
 
 /** Writes `project.yaml` in canonical form. */
-export function serialiseProject(_project: ProjectYamlModel): string {
-  void _project;
-  throw new Error("not implemented");
+export function serialiseProject(project: ProjectYamlModel): string {
+  return writeYaml(orderByShape(project, PROJECT_SHAPE), FLOW_PATHS);
 }

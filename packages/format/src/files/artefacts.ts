@@ -1,16 +1,20 @@
-import type { ArtefactsFileModel } from "../schema";
-import { fail, type FormatError, type Result } from "../result";
+import { ARTEFACTS_SHAPE, orderByShape } from "../key-order";
+import type { FormatError, Result } from "../result";
+import { ArtefactsFile, type ArtefactsFileModel } from "../schema";
+import { writeYaml } from "../yaml/write";
+import { parseYamlFile } from "./read";
+
+/** Each artefact's `source` is written in flow style (format-v1.md 3.4). */
+const FLOW_PATHS = ["artefacts.*.source"];
 
 /** Parses an experiment's `artefacts.yaml`. */
 export function parseArtefacts(
-  _text: string,
+  text: string,
 ): Result<ArtefactsFileModel, FormatError> {
-  void _text;
-  return fail({ kind: "syntax", message: "not implemented" });
+  return parseYamlFile(text, ArtefactsFile);
 }
 
 /** Writes `artefacts.yaml` in canonical form. */
-export function serialiseArtefacts(_file: ArtefactsFileModel): string {
-  void _file;
-  throw new Error("not implemented");
+export function serialiseArtefacts(file: ArtefactsFileModel): string {
+  return writeYaml(orderByShape(file, ARTEFACTS_SHAPE), FLOW_PATHS);
 }
