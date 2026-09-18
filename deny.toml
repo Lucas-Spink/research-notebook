@@ -18,6 +18,12 @@ yanked = "deny"
 # proc-macro-error: pulled in by the GTK/glib bindings that
 # tauri-runtime-wry depends on for Linux; present in Cargo.lock even
 # though this project does not currently target Linux.
+#
+# paste: unmaintained (archived by its author), pulled transitively by
+# `specta` 2.0.0-rc.25 via `tauri-specta` (S1-T05). No known vulnerability
+# and no safe upgrade exists — `specta`/`tauri-specta` have no stable
+# release compatible with Tauri 2 yet (only the rc.25 line). Revisit when
+# specta drops paste or stabilises.
 ignore = [
   "RUSTSEC-2025-0098",
   "RUSTSEC-2025-0100",
@@ -25,6 +31,7 @@ ignore = [
   "RUSTSEC-2025-0075",
   "RUSTSEC-2025-0080",
   "RUSTSEC-2024-0370",
+  "RUSTSEC-2024-0436",
 ]
 
 [licenses]

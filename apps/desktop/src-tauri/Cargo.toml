@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/nb-zotero", "crates/nb-git", "crates/nb-export"]
+members = [".", "crates/nb-zotero", "crates/nb-git", "crates/nb-export", "crates/nb-preview"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -39,6 +39,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "=0.0.12"
+nb-preview = { path = "crates/nb-preview", version = "0.1.0" }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
