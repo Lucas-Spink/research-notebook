@@ -6,3 +6,7 @@ pnpm-lock.yaml
 # these live under protected paths (AGENTS.md section 6) this task has no
 # reason to touch.
 **/*.md
+
+# Machine-written by tauri-specta; regenerated in its own style on every
+# dev run (AGENTS.md section 5, "Generated files" — never hand-edited).
+apps/desktop/src/ipc/**
