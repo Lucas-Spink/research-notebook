@@ -10,3 +10,8 @@ pnpm-lock.yaml
 # Machine-written by tauri-specta; regenerated in its own style on every
 # dev run (AGENTS.md section 5, "Generated files" — never hand-edited).
 apps/desktop/src/ipc/**
+
+# Machine-written by scripts/export-format-schemas.mjs from the Zod schemas in
+# packages/format; a test fails if they drift (AGENTS.md section 5, "Generated
+# files" - never hand-edited).
+docs/format/schemas/**

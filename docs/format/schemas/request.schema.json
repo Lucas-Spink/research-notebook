@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "format_version": {
+      "type": "number",
+      "const": 1
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "created": {
+      "type": "string",
+      "pattern": "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})Z$"
+    },
+    "created_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "experiment_id": {
+      "type": "string",
+      "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "result",
+        "method"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "copy",
+        "link"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "project"
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "path"
+      ],
+      "additionalProperties": {}
+    },
+    "payload": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "const": "."
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "path_in_repo": {
+              "type": "string"
+            },
+            "file_dirty": {
+              "type": "boolean"
+            },
+            "tree_dirty": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "repo",
+            "commit",
+            "path_in_repo",
+            "file_dirty",
+            "tree_dirty"
+          ],
+          "additionalProperties": {}
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "group_path": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "format_version",
+    "request_id",
+    "created",
+    "created_by",
+    "experiment_id",
+    "role",
+    "mode",
+    "source",
+    "payload",
+    "sha256",
+    "size",
+    "provenance"
+  ],
+  "additionalProperties": {},
+  "title": "inbox request.json (format version 1)",
+  "description": "Structural constraints only. Cross-entry and cross-file rules are listed in docs/format/format-v1.md."
+}
