@@ -15,3 +15,7 @@ apps/desktop/src/ipc/**
 # packages/format; a test fails if they drift (AGENTS.md section 5, "Generated
 # files" - never hand-edited).
 docs/format/schemas/**
+
+# Canonical output is compared byte for byte, so Prettier must not reflow it
+# (flow maps, quoting). Golden tests own these files (AGENTS.md section 8).
+packages/format/src/__golden__/**

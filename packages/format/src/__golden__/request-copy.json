@@ -1,0 +1,27 @@
+{
+  "format_version": 1,
+  "request_id": "01JAXT0C4D6E8F0G2H4J6K8M0N",
+  "created": "2026-09-06T11:00:00Z",
+  "created_by": "vscode-extension@0.1.0",
+  "experiment_id": "01JAXQ8M3K7T2V9R4W6Y5Z0B1C",
+  "role": "result",
+  "mode": "copy",
+  "source": {
+    "root": "project",
+    "path": "results/pca/pca_by_treatment.pdf"
+  },
+  "payload": "pca_by_treatment.pdf",
+  "sha256": "9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c",
+  "size": 88213,
+  "provenance": {
+    "repo": ".",
+    "commit": "3f9c1e2d3f9c1e2d3f9c1e2d3f9c1e2d3f9c1e2d",
+    "path_in_repo": "results/pca/pca_by_treatment.pdf",
+    "file_dirty": false,
+    "tree_dirty": false
+  },
+  "group_path": [
+    "Figures",
+    "QC"
+  ]
+}
