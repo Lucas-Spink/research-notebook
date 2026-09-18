@@ -1,0 +1,12 @@
+[package]
+name = "nb-preview"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+
+[lints]
+workspace = true
+
+[dependencies]
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
+thiserror = "2"

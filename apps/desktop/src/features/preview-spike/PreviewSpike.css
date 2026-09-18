@@ -1,0 +1,26 @@
+.preview-spike {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.preview-spike figure {
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.preview-spike canvas,
+.preview-spike img {
+  display: block;
+  max-width: 260px;
+  max-height: 260px;
+}
+
+.preview-spike figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
