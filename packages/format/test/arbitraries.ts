@@ -33,13 +33,63 @@ function safeText(minLength: number, maxLength: number): fc.Arbitrary<string> {
     .filter((text) => text.trim().length > 0);
 }
 
-const ULID_CHARS = [..."0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+/** Crockford Base32 excludes I, L, O and U (spec 5.2, decided in S2-T01). */
+const ULID_CHARS = [..."0123456789ABCDEFGHJKMNPQRSTVWXYZ"];
+const ULID_FIRST_CHARS = [..."01234567"];
 
-/** Spec 5.2: ULID is 26 characters, Crockford Base32, uppercase. */
+/**
+ * Spec 5.2: ULID is 26 characters, Crockford Base32, uppercase. The first
+ * character is at most 7 so the value fits in 128 bits.
+ */
 export function ulid(): fc.Arbitrary<string> {
   return fc
-    .array(fc.constantFrom(...ULID_CHARS), { minLength: 26, maxLength: 26 })
+    .tuple(
+      fc.constantFrom(...ULID_FIRST_CHARS),
+      fc.array(fc.constantFrom(...ULID_CHARS), {
+        minLength: 25,
+        maxLength: 25,
+      }),
+    )
+    .map(([first, rest]) => first + rest.join(""));
+}
+
+/** Spec 5.2: RFC 3339 UTC with Z and second precision. */
+export function timestamp(): fc.Arbitrary<string> {
+  return fc
+    .date({
+      min: new Date("2000-01-01T00:00:00Z"),
+      max: new Date("2099-12-31T23:59:59Z"),
+      noInvalidDate: true,
+    })
+    .map((date) => date.toISOString().replace(/\.\d{3}Z$/, "Z"));
+}
+
+/** Spec 5.2: lowercase hexadecimal SHA-256, 64 characters. */
+export function sha256(): fc.Arbitrary<string> {
+  return fc
+    .array(fc.constantFrom(..."0123456789abcdef"), {
+      minLength: 64,
+      maxLength: 64,
+    })
     .map((chars) => chars.join(""));
+}
+
+const PATH_SEGMENT_CHARS = [
+  ..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-",
+];
+
+function pathSegment(): fc.Arbitrary<string> {
+  return fc
+    .array(fc.constantFrom(...PATH_SEGMENT_CHARS), {
+      minLength: 1,
+      maxLength: 12,
+    })
+    .map((chars) => chars.join(""));
+}
+
+/** Spec 5.2 and 9.3: relative, forward slashes, no dot segments. */
+export function relativePathSegments(): fc.Arbitrary<string[]> {
+  return fc.array(pathSegment(), { minLength: 1, maxLength: 5 });
 }
 
 const ITEM_KEY_CHARS = [..."23456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
