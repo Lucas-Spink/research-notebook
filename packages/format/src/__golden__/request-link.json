@@ -1,0 +1,24 @@
+{
+  "format_version": 1,
+  "request_id": "01JAXT0C4D6E8F0G2H4J6K8M0N",
+  "created": "2026-09-06T11:00:00Z",
+  "created_by": "vscode-extension@0.1.0",
+  "experiment_id": "01JAXQ8M3K7T2V9R4W6Y5Z0B1C",
+  "role": "result",
+  "mode": "link",
+  "source": {
+    "root": "project",
+    "path": "data/counts.h5"
+  },
+  "payload": null,
+  "sha256": "c21fc21fc21fc21fc21fc21fc21fc21fc21fc21fc21fc21fc21fc21fc21fc21f",
+  "size": 18400000000,
+  "provenance": null,
+  "x_future": {
+    "note": "unknown keys are kept",
+    "levels": [
+      1,
+      2
+    ]
+  }
+}
