@@ -30,6 +30,7 @@
     "test:mutation": "stryker run",
     "bench": "vitest bench --run",
     "golden:update": "vitest run --project golden -u",
+    "schemas:export": "node scripts/export-format-schemas.mjs",
     "fixtures:generate": "node scripts/generate-large-fixture.mjs",
     "handoff:create": "node scripts/handoff.mjs create",
     "handoff:verify": "node scripts/handoff.mjs verify"

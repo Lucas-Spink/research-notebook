@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^z:(?:u|g\\d+):[2-9A-Z]{8}$"
+      },
+      "_zotero": {
+        "type": "object",
+        "properties": {
+          "server_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "library": {
+            "type": "string",
+            "pattern": "^(?:u|g\\d+)$"
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[2-9A-Z]{8}$"
+          },
+          "fetched": {
+            "type": "string",
+            "pattern": "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})Z$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "trashed",
+              "missing"
+            ]
+          }
+        },
+        "required": [
+          "server_id",
+          "library",
+          "key",
+          "fetched",
+          "status"
+        ],
+        "additionalProperties": {}
+      }
+    },
+    "required": [
+      "id",
+      "_zotero"
+    ],
+    "additionalProperties": {}
+  },
+  "title": "bibliography.json (format version 1)",
+  "description": "Structural constraints only. Cross-entry and cross-file rules are listed in docs/format/format-v1.md."
+}
