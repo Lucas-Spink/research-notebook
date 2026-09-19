@@ -1,4 +1,4 @@
-import { PROJECT_SHAPE, orderByShape } from "../key-order";
+import { PROJECT_SHAPE, orderByShapeAsMaps } from "../key-order";
 import type { FormatError, Result } from "../result";
 import { ProjectYaml, type ProjectYamlModel } from "../schema";
 import { writeYaml } from "../yaml/write";
@@ -16,5 +16,5 @@ export function parseProject(
 
 /** Writes `project.yaml` in canonical form. */
 export function serialiseProject(project: ProjectYamlModel): string {
-  return writeYaml(orderByShape(project, PROJECT_SHAPE), FLOW_PATHS);
+  return writeYaml(orderByShapeAsMaps(project, PROJECT_SHAPE), FLOW_PATHS);
 }

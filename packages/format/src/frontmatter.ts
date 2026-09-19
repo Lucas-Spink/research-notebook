@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { readYaml } from "./yaml/read";
 import { writeYaml } from "./yaml/write";
-import { orderByShape, type Shape } from "./key-order";
+import { orderByShapeAsMaps, type Shape } from "./key-order";
 import { fail, ok, type FormatError, type Result } from "./result";
 import { normaliseText } from "./text";
 import { zodFailure } from "./zod-error";
@@ -63,7 +63,7 @@ export function writeFrontmatterFile(
   shape: Shape,
   blocks: string,
 ): string {
-  const yaml = writeYaml(orderByShape(frontmatter, shape));
+  const yaml = writeYaml(orderByShapeAsMaps(frontmatter, shape));
   const head = `${FENCE}\n${yaml}${FENCE}\n`;
   return blocks === "" ? head : `${head}\n${blocks}\n`;
 }
