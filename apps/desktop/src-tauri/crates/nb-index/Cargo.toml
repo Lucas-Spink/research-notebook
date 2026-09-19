@@ -1,0 +1,18 @@
+[package]
+name = "nb-index"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+
+[lints]
+workspace = true
+
+[dependencies]
+nb-fs = { path = "../nb-fs", version = "0.1.0" }
+rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled", "cache"] }
+sha2 = "=0.10.9"
+thiserror = "2"
+
+[dev-dependencies]
+proptest = "1.11.0"
+tempfile = "=3.27.0"
