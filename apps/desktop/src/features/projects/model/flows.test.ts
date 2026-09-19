@@ -7,12 +7,20 @@ import {
   locateFlow,
   openFlow,
   openRecentFlow,
-  type Api,
 } from "./flows";
+import { failure, fakeApi, ok } from "./fakeApi";
 
 const ID = "01JAX9Q2B7N4M8T6V3W5Y1Z0KC";
 const OTHER_ID = "01JAXA1C5D8E2F4G6H7J9K0M1N";
 const ROOT_ID = "01JAXQ8M3K7T2V9R4W6Y5Z0B1C";
+
+const holder = {
+  host: "lab-pc",
+  pid: 1,
+  appVersion: "0.1.0",
+  opened: "2026-09-19T10:00:00Z",
+  heartbeat: "2026-09-19T10:01:00Z",
+};
 
 const env = {
   now: () => new Date("2026-09-19T08:30:15Z"),
@@ -26,41 +34,6 @@ function yamlFor(id: string, name = "Batch effects"): string {
   );
   if (!created.ok) throw new Error(created.error.message);
   return created.value.projectYaml;
-}
-
-type Call = { command: string; args: unknown[] };
-
-const ok = (data: unknown) => ({ status: "ok", data });
-const failure = (kind: string) => ({ status: "error", error: { kind } });
-
-/** A command API that records its calls and answers from `replies`. */
-function fakeApi(replies: Partial<Record<string, unknown>> = {}) {
-  const calls: Call[] = [];
-  const defaults: Record<string, unknown> = {
-    appVersion: "0.1.0",
-    createProject: ok(null),
-    openProject: ok(null),
-    openRecentProject: failure("notRemembered"),
-    locateProject: ok(null),
-    rememberProject: ok(null),
-    externalRootStatus: ok([]),
-    setExternalRoot: ok(null),
-  };
-  const api: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
-  for (const command of Object.keys(defaults)) {
-    api[command] = (...args) => {
-      calls.push({ command, args });
-      return Promise.resolve(
-        command in replies ? replies[command] : defaults[command],
-      );
-    };
-  }
-  return {
-    // The fake has the same shape as the generated commands.
-    api: api as unknown as Api,
-    calls,
-    names: () => calls.map((c) => c.command),
-  };
 }
 
 const opened = (id: string, text = yamlFor(id)) =>
@@ -87,6 +60,9 @@ describe("createFlow", () => {
       ID,
       "Batch effects",
     ]);
+    expect(calls.find((c) => c.command === "acquireProjectLock")?.args).toEqual(
+      [3, false],
+    );
     expect(outcome).toEqual({
       kind: "opened",
       project: {
@@ -97,7 +73,9 @@ describe("createFlow", () => {
           name: "Batch effects",
           evidenceInGit: false,
           externalRoots: [],
+          archived: null,
         },
+        mode: { kind: "writable" },
       },
       warnings: [],
     });
@@ -109,6 +87,18 @@ describe("createFlow", () => {
       kind: "cancelled",
     });
     expect(names()).not.toContain("rememberProject");
+    expect(names()).not.toContain("acquireProjectLock");
+  });
+
+  it("locks the new project before it is remembered", async () => {
+    const { api, names } = fakeApi({ createProject: created() });
+    await createFlow(api, "Batch effects", env);
+    expect(names()).toEqual([
+      "appVersion",
+      "createProject",
+      "acquireProjectLock",
+      "rememberProject",
+    ]);
   });
 
   it("refuses an invalid name before asking for a folder", async () => {
@@ -186,23 +176,82 @@ describe("openFlow", () => {
     });
   });
 
-  it("reports a newer format and does not remember the project", async () => {
-    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
-    const { api, names } = fakeApi({ openProject: opened(ID, text) });
-    expect(await openFlow(api)).toEqual({
-      kind: "failed",
-      reason: "newerFormat",
+  it("locks the project and opens it writable when the lock is acquired", async () => {
+    const { api, calls } = fakeApi({ openProject: opened(ID) });
+    const outcome = await openFlow(api);
+    expect(calls.find((c) => c.command === "acquireProjectLock")?.args).toEqual(
+      [7, false],
+    );
+    expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
+      kind: "writable",
     });
-    expect(names()).not.toContain("rememberProject");
   });
 
-  it("reports an invalid project.yaml and does not remember the project", async () => {
-    const { api, names } = fakeApi({ openProject: opened(ID, "nonsense: [") });
-    expect(await openFlow(api)).toEqual({
-      kind: "failed",
-      reason: "invalidProject",
+  it("opens read-only, and still remembers the project, when another instance holds a live lock", async () => {
+    const { api, names } = fakeApi({
+      openProject: opened(ID),
+      acquireProjectLock: ok({ kind: "live", holder }),
     });
-    expect(names()).not.toContain("rememberProject");
+    const outcome = await openFlow(api);
+    expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
+      kind: "readOnly",
+      reason: { kind: "liveLock", holder },
+    });
+    expect(names()).toContain("rememberProject");
+  });
+
+  it("opens read-only when the lock cannot be asked for, rather than writable", async () => {
+    const { api } = fakeApi({
+      openProject: opened(ID),
+      acquireProjectLock: failure("lockFailed"),
+    });
+    const outcome = await openFlow(api);
+    expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
+      kind: "readOnly",
+      reason: { kind: "lockUnavailable" },
+    });
+  });
+
+  it("opens an archived project read-only and never asks for a lock", async () => {
+    const text = yamlFor(ID).replace(
+      "archived: null",
+      'archived: "2026-09-01T09:00:00Z"',
+    );
+    const { api, names } = fakeApi({ openProject: opened(ID, text) });
+    const outcome = await openFlow(api);
+    expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
+      kind: "readOnly",
+      reason: { kind: "archived", archived: "2026-09-01T09:00:00Z" },
+    });
+    expect(names()).not.toContain("acquireProjectLock");
+    expect(names()).toContain("rememberProject");
+  });
+
+  it("opens a newer format read-only, with no lock and no recent-list entry", async () => {
+    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
+    const { api, names } = fakeApi({ openProject: opened(ID, text) });
+    const outcome = await openFlow(api);
+    expect(outcome).toEqual({
+      kind: "opened",
+      project: {
+        folder: 7,
+        path: "C:/work/project",
+        summary: null,
+        mode: { kind: "readOnly", reason: { kind: "newerFormat" } },
+      },
+      warnings: [],
+    });
+    expect(names()).toEqual(["openProject"]);
+  });
+
+  it("opens an invalid project.yaml read-only, with no lock and no recent-list entry", async () => {
+    const { api, names } = fakeApi({ openProject: opened(ID, "nonsense: [") });
+    const outcome = await openFlow(api);
+    expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
+      kind: "readOnly",
+      reason: { kind: "invalidProject" },
+    });
+    expect(names()).toEqual(["openProject"]);
   });
 });
 
@@ -224,13 +273,25 @@ describe("openRecentFlow", () => {
     });
   });
 
-  it("refuses a folder that now holds a different project", async () => {
+  it("refuses a folder that now holds a different project, without locking it", async () => {
     const { api, names } = fakeApi({ openRecentProject: opened(OTHER_ID) });
     expect(await openRecentFlow(api, ID)).toEqual({
       kind: "failed",
       reason: "differentProject",
     });
     expect(names()).not.toContain("rememberProject");
+    expect(names()).not.toContain("acquireProjectLock");
+  });
+
+  it("opens a remembered project that has since become unreadable, read-only", async () => {
+    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
+    const { api, names } = fakeApi({ openRecentProject: opened(ID, text) });
+    const outcome = await openRecentFlow(api, ID);
+    expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
+      kind: "readOnly",
+      reason: { kind: "newerFormat" },
+    });
+    expect(names()).not.toContain("acquireProjectLock");
   });
 });
 
@@ -255,6 +316,16 @@ describe("locateFlow", () => {
     expect(names()).not.toContain("rememberProject");
   });
 
+  it("refuses a folder whose project cannot be identified, and locks nothing", async () => {
+    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
+    const { api, names } = fakeApi({ locateProject: opened(ID, text) });
+    expect(await locateFlow(api, ID)).toEqual({
+      kind: "failed",
+      reason: "newerFormat",
+    });
+    expect(names()).toEqual(["locateProject"]);
+  });
+
   it("does nothing when cancelled", async () => {
     const { api, names } = fakeApi();
     expect(await locateFlow(api, ID)).toEqual({ kind: "cancelled" });
@@ -276,6 +347,7 @@ describe("externalRootsFlow", () => {
     name: "Batch effects",
     evidenceInGit: false,
     externalRoots: [{ id: ROOT_ID, label: "Raw sequencing" }],
+    archived: null,
   };
   const unresolved = [
     { id: ROOT_ID, label: "Raw sequencing", path: null, available: false },
@@ -328,6 +400,7 @@ describe("chooseExternalRootFlow", () => {
     name: "Batch effects",
     evidenceInGit: false,
     externalRoots: [{ id: ROOT_ID, label: "Raw sequencing" }],
+    archived: null,
   };
 
   it("saves the chosen folder, then reports the roots again", async () => {

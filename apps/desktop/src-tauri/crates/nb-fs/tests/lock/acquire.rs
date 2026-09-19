@@ -15,6 +15,8 @@ fn a_project_without_a_lock_gets_one_in_the_documented_layout() {
     held(project.open().acquire_lock(&env, false).unwrap());
 
     // Format-v1 3.5: two-space indent, keys in documented order, final LF.
+    // The same text is checked against the LockFile schema in
+    // packages/format/src/lock-sample.test.ts; change both together.
     assert_eq!(
         String::from_utf8(project.read(LOCK)).unwrap(),
         concat!(

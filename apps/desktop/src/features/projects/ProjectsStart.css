@@ -53,3 +53,15 @@
 .projects__missing {
   font-weight: 600;
 }
+
+.projects__banner {
+  border: 1px solid currentcolor;
+  border-left-width: 0.4rem;
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.projects__banner p {
+  margin: 0.25rem 0;
+}

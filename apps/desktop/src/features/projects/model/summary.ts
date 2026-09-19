@@ -6,6 +6,8 @@ export type ProjectSummary = {
   name: string;
   evidenceInGit: boolean;
   externalRoots: { id: string; label: string }[];
+  /** When the project was archived, or `null`. An archived project opens read-only. */
+  archived: string | null;
 };
 
 /** Why `project.yaml` could not be used. Both are reported, never repaired. */
@@ -41,6 +43,7 @@ export function summariseProject(text: string): SummaryResult {
         id: root.id,
         label: root.label,
       })),
+      archived: project.archived,
     },
   };
 }

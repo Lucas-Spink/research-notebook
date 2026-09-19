@@ -32,7 +32,16 @@ describe("summariseProject", () => {
       name: "Batch effects",
       evidenceInGit: false,
       externalRoots: [],
+      archived: null,
     });
+  });
+
+  it("reports when and that a project was archived", () => {
+    const text = projectYaml().replace(
+      "archived: null",
+      'archived: "2026-09-01T09:00:00Z"',
+    );
+    expect(summary(text).archived).toBe("2026-09-01T09:00:00Z");
   });
 
   it("lists the external roots with their labels", () => {

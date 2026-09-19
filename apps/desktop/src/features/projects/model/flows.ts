@@ -4,6 +4,18 @@ import type {
   FolderHandle,
   ProjectError,
 } from "../../../ipc/bindings";
+import { lockMode } from "./lockFlows";
+import {
+  modeForSummary,
+  modeForUnreadableProject,
+  type OpenMode,
+} from "./mode";
+export {
+  checkLockFlow,
+  releaseFlow,
+  retryLockFlow,
+  takeOverFlow,
+} from "./lockFlows";
 import {
   locateOutcome,
   summariseProject,
@@ -22,6 +34,9 @@ export type Api = Pick<
   | "rememberProject"
   | "externalRootStatus"
   | "setExternalRoot"
+  | "acquireProjectLock"
+  | "projectLockState"
+  | "releaseProjectLock"
 >;
 
 /** Keys of the messages shown when a flow fails (`messages.ts`). */
@@ -37,7 +52,9 @@ export type OpenedProject = {
   folder: FolderHandle;
   /** For display only. */
   path: string;
-  summary: ProjectSummary;
+  /** `null` when `project.yaml` could not be read, so nothing is known about the project. */
+  summary: ProjectSummary | null;
+  mode: OpenMode;
 };
 
 export type FlowOutcome =
@@ -66,7 +83,7 @@ const failed = (reason: FailureReason): FlowOutcome => ({
  */
 async function finishOpen(
   api: Api,
-  project: OpenedProject,
+  project: OpenedProject & { summary: ProjectSummary },
   warnings: Warning[] = [],
 ): Promise<FlowOutcome> {
   const { folder, summary } = project;
@@ -89,6 +106,45 @@ async function finishOpen(
 }
 
 /**
+ * Decides the mode of a project whose `project.yaml` was read, then
+ * remembers it. What the file says comes first, as in spec 6.4: an archived
+ * project is read-only and never asks for a lock. Otherwise the lock decides.
+ */
+async function openReadable(
+  api: Api,
+  base: { folder: FolderHandle; path: string; summary: ProjectSummary },
+  warnings: Warning[] = [],
+): Promise<FlowOutcome> {
+  const mode =
+    modeForSummary(base.summary) ?? (await lockMode(api, base.folder, false));
+  return finishOpen(api, { ...base, mode }, warnings);
+}
+
+/**
+ * A `project.yaml` that could not be used still opens, read-only and
+ * untouched, so it can be looked at. Nothing is known about the project, so
+ * it is not remembered and no lock is asked for.
+ */
+function openUnreadable(
+  folder: OpenedFolder,
+  failure: OpenFailure,
+): FlowOutcome {
+  return {
+    kind: "opened",
+    project: {
+      folder: folder.folder,
+      path: folder.path,
+      summary: null,
+      mode: modeForUnreadableProject(failure),
+    },
+    warnings: [],
+  };
+}
+
+/** What to do with a `project.yaml` that cannot be used. */
+type WhenUnreadable = "openReadOnly" | "refuse";
+
+/**
  * Reads the text a folder gave with `packages/format`. When `expectedId` is
  * given the folder must hold that project, as when opening from the recent
  * list or locating a moved one. Nothing is remembered unless it does.
@@ -96,20 +152,27 @@ async function finishOpen(
 async function readOpened(
   api: Api,
   folder: OpenedFolder,
+  whenUnreadable: WhenUnreadable,
   expectedId?: string,
 ): Promise<FlowOutcome> {
   let summary: ProjectSummary;
   if (expectedId === undefined) {
     const read = summariseProject(folder.projectYaml);
-    if (!read.ok) return failed(read.error);
+    if (!read.ok) return openUnreadable(folder, read.error);
     summary = read.value;
   } else {
     const outcome = locateOutcome(expectedId, folder.projectYaml);
-    if (outcome.kind === "failed") return failed(outcome.error);
+    if (outcome.kind === "failed") {
+      // A folder that cannot be identified is not recorded as the moved
+      // project, but a remembered one that has since become unreadable opens.
+      return whenUnreadable === "refuse"
+        ? failed(outcome.error)
+        : openUnreadable(folder, outcome.error);
+    }
     if (outcome.kind === "differentProject") return failed("differentProject");
     summary = outcome.summary;
   }
-  return finishOpen(api, {
+  return openReadable(api, {
     folder: folder.folder,
     path: folder.path,
     summary,
@@ -142,7 +205,7 @@ export async function createFlow(
   const notUpdated = created.data.hygiene
     .filter((report) => report.status === "failed")
     .map((report) => report.file);
-  return finishOpen(
+  return openReadable(
     api,
     {
       folder: created.data.folder,
@@ -152,6 +215,7 @@ export async function createFlow(
         name: project.name,
         evidenceInGit,
         externalRoots: [],
+        archived: null,
       },
     },
     notUpdated.length > 0 ? [{ kind: "hygieneFailed", files: notUpdated }] : [],
@@ -163,7 +227,7 @@ export async function openFlow(api: Api): Promise<FlowOutcome> {
   const opened = await api.openProject();
   if (opened.status === "error") return failed(opened.error.kind);
   if (opened.data === null) return { kind: "cancelled" };
-  return readOpened(api, opened.data);
+  return readOpened(api, opened.data, "openReadOnly");
 }
 
 /** Opens a recent project at the path last remembered for it. */
@@ -173,7 +237,7 @@ export async function openRecentFlow(
 ): Promise<FlowOutcome> {
   const opened = await api.openRecentProject(projectId);
   if (opened.status === "error") return failed(opened.error.kind);
-  return readOpened(api, opened.data, projectId);
+  return readOpened(api, opened.data, "openReadOnly", projectId);
 }
 
 /** Asks where a moved project is now, and records the new path (FR-PRJ-03). */
@@ -184,7 +248,7 @@ export async function locateFlow(
   const located = await api.locateProject();
   if (located.status === "error") return failed(located.error.kind);
   if (located.data === null) return { kind: "cancelled" };
-  return readOpened(api, located.data, projectId);
+  return readOpened(api, located.data, "refuse", projectId);
 }
 
 /**

@@ -54,6 +54,8 @@ export function ProjectsStart() {
           roots={projects.roots}
           busy={projects.busy}
           onChooseRoot={(rootId) => void projects.chooseExternalRoot(rootId)}
+          onTakeOver={() => void projects.takeOver()}
+          onRetry={() => void projects.retryLock()}
         />
       )}
 
