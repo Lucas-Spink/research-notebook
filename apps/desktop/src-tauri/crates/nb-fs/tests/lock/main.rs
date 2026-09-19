@@ -18,6 +18,7 @@ mod acquire;
 mod guard;
 mod heartbeat;
 mod media;
+mod registry;
 mod release;
 mod stale;
 mod timestamps;

@@ -9,6 +9,7 @@
 mod current;
 mod guard;
 mod info;
+mod registry;
 mod time;
 
 use std::fs::{self, OpenOptions};
@@ -23,6 +24,7 @@ use current::{read_current, Current};
 
 pub use guard::{LockGuard, HEARTBEAT_INTERVAL};
 pub use info::{LockInfo, HEARTBEAT_INTERVAL_SECONDS, STALE_AFTER_SECONDS};
+pub use registry::{LockAttempt, LockHealth, LockRegistry};
 pub use time::Timestamp;
 
 const LOCK_PATH: &str = "_notebook/.lock";
