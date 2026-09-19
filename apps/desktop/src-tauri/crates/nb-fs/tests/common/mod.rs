@@ -158,16 +158,19 @@ pub fn make_dir_link(link: &Path, target: &Path) {
     std::os::unix::fs::symlink(target, link).unwrap();
     #[cfg(windows)]
     {
-        let status = std::process::Command::new("cmd")
+        // mklink reads `/` as a switch, so every separator must be a backslash.
+        let native = |path: &Path| path.to_string_lossy().replace('/', "\\");
+        let output = std::process::Command::new("cmd")
             .args(["/C", "mklink", "/J"])
-            .arg(link)
-            .arg(target)
+            .arg(native(link))
+            .arg(native(target))
             .output()
             .unwrap();
         assert!(
-            status.status.success(),
-            "mklink /J failed: {}",
-            String::from_utf8_lossy(&status.stdout)
+            output.status.success(),
+            "mklink /J failed: {}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
         );
     }
 }

@@ -11,6 +11,7 @@
 
 mod atomic;
 mod error;
+mod names;
 mod path;
 mod project;
 
