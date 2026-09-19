@@ -2,3 +2,4 @@
 //! business logic itself (AGENTS.md section 4).
 
 pub mod preview;
+pub mod projects;

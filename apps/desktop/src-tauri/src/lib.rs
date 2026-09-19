@@ -1,5 +1,7 @@
 mod commands;
 
+use nb_fs::settings::SettingsStore;
+use tauri::Manager;
 use tauri_specta::{collect_commands, Builder};
 
 /// Builds the typed-command registry used by [`run`] to export
@@ -8,8 +10,17 @@ use tauri_specta::{collect_commands, Builder};
 /// `pub` only so it can be exercised from outside this crate if needed
 /// later — this crate is the application binary, not a published library.
 pub fn specta_builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new()
-        .commands(collect_commands![commands::preview::preview_thumbnail_png])
+    Builder::<tauri::Wry>::new().commands(collect_commands![
+        commands::preview::preview_thumbnail_png,
+        commands::projects::create_project,
+        commands::projects::open_project,
+        commands::projects::open_recent_project,
+        commands::projects::locate_project,
+        commands::projects::remember_project,
+        commands::projects::list_recent_projects,
+        commands::projects::set_external_root,
+        commands::projects::external_root_status,
+    ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -29,6 +40,16 @@ pub fn run() {
     }
 
     if let Err(error) = tauri::Builder::default()
+        // Only the Rust API is used, to open folder dialogs from commands. No
+        // capability grants the webview the plugin's own commands.
+        .plugin(tauri_plugin_dialog::init())
+        .manage(commands::projects::PickedFolders::default())
+        .setup(|app| {
+            // Recent projects and external root paths belong to this machine
+            // (spec 9.4: %APPDATA%\<app id> or ~/Library/Application Support/<app id>).
+            app.manage(SettingsStore::new(app.path().app_config_dir()?));
+            Ok(())
+        })
         .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())
     {
