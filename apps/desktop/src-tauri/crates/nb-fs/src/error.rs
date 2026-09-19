@@ -57,3 +57,44 @@ pub enum WriteError {
         source: io::Error,
     },
 }
+
+/// Why a project could not be created. Nothing is overwritten in any case.
+#[derive(Debug, thiserror::Error)]
+pub enum CreateError {
+    #[error("cannot use the project folder `{path}`: {source}")]
+    Root { path: PathBuf, source: io::Error },
+    /// `_notebook` is a file or a link, or is spelt in another case, so
+    /// writes could not be confined to it.
+    #[error("`_notebook` in `{path}` is a file or a link, or is spelt differently")]
+    NotebookInvalid { path: PathBuf },
+    /// `_notebook` already holds something: an existing project, or files
+    /// that must not be replaced.
+    #[error("`_notebook` in `{path}` already holds files")]
+    NotEmpty { path: PathBuf },
+    #[error("cannot {operation} in `{path}`: {source}")]
+    Io {
+        operation: &'static str,
+        path: PathBuf,
+        source: io::Error,
+    },
+    #[error(transparent)]
+    Open(#[from] OpenError),
+    #[error(transparent)]
+    Write(#[from] WriteError),
+}
+
+/// Why `project.yaml` could not be read. Paths are project-relative.
+#[derive(Debug, thiserror::Error)]
+pub enum ReadError {
+    #[error("`{path}` does not exist")]
+    Missing { path: String },
+    #[error("`{path}` is not a file")]
+    NotAFile { path: String },
+    /// The file is a link that leads outside `_notebook/` (spec 6.5).
+    #[error("`{path}` resolves outside _notebook/")]
+    EscapesNotebook { path: String },
+    #[error("`{path}` is not valid UTF-8")]
+    NotUtf8 { path: String },
+    #[error("cannot read `{path}`: {source}")]
+    Io { path: String, source: io::Error },
+}
