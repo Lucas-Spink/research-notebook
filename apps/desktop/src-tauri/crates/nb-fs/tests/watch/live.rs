@@ -192,7 +192,9 @@ fn listing(dir: &Path) -> BTreeMap<String, (u64, std::time::SystemTime)> {
 fn collect(root: &Path, dir: &Path, out: &mut BTreeMap<String, (u64, std::time::SystemTime)>) {
     for entry in fs::read_dir(dir).unwrap() {
         let entry = entry.unwrap();
-        let meta = entry.metadata().unwrap();
+        // Not `entry.metadata()`: on NTFS that returns a lazily updated
+        // directory time, which can lag behind the real one.
+        let meta = fs::metadata(entry.path()).unwrap();
         let name = entry
             .path()
             .strip_prefix(root)
@@ -204,4 +206,43 @@ fn collect(root: &Path, dir: &Path, out: &mut BTreeMap<String, (u64, std::time::
             collect(root, &entry.path(), out);
         }
     }
+}
+
+#[test]
+fn moving_a_folder_of_data_files_away_is_not_missed() {
+    let (project, root) = project();
+    write(&project, "experiments/EXP-001/experiment.md", "one\n");
+    write(
+        &project,
+        "experiments/EXP-001/artefacts.yaml",
+        "artefacts: []\n",
+    );
+    let watcher = root.watch().unwrap();
+
+    let elsewhere = project.on_disk("moved-away");
+    fs::rename(project.on_disk("_notebook/experiments/EXP-001"), &elsewhere).unwrap();
+
+    // Some platforms report each file, others only the folder; either way
+    // the caller must learn that those files are gone or must re-check.
+    let batch = watcher.wait(REPORT_WITHIN);
+    let missing = batch
+        .changes
+        .iter()
+        .filter(|c| c.state == FileState::Missing)
+        .count();
+    assert!(
+        batch.needs_rescan || missing == 2,
+        "the move went unreported: {batch:?}"
+    );
+}
+
+#[test]
+fn creating_a_folder_for_a_new_experiment_does_not_ask_for_a_rescan() {
+    let (project, root) = project();
+    let watcher = root.watch().unwrap();
+    write(&project, "experiments/EXP-005/experiment.md", "new\n");
+    let batch = watcher.wait(REPORT_WITHIN);
+    assert!(!batch.needs_rescan, "{batch:?}");
+    assert_eq!(batch.changes.len(), 1);
+    assert!(watcher.wait(QUIET_FOR).is_empty());
 }

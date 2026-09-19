@@ -4,15 +4,15 @@
 mod coalesce;
 mod filter;
 mod registry;
-
-use std::time::Duration;
+mod state;
+mod watcher;
 
 pub use coalesce::{Coalescer, Due};
-pub use filter::is_notebook_data_path;
+pub use filter::{is_notebook_data_folder, is_notebook_data_path};
 pub use registry::WatchRegistry;
+pub use watcher::ProjectWatcher;
 
 use crate::path::ProjectRelPath;
-use crate::project::ProjectRoot;
 
 /// What is on disk for a changed file, once the burst of events settled.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,23 +47,4 @@ impl ChangeBatch {
 pub enum WatchError {
     #[error("cannot watch `_notebook`: {0}")]
     Start(String),
-}
-
-/// A running watcher.
-pub struct ProjectWatcher {}
-
-impl ProjectWatcher {
-    pub fn poll(&self) -> ChangeBatch {
-        ChangeBatch::default()
-    }
-
-    pub fn wait(&self, _timeout: Duration) -> ChangeBatch {
-        ChangeBatch::default()
-    }
-}
-
-impl ProjectRoot {
-    pub fn watch(&self) -> Result<ProjectWatcher, WatchError> {
-        Ok(ProjectWatcher {})
-    }
 }

@@ -2,7 +2,7 @@
 //! `packages/format` parses (format-v1.md section 1), the same set `nb-index`
 //! scans.
 
-use nb_fs::watch::is_notebook_data_path;
+use nb_fs::watch::{is_notebook_data_folder, is_notebook_data_path};
 
 #[test]
 fn the_files_the_format_layer_parses_are_data_files() {
@@ -56,5 +56,30 @@ fn a_path_that_is_not_relative_is_not_a_data_file() {
         "questions\\Q-01.md",
     ] {
         assert!(!is_notebook_data_path(path), "{path}");
+    }
+}
+
+#[test]
+fn folders_that_hold_data_files_are_data_folders() {
+    for path in ["questions", "experiments", "experiments/EXP-042"] {
+        assert!(is_notebook_data_folder(path), "{path}");
+    }
+}
+
+#[test]
+fn other_folders_are_not() {
+    for path in [
+        "",
+        ".history",
+        ".trash",
+        "inbox",
+        "styles",
+        "experiments/.hidden",
+        "experiments/EXP-042/evidence",
+        "experiments/EXP-042/methods",
+        "questions/sub",
+        "project.yaml",
+    ] {
+        assert!(!is_notebook_data_folder(path), "{path}");
     }
 }
