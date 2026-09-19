@@ -21,6 +21,9 @@ use std::fs;
 use common::{
     make_dir_link, snapshot_outside_notebook, snapshot_outside_notebook_except, TestProject,
 };
+use nb_fs::lock::{
+    AcquireOutcome, LockEnv, LockInfo, RefreshOutcome, ReleaseOutcome, SystemEnv, Timestamp,
+};
 use nb_fs::settings::SettingsStore;
 use nb_fs::{NewProject, ProjectRelPath, ProjectRoot, WriteError};
 
@@ -80,6 +83,61 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
         b"format_version: 1\n"
     );
     assert!(project.temp_files().is_empty());
+
+    lock_scenario(project, root);
+}
+
+/// S2-T06. Locking writes and deletes only `_notebook/.lock`: acquiring,
+/// being refused by a live lock, taking over a stale one, refreshing,
+/// releasing, and meeting a `.lock` that is a link to an analysis folder.
+fn lock_scenario(project: &TestProject, root: &ProjectRoot) {
+    let env = SystemEnv::new("0.1.0");
+    let mut held = match root.acquire_lock(&env, false).unwrap() {
+        AcquireOutcome::Acquired(held) => held,
+        other => panic!("expected the lock, got {other:?}"),
+    };
+    assert!(matches!(
+        root.acquire_lock(&env, true).unwrap(),
+        AcquireOutcome::Live(_)
+    ));
+    assert_eq!(
+        root.refresh_lock(&env, &mut held).unwrap(),
+        RefreshOutcome::Refreshed
+    );
+    assert_eq!(root.release_lock(held).unwrap(), ReleaseOutcome::Released);
+
+    let long_ago = Timestamp::from_unix(env.now().unix() - 3_600);
+    let stale = LockInfo {
+        host: "elsewhere".to_owned(),
+        pid: 1,
+        app_version: "0.1.0".to_owned(),
+        opened: long_ago,
+        heartbeat: long_ago,
+    };
+    fs::write(project.on_disk("_notebook/.lock"), stale.to_file_text()).unwrap();
+    assert!(matches!(
+        root.acquire_lock(&env, false).unwrap(),
+        AcquireOutcome::Stale(_)
+    ));
+    let taken = match root.acquire_lock(&env, true).unwrap() {
+        AcquireOutcome::Acquired(held) => held,
+        other => panic!("expected the takeover, got {other:?}"),
+    };
+    assert_eq!(root.release_lock(taken).unwrap(), ReleaseOutcome::Released);
+
+    let link = project.on_disk("_notebook/.lock");
+    make_dir_link(&link, &project.on_disk("results/pca"));
+    for confirm in [false, true] {
+        assert!(matches!(
+            root.acquire_lock(&env, confirm).unwrap(),
+            AcquireOutcome::Unreadable { replaceable: false }
+        ));
+    }
+    // A junction is removed as a folder, a symlink as a file; either way
+    // only the link goes.
+    fs::remove_dir(&link)
+        .or_else(|_| fs::remove_file(&link))
+        .unwrap();
 }
 
 #[test]

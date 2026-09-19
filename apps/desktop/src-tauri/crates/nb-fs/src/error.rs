@@ -98,3 +98,17 @@ pub enum ReadError {
     #[error("cannot read `{path}`: {source}")]
     Io { path: String, source: io::Error },
 }
+
+/// Why the project lock could not be acquired, refreshed or released. A lock
+/// that is held by someone else, or that cannot be written because the medium
+/// is read-only, is an outcome, not an error.
+#[derive(Debug, thiserror::Error)]
+pub enum LockError {
+    #[error("cannot {operation} the project lock: {source}")]
+    Io {
+        operation: &'static str,
+        source: io::Error,
+    },
+    #[error(transparent)]
+    Write(#[from] WriteError),
+}

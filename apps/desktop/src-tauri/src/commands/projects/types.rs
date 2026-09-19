@@ -24,6 +24,8 @@ pub enum ProjectError {
     ProjectFileUnreadable,
     /// Something was written and failed part way, or was refused.
     WriteFailed,
+    /// The project lock could not be read, written or removed.
+    LockFailed,
     /// No recent project has that identifier.
     NotRemembered,
     /// The settings file is damaged, and is left as it is.
