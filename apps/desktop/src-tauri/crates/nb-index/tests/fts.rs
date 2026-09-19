@@ -64,10 +64,7 @@ fn finds_a_section() {
 #[test]
 fn finds_an_artefact_display_name() {
     let (_project, index) = indexed();
-    assert_eq!(
-        kinds(&index, "volcano"),
-        [(FtsKind::Name, "e1-a0".to_owned())]
-    );
+    assert_eq!(kinds(&index, "plot"), [(FtsKind::Name, "e1-a0".to_owned())]);
 }
 
 #[test]

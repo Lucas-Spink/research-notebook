@@ -17,9 +17,11 @@
 //! A full rebuild is [`Index::rebuild_scan`], which empties the index and
 //! reports every file as changed, followed by the same `apply`.
 
+mod discover;
 mod dump;
 mod error;
 mod records;
+mod rows;
 mod scan;
 mod schema;
 mod search;
