@@ -87,6 +87,8 @@ export const commands = {
 	projectLockState: (folder: FolderHandle) => typedError<LockState, ProjectError>(__TAURI_INVOKE("project_lock_state", { folder })),
 	/**  Stops the heartbeat and removes the lock if it is still ours. */
 	releaseProjectLock: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("release_project_lock", { folder })),
+	/**  Reads one notebook data file. Nothing is written. */
+	readNotebookFile: (folder: FolderHandle, path: NotebookPath) => typedError<FileRead, ProjectError>(__TAURI_INVOKE("read_notebook_file", { folder, path })),
 	/**
 	 *  Starts watching the project's notebook files. Safe to call again for a
 	 *  project already watched. Read-only projects are watched too: they still
@@ -152,6 +154,16 @@ export type ExternalRootStatus = {
 	available: boolean,
 };
 
+/**  What reading a notebook data file found. */
+export type FileRead = 
+/**  The file's text exactly as on disk, and the SHA-256 of those bytes. */
+{ kind: "text"; text: string; sha256: string } | 
+/**
+ *  There is no such file now. Not an error: a file that was deleted
+ *  after a change was reported is an ordinary outcome.
+ */
+{ kind: "missing" };
+
 /**
  *  Stands for a folder the person chose in a native dialog. The webview holds
  *  this number, never the path, so it cannot name a folder it was not given
@@ -205,6 +217,13 @@ export type LockState = "held" |
 "lost" | "notHeld";
 
 /**
+ *  A project-relative path of a notebook data file, such as
+ *  `_notebook/questions/Q-01.md`, checked so a command never receives free
+ *  text where a path belongs. Backslashes are accepted and stored as `/`.
+ */
+export type NotebookPath = string;
+
+/**
  *  A project folder that was opened. The text is `project.yaml` exactly as it
  *  is on disk; the frontend parses it with `packages/format`, the only parser.
  */
@@ -235,6 +254,11 @@ export type ProjectError =
 { kind: "writeFailed" } | 
 /**  The project lock could not be read, written or removed. */
 { kind: "lockFailed" } | 
+/**
+ *  A notebook data file could not be read: it is not one that may be read,
+ *  is not a file, is not UTF-8 or could not be opened.
+ */
+{ kind: "fileUnavailable" } | 
 /**  Watching the project for outside changes could not start. */
 { kind: "watchFailed" } | 
 /**  No recent project has that identifier. */

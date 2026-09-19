@@ -83,7 +83,7 @@ pub enum CreateError {
     Write(#[from] WriteError),
 }
 
-/// Why `project.yaml` could not be read. Paths are project-relative.
+/// Why a notebook file could not be read. Paths are project-relative.
 #[derive(Debug, thiserror::Error)]
 pub enum ReadError {
     #[error("`{path}` does not exist")]
@@ -95,6 +95,9 @@ pub enum ReadError {
     EscapesNotebook { path: String },
     #[error("`{path}` is not valid UTF-8")]
     NotUtf8 { path: String },
+    /// Not one of the notebook data files that may be read this way.
+    #[error("`{path}` is not a notebook data file")]
+    NotDataFile { path: String },
     #[error("cannot read `{path}`: {source}")]
     Io { path: String, source: io::Error },
 }

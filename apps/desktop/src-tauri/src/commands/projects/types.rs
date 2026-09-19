@@ -26,6 +26,9 @@ pub enum ProjectError {
     WriteFailed,
     /// The project lock could not be read, written or removed.
     LockFailed,
+    /// A notebook data file could not be read: it is not one that may be read,
+    /// is not a file, is not UTF-8 or could not be opened.
+    FileUnavailable,
     /// Watching the project for outside changes could not start.
     WatchFailed,
     /// No recent project has that identifier.
@@ -53,6 +56,7 @@ impl From<ReadError> for ProjectError {
     fn from(error: ReadError) -> Self {
         match error {
             ReadError::Missing { .. } => Self::NotAProject,
+            ReadError::NotDataFile { .. } => Self::FileUnavailable,
             ReadError::NotAFile { .. }
             | ReadError::EscapesNotebook { .. }
             | ReadError::NotUtf8 { .. }
