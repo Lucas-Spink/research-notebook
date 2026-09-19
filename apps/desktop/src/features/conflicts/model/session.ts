@@ -25,8 +25,19 @@ export type Reload = {
   file: FileText | null;
 };
 
+/**
+ * The files the application holds, read and changed one at a time. Every
+ * change is made to the latest state, not to a copy taken earlier, because
+ * reads take time and the person may type while they are under way: putting
+ * a stale copy back would erase what they typed. `get` and `put` are
+ * synchronous, so a read-modify-write pair in one step cannot be interleaved.
+ */
+export type Store = {
+  get(): Files;
+  put(path: string, tracked: Tracked): void;
+};
+
 export type Applied = {
-  files: Files;
   /** For each file's owner to take: the buffer should now hold this. */
   reloads: Reload[];
   /**
@@ -64,10 +75,10 @@ function diskOf(read: Read): Disk {
 type Seen = { disk: Disk; read: Read | null };
 
 /**
- * Applies what the watcher found to the files the application holds. A
- * file with no unsaved edits is reloaded and its owner told; a file with
- * them is never replaced, and starts a conflict that holds both versions.
- * Nothing is written to disk, and `files` is not changed.
+ * Applies what the watcher found to the files in `store`. A file with no
+ * unsaved edits is reloaded and its owner told; a file with them is never
+ * replaced, and starts a conflict that holds both versions. Nothing is
+ * written to disk.
  *
  * `needsRescan` means events may have been lost, so every held file is
  * read and compared, not only those reported.
@@ -75,7 +86,7 @@ type Seen = { disk: Disk; read: Read | null };
 export async function applyReport(
   api: Api,
   folder: FolderHandle,
-  files: Files,
+  store: Store,
   report: ChangeReport,
 ): Promise<Applied> {
   const seen = new Map<string, Seen>();
@@ -84,14 +95,11 @@ export async function applyReport(
   }
   const retry: string[] = [];
   if (report.needsRescan) {
-    for (const path of Object.keys(files)) {
-      if (seen.has(path)) continue;
-      const found = await read(api, folder, path);
-      if (!found.ok) retry.push(path);
-      seen.set(path, { disk: diskOf(found), read: found });
+    for (const path of Object.keys(store.get())) {
+      if (!seen.has(path)) await look(api, folder, path, seen, retry);
     }
   }
-  const applied = await apply(api, folder, files, seen);
+  const applied = await apply(api, folder, store, seen);
   return { ...applied, retry: [...retry, ...applied.retry] };
 }
 
@@ -99,50 +107,64 @@ export async function applyReport(
 export async function recheck(
   api: Api,
   folder: FolderHandle,
-  files: Files,
+  store: Store,
   paths: readonly string[],
 ): Promise<Applied> {
   const seen = new Map<string, Seen>();
   const retry: string[] = [];
   for (const path of paths) {
-    if (files[path] === undefined) continue;
-    const found = await read(api, folder, path);
-    if (!found.ok) retry.push(path);
-    seen.set(path, { disk: diskOf(found), read: found });
+    if (store.get()[path] !== undefined) {
+      await look(api, folder, path, seen, retry);
+    }
   }
-  const applied = await apply(api, folder, files, seen);
+  const applied = await apply(api, folder, store, seen);
   return { ...applied, retry: [...retry, ...applied.retry] };
+}
+
+/** Reads `path` to see what is on disk, noting it for a retry if it cannot be read. */
+async function look(
+  api: Api,
+  folder: FolderHandle,
+  path: string,
+  seen: Map<string, Seen>,
+  retry: string[],
+): Promise<void> {
+  const found = await read(api, folder, path);
+  if (!found.ok) retry.push(path);
+  seen.set(path, { disk: diskOf(found), read: found });
 }
 
 async function apply(
   api: Api,
   folder: FolderHandle,
-  files: Files,
+  store: Store,
   seen: ReadonlyMap<string, Seen>,
 ): Promise<Applied> {
-  const next: Record<string, Tracked> = { ...files };
   const reloads: Reload[] = [];
   const retry: string[] = [];
   for (const [path, { disk, read: known }] of seen) {
-    const held = next[path];
+    const held = store.get()[path];
     if (held === undefined) continue;
     const step = external(held, disk);
-    let current = step.tracked;
+    store.put(path, step.tracked);
     for (const effect of step.effects) {
       const found = known ?? (await read(api, folder, effect.path));
       if (!found.ok) {
         retry.push(path);
         continue;
       }
+      // The read took time: work from the state as it is now.
+      const current = store.get()[path];
+      if (current === undefined) continue;
       if (effect.kind === "loadTheirs") {
-        current = theirsLoaded(current, found.file);
+        store.put(path, theirsLoaded(current, found.file));
         continue;
       }
-      current = reloaded(current, found.file);
+      const after = reloaded(current, found.file);
+      store.put(path, after);
       // Typing that began after the change was reported makes it a conflict.
-      if (current.conflict === null) reloads.push({ path, file: found.file });
+      if (after.conflict === null) reloads.push({ path, file: found.file });
     }
-    next[path] = current;
   }
-  return { files: next, reloads, retry };
+  return { reloads, retry };
 }

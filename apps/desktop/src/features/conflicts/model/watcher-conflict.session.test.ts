@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ChangedState } from "../../../ipc/bindings";
-import { fakeApi, FOLDER, report } from "./fakeApi";
-import { applyReport, recheck, type Files } from "./session";
+import type { ChangeReport } from "../../../ipc/bindings";
+import { fakeApi, FOLDER, memoryStore, report } from "./fakeApi";
+import { applyReport, recheck, type Api, type Files } from "./session";
 import { edit, saving, saved, track } from "./tracker";
 
 const Q1 = "_notebook/questions/Q-01.md";
@@ -12,6 +13,19 @@ const present = (sha256: string): ChangedState => ({
 });
 const missing: ChangedState = { kind: "missing" };
 
+/** Applies a report to files held in memory; `files` is what they are afterwards. */
+async function apply(api: Api, files: Files, rep: ChangeReport) {
+  const store = memoryStore(files);
+  const applied = await applyReport(api, FOLDER, store, rep);
+  return { ...applied, files: store.get() };
+}
+
+async function again(api: Api, files: Files, paths: readonly string[]) {
+  const store = memoryStore(files);
+  const applied = await recheck(api, FOLDER, store, paths);
+  return { ...applied, files: store.get() };
+}
+
 const clean = (path: string, base: string | null = "h0"): Files => ({
   [path]: track(path, base),
 });
@@ -19,9 +33,8 @@ const clean = (path: string, base: string | null = "h0"): Files => ({
 describe("applying a change report to the files the application holds", () => {
   it("reloads a file with no unsaved edits, and hands the new text to its owner", async () => {
     const { api, reads } = fakeApi({ [Q1]: { text: "theirs", sha256: "h1" } });
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       clean(Q1),
       report([{ path: Q1, state: present("h1") }]),
     );
@@ -36,9 +49,8 @@ describe("applying a change report to the files the application holds", () => {
   it("uses the hash of the text it read, not the one it was told", async () => {
     // The file changed again between the report and the read.
     const { api } = fakeApi({ [Q1]: { text: "newer", sha256: "h2" } });
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       clean(Q1),
       report([{ path: Q1, state: present("h1") }]),
     );
@@ -48,9 +60,8 @@ describe("applying a change report to the files the application holds", () => {
 
   it("tells the owner when the file was removed", async () => {
     const { api } = fakeApi({ [Q1]: "missing" });
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       clean(Q1),
       report([{ path: Q1, state: missing }]),
     );
@@ -61,9 +72,8 @@ describe("applying a change report to the files the application holds", () => {
   it("keeps both versions of a file with unsaved edits and reloads nothing", async () => {
     const { api } = fakeApi({ [Q1]: { text: "their text", sha256: "h1" } });
     const files: Files = { [Q1]: edit(track(Q1, "h0"), "my text") };
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       files,
       report([{ path: Q1, state: present("h1") }]),
     );
@@ -78,9 +88,8 @@ describe("applying a change report to the files the application holds", () => {
   it("records that they removed a file the person has edited", async () => {
     const { api } = fakeApi({ [Q1]: "missing" });
     const files: Files = { [Q1]: edit(track(Q1, "h0"), "my text") };
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       files,
       report([{ path: Q1, state: missing }]),
     );
@@ -95,9 +104,8 @@ describe("applying a change report to the files the application holds", () => {
     const files: Files = {
       [Q1]: saving(edit(track(Q1, "h0"), "my text"), "h1"),
     };
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       files,
       report([{ path: Q1, state: present("h1") }]),
     );
@@ -108,9 +116,8 @@ describe("applying a change report to the files the application holds", () => {
 
   it("does not read anything for a file it is not holding", async () => {
     const { api, reads } = fakeApi();
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       clean(Q1),
       report([{ path: Q2, state: present("h1") }]),
     );
@@ -120,9 +127,8 @@ describe("applying a change report to the files the application holds", () => {
 
   it("does not read anything for a change that leaves the file as it was", async () => {
     const { api, reads } = fakeApi();
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       clean(Q1),
       report([{ path: Q1, state: present("h0") }]),
     );
@@ -132,9 +138,8 @@ describe("applying a change report to the files the application holds", () => {
 
   it("ignores a file that could not be read by the watcher for now", async () => {
     const { api, reads } = fakeApi();
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       clean(Q1),
       report([{ path: Q1, state: { kind: "unreadable" } }]),
     );
@@ -145,9 +150,8 @@ describe("applying a change report to the files the application holds", () => {
   it("asks for a second look when the file could not be read, leaving the state as it was", async () => {
     const { api } = fakeApi({ [Q1]: "error" });
     const files: Files = { [Q1]: edit(track(Q1, "h0"), "my text") };
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       files,
       report([{ path: Q1, state: present("h1") }]),
     );
@@ -165,9 +169,8 @@ describe("applying a change report to the files the application holds", () => {
       ...clean(Q1),
       [Q2]: edit(track(Q2, "h0"), "typed"),
     };
-    const applied = await applyReport(
+    const applied = await apply(
       api,
-      FOLDER,
       files,
       report([
         { path: Q1, state: present("h1") },
@@ -182,12 +185,7 @@ describe("applying a change report to the files the application holds", () => {
     const { api } = fakeApi({ [Q1]: { text: "theirs", sha256: "h1" } });
     const files = clean(Q1);
     const before = structuredClone(files);
-    await applyReport(
-      api,
-      FOLDER,
-      files,
-      report([{ path: Q1, state: present("h1") }]),
-    );
+    await apply(api, files, report([{ path: Q1, state: present("h1") }]));
     expect(files).toEqual(before);
   });
 });
@@ -199,7 +197,7 @@ describe("a report that asks for everything to be checked again", () => {
       [Q2]: { text: "changed", sha256: "h5" },
     });
     const files: Files = { ...clean(Q1), ...clean(Q2) };
-    const applied = await applyReport(api, FOLDER, files, report([], true));
+    const applied = await apply(api, files, report([], true));
     expect(reads.sort()).toEqual([Q1, Q2]);
     expect(applied.reloads.map((r) => r.path)).toEqual([Q2]);
     expect(applied.files[Q1]?.base).toBe("h0");
@@ -208,21 +206,21 @@ describe("a report that asks for everything to be checked again", () => {
 
   it("finds that a file has gone", async () => {
     const { api } = fakeApi({ [Q1]: "missing" });
-    const applied = await applyReport(api, FOLDER, clean(Q1), report([], true));
+    const applied = await apply(api, clean(Q1), report([], true));
     expect(applied.reloads).toEqual([{ path: Q1, file: null }]);
   });
 
   it("finds a conflict in a file the person has edited", async () => {
     const { api } = fakeApi({ [Q1]: { text: "theirs", sha256: "h9" } });
     const files: Files = { [Q1]: edit(track(Q1, "h0"), "mine") };
-    const applied = await applyReport(api, FOLDER, files, report([], true));
+    const applied = await apply(api, files, report([], true));
     expect(applied.files[Q1]?.conflict?.theirs.kind).toBe("present");
     expect(applied.files[Q1]?.unsaved).toBe("mine");
   });
 
   it("leaves a file alone when it cannot be read now, and asks to look again", async () => {
     const { api } = fakeApi({ [Q1]: "error" });
-    const applied = await applyReport(api, FOLDER, clean(Q1), report([], true));
+    const applied = await apply(api, clean(Q1), report([], true));
     expect(applied.files).toEqual(clean(Q1));
     expect(applied.retry).toEqual([Q1]);
   });
@@ -232,7 +230,7 @@ describe("a report that asks for everything to be checked again", () => {
     const files: Files = {
       [Q1]: saved(saving(edit(track(Q1, "h0"), "saved text"), "h1"), "h1"),
     };
-    const applied = await applyReport(api, FOLDER, files, report([], true));
+    const applied = await apply(api, files, report([], true));
     expect(applied.reloads).toEqual([]);
     expect(applied.files[Q1]?.conflict).toBeNull();
   });
@@ -242,16 +240,15 @@ describe("checking again the files a round could not read", () => {
   it("reloads a file that can be read now", async () => {
     const { api, set } = fakeApi({ [Q1]: "error" });
     const files = clean(Q1);
-    const first = await applyReport(
+    const first = await apply(
       api,
-      FOLDER,
       files,
       report([{ path: Q1, state: present("h1") }]),
     );
     expect(first.retry).toEqual([Q1]);
 
     set(Q1, { text: "theirs", sha256: "h1" });
-    const second = await recheck(api, FOLDER, first.files, first.retry);
+    const second = await again(api, first.files, first.retry);
     expect(second.retry).toEqual([]);
     expect(second.reloads).toEqual([
       { path: Q1, file: { text: "theirs", sha256: "h1" } },
@@ -261,15 +258,55 @@ describe("checking again the files a round could not read", () => {
 
   it("keeps asking while the file still cannot be read", async () => {
     const { api } = fakeApi({ [Q1]: "error" });
-    const second = await recheck(api, FOLDER, clean(Q1), [Q1]);
+    const second = await again(api, clean(Q1), [Q1]);
     expect(second.retry).toEqual([Q1]);
     expect(second.files).toEqual(clean(Q1));
   });
 
   it("skips a file it is not holding", async () => {
     const { api, reads } = fakeApi();
-    const second = await recheck(api, FOLDER, clean(Q1), [Q2]);
+    const second = await again(api, clean(Q1), [Q2]);
     expect(reads).toEqual([]);
     expect(second.retry).toEqual([]);
+  });
+});
+
+describe("typing while a file is being read", () => {
+  it("is never overwritten by the reload, and becomes a conflict", async () => {
+    const store = memoryStore(clean(Q1));
+    // The person types once the read has started.
+    const { api } = fakeApi({ [Q1]: { text: "theirs", sha256: "h1" } }, () =>
+      store.put(
+        Q1,
+        edit(store.get()[Q1] ?? track(Q1, "h0"), "typed meanwhile"),
+      ),
+    );
+    const applied = await applyReport(
+      api,
+      FOLDER,
+      store,
+      report([{ path: Q1, state: present("h1") }]),
+    );
+    const held = store.get()[Q1];
+    expect(held?.unsaved).toBe("typed meanwhile");
+    expect(held?.conflict).toEqual({
+      theirs: { kind: "present", text: "theirs", sha256: "h1" },
+    });
+    expect(applied.reloads).toEqual([]);
+  });
+
+  it("is kept when their text arrives for a conflict already open", async () => {
+    const store = memoryStore({ [Q1]: edit(track(Q1, "h0"), "mine") });
+    const { api } = fakeApi({ [Q1]: { text: "theirs", sha256: "h1" } }, () =>
+      store.put(Q1, edit(store.get()[Q1] ?? track(Q1, "h0"), "mine, and more")),
+    );
+    await applyReport(
+      api,
+      FOLDER,
+      store,
+      report([{ path: Q1, state: present("h1") }]),
+    );
+    expect(store.get()[Q1]?.unsaved).toBe("mine, and more");
+    expect(store.get()[Q1]?.conflict?.theirs.kind).toBe("present");
   });
 });
