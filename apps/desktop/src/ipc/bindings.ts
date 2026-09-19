@@ -5,13 +5,173 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	/**
+	 *  The version of this build, recorded in `project.yaml` as
+	 *  `last_written_by` (spec 5.3) so the frontend need not read it from
+	 *  anywhere it could disagree with the Rust crate.
+	 */
+	appVersion: () => __TAURI_INVOKE<string>("app_version"),
+	/**
 	 *  Generates a 256px-bounded PNG thumbnail for a PNG or JPEG image (spec
 	 *  section 8). Spike for S1-T05: the first typed command in the app,
 	 *  establishing the `apps/desktop/src/ipc/` generated-bindings boundary
 	 *  that all future commands reuse (AGENTS.md section 4).
 	 */
 	previewThumbnailPng: (bytes: number[]) => typedError<number[], string>(__TAURI_INVOKE("preview_thumbnail_png", { bytes })),
+	/**
+	 *  Asks for a folder and creates a project in it (FR-PRJ-01). The texts are
+	 *  built by `packages/format`. `None` when the person cancels.
+	 */
+	createProject: (projectYaml: string, bibliographyJson: string, evidenceInGit: boolean) => typedError<{
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	hygiene: HygieneReport[],
+} | null, ProjectError>(__TAURI_INVOKE("create_project", { projectYaml, bibliographyJson, evidenceInGit })),
+	/**
+	 *  Asks for a project folder and reads its `project.yaml` (FR-PRJ-02).
+	 *  `None` when the person cancels.
+	 */
+	openProject: () => typedError<{
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	projectYaml: string,
+} | null, ProjectError>(__TAURI_INVOKE("open_project")),
+	/**
+	 *  Opens a project from the recent list without asking for its folder. A
+	 *  folder that is gone, or no longer holds a project, is reported as
+	 *  `folderUnavailable` or `notAProject`, and the person can then Locate it
+	 *  (FR-PRJ-03).
+	 */
+	openRecentProject: (projectId: Ulid) => typedError<OpenedProject, ProjectError>(__TAURI_INVOKE("open_recent_project", { projectId })),
+	/**
+	 *  Asks for the folder a moved project is now in and reads its
+	 *  `project.yaml`. The frontend checks the `id` matches the project being
+	 *  located before it calls `remember_project`. `None` when cancelled.
+	 */
+	locateProject: () => typedError<{
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	projectYaml: string,
+} | null, ProjectError>(__TAURI_INVOKE("locate_project")),
+	/**
+	 *  Puts a project first in the recent list, or updates its path after it was
+	 *  located. The identifier and name come from the parsed `project.yaml`.
+	 */
+	rememberProject: (folder: FolderHandle, projectId: Ulid, name: string) => typedError<null, ProjectError>(__TAURI_INVOKE("remember_project", { folder, projectId, name })),
+	/**  The recent projects, most recent first, each marked available or not. */
+	listRecentProjects: () => typedError<RecentEntry[], ProjectError>(__TAURI_INVOKE("list_recent_projects")),
+	/**
+	 *  Asks for the folder an external root of a project has on this machine and
+	 *  remembers it (FR-PRJ-07). Returns the folder, or `None` when cancelled.
+	 */
+	setExternalRoot: (projectId: Ulid, rootId: Ulid) => typedError<string | null, ProjectError>(__TAURI_INVOKE("set_external_root", { projectId, rootId })),
+	/**
+	 *  Where each of a project's external roots is on this machine. The roots
+	 *  come from the parsed `project.yaml`; an unresolved one marks the artefacts
+	 *  linked through it unavailable.
+	 */
+	externalRootStatus: (projectId: Ulid, rootIds: Ulid[]) => typedError<ExternalRootStatus[], ProjectError>(__TAURI_INVOKE("external_root_status", { projectId, rootIds })),
 };
+
+/* Types */
+export type CreatedProject = {
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	hygiene: HygieneReport[],
+};
+
+/**  Where an external root of a project is on this machine (FR-PRJ-07). */
+export type ExternalRootStatus = {
+	rootId: string,
+	/**  For display only; `None` when no folder has been chosen on this machine. */
+	path: string | null,
+	/**
+	 *  False when there is no path or the folder is gone, which marks the
+	 *  artefacts linked through it unavailable.
+	 */
+	available: boolean,
+};
+
+/**
+ *  Stands for a folder the person chose in a native dialog. The webview holds
+ *  this number, never the path, so it cannot name a folder it was not given
+ *  (AGENTS.md rule 8).
+ */
+export type FolderHandle = number;
+
+export type HygieneReport = {
+	/**  `.gitignore` or `.gitattributes`. */
+	file: string,
+	status: HygieneStatus,
+};
+
+/**  What became of one repository hygiene file when a project was created. */
+export type HygieneStatus = "added" | "unchanged" | 
+/**  Not updated. The project exists; the entries can be added by hand. */
+"failed";
+
+/**
+ *  A project folder that was opened. The text is `project.yaml` exactly as it
+ *  is on disk; the frontend parses it with `packages/format`, the only parser.
+ */
+export type OpenedProject = {
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	projectYaml: string,
+};
+
+/**
+ *  Why a project command failed. The `kind` is the key of the user-facing
+ *  message, which lives in the frontend's message files (spec 6.5); no path
+ *  or system text is sent.
+ */
+export type ProjectError = 
+/**  The folder cannot be used: it is missing or is not a folder. */
+{ kind: "folderUnavailable" } | 
+/**  The folder holds no `_notebook/project.yaml`. */
+{ kind: "notAProject" } | 
+/**  `_notebook` is a file or a link, or is spelt in another case. */
+{ kind: "notebookInvalid" } | 
+/**  Creating: `_notebook` already holds files, so nothing was written. */
+{ kind: "alreadyInUse" } | 
+/**  `project.yaml` exists but cannot be read as text. */
+{ kind: "projectFileUnreadable" } | 
+/**  Something was written and failed part way, or was refused. */
+{ kind: "writeFailed" } | 
+/**  No recent project has that identifier. */
+{ kind: "notRemembered" } | 
+/**  The settings file is damaged, and is left as it is. */
+{ kind: "settingsDamaged" } | 
+/**  The settings file was written by a newer version, and is left as it is. */
+{ kind: "settingsNewer" } | 
+/**  The settings file could not be read or written. */
+{ kind: "settingsUnavailable" } | 
+/**  A background task failed. Not caused by the person's input. */
+{ kind: "internal" };
+
+/**  A recent project as listed on the start screen. */
+export type RecentEntry = {
+	id: string,
+	name: string,
+	/**  For display only. */
+	path: string,
+	/**
+	 *  False when the folder no longer holds a project, so the person can be
+	 *  offered Locate project (FR-PRJ-03).
+	 */
+	available: boolean,
+};
+
+/**
+ *  A ULID that has been checked, so a command never receives free text where
+ *  an identifier belongs. The value is only used as a key in the settings
+ *  file, never as part of a path.
+ */
+export type Ulid = string;
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

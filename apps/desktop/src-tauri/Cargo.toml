@@ -43,6 +43,8 @@ tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 nb-preview = { path = "crates/nb-preview", version = "0.1.0" }
+nb-fs = { path = "crates/nb-fs", version = "0.1.0" }
+tauri-plugin-dialog = "=2.7.3"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

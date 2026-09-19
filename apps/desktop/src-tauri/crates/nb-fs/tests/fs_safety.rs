@@ -16,8 +16,13 @@
 
 mod common;
 
-use common::{make_dir_link, snapshot_outside_notebook, TestProject};
-use nb_fs::{ProjectRelPath, ProjectRoot, WriteError};
+use std::fs;
+
+use common::{
+    make_dir_link, snapshot_outside_notebook, snapshot_outside_notebook_except, TestProject,
+};
+use nb_fs::settings::SettingsStore;
+use nb_fs::{NewProject, ProjectRelPath, ProjectRoot, WriteError};
 
 /// Every operation nb-fs offers, with valid and invalid arguments.
 fn scenario(project: &TestProject, root: &ProjectRoot) {
@@ -96,4 +101,70 @@ fn nothing_outside_the_notebook_folder_changes() {
     scenario(&project, &root);
 
     assert_eq!(snapshot_outside_notebook(project.root()), before);
+}
+
+/// S2-T05. The only writes outside `_notebook/` are the two repository
+/// hygiene files (spec 5.12, FR-PRJ-01). Everything else at the project root
+/// must be unchanged by creating, opening and locating a project, and those
+/// two files may only gain lines.
+#[test]
+fn creating_and_opening_a_project_changes_only_the_two_hygiene_files() {
+    const HYGIENE: [&str; 2] = [".gitignore", ".gitattributes"];
+    let project = TestProject::without_notebook();
+    let existing = b"target/
+*.log
+";
+    fs::write(project.on_disk(".gitignore"), existing).unwrap();
+
+    let before = snapshot_outside_notebook_except(project.root(), &HYGIENE);
+    assert!(
+        before.len() >= 8,
+        "the snapshot should cover the analysis files: {before:?}"
+    );
+
+    let new = NewProject {
+        project_yaml: "format_version: 1
+",
+        bibliography_json: "[]
+",
+        evidence_in_git: false,
+    };
+    let created = ProjectRoot::create(project.root(), &new).unwrap();
+    created.project.read_project_yaml().unwrap();
+    assert!(ProjectRoot::is_project_folder(project.root()));
+    ProjectRoot::open(project.root())
+        .unwrap()
+        .read_project_yaml()
+        .unwrap();
+
+    // Refused attempts change nothing either: a second create, and one
+    // aimed at an analysis folder.
+    assert!(ProjectRoot::create(project.root(), &new).is_err());
+    assert!(ProjectRoot::create(&project.on_disk("scripts/run.R"), &new).is_err());
+    assert!(!project.exists("scripts/_notebook"));
+
+    // Recent projects and external roots live in the settings folder, which
+    // is not part of any project.
+    let settings_dir = tempfile::Builder::new()
+        .prefix("nb-settings-")
+        .tempdir()
+        .unwrap();
+    let store = SettingsStore::new(settings_dir.path());
+    store
+        .update(|s| {
+            s.remember("01JAX9Q2B7N4M8T6V3W5Y1Z0KC", "Batch", "/somewhere/else");
+            s.set_external_root(
+                "01JAX9Q2B7N4M8T6V3W5Y1Z0KC",
+                "01JAXA1C5D8E2F4G6H7J9K0M1N",
+                "/raw",
+            );
+        })
+        .unwrap();
+
+    assert_eq!(
+        snapshot_outside_notebook_except(project.root(), &HYGIENE),
+        before
+    );
+    assert!(project.read(".gitignore").starts_with(existing));
+    assert!(project.temp_files().is_empty());
 }

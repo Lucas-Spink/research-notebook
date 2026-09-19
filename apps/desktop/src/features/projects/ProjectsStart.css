@@ -1,0 +1,55 @@
+.projects {
+  max-width: 44rem;
+  margin: 0 auto 2rem;
+  padding: 0 1rem;
+  text-align: left;
+}
+
+.projects__create {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.projects__create input {
+  flex: 1 1 16rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.projects__recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.projects__recent li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid currentColor;
+  border-bottom-color: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.projects__recent li > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.projects__path {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  overflow-wrap: anywhere;
+}
+
+.projects__missing,
+.projects__notice {
+  font-size: 0.9rem;
+}
+
+.projects__missing {
+  font-weight: 600;
+}

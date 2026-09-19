@@ -6,6 +6,7 @@ use crate::atomic::{self, AtomicIo, Destination, RealIo};
 use crate::error::{OpenError, WriteError};
 use crate::names::is_windows_safe_segment;
 use crate::path::ProjectRelPath;
+use crate::target::check_target;
 
 /// The name of the only folder the application may write inside a project.
 pub const NOTEBOOK_DIR: &str = "_notebook";
@@ -15,7 +16,7 @@ pub const NOTEBOOK_DIR: &str = "_notebook";
 #[derive(Debug, Clone)]
 pub struct ProjectRoot {
     /// The resolved `_notebook` folder, which is never a link.
-    notebook: PathBuf,
+    pub(crate) notebook: PathBuf,
 }
 
 /// A write destination that passed every check.
@@ -81,6 +82,22 @@ impl ProjectRoot {
         atomic::write(io, &destination, contents)
     }
 
+    /// Creates the folder `path` and any missing parents, all inside
+    /// `_notebook/`. Nothing is created unless the whole path resolves inside
+    /// `_notebook/` once links are followed. An existing folder is left as it is.
+    pub fn create_folder(&self, path: &ProjectRelPath) -> Result<(), WriteError> {
+        let display = path.as_str();
+        match path.segments().collect::<Vec<_>>().as_slice() {
+            [first, folders @ ..] if *first == NOTEBOOK_DIR && !folders.is_empty() => {
+                self.check_names(folders, display)?;
+                self.confined_folder(folders, display).map(|_| ())
+            }
+            _ => Err(WriteError::OutsideNotebook {
+                path: display.to_owned(),
+            }),
+        }
+    }
+
     /// Checks that `path` names a file inside `_notebook/` that may be
     /// replaced, creates its missing folders, and returns where it is.
     fn resolve(&self, path: &ProjectRelPath) -> Result<Resolved, WriteError> {
@@ -94,12 +111,30 @@ impl ProjectRoot {
                 })
             }
         };
-        if !segments[1..].iter().all(|s| is_windows_safe_segment(s)) {
-            return Err(WriteError::UnsafeName {
-                path: display.to_owned(),
-            });
-        }
+        self.check_names(&segments[1..], display)?;
+        let dir = self.confined_folder(folders, display)?;
+        let permissions = check_target(&dir, name, display)?;
+        Ok(Resolved {
+            dir,
+            name: name.to_owned(),
+            permissions,
+        })
+    }
 
+    /// Refuses names Windows would treat as something else (spec 9.2).
+    fn check_names(&self, segments: &[&str], display: &str) -> Result<(), WriteError> {
+        if segments.iter().all(|s| is_windows_safe_segment(s)) {
+            Ok(())
+        } else {
+            Err(WriteError::UnsafeName {
+                path: display.to_owned(),
+            })
+        }
+    }
+
+    /// Creates the folder `_notebook/<folders...>` if missing and returns
+    /// where it is, refusing it unless it lies inside `_notebook/`.
+    fn confined_folder(&self, folders: &[&str], display: &str) -> Result<PathBuf, WriteError> {
         let mut folder = self.notebook.clone();
         folder.extend(folders);
         let escapes = || WriteError::EscapesNotebook {
@@ -123,33 +158,7 @@ impl ProjectRoot {
         if !self.is_inside(&dir) {
             return Err(escapes());
         }
-
-        let target = dir.join(name);
-        let permissions = match fs::symlink_metadata(&target) {
-            Ok(meta) if meta.file_type().is_symlink() => {
-                return Err(WriteError::TargetIsLink {
-                    path: display.to_owned(),
-                })
-            }
-            Ok(meta) if meta.is_dir() => {
-                return Err(WriteError::TargetIsDirectory {
-                    path: display.to_owned(),
-                })
-            }
-            Ok(meta) if meta.permissions().readonly() => {
-                return Err(WriteError::ReadOnly {
-                    path: display.to_owned(),
-                })
-            }
-            Ok(meta) => Some(meta.permissions()),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => None,
-            Err(e) => return Err(io_error("inspect", e)),
-        };
-        Ok(Resolved {
-            dir,
-            name: name.to_owned(),
-            permissions,
-        })
+        Ok(dir)
     }
 
     /// Whether the resolved path `resolved` lies inside `_notebook/`.

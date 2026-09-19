@@ -560,7 +560,8 @@ the error.
 
 On project creation the application appends these entries to the project
 root .gitignore and .gitattributes, creating the files if absent and
-never removing existing lines.
+never removing existing lines. These two files are the only writes
+outside \_notebook/ besides the application settings (ADR-0021).
 
 > \# .gitignore (added by Research Notebook)
 >
@@ -693,7 +694,7 @@ allow-lists.
 | packages/citations | Citation contexts, citeproc worker protocol, style validation, literature block rendering. | Perform file I/O or call Zotero. |
 | apps/desktop/src | Views, editors, application state, user interaction. | Parse notebook text itself, access the filesystem directly, or call Zotero directly. |
 | src-tauri commands | Validating inputs and delegating to crates. | Contain business logic. |
-| nb-fs | Path validation, atomic writes, hashing, discovery, watching, history, trash, lock. | Write outside \_notebook/, or delete anything outside .history, .trash, inbox and the cache. |
+| nb-fs | Path validation, atomic writes, hashing, discovery, watching, history, trash, lock. | Write outside \_notebook/, except the two repository hygiene files at the project root and the application settings file (ADR-0021), or delete anything outside .history, .trash, inbox and the cache. |
 | nb-index | Derived SQLite index and full-text search. | Store any data not reproducible from project files. |
 | nb-preview | Thumbnails and bounded samples. | Read beyond configured bounds. |
 | nb-zotero | HTTP calls to 127.0.0.1:23119, server ID handling. | Contact any other host. |
@@ -733,7 +734,9 @@ allow-lists.
   rejects .. traversal, resolves symlinks, and confirms the result lies
   inside the project root or a registered external root.
 
-- Write commands accept only destinations inside \_notebook/.
+- Write commands accept only destinations inside \_notebook/. The two
+  exceptions, the project root .gitignore and .gitattributes at creation
+  and the application settings file, are fixed by name (ADR-0021).
 
 - There is no generic read, write or delete command.
 
