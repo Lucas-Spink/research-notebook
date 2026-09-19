@@ -28,6 +28,7 @@ mod read;
 mod readme;
 pub mod settings;
 mod target;
+pub mod watch;
 
 pub use atomic::{AtomicIo, RealIo, LOCK_RETRY_BUDGET};
 pub use create::{Created, NewProject};
