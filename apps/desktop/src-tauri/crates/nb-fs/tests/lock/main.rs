@@ -15,6 +15,7 @@
 mod common;
 
 mod acquire;
+mod guard;
 mod heartbeat;
 mod media;
 mod release;

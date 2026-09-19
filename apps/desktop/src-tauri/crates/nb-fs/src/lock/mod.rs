@@ -7,6 +7,7 @@
 //! Nothing here checks whether the process is still running.
 
 mod current;
+mod guard;
 mod info;
 mod time;
 
@@ -20,6 +21,7 @@ use crate::path::ProjectRelPath;
 use crate::project::ProjectRoot;
 use current::{read_current, Current};
 
+pub use guard::{LockGuard, HEARTBEAT_INTERVAL};
 pub use info::{LockInfo, HEARTBEAT_INTERVAL_SECONDS, STALE_AFTER_SECONDS};
 pub use time::Timestamp;
 
