@@ -96,6 +96,8 @@ proptest! {
 
 `fs_safety.rs` copies a fixture project to a temporary directory, records a snapshot (relative path, size, modification time, SHA-256) of everything outside `_notebook/`, runs every backend operation in the integration scenario, then asserts the snapshot is identical. Any new backend operation must be added to the scenario in the same pull request.
 
+The one exception is creating a project, which appends to the root `.gitignore` and `.gitattributes` (ADR-0021). `snapshot_outside_notebook_except` leaves those two names out, and the test asserts they only gain lines. Do not add other names.
+
 ## Golden files
 
 Golden tests compare output with committed files under `__golden__/`. Update them only with `pnpm golden:update` and describe why each changed line is correct in the pull request. Never update golden files to silence a failure you do not understand.

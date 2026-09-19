@@ -124,7 +124,7 @@ Entry requirement: Stage 1 gate passed; spike ADRs merged.
 | S2-G03 | Unknown content preserved | Integration | `pnpm test:unit -- preserve-unknown` using edge-cases fixture | Unknown keys, preamble, unknown sections and passthrough blocks unchanged after an edit and save | Both | Yes |
 | S2-G04 | Malformed files open read-only | Integration | `pnpm test:fixtures -- malformed` | Read-only mode reported; file hashes unchanged after opening, editing attempts and closing | Both | Yes |
 | S2-G05 | Atomic write survives crash | Fault injection | `cargo test -p nb-fs --test atomic_write` | Killing the writer at random points leaves the old or new complete file, never partial | Both | Yes |
-| S2-G06 | Nothing outside _notebook changes | Filesystem safety | `pnpm test:fs-safety` | Directory snapshot of the project root outside _notebook identical before and after the integration suite | Both | Yes |
+| S2-G06 | Nothing outside _notebook changes | Filesystem safety | `pnpm test:fs-safety` | Directory snapshot of the project root outside _notebook identical before and after the integration suite, except .gitignore and .gitattributes, which may only gain lines (ADR-0021) | Both | Yes |
 | S2-G07 | Index rebuild equality | Integration | `cargo test -p nb-index --test rebuild` | Normalised dump of a rebuilt index equals the incrementally maintained index | Both | Yes |
 | S2-G08 | External edit and conflict | Integration | `pnpm test:unit -- watcher-conflict` plus manual edit in VS Code | External edit reloads; concurrent unsaved edit produces conflict with both versions | Both | Partly |
 | S2-G09 | Lock behaviour | Integration | `cargo test -p nb-fs --test lock` | Second instance read-only; stale lock takeover requires confirmation flag | Both | Yes |
