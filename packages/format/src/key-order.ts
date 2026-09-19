@@ -13,15 +13,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * Returns a copy of `value` with known keys first, in the shape's order, and
- * unknown keys after them in their original relative order (spec 5.2).
- * Values under unknown keys are left exactly as they are. The input is not
- * mutated.
- */
-export function orderByShape(value: unknown, shape: Shape): unknown {
+type MakeObject = (entries: [string, unknown][]) => unknown;
+
+function order(value: unknown, shape: Shape, make: MakeObject): unknown {
   if (Array.isArray(value)) {
-    return value.map((item: unknown) => orderByShape(item, shape));
+    return value.map((item: unknown) => order(item, shape, make));
   }
   if (!isRecord(value)) return value;
 
@@ -33,14 +29,39 @@ export function orderByShape(value: unknown, shape: Shape): unknown {
     const inner = value[key];
     entries.push([
       key,
-      child === undefined ? inner : orderByShape(inner, child),
+      child === undefined ? inner : order(inner, child, make),
     ]);
   }
   for (const [key, inner] of Object.entries(value)) {
     if (!known.has(key)) entries.push([key, inner]);
   }
+  return make(entries);
+}
+
+/**
+ * Returns a copy of `value` with known keys first, in the shape's order, and
+ * unknown keys after them in their original relative order (spec 5.2).
+ * Values under unknown keys are left exactly as they are. The input is not
+ * mutated.
+ *
+ * The result holds plain objects, and JavaScript lists integer-like keys such
+ * as "2" before all others. Use this for JSON; for YAML use
+ * `orderByShapeAsMaps`.
+ */
+export function orderByShape(value: unknown, shape: Shape): unknown {
   // fromEntries defines own properties, so a key such as "__proto__" survives.
-  return Object.fromEntries(entries);
+  return order(value, shape, (entries) => Object.fromEntries(entries));
+}
+
+/**
+ * As `orderByShape`, but every shaped object becomes a `Map`, which keeps
+ * insertion order for every key. This is what keeps an unknown key such as
+ * "2" after the known keys when the YAML is written (format-v1.md 3.3). Values
+ * under unknown keys are still plain objects, so integer-like keys inside an
+ * unknown value are listed first (ADR-0019).
+ */
+export function orderByShapeAsMaps(value: unknown, shape: Shape): unknown {
+  return order(value, shape, (entries) => new Map(entries));
 }
 
 const PROVENANCE: Shape = {

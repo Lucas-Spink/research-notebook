@@ -1,4 +1,4 @@
-import { ARTEFACTS_SHAPE, orderByShape } from "../key-order";
+import { ARTEFACTS_SHAPE, orderByShapeAsMaps } from "../key-order";
 import type { FormatError, Result } from "../result";
 import { ArtefactsFile, type ArtefactsFileModel } from "../schema";
 import { writeYaml } from "../yaml/write";
@@ -16,5 +16,5 @@ export function parseArtefacts(
 
 /** Writes `artefacts.yaml` in canonical form. */
 export function serialiseArtefacts(file: ArtefactsFileModel): string {
-  return writeYaml(orderByShape(file, ARTEFACTS_SHAPE), FLOW_PATHS);
+  return writeYaml(orderByShapeAsMaps(file, ARTEFACTS_SHAPE), FLOW_PATHS);
 }
