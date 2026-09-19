@@ -16,6 +16,7 @@
 #![allow(clippy::disallowed_methods)]
 
 mod atomic;
+pub mod cache;
 mod create;
 mod error;
 pub mod hygiene;
