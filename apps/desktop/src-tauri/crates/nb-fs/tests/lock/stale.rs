@@ -121,6 +121,16 @@ fn unreadable_locks() -> Vec<(&'static str, Vec<u8>)> {
             valid(&|t| t.replace("\"host\": \"lab-pc\",", "")),
         ),
         ("pid as text", valid(&|t| t.replace("100", "\"100\""))),
+        (
+            "a repeated key",
+            valid(&|t| {
+                t.replace(
+                    "\"pid\": 100,",
+                    "\"pid\": 100,
+  \"pid\": 100,",
+                )
+            }),
+        ),
         ("pid zero", valid(&|t| t.replace("100", "0"))),
         ("pid negative", valid(&|t| t.replace("100", "-1"))),
         ("pid fraction", valid(&|t| t.replace("100", "1.5"))),
