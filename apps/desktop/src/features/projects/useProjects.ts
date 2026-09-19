@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commands, type RecentEntry } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
+import { useExternalChanges, type Reload } from "../conflicts";
 import { failureMessage, messages, warningMessage } from "./messages";
 import {
   checkLockFlow,
@@ -17,6 +18,11 @@ import {
   type FlowOutcome,
   type OpenedProject,
 } from "./model/flows";
+import {
+  PROJECT_YAML,
+  reloadProjectFlow,
+  seedProjectFile,
+} from "./model/reload";
 
 /**
  * How often an open, writable project is asked whether it still holds its
@@ -41,6 +47,60 @@ export function useProjects() {
     const now = () => new Date();
     return { now, newId: createUlidGenerator(now, browserRandomBytes) };
   }, []);
+
+  // The project as it is now, for work that finishes after it may have changed.
+  const openedRef = useRef(opened);
+  useEffect(() => {
+    openedRef.current = opened;
+  });
+
+  /**
+   * `project.yaml` changed outside the application: show what is on disk now
+   * and decide the mode again. It has no editor, so there is nothing local to
+   * conflict with. If the project changed while this ran, it is done again
+   * on the newer one, once, so neither result is lost.
+   */
+  const reloadProjectFile = useCallback(
+    async (file: Reload["file"], attempts = 2): Promise<void> => {
+      const current = openedRef.current;
+      if (current === null) return;
+      const next = await reloadProjectFlow(commands, current, file);
+      if (openedRef.current === current) setOpened(next);
+      else if (attempts > 1) await reloadProjectFile(file, attempts - 1);
+    },
+    [],
+  );
+
+  const changes = useExternalChanges({
+    folder: opened?.folder ?? null,
+    onReload: (reload) => {
+      if (reload.path !== PROJECT_YAML) return;
+      reloadProjectFile(reload.file).catch(() =>
+        setNotices([messages.unexpected]),
+      );
+    },
+  });
+  const { track: trackFile } = changes;
+
+  // Hold project.yaml from what is on disk now. The project was opened a
+  // moment ago, so it may already have changed.
+  const openedFolder = opened?.folder ?? null;
+  useEffect(() => {
+    const project = openedRef.current;
+    if (openedFolder === null || project === null) return;
+    let cancelled = false;
+    seedProjectFile(commands, project)
+      .then((seed) => {
+        if (cancelled || seed === null) return;
+        trackFile(PROJECT_YAML, seed.base);
+        if (seed.stale) return reloadProjectFile(seed.file);
+      })
+      // Not watching project.yaml is not worth interrupting for.
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [openedFolder, trackFile, reloadProjectFile]);
 
   const refreshRecent = useCallback(async () => {
     const listed = await commands.listRecentProjects();
@@ -150,7 +210,11 @@ export function useProjects() {
     recent,
     opened,
     roots,
-    notices,
+    notices: changes.watchFailed
+      ? [...notices, failureMessage("watchFailed")]
+      : notices,
+    changed: changes.files,
+    resolveConflict: changes.resolveConflict,
     busy,
     create: (name: string) => run(() => createFlow(commands, name, env)),
     open: () => run(() => openFlow(commands)),
