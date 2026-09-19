@@ -1,6 +1,6 @@
 # Notebook format, version 1
 
-Status: merged with S2-T01 (PR #14). The parser and serialiser in `packages/format` implement it as of S2-T02; the interpretations that task added to section 4.3 (marked "S2-T02" below) are for maintainer review in that pull request.
+Status: merged with S2-T01 (PR #14). The parser and serialiser in `packages/format` implement it as of S2-T02; the interpretations that task added to section 4.3 (marked "S2-T02" below) were merged in PR #15. S2-T03 adds two YAML rules to sections 3.3 and 3.4 (marked "S2-T03"), recorded as rows 27 and 28 of section 8 and in ADR-0019, for maintainer review.
 
 This document is the normative definition of every file the application reads and writes inside `_notebook/`. It refines chapter 5 of the technical specification (`docs/spec/specification.md`) and follows the same normative language: **must**, **should** and **may** as in spec 1.6. Once approved and released, any change to it needs a format version increment, a migration, new fixtures, an ADR and maintainer approval (AGENTS.md section 2, rule 3).
 
@@ -63,6 +63,7 @@ The consequence for gate S2-G01 is that "every file in every fixture" can only m
 - Known keys are written in the order given in the key tables of section 4.
 - Unknown keys are preserved, written after all known keys of the same object, in their original relative order. This applies at every nesting level (spec 5.2).
 - YAML comments are not preserved.
+- An unknown key that reads as an integer, such as `"2"`, is still written after the known keys. Among unknown keys, and inside unknown values, such keys are listed first in ascending order, because the reader holds them in JavaScript objects (S2-T03, ADR-0019). The JSON files are unchanged by this: their integer-like unknown keys are still written before the known keys.
 - A key that is optional is **omitted** when absent. An explicit `null` is accepted only where a table says so.
 
 ### 3.4 YAML layout (`project.yaml`, `artefacts.yaml`, frontmatter)
@@ -74,6 +75,7 @@ The consequence for gate S2-G01 is that "every file in every fixture" can only m
 | Keys                  | Plain (unquoted).                                                                                                                                                                                                                                                          |
 | Strings               | Always double-quoted, including ULIDs, timestamps, dates, enum values and refs. Non-ASCII characters are written as UTF-8, not escaped. `"` and `\` are escaped with a backslash.                                                                                          |
 | Other scalars         | Integers as plain decimal, booleans as `true` or `false`, null as `null`.                                                                                                                                                                                                  |
+| Integers              | An integer literal outside ±9007199254740991 (2^53 − 1), in decimal, `0x` or `0o` form, is rejected on read, because a double would round it. Quote it to keep it as text (S2-T03).                                                                                            |
 | Line width            | No folding or wrapping: a scalar is always written on one line, however long.                                                                                                                                                                                              |
 | Lists of scalars      | Block style, one entry per line (`- "01JAX..."`). An empty list is `[]`.                                                                                                                                                                                                   |
 | Lists of objects      | Block style, one object per entry, its keys on following lines. Exception: `table.columns` entries use flow style (below).                                                                                                                                                 |
@@ -475,6 +477,8 @@ The specification is silent, ambiguous or self-contradictory on the points below
 | 24 | Fence recognition (S2-T02)                  | CommonMark rules: indentation up to three spaces, backtick info strings without backticks, closing fence of the same character and at least the same length, unclosed runs to the end. A misread fence would rewrite a heading inside code, so the rule follows what Markdown readers show. | Asked         |
 | 25 | Preamble and unknown heading text (S2-T02)  | The preamble loses blank lines at either end; an unknown section's heading is stored verbatim after `## `, untrimmed.                                                           | Proposed      |
 | 26 | Empty and misplaced blocks (S2-T02)         | A file with no body blocks ends at the closing fence and one LF; an empty literature block is two consecutive marker lines; a start marker inside the block or an end marker with no start is a parse error. | Proposed      |
+| 27 | Integer-like unknown YAML keys (S2-T03)     | Written after the known keys. Their order among unknown keys is not preserved: they sort first, ascending. See ADR-0019.                                                        | Proposed      |
+| 28 | Unsafe integers in YAML (S2-T03)            | An integer literal beyond ±(2^53 − 1) is a syntax error on read (read-only), so it is never rounded on write. Quoted strings and floats are accepted. See ADR-0019.             | Proposed      |
 
 ### Open, not decided here
 
