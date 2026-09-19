@@ -26,6 +26,8 @@ pub enum ProjectError {
     WriteFailed,
     /// The project lock could not be read, written or removed.
     LockFailed,
+    /// Watching the project for outside changes could not start.
+    WatchFailed,
     /// No recent project has that identifier.
     NotRemembered,
     /// The settings file is damaged, and is left as it is.

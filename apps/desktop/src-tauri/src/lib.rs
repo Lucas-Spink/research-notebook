@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use nb_fs::lock::{LockRegistry, SystemEnv};
 use nb_fs::settings::SettingsStore;
+use nb_fs::watch::WatchRegistry;
 use tauri::Manager;
 use tauri_specta::{collect_commands, Builder};
 
@@ -27,6 +28,9 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         commands::projects::lock::acquire_project_lock,
         commands::projects::lock::project_lock_state,
         commands::projects::lock::release_project_lock,
+        commands::projects::watch::start_project_watch,
+        commands::projects::watch::poll_project_changes,
+        commands::projects::watch::stop_project_watch,
     ])
 }
 
@@ -55,6 +59,8 @@ pub fn run() {
         .manage(LockRegistry::new(Arc::new(SystemEnv::new(env!(
             "CARGO_PKG_VERSION"
         )))))
+        // The watchers this run holds, stopped when it exits.
+        .manage(WatchRegistry::new())
         .setup(|app| {
             // Recent projects and external root paths belong to this machine
             // (spec 9.4: %APPDATA%\<app id> or ~/Library/Application Support/<app id>).
@@ -75,6 +81,7 @@ pub fn run() {
         // lock goes stale after five minutes instead.
         if let tauri::RunEvent::Exit = event {
             app.state::<LockRegistry>().release_all();
+            app.state::<WatchRegistry>().stop_all();
         }
     });
 }

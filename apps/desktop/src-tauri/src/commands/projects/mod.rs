@@ -11,6 +11,7 @@ mod folders;
 mod ids;
 pub mod lock;
 mod types;
+pub mod watch;
 
 use std::path::PathBuf;
 

@@ -87,9 +87,52 @@ export const commands = {
 	projectLockState: (folder: FolderHandle) => typedError<LockState, ProjectError>(__TAURI_INVOKE("project_lock_state", { folder })),
 	/**  Stops the heartbeat and removes the lock if it is still ours. */
 	releaseProjectLock: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("release_project_lock", { folder })),
+	/**
+	 *  Starts watching the project's notebook files. Safe to call again for a
+	 *  project already watched. Read-only projects are watched too: they still
+	 *  show what changed on disk. Nothing is written.
+	 */
+	startProjectWatch: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("start_project_watch", { folder })),
+	/**  Takes the changes found since the last call. */
+	pollProjectChanges: (folder: FolderHandle) => typedError<ChangeReport, ProjectError>(__TAURI_INVOKE("poll_project_changes", { folder })),
+	/**  Stops watching the project. */
+	stopProjectWatch: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("stop_project_watch", { folder })),
 };
 
 /* Types */
+/**  The changes found since the last poll. */
+export type ChangeReport = {
+	/**
+	 *  False when the project is not being watched; there is then nothing to
+	 *  report.
+	 */
+	watching: boolean,
+	changes: ChangedFile[],
+	/**
+	 *  Events may have been lost, or a folder was moved, so every file the
+	 *  webview holds should be checked again.
+	 */
+	needsRescan: boolean,
+};
+
+/**  One notebook data file that changed. The path is project-relative. */
+export type ChangedFile = {
+	path: string,
+	state: ChangedState,
+};
+
+/**  What is on disk for a changed file. */
+export type ChangedState = 
+/**
+ *  The file is there. `sha256` is of its content now, so the webview can
+ *  tell its own save from someone else's edit.
+ */
+{ kind: "present"; sha256: string } | 
+/**  The file is gone, or is a folder or link where a file should be. */
+{ kind: "missing" } | 
+/**  The file exists but could not be read for a while. */
+{ kind: "unreadable" };
+
 export type CreatedProject = {
 	folder: FolderHandle,
 	/**  For display only. */
@@ -192,6 +235,8 @@ export type ProjectError =
 { kind: "writeFailed" } | 
 /**  The project lock could not be read, written or removed. */
 { kind: "lockFailed" } | 
+/**  Watching the project for outside changes could not start. */
+{ kind: "watchFailed" } | 
 /**  No recent project has that identifier. */
 { kind: "notRemembered" } | 
 /**  The settings file is damaged, and is left as it is. */
