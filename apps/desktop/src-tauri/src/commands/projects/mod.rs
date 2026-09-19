@@ -9,6 +9,7 @@
 
 mod folders;
 mod ids;
+pub mod lock;
 mod types;
 
 use std::path::PathBuf;

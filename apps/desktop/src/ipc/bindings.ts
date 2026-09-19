@@ -73,6 +73,20 @@ export const commands = {
 	 *  linked through it unavailable.
 	 */
 	externalRootStatus: (projectId: Ulid, rootIds: Ulid[]) => typedError<ExternalRootStatus[], ProjectError>(__TAURI_INVOKE("external_root_status", { projectId, rootIds })),
+	/**
+	 *  Locks the project for writing and starts its heartbeat. Call it only for a
+	 *  project that would otherwise be writable: a project that is read-only for
+	 *  another reason gets no lock and no write of any kind. `confirm_takeover` is
+	 *  true only after the person has agreed to take over a stale or unreadable lock.
+	 */
+	acquireProjectLock: (folder: FolderHandle, confirmTakeover: boolean) => typedError<LockOutcome, ProjectError>(__TAURI_INVOKE("acquire_project_lock", { folder, confirmTakeover })),
+	/**
+	 *  Whether the lock is still held. The webview asks now and then, so a lock
+	 *  taken over while the project is open turns it read-only.
+	 */
+	projectLockState: (folder: FolderHandle) => typedError<LockState, ProjectError>(__TAURI_INVOKE("project_lock_state", { folder })),
+	/**  Stops the heartbeat and removes the lock if it is still ours. */
+	releaseProjectLock: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("release_project_lock", { folder })),
 };
 
 /* Types */
@@ -113,6 +127,40 @@ export type HygieneStatus = "added" | "unchanged" |
 /**  Not updated. The project exists; the entries can be added by hand. */
 "failed";
 
+/**  Who holds a lock and since when, for the banner. Times are RFC 3339 UTC. */
+export type LockHolder = {
+	host: string,
+	pid: number,
+	appVersion: string,
+	opened: string,
+	heartbeat: string,
+};
+
+/**
+ *  The result of asking to lock a project. Only `acquired` allows writing;
+ *  each other kind is a read-only reason with its own banner.
+ */
+export type LockOutcome = { kind: "acquired" } | 
+/**  Held by another instance whose heartbeat is recent. */
+{ kind: "live"; holder: LockHolder } | 
+/**
+ *  The heartbeat is five minutes old or more; taking over needs the
+ *  person's confirmation.
+ */
+{ kind: "stale"; holder: LockHolder } | 
+/**
+ *  `.lock` is not a valid lock. When `replaceable`, taking over needs
+ *  confirmation; otherwise it is a folder, link or read-only file.
+ */
+{ kind: "unreadable"; replaceable: boolean } | 
+/**  The project's medium or folder does not allow writing. */
+{ kind: "readOnlyMedia" };
+
+/**  Whether this application still holds a project's lock. */
+export type LockState = "held" | 
+/**  Taken over by another instance, or the heartbeat failed. */
+"lost" | "notHeld";
+
 /**
  *  A project folder that was opened. The text is `project.yaml` exactly as it
  *  is on disk; the frontend parses it with `packages/format`, the only parser.
@@ -142,6 +190,8 @@ export type ProjectError =
 { kind: "projectFileUnreadable" } | 
 /**  Something was written and failed part way, or was refused. */
 { kind: "writeFailed" } | 
+/**  The project lock could not be read, written or removed. */
+{ kind: "lockFailed" } | 
 /**  No recent project has that identifier. */
 { kind: "notRemembered" } | 
 /**  The settings file is damaged, and is left as it is. */
