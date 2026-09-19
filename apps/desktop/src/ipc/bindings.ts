@@ -5,6 +5,12 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	/**
+	 *  The version of this build, recorded in `project.yaml` as
+	 *  `last_written_by` (spec 5.3) so the frontend need not read it from
+	 *  anywhere it could disagree with the Rust crate.
+	 */
+	appVersion: () => __TAURI_INVOKE<string>("app_version"),
+	/**
 	 *  Generates a 256px-bounded PNG thumbnail for a PNG or JPEG image (spec
 	 *  section 8). Spike for S1-T05: the first typed command in the app,
 	 *  establishing the `apps/desktop/src/ipc/` generated-bindings boundary

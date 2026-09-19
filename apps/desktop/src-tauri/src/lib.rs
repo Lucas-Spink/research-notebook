@@ -11,6 +11,7 @@ use tauri_specta::{collect_commands, Builder};
 /// later — this crate is the application binary, not a published library.
 pub fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
+        commands::app::app_version,
         commands::preview::preview_thumbnail_png,
         commands::projects::create_project,
         commands::projects::open_project,
