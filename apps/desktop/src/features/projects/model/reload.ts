@@ -1,3 +1,4 @@
+import type { commands } from "../../../ipc/bindings";
 import { assertNever } from "../../../shared/assertNever";
 import { lockMode, releaseFlow, type LockApi } from "./lockFlows";
 import {
@@ -7,7 +8,10 @@ import {
   type ReadOnlyReason,
 } from "./mode";
 import type { OpenedProject } from "./flows";
-import { summariseProject } from "./summary";
+import { summariseProject, type ProjectSummary } from "./summary";
+
+/** The project-relative path of `project.yaml`, which the watcher reports. */
+export const PROJECT_YAML = "_notebook/project.yaml";
 
 /** What the reloaded `project.yaml` was found to hold: its text, or `null` if it is gone. */
 type Reloaded = { text: string } | null;
@@ -82,4 +86,59 @@ async function modeWithoutFileReason(
     return lockMode(api, project.folder, false);
   }
   return mode;
+}
+
+/** What reading `project.yaml` at the start of watching found. */
+export type Seed = {
+  /** The hash to track the file from; `null` if there is no file. */
+  base: string | null;
+  /** The file no longer says what the project shown was made from. */
+  stale: boolean;
+  /** What was read (`null`: the file is gone), to reload from if `stale`. */
+  file: { text: string; sha256: string } | null;
+};
+
+/** What a `project.yaml` amounts to: its summary, or the reason it cannot be used. */
+function describe(
+  summary: ProjectSummary | null,
+  failure: string | null,
+): string {
+  return JSON.stringify(summary ?? failure);
+}
+
+/**
+ * What the project shown was made from, in the same terms, or `null` if that
+ * cannot be told (which is treated as stale, so it is looked at again).
+ */
+function shownAs(project: OpenedProject): string | null {
+  if (project.summary !== null) return describe(project.summary, null);
+  const mode = project.mode;
+  if (mode.kind !== "readOnly") return null;
+  const reason = mode.reason.kind;
+  return reason === "newerFormat" || reason === "invalidProject"
+    ? describe(null, reason)
+    : null;
+}
+
+/**
+ * Reads `project.yaml` as watching begins, to track it from what is on disk
+ * now. The project was opened a moment earlier, so the file may already have
+ * changed: `stale` says whether it did. `null` if the file could not be read,
+ * in which case nothing is tracked.
+ */
+export async function seedProjectFile(
+  api: Pick<typeof commands, "readNotebookFile">,
+  project: OpenedProject,
+): Promise<Seed | null> {
+  const read = await api.readNotebookFile(project.folder, PROJECT_YAML);
+  if (read.status === "error") return null;
+  if (read.data.kind === "missing") {
+    return { base: null, stale: true, file: null };
+  }
+  const file = { text: read.data.text, sha256: read.data.sha256 };
+  const parsed = summariseProject(file.text);
+  const now = parsed.ok
+    ? describe(parsed.value, null)
+    : describe(null, parsed.error);
+  return { base: file.sha256, stale: now !== shownAs(project), file };
 }

@@ -37,6 +37,7 @@ export type Api = Pick<
   | "acquireProjectLock"
   | "projectLockState"
   | "releaseProjectLock"
+  | "readNotebookFile"
 >;
 
 /** Keys of the messages shown when a flow fails (`messages.ts`). */

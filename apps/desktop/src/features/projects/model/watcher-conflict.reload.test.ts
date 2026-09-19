@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { failure, fakeApi, ok } from "./fakeApi";
 import type { OpenedProject } from "./flows";
 import type { ReadOnlyReason } from "./mode";
-import { reloadProjectFlow } from "./reload";
+import { PROJECT_YAML, reloadProjectFlow, seedProjectFile } from "./reload";
 
 const ID = "01JAX9Q2B7N4M8T6V3W5Y1Z0KC";
 
@@ -199,5 +199,92 @@ describe("reloading project.yaml after an outside edit", () => {
     const before = structuredClone(project);
     await reloadProjectFlow(api, project, file(projectYaml("Other")));
     expect(project).toEqual(before);
+  });
+});
+
+describe("starting to watch project.yaml", () => {
+  const text = (name?: string) =>
+    ok({ kind: "text", text: projectYaml(name), sha256: "h7" });
+
+  it("tracks the file as it is when it matches the project shown", async () => {
+    const { api, calls } = fakeApi({ readNotebookFile: text() });
+    const seed = await seedProjectFile(api, opened(writable));
+    expect(calls).toEqual([
+      { command: "readNotebookFile", args: [7, PROJECT_YAML] },
+    ]);
+    expect(seed).toEqual({
+      base: "h7",
+      stale: false,
+      file: { text: projectYaml(), sha256: "h7" },
+    });
+  });
+
+  it("says the project shown is stale when the file changed after it was read", async () => {
+    const { api } = fakeApi({ readNotebookFile: text("Renamed since") });
+    const seed = await seedProjectFile(api, opened(writable));
+    expect(seed?.stale).toBe(true);
+    expect(seed?.base).toBe("h7");
+    expect(seed?.file?.text).toBe(projectYaml("Renamed since"));
+  });
+
+  it("says stale when a project shown as valid is now invalid", async () => {
+    const { api } = fakeApi({
+      readNotebookFile: ok({
+        kind: "text",
+        text: "nonsense: 1\n",
+        sha256: "h8",
+      }),
+    });
+    expect((await seedProjectFile(api, opened(writable)))?.stale).toBe(true);
+  });
+
+  it("says stale, with no base, when the file has gone", async () => {
+    const { api } = fakeApi({ readNotebookFile: ok({ kind: "missing" }) });
+    const seed = await seedProjectFile(api, opened(writable));
+    expect(seed).toEqual({ base: null, stale: true, file: null });
+  });
+
+  it("is not stale when a project shown as unreadable is still unreadable for the same reason", async () => {
+    const { api } = fakeApi({
+      readNotebookFile: ok({
+        kind: "text",
+        text: "nonsense: 1\n",
+        sha256: "h8",
+      }),
+    });
+    const shown = {
+      ...opened(readOnly({ kind: "invalidProject" })),
+      summary: null,
+    };
+    expect((await seedProjectFile(api, shown))?.stale).toBe(false);
+  });
+
+  it("is stale when a project shown as unreadable is now unreadable for another reason", async () => {
+    const { api } = fakeApi({
+      readNotebookFile: ok({
+        kind: "text",
+        text: projectYaml().replace("format_version: 1", "format_version: 2"),
+        sha256: "h8",
+      }),
+    });
+    const shown = {
+      ...opened(readOnly({ kind: "invalidProject" })),
+      summary: null,
+    };
+    expect((await seedProjectFile(api, shown))?.stale).toBe(true);
+  });
+
+  it("is stale when a project shown as unreadable is now fine", async () => {
+    const { api } = fakeApi({ readNotebookFile: text() });
+    const shown = {
+      ...opened(readOnly({ kind: "invalidProject" })),
+      summary: null,
+    };
+    expect((await seedProjectFile(api, shown))?.stale).toBe(true);
+  });
+
+  it("gives up when the file cannot be read", async () => {
+    const { api } = fakeApi({ readNotebookFile: failure("fileUnavailable") });
+    expect(await seedProjectFile(api, opened(writable))).toBeNull();
   });
 });
