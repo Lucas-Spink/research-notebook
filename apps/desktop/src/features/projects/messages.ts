@@ -44,6 +44,9 @@ const failureMessages: Record<FailureReason, string> = {
     "The project could not be created. Some files may have been written, so check the folder before trying again.",
   lockFailed:
     "The project lock could not be read or changed, so the project was not opened for editing.",
+  fileUnavailable: "That file could not be read.",
+  watchFailed:
+    "Changes made outside the application may not appear until the project is reopened.",
   notRemembered: "That project is no longer in the recent list.",
   settingsDamaged:
     "The application settings file is damaged, so recent projects are unavailable. It has not been changed.",

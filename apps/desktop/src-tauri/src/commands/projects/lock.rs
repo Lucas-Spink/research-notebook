@@ -96,7 +96,7 @@ impl From<LockHealth> for LockState {
 
 /// Opens the folder `folder` stands for and runs `work` on it, off the async
 /// runtime's threads, because opening and locking touch the disk.
-async fn with_root<T, F>(
+pub(super) async fn with_root<T, F>(
     folders: &PickedFolders,
     folder: FolderHandle,
     work: F,

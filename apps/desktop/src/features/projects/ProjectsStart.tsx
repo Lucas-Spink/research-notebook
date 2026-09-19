@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { ConflictPanel } from "../conflicts";
 import { messages } from "./messages";
 import { OpenedPanel } from "./OpenedPanel";
 import { RecentList } from "./RecentList";
@@ -47,6 +48,11 @@ export function ProjectsStart() {
           </p>
         ))}
       </div>
+
+      <ConflictPanel
+        files={projects.changed}
+        onResolve={projects.resolveConflict}
+      />
 
       {projects.opened !== null && (
         <OpenedPanel

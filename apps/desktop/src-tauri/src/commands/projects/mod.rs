@@ -7,10 +7,12 @@
 //! text of `project.yaml` goes to the webview to be parsed by
 //! `packages/format`; this crate never parses a notebook file.
 
+pub mod files;
 mod folders;
 mod ids;
 pub mod lock;
 mod types;
+pub mod watch;
 
 use std::path::PathBuf;
 

@@ -28,9 +28,11 @@ mod read;
 mod readme;
 pub mod settings;
 mod target;
+pub mod watch;
 
 pub use atomic::{AtomicIo, RealIo, LOCK_RETRY_BUDGET};
 pub use create::{Created, NewProject};
 pub use error::{CreateError, LockError, OpenError, PathError, ReadError, WriteError};
 pub use path::ProjectRelPath;
 pub use project::{ProjectRoot, NOTEBOOK_DIR};
+pub use read::DataFile;

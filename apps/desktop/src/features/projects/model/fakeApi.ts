@@ -20,6 +20,7 @@ export function fakeApi(replies: Partial<Record<string, unknown>> = {}) {
     acquireProjectLock: ok({ kind: "acquired" }),
     projectLockState: ok("held"),
     releaseProjectLock: ok(null),
+    readNotebookFile: ok({ kind: "missing" }),
   };
   const api: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
   for (const command of Object.keys(defaults)) {

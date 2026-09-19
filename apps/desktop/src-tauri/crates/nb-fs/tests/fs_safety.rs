@@ -17,6 +17,7 @@
 mod common;
 
 use std::fs;
+use std::time::Duration;
 
 use common::{
     make_dir_link, snapshot_outside_notebook, snapshot_outside_notebook_except, TestProject,
@@ -25,6 +26,7 @@ use nb_fs::lock::{
     AcquireOutcome, LockEnv, LockInfo, RefreshOutcome, ReleaseOutcome, SystemEnv, Timestamp,
 };
 use nb_fs::settings::SettingsStore;
+use nb_fs::watch::WatchRegistry;
 use nb_fs::{NewProject, ProjectRelPath, ProjectRoot, WriteError};
 
 /// Every operation nb-fs offers, with valid and invalid arguments.
@@ -85,6 +87,32 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     assert!(project.temp_files().is_empty());
 
     lock_scenario(project, root);
+    watch_scenario(project, root);
+}
+
+/// S2-T08. Watching only reads: it runs while files inside `_notebook/` are
+/// changed from outside, replaced, removed and moved away, and reports them.
+fn watch_scenario(project: &TestProject, root: &ProjectRoot) {
+    let registry = WatchRegistry::new();
+    registry.start(root).unwrap();
+    fs::write(
+        project.on_disk("_notebook/questions/Q-001.md"),
+        b"edited elsewhere",
+    )
+    .unwrap();
+    fs::remove_file(project.on_disk("_notebook/experiments/EXP-001/artefacts.yaml")).unwrap();
+    let batch = registry.wait(root, Duration::from_secs(15)).unwrap();
+    assert!(!batch.is_empty(), "the outside edits were not reported");
+    // A folder of data files moved out of the notebook, reported as a
+    // rescan or as its files going missing, never followed.
+    fs::rename(
+        project.on_disk("_notebook/experiments/EXP-001"),
+        project.on_disk("_notebook/moved-experiment"),
+    )
+    .unwrap();
+    registry.wait(root, Duration::from_secs(15)).unwrap();
+    registry.stop(root);
+    assert!(registry.poll(root).is_none());
 }
 
 /// S2-T06. Locking writes and deletes only `_notebook/.lock`: acquiring,
