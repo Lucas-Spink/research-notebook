@@ -4,4 +4,8 @@ export {
   parseExperimentBody,
   serialiseExperimentBody,
 } from "./experiment-body";
+export {
+  setExperimentSection,
+  type RecognisedSectionKey,
+} from "./experiment-edit";
 export * from "./result";
