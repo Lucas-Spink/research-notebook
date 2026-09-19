@@ -26,9 +26,16 @@ pub struct TestProject {
 
 impl TestProject {
     pub fn new() -> Self {
+        let project = Self::without_notebook();
+        fs::create_dir(project.root().join("_notebook")).unwrap();
+        project
+    }
+
+    /// The same analysis files, with no `_notebook/` yet: a folder a new
+    /// project can be created in.
+    pub fn without_notebook() -> Self {
         let dir = tempfile::Builder::new().prefix("nb-fs-").tempdir().unwrap();
         let root = dir.path();
-        fs::create_dir(root.join("_notebook")).unwrap();
         fs::create_dir_all(root.join("scripts")).unwrap();
         fs::create_dir_all(root.join("results/pca")).unwrap();
         fs::create_dir_all(root.join("data")).unwrap();
@@ -106,15 +113,26 @@ pub enum Entry {
 /// modification time and SHA-256 (docs/testing-guide.md, filesystem safety).
 /// Links are recorded, never followed.
 pub fn snapshot_outside_notebook(root: &Path) -> BTreeMap<String, Entry> {
+    snapshot_outside_notebook_except(root, &[])
+}
+
+/// As [`snapshot_outside_notebook`], leaving out the named files at the
+/// project root. The two repository hygiene files are the only writes
+/// outside `_notebook/` the application may make (spec 5.12), so they are
+/// listed by name; their modification changes the root's own time too, which
+/// is then left out as well. Anything else added or changed still shows.
+pub fn snapshot_outside_notebook_except(root: &Path, except: &[&str]) -> BTreeMap<String, Entry> {
     let mut entries = BTreeMap::new();
-    // The root itself: its modification time changes if anything is created in it.
-    let mtime = fs::metadata(root).unwrap().modified().unwrap();
-    entries.insert(".".to_owned(), Entry::Dir { mtime });
-    walk(root, root, &mut entries);
+    if except.is_empty() {
+        // The root itself: its modification time changes if anything is created in it.
+        let mtime = fs::metadata(root).unwrap().modified().unwrap();
+        entries.insert(".".to_owned(), Entry::Dir { mtime });
+    }
+    walk(root, root, except, &mut entries);
     entries
 }
 
-fn walk(root: &Path, dir: &Path, entries: &mut BTreeMap<String, Entry>) {
+fn walk(root: &Path, dir: &Path, except: &[&str], entries: &mut BTreeMap<String, Entry>) {
     for item in fs::read_dir(dir).unwrap() {
         let item = item.unwrap();
         let path = item.path();
@@ -123,7 +141,7 @@ fn walk(root: &Path, dir: &Path, entries: &mut BTreeMap<String, Entry>) {
             .unwrap()
             .to_string_lossy()
             .replace('\\', "/");
-        if relative == "_notebook" {
+        if relative == "_notebook" || except.contains(&relative.as_str()) {
             continue;
         }
         let meta = fs::symlink_metadata(&path).unwrap();
@@ -136,7 +154,7 @@ fn walk(root: &Path, dir: &Path, entries: &mut BTreeMap<String, Entry>) {
                     mtime: meta.modified().unwrap(),
                 },
             );
-            walk(root, &path, entries);
+            walk(root, &path, except, entries);
         } else {
             let sha256 = format!("{:x}", Sha256::digest(fs::read(&path).unwrap()));
             entries.insert(
