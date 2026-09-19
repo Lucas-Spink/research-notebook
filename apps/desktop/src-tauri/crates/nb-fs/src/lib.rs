@@ -19,6 +19,7 @@ mod atomic;
 mod create;
 mod error;
 pub mod hygiene;
+pub mod lock;
 mod names;
 mod path;
 mod project;
@@ -29,6 +30,6 @@ mod target;
 
 pub use atomic::{AtomicIo, RealIo, LOCK_RETRY_BUDGET};
 pub use create::{Created, NewProject};
-pub use error::{CreateError, OpenError, PathError, ReadError, WriteError};
+pub use error::{CreateError, LockError, OpenError, PathError, ReadError, WriteError};
 pub use path::ProjectRelPath;
 pub use project::{ProjectRoot, NOTEBOOK_DIR};
