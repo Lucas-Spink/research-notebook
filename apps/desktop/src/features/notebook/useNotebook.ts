@@ -1,5 +1,8 @@
 import {
+  COLUMN_KEYS,
+  DEFAULT_COLUMN_WIDTHS,
   arrangeNotebook,
+  changeTableSettings,
   createExperiment,
   createQuestion,
   editExperiment,
@@ -7,6 +10,7 @@ import {
   moveExperiment,
   removeExperiment,
   removeQuestion,
+  resetTableColumns,
   type Arranged,
   type ExperimentChanges,
   type NotebookEnv,
@@ -14,6 +18,7 @@ import {
   type NotebookState,
   type Plan,
   type Result,
+  type TableSettingsChange,
 } from "@research-notebook/format";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commands, type FolderHandle } from "../../ipc/bindings";
@@ -22,6 +27,11 @@ import { createFirstWriteGuard, type FirstWriteGuard } from "../history";
 import { loadFailureMessage, messages, outcomeMessage } from "./messages";
 import type { ChangesPort, Loaded } from "./model/api";
 import { holdFiles } from "./model/held";
+import { withOverlay } from "./table/model/columns";
+import {
+  createSettingsCommitter,
+  type SettingsCommitter,
+} from "./table/model/settingsCommit";
 import { loadNotebook, type LoadFailure } from "./model/load";
 import { perform } from "./model/perform";
 
@@ -39,6 +49,12 @@ type View =
   | { status: "failed"; reason: LoadFailure }
   | { status: "ready"; loaded: Loaded };
 
+/**
+ * How long a change to the table's layout waits for others before it is
+ * saved. Every save keeps a snapshot (ADR-0025), so a burst is one write.
+ */
+export const SETTINGS_DELAY_MS = 1000;
+
 /** The operations the view can ask for. Each resolves `true` when it was carried out. */
 export type NotebookActions = {
   createQuestion(title: string): Promise<boolean>;
@@ -49,6 +65,15 @@ export type NotebookActions = {
   removeExperiment(id: string): Promise<boolean>;
   removeQuestion(id: string): Promise<boolean>;
   refresh(): Promise<void>;
+  /** Changes the table's layout. Saved after a short wait, or at once with `immediate`; only kept for the session in a read-only project. */
+  changeSettings(
+    change: TableSettingsChange,
+    options?: { immediate?: boolean },
+  ): void;
+  /** Puts every column back to its default width and visibility. */
+  resetColumns(): void;
+  /** Collapses or expands the Unassigned group, which has no ID to store, for this session. */
+  setUnassignedCollapsed(collapsed: boolean): void;
 };
 
 type Operation = (
@@ -67,6 +92,10 @@ export function useNotebook({ folder, writable, changes }: Options) {
   const [view, setView] = useState<View>({ status: "loading" });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Layout changes not saved yet, shown at once, and the Unassigned group's own collapse.
+  const [unsaved, setUnsaved] = useState<TableSettingsChange>({});
+  const [unassignedCollapsed, setUnassignedCollapsed] = useState(false);
+  const committerRef = useRef<SettingsCommitter | null>(null);
 
   const loadedRef = useRef<Loaded | null>(null);
   const guardRef = useRef<FirstWriteGuard | null>(null);
@@ -118,7 +147,11 @@ export function useNotebook({ folder, writable, changes }: Options) {
   }, []);
 
   const run = useCallback(
-    (operation: Operation): Promise<boolean> =>
+    (
+      operation: Operation,
+      // A save of the layout is not something the person waits on.
+      { quiet = false }: { quiet?: boolean } = {},
+    ): Promise<boolean> =>
       enqueue(async () => {
         const {
           folder: project,
@@ -128,8 +161,10 @@ export function useNotebook({ folder, writable, changes }: Options) {
         const loaded = loadedRef.current;
         const guard = guardRef.current;
         if (project === null || loaded === null || guard === null) return false;
-        setBusy(true);
-        setNotice(null);
+        if (!quiet) {
+          setBusy(true);
+          setNotice(null);
+        }
         try {
           const version = await appVersion();
           const done = await perform(
@@ -159,11 +194,28 @@ export function useNotebook({ folder, writable, changes }: Options) {
           await reload().catch(() => undefined);
           return false;
         } finally {
-          setBusy(false);
+          if (!quiet) setBusy(false);
         }
       }),
     [appVersion, enqueue, env, reload],
   );
+
+  // Layout changes are coalesced into few writes; a new one for each project.
+  useEffect(() => {
+    const committer = createSettingsCommitter({
+      delayMs: SETTINGS_DELAY_MS,
+      commit: (change) =>
+        run((s, e) => changeTableSettings(s, change, e), { quiet: true }),
+      onUnsaved: setUnsaved,
+    });
+    committerRef.current = committer;
+    return () => {
+      committer.dispose();
+      committerRef.current = null;
+      setUnsaved({});
+      setUnassignedCollapsed(false);
+    };
+  }, [folder, run]);
 
   // Load when a project opens, and forget everything when it closes.
   useEffect(() => {
@@ -212,13 +264,43 @@ export function useNotebook({ folder, writable, changes }: Options) {
       removeQuestion: (id) => run((s, e) => removeQuestion(s, id, e)),
       refresh: () =>
         enqueue(reload).catch(() => setNotice(messages.unexpected)),
+      changeSettings: (change, { immediate = false } = {}) =>
+        committerRef.current?.change(change, {
+          persist: latest.current.writable,
+          immediate,
+        }),
+      resetColumns: () => {
+        const committer = committerRef.current;
+        // Anything waiting would otherwise be saved after, and undo, the reset.
+        committer?.discard();
+        if (latest.current.writable) {
+          void run((s, e) => resetTableColumns(s, e), { quiet: true });
+        } else {
+          committer?.change(
+            {
+              widths: DEFAULT_COLUMN_WIDTHS,
+              hidden: Object.fromEntries(COLUMN_KEYS.map((k) => [k, false])),
+            },
+            { persist: false },
+          );
+        }
+      },
+      setUnassignedCollapsed,
     }),
     [run, enqueue, reload],
+  );
+
+  const table = useMemo(
+    () => (state === null ? null : withOverlay(state.project.table, unsaved)),
+    [state, unsaved],
   );
 
   return {
     view,
     arranged,
+    /** The table's layout: what `project.yaml` holds, with changes not saved yet applied. */
+    table,
+    unassignedCollapsed,
     busy,
     writable,
     notice,
