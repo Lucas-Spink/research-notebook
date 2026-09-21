@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ConflictPanel } from "../conflicts";
+import { NotebookPanel } from "../notebook";
 import { messages } from "./messages";
 import { OpenedPanel } from "./OpenedPanel";
 import { RecentList } from "./RecentList";
@@ -62,6 +63,14 @@ export function ProjectsStart() {
           onChooseRoot={(rootId) => void projects.chooseExternalRoot(rootId)}
           onTakeOver={() => void projects.takeOver()}
           onRetry={() => void projects.retryLock()}
+        />
+      )}
+
+      {projects.opened !== null && projects.opened.summary !== null && (
+        <NotebookPanel
+          folder={projects.opened.folder}
+          writable={projects.opened.mode.kind === "writable"}
+          changes={projects.fileChanges}
         />
       )}
 

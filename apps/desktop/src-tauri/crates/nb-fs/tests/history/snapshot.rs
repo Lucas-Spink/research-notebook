@@ -363,3 +363,44 @@ fn saving_prunes_that_files_old_snapshots_and_nothing_else() {
     );
     assert!(project.exists(other) && project.exists(other2));
 }
+
+/// S2-T10: what creating and then deleting an experiment does to nb-fs, file by
+/// file, in the order the application writes them.
+#[test]
+fn a_new_experiment_folder_is_made_file_by_file_and_can_be_trashed_whole() {
+    let project = TestProject::new();
+    plant(&project, "_notebook/project.yaml", b"before");
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+    let artefacts = "_notebook/experiments/EXP-001/artefacts.yaml";
+
+    for path in [EXPERIMENT, artefacts] {
+        let outcome = save(&root, path, b"new", &Expected::Absent, &clock).unwrap();
+        assert_eq!(outcome, SaveOutcome::Saved { snapshot: None }, "{path}");
+    }
+    let outcome = save(
+        &root,
+        "_notebook/project.yaml",
+        b"after",
+        &expect(b"before"),
+        &clock,
+    )
+    .unwrap();
+    assert!(matches!(outcome, SaveOutcome::Saved { snapshot: Some(_) }));
+    assert_eq!(project.read(EXPERIMENT), b"new");
+    assert_eq!(project.read(artefacts), b"new");
+    // A second create of the same file finds it there and writes nothing.
+    assert!(matches!(
+        save(&root, EXPERIMENT, b"other", &Expected::Absent, &clock).unwrap(),
+        SaveOutcome::Changed { current: Some(_) }
+    ));
+    assert_eq!(project.read(EXPERIMENT), b"new");
+
+    root.move_to_trash(&rel("_notebook/experiments/EXP-001"), &clock)
+        .unwrap();
+    assert!(!project.exists("_notebook/experiments/EXP-001"));
+    assert_eq!(
+        project.read("_notebook/.trash/2026-09-21T10-15-00Z/experiments/EXP-001/experiment.md"),
+        b"new"
+    );
+}

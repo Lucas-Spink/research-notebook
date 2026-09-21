@@ -5,7 +5,7 @@
 //! webview to be parsed by `packages/format`; this crate parses nothing.
 
 use nb_fs::watch::is_notebook_data_path;
-use nb_fs::{ProjectRelPath, ReadError};
+use nb_fs::{NotebookListing, ProjectRelPath, ReadError};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use tauri::State;
@@ -60,6 +60,42 @@ pub enum FileRead {
     /// There is no such file now. Not an error: a file that was deleted
     /// after a change was reported is an ordinary outcome.
     Missing,
+}
+
+/// The question files and experiment folders a project has, by name, sorted.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct NotebookFiles {
+    /// File names in `questions/`, such as `Q-001.md`.
+    pub question_files: Vec<String>,
+    /// Folder names in `experiments/`, such as `EXP-001`.
+    pub experiment_folders: Vec<String>,
+}
+
+impl From<NotebookListing> for NotebookFiles {
+    fn from(listing: NotebookListing) -> Self {
+        Self {
+            question_files: listing.question_files,
+            experiment_folders: listing.experiment_folders,
+        }
+    }
+}
+
+/// Lists which question files and experiment folders the project has, so the
+/// webview can read each with `read_notebook_file`. Only names are returned,
+/// never paths outside the notebook. Nothing is written.
+#[tauri::command]
+#[specta::specta]
+pub async fn list_notebook_files(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+) -> Result<NotebookFiles, ProjectError> {
+    with_root(&folders, folder, |root| {
+        root.list_notebook()
+            .map(NotebookFiles::from)
+            .map_err(|_| ProjectError::FileUnavailable)
+    })
+    .await
 }
 
 /// Reads one notebook data file. Nothing is written.
@@ -121,6 +157,18 @@ mod tests {
         ] {
             assert!(parse(path).is_err(), "{path}");
         }
+    }
+
+    #[test]
+    fn the_listing_reaches_the_webview_as_names_in_camel_case() {
+        let files = NotebookFiles::from(NotebookListing {
+            question_files: vec!["Q-001.md".to_owned()],
+            experiment_folders: vec!["EXP-001".to_owned(), "EXP-002".to_owned()],
+        });
+        assert_eq!(
+            serde_json::to_string(&files).unwrap(),
+            r#"{"questionFiles":["Q-001.md"],"experimentFolders":["EXP-001","EXP-002"]}"#
+        );
     }
 
     #[test]

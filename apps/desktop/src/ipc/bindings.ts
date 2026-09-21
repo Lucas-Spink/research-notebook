@@ -87,6 +87,12 @@ export const commands = {
 	projectLockState: (folder: FolderHandle) => typedError<LockState, ProjectError>(__TAURI_INVOKE("project_lock_state", { folder })),
 	/**  Stops the heartbeat and removes the lock if it is still ours. */
 	releaseProjectLock: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("release_project_lock", { folder })),
+	/**
+	 *  Lists which question files and experiment folders the project has, so the
+	 *  webview can read each with `read_notebook_file`. Only names are returned,
+	 *  never paths outside the notebook. Nothing is written.
+	 */
+	listNotebookFiles: (folder: FolderHandle) => typedError<NotebookFiles, ProjectError>(__TAURI_INVOKE("list_notebook_files", { folder })),
 	/**  Reads one notebook data file. Nothing is written. */
 	readNotebookFile: (folder: FolderHandle, path: NotebookPath) => typedError<FileRead, ProjectError>(__TAURI_INVOKE("read_notebook_file", { folder, path })),
 	/**
@@ -244,6 +250,14 @@ export type LockOutcome = { kind: "acquired" } |
 export type LockState = "held" | 
 /**  Taken over by another instance, or the heartbeat failed. */
 "lost" | "notHeld";
+
+/**  The question files and experiment folders a project has, by name, sorted. */
+export type NotebookFiles = {
+	/**  File names in `questions/`, such as `Q-001.md`. */
+	questionFiles: string[],
+	/**  Folder names in `experiments/`, such as `EXP-001`. */
+	experimentFolders: string[],
+};
 
 /**
  *  A project-relative path of a notebook data file, such as

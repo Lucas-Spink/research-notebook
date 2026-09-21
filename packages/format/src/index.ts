@@ -9,3 +9,4 @@ export {
   type RecognisedSectionKey,
 } from "./experiment-edit";
 export * from "./result";
+export * from "./notebook";
