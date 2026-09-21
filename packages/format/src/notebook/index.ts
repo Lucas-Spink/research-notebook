@@ -22,3 +22,10 @@ export type {
   Plan,
   Step,
 } from "./types";
+export { summariseMarkdown } from "./summary";
+export {
+  changeTableSettings,
+  resetTableColumns,
+  type ColumnKey,
+  type TableSettingsChange,
+} from "./table-settings";

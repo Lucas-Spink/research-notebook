@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { COLUMN_KEYS } from "../schema";
 import { emptyState, must, testEnv } from "../../test/notebook-support";
 import { parseExperiment, parseProject, parseQuestion } from "../files";
 import {
@@ -9,6 +10,7 @@ import {
 } from "../index";
 import {
   arrangeNotebook,
+  changeTableSettings,
   createExperiment,
   createQuestion,
   editExperiment,
@@ -34,6 +36,9 @@ type Op =
   | { kind: "removeQuestion"; index: number }
   | { kind: "move"; index: number; question: number }
   | { kind: "edit"; index: number; status: number }
+  | { kind: "width"; column: number; width: number }
+  | { kind: "hide"; column: number; hidden: boolean }
+  | { kind: "collapse"; question: number; collapsed: boolean }
   | { kind: "lowerCounters" };
 
 const op = (allowLowering: boolean): fc.Arbitrary<Op> =>
@@ -68,6 +73,28 @@ const op = (allowLowering: boolean): fc.Arbitrary<Op> =>
       arbitrary: fc
         .tuple(fc.nat(9), fc.nat(3))
         .map(([index, status]): Op => ({ kind: "edit", index, status })),
+    },
+    {
+      weight: 2,
+      arbitrary: fc
+        .tuple(fc.nat(5), fc.integer({ min: 1, max: 2000 }))
+        .map(([column, width]): Op => ({ kind: "width", column, width })),
+    },
+    {
+      weight: 1,
+      arbitrary: fc
+        .tuple(fc.nat(5), fc.boolean())
+        .map(([column, hidden]): Op => ({ kind: "hide", column, hidden })),
+    },
+    {
+      weight: 2,
+      arbitrary: fc
+        .tuple(fc.nat(9), fc.boolean())
+        .map(([question, collapsed]): Op => ({
+          kind: "collapse",
+          question,
+          collapsed,
+        })),
     },
     ...(allowLowering
       ? [{ weight: 1, arbitrary: fc.constant<Op>({ kind: "lowerCounters" }) }]
@@ -135,6 +162,30 @@ function apply(
             state,
             experiment.file.frontmatter.id,
             { status: STATUSES[step.status] ?? "planned" },
+            env,
+          );
+    }
+    case "width":
+      return changeTableSettings(
+        state,
+        { widths: { [COLUMN_KEYS[step.column % 6] ?? "methods"]: step.width } },
+        env,
+      );
+    case "hide":
+      return changeTableSettings(
+        state,
+        {
+          hidden: { [COLUMN_KEYS[step.column % 6] ?? "methods"]: step.hidden },
+        },
+        env,
+      );
+    case "collapse": {
+      const question = questionAt(step.question);
+      return question === undefined
+        ? null
+        : changeTableSettings(
+            state,
+            { collapsed: { [question.file.frontmatter.id]: step.collapsed } },
             env,
           );
     }
