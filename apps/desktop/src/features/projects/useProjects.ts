@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commands, type RecentEntry } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { useExternalChanges, type Reload } from "../conflicts";
+import type { ChangesPort } from "../notebook";
 import { failureMessage, messages, warningMessage } from "./messages";
 import {
   checkLockFlow,
@@ -71,16 +72,36 @@ export function useProjects() {
     [],
   );
 
+  // Other parts of the window that hold notebook files hear of outside changes too.
+  const reloadListeners = useRef(new Set<(reload: Reload) => void>());
+
   const changes = useExternalChanges({
     folder: opened?.folder ?? null,
     onReload: (reload) => {
+      reloadListeners.current.forEach((listener) => listener(reload));
       if (reload.path !== PROJECT_YAML) return;
       reloadProjectFile(reload.file).catch(() =>
         setNotices([messages.unexpected]),
       );
     },
   });
-  const { track: trackFile } = changes;
+  const { track: trackFile, update, untrack } = changes;
+
+  /** What the notebook needs from the watcher: which files it holds, and to hear of outside changes. */
+  const fileChanges = useMemo<ChangesPort>(
+    () => ({
+      track: trackFile,
+      update,
+      untrack,
+      onReload: (listener) => {
+        reloadListeners.current.add(listener);
+        return () => {
+          reloadListeners.current.delete(listener);
+        };
+      },
+    }),
+    [trackFile, update, untrack],
+  );
 
   // Hold project.yaml from what is on disk now. The project was opened a
   // moment ago, so it may already have changed.
@@ -214,6 +235,7 @@ export function useProjects() {
       ? [...notices, failureMessage("watchFailed")]
       : notices,
     changed: changes.files,
+    fileChanges,
     resolveConflict: changes.resolveConflict,
     busy,
     create: (name: string) => run(() => createFlow(commands, name, env)),
