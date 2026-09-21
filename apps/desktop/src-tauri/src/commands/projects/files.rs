@@ -21,7 +21,7 @@ use super::types::ProjectError;
 pub struct NotebookPath(String);
 
 impl NotebookPath {
-    fn to_rel(&self) -> Result<ProjectRelPath, ProjectError> {
+    pub(super) fn to_rel(&self) -> Result<ProjectRelPath, ProjectError> {
         ProjectRelPath::parse(&self.0).map_err(|_| ProjectError::FileUnavailable)
     }
 }

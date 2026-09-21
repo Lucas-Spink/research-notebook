@@ -27,7 +27,9 @@ use nb_fs::lock::{
 };
 use nb_fs::settings::SettingsStore;
 use nb_fs::watch::WatchRegistry;
-use nb_fs::{NewProject, ProjectRelPath, ProjectRoot, WriteError};
+use nb_fs::{
+    Expected, NewProject, ProjectRelPath, ProjectRoot, SaveOutcome, SystemClock, WriteError,
+};
 
 /// Every operation nb-fs offers, with valid and invalid arguments.
 fn scenario(project: &TestProject, root: &ProjectRoot) {
@@ -87,7 +89,87 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     assert!(project.temp_files().is_empty());
 
     lock_scenario(project, root);
+    history_scenario(project, root);
     watch_scenario(project, root);
+}
+
+/// S2-T09. Snapshots, the trash and version-change backups move and copy
+/// files only inside `_notebook/`: saves that keep history, saves refused for
+/// a stale hash or a scope, trashing valid and refused paths, and backups made
+/// while `_notebook/` holds links to analysis folders.
+fn history_scenario(project: &TestProject, root: &ProjectRoot) {
+    let clock = SystemClock;
+    let path = |text: &str| ProjectRelPath::parse(text).unwrap();
+    let sha = |bytes: &[u8]| {
+        use sha2::{Digest, Sha256};
+        Expected::Sha256(format!("{:x}", Sha256::digest(bytes)))
+    };
+
+    // Overwrites keep what was there, whatever its bytes.
+    let file = path("_notebook/questions/Q-001.md");
+    let saved = root
+        .write_data_file(&file, b"third", &sha(&project.read(file.as_str())), &clock)
+        .unwrap();
+    assert!(matches!(saved, SaveOutcome::Saved { snapshot: Some(_) }));
+    let fresh = path("_notebook/questions/Q-002.md");
+    root.write_data_file(&fresh, b"new", &Expected::Absent, &clock)
+        .unwrap();
+
+    // Refused: a stale hash, and every file outside the scope or the notebook.
+    assert!(matches!(
+        root.write_data_file(&file, b"stale", &sha(b"not what is there"), &clock)
+            .unwrap(),
+        SaveOutcome::Changed { .. }
+    ));
+    // Files outside the notebook's history scope are refused a save; evidence
+    // is not text and is never overwritten this way.
+    for refused in [
+        "_notebook/.lock",
+        "_notebook/experiments/EXP-001/evidence/big.bin",
+        "scripts/run.R",
+        "data/counts.bin",
+        "_notebook/../README.md",
+        "_notebook/linked/pca.csv",
+    ] {
+        if let Ok(parsed) = ProjectRelPath::parse(refused) {
+            assert!(
+                root.write_data_file(&parsed, b"evil", &Expected::Absent, &clock)
+                    .is_err(),
+                "{refused}"
+            );
+        }
+    }
+    // Analysis files, the notebook's own state and links are never trashed.
+    for refused in [
+        "_notebook/.lock",
+        "scripts/run.R",
+        "data/counts.bin",
+        "_notebook/../README.md",
+        "_notebook/linked/pca.csv",
+    ] {
+        if let Ok(parsed) = ProjectRelPath::parse(refused) {
+            assert!(root.move_to_trash(&parsed, &clock).is_err(), "{refused}");
+        }
+    }
+
+    // The trash takes a file and a folder; the notebook's own files stay.
+    root.move_to_trash(&fresh, &clock).unwrap();
+    let folder = path("_notebook/experiments/EXP-009/experiment.md");
+    root.write_atomic(&folder, b"to be deleted").unwrap();
+    root.move_to_trash(&path("_notebook/experiments/EXP-009"), &clock)
+        .unwrap();
+    for kept in [
+        "_notebook/project.yaml",
+        "_notebook/.history",
+        "_notebook/linked",
+    ] {
+        assert!(root.move_to_trash(&path(kept), &clock).is_err(), "{kept}");
+    }
+
+    // A backup with a link to analysis results inside the notebook.
+    let backup = root.backup_before_version("0.2.0", &clock).unwrap();
+    assert!(backup.copied >= 1);
+    assert!(project.exists("results/pca/pca.csv"));
 }
 
 /// S2-T08. Watching only reads: it runs while files inside `_notebook/` are

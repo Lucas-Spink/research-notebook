@@ -42,6 +42,8 @@ const failureMessages: Record<FailureReason, string> = {
     "The project file could not be read. Nothing was changed.",
   writeFailed:
     "The project could not be created. Some files may have been written, so check the folder before trying again.",
+  notWritable:
+    "This project is read-only in this window, so nothing was saved. Nothing was changed.",
   lockFailed:
     "The project lock could not be read or changed, so the project was not opened for editing.",
   fileUnavailable: "That file could not be read.",

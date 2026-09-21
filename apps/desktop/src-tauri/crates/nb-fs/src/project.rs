@@ -20,10 +20,10 @@ pub struct ProjectRoot {
 }
 
 /// A write destination that passed every check.
-struct Resolved {
-    dir: PathBuf,
-    name: String,
-    permissions: Option<Permissions>,
+pub(crate) struct Resolved {
+    pub(crate) dir: PathBuf,
+    pub(crate) name: String,
+    pub(crate) permissions: Option<Permissions>,
 }
 
 impl ProjectRoot {
@@ -100,7 +100,7 @@ impl ProjectRoot {
 
     /// Checks that `path` names a file inside `_notebook/` that may be
     /// replaced, creates its missing folders, and returns where it is.
-    fn resolve(&self, path: &ProjectRelPath) -> Result<Resolved, WriteError> {
+    pub(crate) fn resolve(&self, path: &ProjectRelPath) -> Result<Resolved, WriteError> {
         let display = path.as_str();
         let segments: Vec<&str> = path.segments().collect();
         let (name, folders) = match segments.as_slice() {
@@ -122,7 +122,7 @@ impl ProjectRoot {
     }
 
     /// Refuses names Windows would treat as something else (spec 9.2).
-    fn check_names(&self, segments: &[&str], display: &str) -> Result<(), WriteError> {
+    pub(crate) fn check_names(&self, segments: &[&str], display: &str) -> Result<(), WriteError> {
         if segments.iter().all(|s| is_windows_safe_segment(s)) {
             Ok(())
         } else {
@@ -134,7 +134,11 @@ impl ProjectRoot {
 
     /// Creates the folder `_notebook/<folders...>` if missing and returns
     /// where it is, refusing it unless it lies inside `_notebook/`.
-    fn confined_folder(&self, folders: &[&str], display: &str) -> Result<PathBuf, WriteError> {
+    pub(crate) fn confined_folder(
+        &self,
+        folders: &[&str],
+        display: &str,
+    ) -> Result<PathBuf, WriteError> {
         let mut folder = self.notebook.clone();
         folder.extend(folders);
         let escapes = || WriteError::EscapesNotebook {
@@ -162,7 +166,7 @@ impl ProjectRoot {
     }
 
     /// Whether the resolved path `resolved` lies inside `_notebook/`.
-    fn is_inside(&self, resolved: &Path) -> bool {
+    pub(crate) fn is_inside(&self, resolved: &Path) -> bool {
         resolved.starts_with(&self.notebook)
     }
 }
