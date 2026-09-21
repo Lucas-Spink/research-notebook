@@ -161,7 +161,7 @@ fn fill_temp<I: AtomicIo>(
 
 /// Renames the temporary file over the destination, retrying with backoff
 /// while another process holds it, for up to [`LOCK_RETRY_BUDGET`].
-fn replace<I: AtomicIo>(
+pub(crate) fn replace<I: AtomicIo>(
     io: &mut I,
     temp: &Path,
     target: &Path,
