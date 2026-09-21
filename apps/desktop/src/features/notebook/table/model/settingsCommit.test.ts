@@ -140,6 +140,20 @@ describe("createSettingsCommitter", () => {
     expect(commits).toEqual([]);
   });
 
+  it("discards what is waiting and kept for the session, so a reset is not undone by a later save", async () => {
+    const { committer, commits, last } = setup();
+    committer.change({ widths: { methods: 300 } });
+    committer.change({ hidden: { results: true } }, { persist: false });
+    committer.discard();
+    expect(last()).toEqual({});
+    await vi.advanceTimersByTimeAsync(DELAY * 2);
+    expect(commits).toEqual([]);
+    // It still works afterwards.
+    committer.change({ widths: { methods: 320 } }, { immediate: true });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(commits).toEqual([{ widths: { methods: 320 } }]);
+  });
+
   it("drops what is waiting when it is disposed, so nothing is saved to a project that closed", async () => {
     const { committer, commits } = setup();
     committer.change({ hidden: { results: true } });

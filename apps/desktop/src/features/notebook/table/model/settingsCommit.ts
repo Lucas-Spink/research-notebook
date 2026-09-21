@@ -22,6 +22,8 @@ export type SettingsCommitter = {
   ): void;
   /** Saves what is waiting now, and resolves once it and any save under way are done. */
   flush(): Promise<void>;
+  /** Forgets everything waiting or kept for the session, as when the columns are reset. A save already under way finishes. */
+  discard(): void;
   /** Forgets what is waiting and stops the timer, so nothing is saved to a project that has closed. */
   dispose(): void;
 };
@@ -94,6 +96,12 @@ export function createSettingsCommitter(options: Options): SettingsCommitter {
       else timer = setTimeout(() => void flush(), options.delayMs);
     },
     flush,
+    discard() {
+      stopTimer();
+      pending = {};
+      sessionOnly = {};
+      report();
+    },
     dispose() {
       disposed = true;
       stopTimer();

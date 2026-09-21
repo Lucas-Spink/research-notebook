@@ -22,6 +22,35 @@ export function clampWidth(width: number): number {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(width)));
 }
 
+/** How far an arrow key moves a column edge, and with Shift held. */
+const KEY_STEP = 10;
+const KEY_STEP_LARGE = 50;
+
+/**
+ * The width a key press gives a column whose edge has focus: arrows move it,
+ * Home and End go to the limits. `null` for any other key, which is left to
+ * do what it normally does (spec 10.2: every action is available by keyboard).
+ */
+export function keyboardWidth(
+  width: number,
+  key: string,
+  shift: boolean,
+): number | null {
+  const step = shift ? KEY_STEP_LARGE : KEY_STEP;
+  switch (key) {
+    case "ArrowRight":
+      return clampWidth(width + step);
+    case "ArrowLeft":
+      return clampWidth(width - step);
+    case "Home":
+      return MIN_WIDTH;
+    case "End":
+      return MAX_WIDTH;
+    default:
+      return null;
+  }
+}
+
 /** The six columns in the order `project.yaml` stores them (array order is display order). */
 export function columnLayout(table: Table): ColumnLayout[] {
   return table.columns.map((column) => ({

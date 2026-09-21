@@ -8,6 +8,7 @@ import {
   columnLayout,
   gridColumns,
   gridWidth,
+  keyboardWidth,
   mergeOverlay,
   motivationColumn,
   withOverlay,
@@ -141,5 +142,27 @@ describe("withOverlay and mergeOverlay", () => {
       collapsed: { [first]: false },
     });
     expect(mergeOverlay({}, {})).toEqual({});
+  });
+});
+
+describe("keyboardWidth", () => {
+  it("widens and narrows a column with the arrow keys, more with Shift", () => {
+    expect(keyboardWidth(300, "ArrowRight", false)).toBe(310);
+    expect(keyboardWidth(300, "ArrowLeft", false)).toBe(290);
+    expect(keyboardWidth(300, "ArrowRight", true)).toBe(350);
+    expect(keyboardWidth(300, "ArrowLeft", true)).toBe(250);
+  });
+
+  it("goes to the limits with Home and End, and never beyond them", () => {
+    expect(keyboardWidth(300, "Home", false)).toBe(MIN_WIDTH);
+    expect(keyboardWidth(300, "End", false)).toBe(MAX_WIDTH);
+    expect(keyboardWidth(MIN_WIDTH, "ArrowLeft", true)).toBe(MIN_WIDTH);
+    expect(keyboardWidth(MAX_WIDTH, "ArrowRight", true)).toBe(MAX_WIDTH);
+  });
+
+  it("ignores every other key, so typing elsewhere is not swallowed", () => {
+    for (const key of ["Tab", "Enter", "a", "ArrowUp", "ArrowDown", "Escape"]) {
+      expect(keyboardWidth(300, key, false), key).toBeNull();
+    }
   });
 });
