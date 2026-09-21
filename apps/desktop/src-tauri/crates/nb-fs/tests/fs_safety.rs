@@ -88,6 +88,12 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     );
     assert!(project.temp_files().is_empty());
 
+    // S2-T10. Listing the notebook only reads: it names what is in questions/
+    // and experiments/ and never follows the link to an analysis folder.
+    let listing = root.list_notebook().unwrap();
+    assert_eq!(listing.question_files, ["Q-001.md"]);
+    assert_eq!(listing.experiment_folders, ["EXP-001"]);
+
     lock_scenario(project, root);
     history_scenario(project, root);
     watch_scenario(project, root);
