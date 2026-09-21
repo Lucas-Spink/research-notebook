@@ -1,15 +1,16 @@
 import "./App.css";
 import PreviewSpike from "./features/preview-spike/PreviewSpike";
 import { ProjectsStart } from "./features/projects";
-import TableSpike from "./features/table-spike/TableSpike";
 
+// The Stage 1 table spike (features/table-spike) is no longer mounted: the
+// workspace table in features/notebook replaces it (S2-T11). Its files stay
+// until they are cleaned up.
 function App() {
   return (
     <main className="container">
       <h1>Research Notebook</h1>
       <ProjectsStart />
       <PreviewSpike />
-      <TableSpike />
     </main>
   );
 }
