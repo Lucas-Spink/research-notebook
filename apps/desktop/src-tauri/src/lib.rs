@@ -28,6 +28,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         commands::projects::lock::acquire_project_lock,
         commands::projects::lock::project_lock_state,
         commands::projects::lock::release_project_lock,
+        commands::projects::files::list_notebook_files,
         commands::projects::files::read_notebook_file,
         commands::projects::history::write_notebook_file,
         commands::projects::history::move_to_trash,
