@@ -27,6 +27,9 @@ fn kind(error: &WriteError) -> &'static str {
         WriteError::TargetIsDirectory { .. } => "directory",
         WriteError::ReadOnly { .. } => "read-only",
         WriteError::Locked { .. } => "locked",
+        WriteError::NotHistoryScope { .. } => "not history scope",
+        WriteError::NotTrashable { .. } => "not trashable",
+        WriteError::Missing { .. } => "missing",
         WriteError::Io { .. } => "io",
     }
 }

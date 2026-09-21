@@ -143,6 +143,75 @@ fn a_burst_of_edits_is_one_change_holding_the_last_content() {
 }
 
 #[test]
+fn a_save_with_a_snapshot_a_trash_and_a_backup_report_only_the_data_files() {
+    use nb_fs::{Expected, SystemClock};
+
+    let (project, root) = project();
+    write(
+        &project,
+        "project.yaml",
+        "format_version: 1
+",
+    );
+    write(
+        &project,
+        "questions/Q-01.md",
+        "one
+",
+    );
+    write(
+        &project,
+        "questions/Q-02.md",
+        "two
+",
+    );
+    let watcher = root.watch().unwrap();
+    let _ = watcher.wait(QUIET_FOR);
+    let clock = SystemClock;
+
+    // The snapshot goes to `.history`, which is not reported; the file is.
+    let path = rel("_notebook/questions/Q-01.md");
+    root.write_data_file(
+        &path,
+        b"edited
+",
+        &Expected::Sha256(sha256(
+            "one
+",
+        )),
+        &clock,
+    )
+    .unwrap();
+    assert_eq!(
+        next(&watcher),
+        [Change {
+            path,
+            state: present(
+                "edited
+"
+            ),
+        }]
+    );
+    assert!(watcher.wait(QUIET_FOR).is_empty());
+
+    // A backup copies files into `backups/`, which is not reported.
+    root.backup_before_version("0.2.0", &clock).unwrap();
+    assert!(watcher.wait(QUIET_FOR).is_empty());
+
+    // Moving a file to the trash is the file going missing, and nothing more.
+    root.move_to_trash(&rel("_notebook/questions/Q-02.md"), &clock)
+        .unwrap();
+    assert_eq!(
+        next(&watcher),
+        [Change {
+            path: rel("_notebook/questions/Q-02.md"),
+            state: FileState::Missing,
+        }]
+    );
+    assert!(watcher.wait(QUIET_FOR).is_empty());
+}
+
+#[test]
 fn files_that_are_not_notebook_data_are_not_reported() {
     let (project, root) = project();
     let watcher = root.watch().unwrap();

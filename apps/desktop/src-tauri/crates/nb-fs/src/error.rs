@@ -50,6 +50,15 @@ pub enum WriteError {
     /// Another process held the file for the whole retry budget (spec 9.3).
     #[error("`{path}` is held by another process")]
     Locked { path: String },
+    /// Not one of the notebook text files that keep history (spec 5.11).
+    #[error("`{path}` is not a notebook file that keeps history")]
+    NotHistoryScope { path: String },
+    /// The notebook itself, its lock, project file or bibliography, or the
+    /// history, trash and backups, which are never moved to the trash.
+    #[error("`{path}` cannot be moved to the trash")]
+    NotTrashable { path: String },
+    #[error("`{path}` does not exist")]
+    Missing { path: String },
     #[error("cannot {operation} `{path}`: {source}")]
     Io {
         operation: &'static str,

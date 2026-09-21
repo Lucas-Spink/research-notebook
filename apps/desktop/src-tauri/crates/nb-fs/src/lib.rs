@@ -16,9 +16,12 @@
 #![allow(clippy::disallowed_methods)]
 
 mod atomic;
+mod backup;
 pub mod cache;
+mod clock;
 mod create;
 mod error;
+pub mod history;
 pub mod hygiene;
 pub mod lock;
 mod names;
@@ -28,11 +31,16 @@ mod read;
 mod readme;
 pub mod settings;
 mod target;
+mod trash;
 pub mod watch;
 
 pub use atomic::{AtomicIo, RealIo, LOCK_RETRY_BUDGET};
+pub use backup::Backup;
+pub use clock::{Clock, SystemClock};
 pub use create::{Created, NewProject};
 pub use error::{CreateError, LockError, OpenError, PathError, ReadError, WriteError};
+pub use history::{Expected, SaveOutcome};
 pub use path::ProjectRelPath;
 pub use project::{ProjectRoot, NOTEBOOK_DIR};
 pub use read::DataFile;
+pub use trash::Trashed;
