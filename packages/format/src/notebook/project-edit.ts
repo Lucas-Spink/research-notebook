@@ -8,6 +8,7 @@ import {
   type NotebookEnv,
   type NotebookError,
   type NotebookState,
+  type Plan,
   type Step,
 } from "./types";
 
@@ -119,3 +120,21 @@ export function checkedProject(
   }
   return ok(checked.data);
 }
+
+/** A plan that writes nothing and leaves the state as it is. */
+export const noChange = (state: NotebookState): Plan => ({
+  steps: [],
+  next: state,
+});
+
+export const missingExperiment = (id: string): NotebookError => ({
+  kind: "notFound",
+  entity: "experiment",
+  id,
+});
+
+export const missingQuestion = (id: string): NotebookError => ({
+  kind: "notFound",
+  entity: "question",
+  id,
+});

@@ -1,3 +1,9 @@
+import {
+  findProblems,
+  identify,
+  type Identified,
+  type Problem,
+} from "./problems";
 import { refNumber } from "./refs";
 import type { LoadedExperiment, LoadedQuestion, NotebookState } from "./types";
 
@@ -16,31 +22,6 @@ export interface ArrangedQuestion {
   readOnly: boolean;
   experiments: ArrangedExperiment[];
 }
-
-/** Something wrong with the files or with `project.yaml`, reported and never repaired silently. */
-export type Problem =
-  /** Two files of one kind share a ref; the IDs stay authoritative (FR-EXP-07). */
-  | {
-      kind: "duplicateRef";
-      entity: "question" | "experiment";
-      ref: string;
-      ids: string[];
-    }
-  /** Two files share an ID: the later one is read-only. `locations` are file names or folders. */
-  | {
-      kind: "duplicateId";
-      entity: "question" | "experiment";
-      id: string;
-      locations: string[];
-    }
-  /** An experiment's folder is not named by its ref. */
-  | { kind: "folderRefMismatch"; folder: string; ref: string; id: string }
-  /** `order` names a question or experiment that has no file. */
-  | { kind: "orderNamesNoFile"; entity: "question" | "experiment"; id: string }
-  /** `order` lists an experiment under a question that is not the one its file names. */
-  | { kind: "orderMisplaced"; experiment: string; listedUnder: string }
-  /** A file could not be read and is left untouched. */
-  | { kind: "unreadable"; path: string };
 
 export interface Arranged {
   questions: ArrangedQuestion[];
@@ -64,50 +45,80 @@ function byRefThenName<T>(
   };
 }
 
-/** The first item with each ID, and the items that repeat an ID that came earlier. */
-function firstById<T>(
-  items: readonly T[],
-  id: (item: T) => string,
-): { first: Map<string, T>; later: Set<T> } {
-  const first = new Map<string, T>();
-  const later = new Set<T>();
-  for (const item of items) {
-    if (first.has(id(item))) later.add(item);
-    else first.set(id(item), item);
-  }
-  return { first, later };
+const experimentOrder = byRefThenName<LoadedExperiment>(
+  (e) => e.file.frontmatter.ref,
+  (e) => e.folder,
+);
+
+/** Questions in the order of `project.yaml`, then those it does not list, by ref. */
+function orderedQuestions(
+  state: NotebookState,
+  ids: Identified,
+): LoadedQuestion[] {
+  const listed = state.project.order.flatMap(
+    (entry) => ids.questions.first.get(entry.question) ?? [],
+  );
+  const inOrder = new Set(listed);
+  const unlisted = state.questions
+    .filter((q) => !inOrder.has(q))
+    .sort(
+      byRefThenName(
+        (q) => q.file.frontmatter.ref,
+        (q) => q.fileName,
+      ),
+    );
+  return [...listed, ...unlisted];
 }
 
-function duplicates<T>(
-  entity: "question" | "experiment",
-  items: readonly T[],
-  id: (item: T) => string,
-  ref: (item: T) => string,
-  location: (item: T) => string,
-): Problem[] {
-  const found: Problem[] = [];
-  const byId = new Map<string, T[]>();
-  const byRef = new Map<string, string[]>();
-  for (const item of items) {
-    byId.set(id(item), [...(byId.get(id(item)) ?? []), item]);
-    const ids = byRef.get(ref(item)) ?? [];
-    if (!ids.includes(id(item))) byRef.set(ref(item), [...ids, id(item)]);
-  }
-  for (const [key, same] of byId) {
-    if (same.length > 1) {
-      found.push({
-        kind: "duplicateId",
-        entity,
-        id: key,
-        locations: same.map(location),
-      });
+/**
+ * Puts each experiment under the question its own file names: those the order
+ * lists under that question first, in order, then the rest by ref. What is
+ * left has no question with a file.
+ */
+function placeExperiments(
+  state: NotebookState,
+  questions: readonly LoadedQuestion[],
+  ids: Identified,
+): { questions: ArrangedQuestion[]; unassigned: ArrangedExperiment[] } {
+  const placed = new Set<LoadedExperiment>();
+  const shown = (
+    experiment: LoadedExperiment,
+    absentFromOrder: boolean,
+  ): ArrangedExperiment => ({
+    experiment,
+    readOnly: ids.experiments.later.has(experiment),
+    absentFromOrder,
+  });
+
+  const arranged = questions.map((question): ArrangedQuestion => {
+    const id = question.file.frontmatter.id;
+    const entry = state.project.order.find((e) => e.question === id);
+    const experiments: ArrangedExperiment[] = [];
+    for (const experimentId of entry?.experiments ?? []) {
+      const experiment = ids.experiments.first.get(experimentId);
+      if (experiment?.file.frontmatter.question !== id) continue;
+      placed.add(experiment);
+      experiments.push(shown(experiment, false));
     }
-  }
-  for (const [key, ids] of byRef) {
-    if (ids.length > 1)
-      found.push({ kind: "duplicateRef", entity, ref: key, ids });
-  }
-  return found;
+    const rest = state.experiments
+      .filter((e) => e.file.frontmatter.question === id && !placed.has(e))
+      .sort(experimentOrder);
+    for (const experiment of rest) {
+      placed.add(experiment);
+      experiments.push(shown(experiment, true));
+    }
+    return {
+      question,
+      readOnly: ids.questions.later.has(question),
+      experiments,
+    };
+  });
+
+  const unassigned = state.experiments
+    .filter((e) => !placed.has(e))
+    .sort(experimentOrder)
+    .map((experiment) => shown(experiment, true));
+  return { questions: arranged, unassigned };
 }
 
 /**
@@ -121,136 +132,7 @@ function duplicates<T>(
  * Nothing is hidden and nothing is renumbered.
  */
 export function arrangeNotebook(state: NotebookState): Arranged {
-  const questionsById = firstById(
-    state.questions,
-    (q) => q.file.frontmatter.id,
-  );
-  const experimentsById = firstById(
-    state.experiments,
-    (e) => e.file.frontmatter.id,
-  );
-  const problems: Problem[] = [];
-
-  const listed = state.project.order.filter((entry) =>
-    questionsById.first.has(entry.question),
-  );
-  const listedIds = new Set(listed.map((entry) => entry.question));
-  const unlisted = state.questions
-    .filter((q) => !listedIds.has(q.file.frontmatter.id))
-    .sort(
-      byRefThenName(
-        (q) => q.file.frontmatter.ref,
-        (q) => q.fileName,
-      ),
-    );
-  const ordered = [
-    ...listed.flatMap((entry) => questionsById.first.get(entry.question) ?? []),
-    ...unlisted,
-  ];
-
-  const placed = new Set<LoadedExperiment>();
-  const questions = ordered.map((question): ArrangedQuestion => {
-    const id = question.file.frontmatter.id;
-    const entry = state.project.order.find((e) => e.question === id);
-    const experiments: ArrangedExperiment[] = [];
-    for (const experimentId of entry?.experiments ?? []) {
-      const experiment = experimentsById.first.get(experimentId);
-      if (experiment?.file.frontmatter.question !== id) continue;
-      placed.add(experiment);
-      experiments.push({ experiment, readOnly: false, absentFromOrder: false });
-    }
-    const rest = state.experiments
-      .filter((e) => e.file.frontmatter.question === id && !placed.has(e))
-      .sort(
-        byRefThenName(
-          (e) => e.file.frontmatter.ref,
-          (e) => e.folder,
-        ),
-      );
-    for (const experiment of rest) {
-      placed.add(experiment);
-      experiments.push({
-        experiment,
-        readOnly: experimentsById.later.has(experiment),
-        absentFromOrder: true,
-      });
-    }
-    return {
-      question,
-      readOnly: questionsById.later.has(question),
-      experiments,
-    };
-  });
-  // A later file with an ID that was listed still counts as read-only where it sits.
-  for (const group of questions) {
-    for (const shown of group.experiments) {
-      shown.readOnly = experimentsById.later.has(shown.experiment);
-    }
-  }
-
-  const unassigned = state.experiments
-    .filter((e) => !placed.has(e))
-    .sort(
-      byRefThenName(
-        (e) => e.file.frontmatter.ref,
-        (e) => e.folder,
-      ),
-    )
-    .map((experiment) => ({
-      experiment,
-      readOnly: experimentsById.later.has(experiment),
-      absentFromOrder: true,
-    }));
-
-  for (const entry of state.project.order) {
-    if (!questionsById.first.has(entry.question)) {
-      problems.push({
-        kind: "orderNamesNoFile",
-        entity: "question",
-        id: entry.question,
-      });
-    }
-    for (const id of entry.experiments) {
-      const experiment = experimentsById.first.get(id);
-      if (experiment === undefined) {
-        problems.push({ kind: "orderNamesNoFile", entity: "experiment", id });
-      } else if (experiment.file.frontmatter.question !== entry.question) {
-        problems.push({
-          kind: "orderMisplaced",
-          experiment: id,
-          listedUnder: entry.question,
-        });
-      }
-    }
-  }
-  problems.push(
-    ...duplicates(
-      "question",
-      state.questions,
-      (q) => q.file.frontmatter.id,
-      (q) => q.file.frontmatter.ref,
-      (q) => q.fileName,
-    ),
-    ...duplicates(
-      "experiment",
-      state.experiments,
-      (e) => e.file.frontmatter.id,
-      (e) => e.file.frontmatter.ref,
-      (e) => e.folder,
-    ),
-  );
-  for (const { folder, file } of state.experiments) {
-    if (folder !== file.frontmatter.ref) {
-      problems.push({
-        kind: "folderRefMismatch",
-        folder,
-        ref: file.frontmatter.ref,
-        id: file.frontmatter.id,
-      });
-    }
-  }
-  for (const path of state.unreadable)
-    problems.push({ kind: "unreadable", path });
-
-  return { questions, unassigned, problems };
+  const ids = identify(state);
+  const placed = placeExperiments(state, orderedQuestions(state, ids), ids);
+  return { ...placed, problems: findProblems(state, ids) };
 }

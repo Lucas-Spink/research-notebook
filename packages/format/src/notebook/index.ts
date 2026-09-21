@@ -3,17 +3,15 @@ export {
   type Arranged,
   type ArrangedExperiment,
   type ArrangedQuestion,
-  type Problem,
 } from "./arrange";
+export type { Problem } from "./problems";
+export { moveExperiment, removeExperiment, removeQuestion } from "./change";
 export {
   editExperiment,
   editQuestion,
-  moveExperiment,
-  removeExperiment,
-  removeQuestion,
   type ExperimentChanges,
   type ExperimentStatus,
-} from "./change";
+} from "./edit";
 export { createExperiment, createQuestion } from "./create";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
