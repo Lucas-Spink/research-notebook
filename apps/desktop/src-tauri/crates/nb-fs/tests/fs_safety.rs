@@ -121,6 +121,8 @@ fn history_scenario(project: &TestProject, root: &ProjectRoot) {
             .unwrap(),
         SaveOutcome::Changed { .. }
     ));
+    // Files outside the notebook's history scope are refused a save; evidence
+    // is not text and is never overwritten this way.
     for refused in [
         "_notebook/.lock",
         "_notebook/experiments/EXP-001/evidence/big.bin",
@@ -135,6 +137,17 @@ fn history_scenario(project: &TestProject, root: &ProjectRoot) {
                     .is_err(),
                 "{refused}"
             );
+        }
+    }
+    // Analysis files, the notebook's own state and links are never trashed.
+    for refused in [
+        "_notebook/.lock",
+        "scripts/run.R",
+        "data/counts.bin",
+        "_notebook/../README.md",
+        "_notebook/linked/pca.csv",
+    ] {
+        if let Ok(parsed) = ProjectRelPath::parse(refused) {
             assert!(root.move_to_trash(&parsed, &clock).is_err(), "{refused}");
         }
     }

@@ -123,7 +123,7 @@ fn the_version_becomes_one_safe_folder_name() {
     for (version, name) in [
         ("1.0.0-beta.2+build.5", "1.0.0-beta.2+build.5"),
         ("1.0.0-rc:1/x\\y", "1.0.0-rc_1_x_y"),
-        ("1.0.", "1.0._"),
+        ("1.0.", "1.0_"),
         ("", "unknown"),
         ("../../evil", ".._.._evil"),
         // Long text is cut, so the name stays a legal length.
