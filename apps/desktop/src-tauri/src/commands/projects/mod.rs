@@ -9,6 +9,7 @@
 
 pub mod files;
 mod folders;
+pub mod history;
 mod ids;
 pub mod lock;
 mod types;

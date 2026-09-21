@@ -24,6 +24,9 @@ pub enum ProjectError {
     ProjectFileUnreadable,
     /// Something was written and failed part way, or was refused.
     WriteFailed,
+    /// Nothing was written: this application does not hold the project's
+    /// lock, so the project is read-only.
+    NotWritable,
     /// The project lock could not be read, written or removed.
     LockFailed,
     /// A notebook data file could not be read: it is not one that may be read,

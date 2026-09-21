@@ -90,6 +90,25 @@ export const commands = {
 	/**  Reads one notebook data file. Nothing is written. */
 	readNotebookFile: (folder: FolderHandle, path: NotebookPath) => typedError<FileRead, ProjectError>(__TAURI_INVOKE("read_notebook_file", { folder, path })),
 	/**
+	 *  Overwrites a notebook data file with `text`, first keeping what it held in
+	 *  `.history`. Refused, with nothing written, if this application does not
+	 *  hold the project's lock, or if the file is no longer what `expected` says
+	 *  (`changed`), which is how a save never overwrites an outside edit.
+	 */
+	writeNotebookFile: (folder: FolderHandle, path: NotebookPath, text: string, expected: ExpectedFile) => typedError<SaveResult, ProjectError>(__TAURI_INVOKE("write_notebook_file", { folder, path, text, expected })),
+	/**
+	 *  Moves a question file or an experiment folder to `.trash/`. Nothing is
+	 *  deleted; the person can move it back.
+	 */
+	moveToTrash: (folder: FolderHandle, path: TrashTarget) => typedError<TrashedItem, ProjectError>(__TAURI_INVOKE("move_to_trash", { folder, path })),
+	/**
+	 *  Copies the notebook's text files to `backups/` before the first write by
+	 *  this version of the application. The webview decides whether one is due by
+	 *  comparing `last_written_by`, which it parsed, with this build's version;
+	 *  the version named in the folder is this build's own, not one it supplies.
+	 */
+	backupForVersionChange: (folder: FolderHandle) => typedError<BackupMade, ProjectError>(__TAURI_INVOKE("backup_for_version_change", { folder })),
+	/**
 	 *  Starts watching the project's notebook files. Safe to call again for a
 	 *  project already watched. Read-only projects are watched too: they still
 	 *  show what changed on disk. Nothing is written.
@@ -102,6 +121,13 @@ export const commands = {
 };
 
 /* Types */
+/**  A backup that was made. */
+export type BackupMade = {
+	folder: string,
+	copied: number,
+	skipped: number,
+};
+
 /**  The changes found since the last poll. */
 export type ChangeReport = {
 	/**
@@ -141,6 +167,9 @@ export type CreatedProject = {
 	path: string,
 	hygiene: HygieneReport[],
 };
+
+/**  What the caller believes is on disk. */
+export type ExpectedFile = { kind: "absent" } | { kind: "sha256"; sha256: string };
 
 /**  Where an external root of a project is on this machine (FR-PRJ-07). */
 export type ExternalRootStatus = {
@@ -252,6 +281,11 @@ export type ProjectError =
 { kind: "projectFileUnreadable" } | 
 /**  Something was written and failed part way, or was refused. */
 { kind: "writeFailed" } | 
+/**
+ *  Nothing was written: this application does not hold the project's
+ *  lock, so the project is read-only.
+ */
+{ kind: "notWritable" } | 
 /**  The project lock could not be read, written or removed. */
 { kind: "lockFailed" } | 
 /**
@@ -283,6 +317,20 @@ export type RecentEntry = {
 	 *  offered Locate project (FR-PRJ-03).
 	 */
 	available: boolean,
+};
+
+/**  What a save did. */
+export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "changed"; current: string | null };
+
+/**
+ *  A project-relative path the trash command accepts: a question file, or the
+ *  folder of an experiment.
+ */
+export type TrashTarget = string;
+
+/**  Where a trashed file or folder went. */
+export type TrashedItem = {
+	location: string,
 };
 
 /**
