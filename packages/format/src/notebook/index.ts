@@ -14,6 +14,14 @@ export {
 } from "./edit";
 export { createExperiment, createQuestion } from "./create";
 export { applyCapture, type CaptureTarget, type CapturedFile } from "./capture";
+export { decideCaptureMode, type CaptureMode } from "./capture-mode";
+export {
+  applyLink,
+  applyLinkChecked,
+  applyRelink,
+  type LinkObservation,
+  type LinkTarget,
+} from "./link";
 export { editExperimentSection } from "./sections";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
