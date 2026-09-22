@@ -1,0 +1,47 @@
+.expanded {
+  margin: 0.75rem 0;
+}
+
+.expanded__field {
+  margin: 0.5rem 0;
+}
+
+.expanded__field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.expanded__textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 6rem;
+  font: inherit;
+}
+
+.expanded__status {
+  font-weight: 600;
+}
+
+.expanded__status--error {
+  text-decoration: underline;
+}
+
+/* Stacked below 1280 px (FR-TBL-07); side by side at that width or more. */
+.expanded__pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 1280px) {
+  .expanded__pair {
+    flex-direction: row;
+  }
+
+  .expanded__pair > .expanded__field {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}

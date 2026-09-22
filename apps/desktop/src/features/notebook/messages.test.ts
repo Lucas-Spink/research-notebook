@@ -83,6 +83,7 @@ describe("messages", () => {
       { kind: "invalid", message: "m", field: "status" },
       { kind: "invalid", message: "m", field: "started" },
       { kind: "invalid", message: "m", field: "completed" },
+      { kind: "invalid", message: "m", field: "text" },
       { kind: "invalid", message: "m" },
       { kind: "notFound", entity: "experiment", id: "a" },
     ];
@@ -90,7 +91,15 @@ describe("messages", () => {
     expect(texts[0]).toContain("title");
     expect(texts[2]).toContain("YYYY-MM-DD");
     expect(texts[2]).toBe(texts[3]);
-    expect(new Set(texts).size).toBe(5);
+    expect(texts[4]).toContain("##");
+    expect(new Set(texts).size).toBe(6);
+  });
+
+  it("explains a genuinely unexpected exception, which is not a perform() outcome", () => {
+    const text = outcomeMessage({ kind: "unexpected" });
+    expect(text).toBe(
+      "Something unexpected happened. The list has been refreshed.",
+    );
   });
 
   it("explains both ways loading can fail", () => {

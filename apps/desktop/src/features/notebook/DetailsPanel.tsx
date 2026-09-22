@@ -2,6 +2,7 @@ import type {
   ArrangedExperiment,
   ArrangedQuestion,
 } from "@research-notebook/format";
+import { ExpandedExperimentView } from "./expanded/ExpandedExperimentView";
 import { ExperimentItem, type QuestionChoice } from "./ExperimentItem";
 import { tableMessages } from "./messages";
 import { QuestionTools } from "./QuestionTools";
@@ -17,13 +18,20 @@ type Props = {
   questions: QuestionChoice[];
   sharedRefs: ReadonlySet<string>;
   actions: NotebookActions;
+  /** Turns off the one-shot buttons (edit, move, delete) while another action is in flight, or the project is read-only. */
   disabled: boolean;
+  /**
+   * Whether the project may be written to at all. The section editors use
+   * this alone, not `disabled`: a save elsewhere in the table must not
+   * interrupt someone typing (autosave runs quietly, ADR-0028).
+   */
+  writable: boolean;
 };
 
 /**
  * Below the table: what can be done with the selected experiment or
- * question. The table's cells are read-only (FR-TBL-05), so editing, moving
- * and deleting live here until the expanded view (S2-T12) takes editing over.
+ * question (edit, move, delete, rename), and the expanded view's section
+ * editors for a selected experiment (S2-T12, ADR-0028).
  */
 export function DetailsPanel({
   selected,
@@ -31,23 +39,37 @@ export function DetailsPanel({
   sharedRefs,
   actions,
   disabled,
+  writable,
 }: Props) {
   return (
     <section className="notebook__details" aria-labelledby="notebook-details">
       <h4 id="notebook-details">{tableMessages.detailsHeading}</h4>
       {selected === null && <p>{tableMessages.detailsHint}</p>}
       {selected?.kind === "experiment" && (
-        <ul className="notebook__experiments">
-          <ExperimentItem
+        <>
+          <ul className="notebook__experiments">
+            <ExperimentItem
+              item={selected.item}
+              questions={questions}
+              actions={actions}
+              disabled={disabled}
+              sharesRef={sharedRefs.has(
+                selected.item.experiment.file.frontmatter.ref,
+              )}
+            />
+          </ul>
+          <ExpandedExperimentView
             item={selected.item}
-            questions={questions}
-            actions={actions}
-            disabled={disabled}
-            sharesRef={sharedRefs.has(
-              selected.item.experiment.file.frontmatter.ref,
-            )}
+            disabled={!writable}
+            onSaveSection={(key, text) =>
+              actions.editExperimentSection(
+                selected.item.experiment.file.frontmatter.id,
+                key,
+                text,
+              )
+            }
           />
-        </ul>
+        </>
       )}
       {selected?.kind === "question" && (
         <QuestionTools

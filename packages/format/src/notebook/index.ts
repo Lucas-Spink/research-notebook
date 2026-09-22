@@ -13,6 +13,7 @@ export {
   type ExperimentStatus,
 } from "./edit";
 export { createExperiment, createQuestion } from "./create";
+export { editExperimentSection } from "./sections";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
 export type {
