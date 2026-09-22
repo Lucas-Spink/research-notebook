@@ -86,11 +86,18 @@ impl ProjectRoot {
     /// `_notebook/`. Nothing is created unless the whole path resolves inside
     /// `_notebook/` once links are followed. An existing folder is left as it is.
     pub fn create_folder(&self, path: &ProjectRelPath) -> Result<(), WriteError> {
+        self.resolve_folder(path).map(|_| ())
+    }
+
+    /// As [`ProjectRoot::create_folder`], returning where the folder is.
+    /// Shared with capture, which places files in an already-confined
+    /// `evidence/` or `methods/` folder.
+    pub(crate) fn resolve_folder(&self, path: &ProjectRelPath) -> Result<PathBuf, WriteError> {
         let display = path.as_str();
         match path.segments().collect::<Vec<_>>().as_slice() {
             [first, folders @ ..] if *first == NOTEBOOK_DIR && !folders.is_empty() => {
                 self.check_names(folders, display)?;
-                self.confined_folder(folders, display).map(|_| ())
+                self.confined_folder(folders, display)
             }
             _ => Err(WriteError::OutsideNotebook {
                 path: display.to_owned(),

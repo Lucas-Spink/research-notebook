@@ -117,7 +117,10 @@ fn is_lock_error(error: &io::Error) -> bool {
 /// Creates the temporary file beside the destination, so the final rename
 /// stays on one volume. The name starts with a dot and ends with `.tmp`
 /// (spec 5.10); the process id and a counter keep concurrent writers apart.
-fn create_temp<I: AtomicIo>(
+///
+/// `pub(crate)`: capture (spec 7.4) streams a copy into this same temporary
+/// file itself, rather than building the whole contents in memory first.
+pub(crate) fn create_temp<I: AtomicIo>(
     io: &mut I,
     dest: &Destination<'_>,
 ) -> Result<(PathBuf, File), WriteError> {
