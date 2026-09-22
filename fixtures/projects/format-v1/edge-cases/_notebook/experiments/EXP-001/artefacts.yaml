@@ -1,0 +1,15 @@
+format_version: 1
+artefacts:
+  - id: "01JAX000000000000000000105"
+    name: "Résultats (日本)"
+    role: "result"
+    mode: "link"
+    type: "table"
+    source: {root: "project", path: "results/étude/résultats (日本).csv"}
+    created: "2026-01-06T09:00:04Z"
+    link:
+      sha256: "9b1c151b1d381471c1e598615c278d8bda04ecf5e346c3badf4957957a3819ab"
+      size: 4096
+      observed_mtime: "2026-01-06T09:00:04Z"
+      checked: "2026-01-06T09:00:04Z"
+groups: []

@@ -19,3 +19,10 @@ docs/format/schemas/**
 # Canonical output is compared byte for byte, so Prettier must not reflow it
 # (flow maps, quoting). Golden tests own these files (AGENTS.md section 8).
 packages/format/src/__golden__/**
+
+# Fixture projects (S2-T13): the canonical ones are compared byte for byte
+# against the application's own serialiser, and the hand-written ones (a
+# byte-order mark, CRLF, exact flow-map spacing) must stay exactly as
+# written. fixtures/support.ts and the *.fixtures.test.ts files are not
+# under fixtures/projects/, so Prettier still formats those.
+fixtures/projects/**

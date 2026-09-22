@@ -1,0 +1,43 @@
+format_version: 1
+id: "01JAX000000000000000000001"
+name: "Batch effects in treated organoids"
+created: "2026-01-06T09:00:01Z"
+last_written_by: "0.1.0"
+archived: null
+locale: "en-GB"
+citation_style: "nature.csl"
+capture:
+  copy_threshold_mb: 100
+  evidence_in_git: false
+numbering:
+  next_question: 4
+  next_experiment: 13
+order:
+  - question: "01JAX000000000000000000002"
+    experiments:
+      - "01JAX000000000000000000003"
+      - "01JAX000000000000000000004"
+      - "01JAX000000000000000000005"
+      - "01JAX000000000000000000006"
+  - question: "01JAX000000000000000000007"
+    experiments:
+      - "01JAX000000000000000000008"
+      - "01JAX000000000000000000009"
+      - "01JAX00000000000000000000A"
+      - "01JAX00000000000000000000B"
+  - question: "01JAX00000000000000000000C"
+    experiments:
+      - "01JAX00000000000000000000D"
+      - "01JAX00000000000000000000E"
+      - "01JAX00000000000000000000F"
+      - "01JAX00000000000000000000G"
+table:
+  columns:
+    - {key: "motivation", width: 220, hidden: false}
+    - {key: "methods", width: 260, hidden: false}
+    - {key: "results", width: 280, hidden: false}
+    - {key: "results_notes", width: 300, hidden: false}
+    - {key: "interpretation", width: 320, hidden: false}
+    - {key: "literature", width: 240, hidden: false}
+  collapsed_questions: []
+external_roots: []

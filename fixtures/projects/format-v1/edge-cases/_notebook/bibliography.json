@@ -1,0 +1,32 @@
+[
+  {
+    "id": "z:u:7XK2PQ9M",
+    "type": "article-journal",
+    "title": "Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2",
+    "author": [
+      {
+        "family": "Love",
+        "given": "Michael I."
+      }
+    ],
+    "_zotero": {
+      "server_id": "abc123",
+      "library": "u",
+      "key": "7XK2PQ9M",
+      "fetched": "2026-01-05T10:00:00Z",
+      "status": "ok"
+    }
+  },
+  {
+    "id": "z:u:9HJ3LM2N",
+    "type": "article-journal",
+    "title": "A source that was later moved to the Zotero trash",
+    "_zotero": {
+      "server_id": null,
+      "library": "u",
+      "key": "9HJ3LM2N",
+      "fetched": "2026-01-05T10:05:00Z",
+      "status": "trashed"
+    }
+  }
+]

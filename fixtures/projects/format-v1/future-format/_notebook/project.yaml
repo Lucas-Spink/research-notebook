@@ -1,0 +1,25 @@
+format_version: 2
+id: "01JAX000000000000000000001"
+name: "A project from a newer format version"
+created: "2026-01-06T09:00:00Z"
+last_written_by: "0.2.0"
+archived: null
+locale: "en-GB"
+citation_style: "nature.csl"
+capture:
+  copy_threshold_mb: 100
+  evidence_in_git: false
+numbering:
+  next_question: 1
+  next_experiment: 1
+order: []
+table:
+  columns:
+    - {key: "motivation", width: 220, hidden: false}
+    - {key: "methods", width: 260, hidden: false}
+    - {key: "results", width: 280, hidden: false}
+    - {key: "results_notes", width: 300, hidden: false}
+    - {key: "interpretation", width: 320, hidden: false}
+    - {key: "literature", width: 240, hidden: false}
+  collapsed_questions: []
+external_roots: []

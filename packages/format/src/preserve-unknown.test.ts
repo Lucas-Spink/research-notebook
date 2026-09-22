@@ -17,8 +17,9 @@ import type { ExperimentBodyModel } from "./schema";
 /**
  * Gate S2-G03: unknown frontmatter keys, preamble, unknown sections and
  * passthrough blocks are unchanged by an edit and save (spec 5.5, FR-EDT-02).
- * The edge-cases fixture arrives with S2-T13, so these tests use the
- * committed golden file and inline samples.
+ * These tests use the committed golden file and inline samples; the same
+ * gate is also exercised against the real `edge-cases` fixture in
+ * `fixtures/edge-cases.fixtures.test.ts` (S2-T13).
  */
 
 const RECOGNISED_KEYS: readonly RecognisedSectionKey[] = [
