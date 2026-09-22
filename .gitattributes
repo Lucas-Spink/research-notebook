@@ -6,3 +6,9 @@
 *.h5 binary
 fixtures/projects/**/evidence/** binary
 fixtures/projects/**/methods/** -text
+
+# The edge-cases fixture (S2-T13) deliberately holds a CRLF file to prove
+# the parser accepts it (format-v1.md 3.1); `eol=lf` above would silently
+# normalise it back to LF on commit, defeating the one property this file
+# exists to test.
+fixtures/projects/format-v1/edge-cases/_notebook/questions/Q-002.md -text
