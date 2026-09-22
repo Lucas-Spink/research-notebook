@@ -139,6 +139,17 @@ pub enum CaptureError {
     VersionExists { path: String },
 }
 
+/// Why a linked file could not be read (spec 7.4, FR-EVD-07, FR-EVD-08). A
+/// link is only ever observed, never copied, moved or removed, so every
+/// variant here comes from reading the file at `path`.
+#[derive(Debug, thiserror::Error)]
+pub enum LinkError {
+    #[error("cannot read `{path}`: {source}")]
+    Io { path: PathBuf, source: io::Error },
+    #[error("`{path}` is not a file")]
+    NotAFile { path: PathBuf },
+}
+
 /// Why the project lock could not be acquired, refreshed or released. A lock
 /// that is held by someone else, or that cannot be written because the medium
 /// is read-only, is an outcome, not an error.

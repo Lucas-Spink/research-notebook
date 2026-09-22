@@ -28,7 +28,8 @@ use nb_fs::lock::{
 use nb_fs::settings::SettingsStore;
 use nb_fs::watch::WatchRegistry;
 use nb_fs::{
-    CaptureName, CaptureResult, Expected, KnownVersion, NewProject, ProjectRelPath, ProjectRoot,
+    find_relink_candidates, observe_link, stat_link, CaptureName, CaptureResult, Expected,
+    KnownVersion, LinkStatus, NewProject, ProjectRelPath, ProjectRoot, RelinkExpectation,
     SaveOutcome, SystemClock, WriteError,
 };
 
@@ -98,6 +99,7 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     lock_scenario(project, root);
     history_scenario(project, root);
     capture_scenario(project, root);
+    link_scenario(project);
     watch_scenario(project, root);
 }
 
@@ -172,6 +174,41 @@ fn capture_scenario(project: &TestProject, root: &ProjectRoot) {
         .is_err());
 
     assert!(project.temp_files().is_empty());
+}
+
+/// S3-T02. Linking only ever reads an analysis file: observing it, checking
+/// its availability, and searching a folder for a relink candidate never
+/// write to it, move it or remove it. `data/counts.bin` is read here and is
+/// part of what the snapshot proves is untouched.
+fn link_scenario(project: &TestProject) {
+    let source = project.on_disk("data/counts.bin");
+    let observed = observe_link(&source).unwrap();
+    assert!(matches!(
+        stat_link(&source).unwrap(),
+        LinkStatus::Present { size, .. } if size == observed.size
+    ));
+
+    // A missing link is reported, not an error, and nothing is written for it.
+    let missing = project.on_disk("data/moved-away.bin");
+    assert_eq!(stat_link(&missing).unwrap(), LinkStatus::Missing);
+
+    // Searching for where a missing file went only reads candidates; it
+    // never applies one.
+    let expected = RelinkExpectation {
+        file_name: "counts.bin",
+        size: observed.size,
+        sha256: &observed.sha256,
+    };
+    let candidates = find_relink_candidates(&project.on_disk("data"), &expected).unwrap();
+    assert!(candidates.iter().any(|c| c.hash_matches));
+
+    // Refused: a folder that does not exist.
+    assert!(find_relink_candidates(&project.on_disk("no-such-folder"), &expected).is_err());
+
+    assert_eq!(
+        project.read("data/counts.bin"),
+        (0..=255u8).collect::<Vec<_>>()
+    );
 }
 
 /// S2-T09. Snapshots, the trash and version-change backups move and copy

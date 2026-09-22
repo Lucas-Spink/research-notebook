@@ -24,6 +24,7 @@ mod create;
 mod error;
 pub mod history;
 pub mod hygiene;
+pub mod link;
 mod list;
 pub mod lock;
 pub mod names;
@@ -42,9 +43,13 @@ pub use capture::{CaptureName, CaptureOutcome, CaptureResult, CapturedVersion, K
 pub use clock::{Clock, SystemClock};
 pub use create::{Created, NewProject};
 pub use error::{
-    CaptureError, CreateError, LockError, OpenError, PathError, ReadError, WriteError,
+    CaptureError, CreateError, LinkError, LockError, OpenError, PathError, ReadError, WriteError,
 };
 pub use history::{Expected, SaveOutcome};
+pub use link::{
+    find_relink_candidates, observe_link, stat_link, LinkObservation, LinkStatus, RelinkCandidate,
+    RelinkExpectation,
+};
 pub use list::NotebookListing;
 pub use path::ProjectRelPath;
 pub use project::{ProjectRoot, NOTEBOOK_DIR};
