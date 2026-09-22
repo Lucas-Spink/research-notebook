@@ -5,6 +5,7 @@ import type {
   Problem,
 } from "@research-notebook/format";
 import { assertNever } from "../../shared/assertNever";
+import type { AutosaveStatus } from "./expanded/model/autosave";
 import type { LoadFailure } from "./model/load";
 import type { Performed } from "./model/perform";
 
@@ -73,6 +74,29 @@ export const tableMessages = {
   detailsHint:
     "Select an experiment or a question in the table to edit, move or delete it.",
 } as const;
+
+/** Text of the expanded experiment view (FR-EDT-03, FR-TBL-07). */
+export const expandedMessages = {
+  heading: "Sections",
+} as const;
+
+const autosaveStatusLabels: Record<AutosaveStatus, string> = {
+  saved: "Saved",
+  saving: "Saving…",
+  unsaved: "Unsaved",
+  error: "Error",
+};
+
+/** Saved, Saving, Unsaved or Error (FR-EDT-03), with the reason for an error appended. */
+export function autosaveStatusText(
+  status: AutosaveStatus,
+  message: string | null,
+): string {
+  const label = autosaveStatusLabels[status];
+  return status === "error" && message !== null
+    ? `${label}: ${message}`
+    : label;
+}
 
 const columnLabels: Record<ColumnKey, string> = {
   motivation: "Motivation",
@@ -157,6 +181,7 @@ const fieldRefusals: Record<string, string> = {
   status: "Choose one of the listed statuses.",
   started: dateRefusal,
   completed: dateRefusal,
+  text: 'This text cannot be saved as written. Check for a heading starting with "##", an unclosed code block, or a literature marker, then try again.',
 };
 
 /** Why the format refused a value the person typed. */
@@ -174,9 +199,17 @@ export function refusalMessage(error: NotebookError): string {
   }
 }
 
-/** What to tell the person about an operation that did not finish, or `null` when it did. */
-export function outcomeMessage(done: Performed): string | null {
+/**
+ * What to tell the person about an operation that did not finish, or `null`
+ * when it did. `"unexpected"` is not a `perform()` outcome; it is what
+ * `useNotebook` reports for a genuinely unexpected exception.
+ */
+export function outcomeMessage(
+  done: Performed | { kind: "unexpected" },
+): string | null {
   switch (done.kind) {
+    case "unexpected":
+      return messages.unexpected;
     case "done":
       return null;
     case "refused":

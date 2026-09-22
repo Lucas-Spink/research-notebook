@@ -19,6 +19,7 @@ const actions: NotebookActions = {
   removeExperiment: () => Promise.resolve(true),
   removeQuestion: () => Promise.resolve(true),
   refresh: () => Promise.resolve(),
+  editExperimentSection: () => Promise.resolve({ ok: true }),
   changeSettings: () => undefined,
   resetColumns: () => undefined,
   setUnassignedCollapsed: () => undefined,

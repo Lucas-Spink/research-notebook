@@ -6,6 +6,7 @@ import {
   createExperiment,
   createQuestion,
   editExperiment,
+  editExperimentSection as editSectionText,
   editQuestion,
   moveExperiment,
   removeExperiment,
@@ -17,6 +18,7 @@ import {
   type NotebookError,
   type NotebookState,
   type Plan,
+  type RecognisedSectionKey,
   type Result,
   type TableSettingsChange,
 } from "@research-notebook/format";
@@ -24,16 +26,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commands, type FolderHandle } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { createFirstWriteGuard, type FirstWriteGuard } from "../history";
+import type { AutosaveOutcome } from "./expanded/model/autosave";
 import { loadFailureMessage, messages, outcomeMessage } from "./messages";
 import type { ChangesPort, Loaded } from "./model/api";
 import { holdFiles } from "./model/held";
+import type { Performed } from "./model/perform";
+import { perform } from "./model/perform";
 import { withOverlay } from "./table/model/columns";
 import {
   createSettingsCommitter,
   type SettingsCommitter,
 } from "./table/model/settingsCommit";
 import { loadNotebook, type LoadFailure } from "./model/load";
-import { perform } from "./model/perform";
+
+/** What `run` resolves to: a `perform()` outcome, or a genuinely unexpected exception. */
+type RunOutcome = Performed | { kind: "unexpected" };
 
 type Options = {
   /** The open project, or `null` for none. */
@@ -65,6 +72,15 @@ export type NotebookActions = {
   removeExperiment(id: string): Promise<boolean>;
   removeQuestion(id: string): Promise<boolean>;
   refresh(): Promise<void>;
+  /**
+   * Saves one recognised section's text (FR-EDT-03), the expanded view's
+   * autosave. Resolves whether it was saved, and a message when it was not.
+   */
+  editExperimentSection(
+    id: string,
+    key: RecognisedSectionKey,
+    text: string,
+  ): Promise<AutosaveOutcome>;
   /** Changes the table's layout. Saved after a short wait, or at once with `immediate`; only kept for the session in a read-only project. */
   changeSettings(
     change: TableSettingsChange,
@@ -80,6 +96,8 @@ type Operation = (
   state: NotebookState,
   env: NotebookEnv,
 ) => Result<Plan, NotebookError>;
+
+const isDone = (done: RunOutcome) => done.kind === "done";
 
 /**
  * The questions and experiments of the open project, and the operations on
@@ -149,10 +167,14 @@ export function useNotebook({ folder, writable, changes }: Options) {
   const run = useCallback(
     (
       operation: Operation,
-      // A save of the layout is not something the person waits on.
-      { quiet = false }: { quiet?: boolean } = {},
-    ): Promise<boolean> =>
-      enqueue(async () => {
+      // A save of the layout or of section text is not something the person
+      // waits on, and its own status (not the shared notice) says how it went.
+      {
+        quiet = false,
+        silent = false,
+      }: { quiet?: boolean; silent?: boolean } = {},
+    ): Promise<RunOutcome> =>
+      enqueue(async (): Promise<RunOutcome> => {
         const {
           folder: project,
           writable: canWrite,
@@ -160,7 +182,9 @@ export function useNotebook({ folder, writable, changes }: Options) {
         } = latest.current;
         const loaded = loadedRef.current;
         const guard = guardRef.current;
-        if (project === null || loaded === null || guard === null) return false;
+        if (project === null || loaded === null || guard === null) {
+          return { kind: "unexpected" };
+        }
         if (!quiet) {
           setBusy(true);
           setNotice(null);
@@ -181,18 +205,18 @@ export function useNotebook({ folder, writable, changes }: Options) {
           if (done.kind === "done") {
             loadedRef.current = done.loaded;
             setView({ status: "ready", loaded: done.loaded });
-            return true;
+            return done;
           }
-          setNotice(outcomeMessage(done));
+          if (!silent) setNotice(outcomeMessage(done));
           // What was written may differ from what is held: read it back.
           const gone =
             done.kind === "refused" && done.error.kind === "notFound";
           if (done.kind === "interrupted" || gone) await reload();
-          return false;
+          return done;
         } catch {
-          setNotice(messages.unexpected);
+          if (!silent) setNotice(messages.unexpected);
           await reload().catch(() => undefined);
-          return false;
+          return { kind: "unexpected" };
         } finally {
           if (!quiet) setBusy(false);
         }
@@ -205,7 +229,9 @@ export function useNotebook({ folder, writable, changes }: Options) {
     const committer = createSettingsCommitter({
       delayMs: SETTINGS_DELAY_MS,
       commit: (change) =>
-        run((s, e) => changeTableSettings(s, change, e), { quiet: true }),
+        run((s, e) => changeTableSettings(s, change, e), { quiet: true }).then(
+          (done) => done.kind === "done",
+        ),
       onUnsaved: setUnsaved,
     });
     committerRef.current = committer;
@@ -251,19 +277,33 @@ export function useNotebook({ folder, writable, changes }: Options) {
 
   const actions: NotebookActions = useMemo(
     () => ({
-      createQuestion: (title) => run((s, e) => createQuestion(s, { title }, e)),
+      createQuestion: (title) =>
+        run((s, e) => createQuestion(s, { title }, e)).then(isDone),
       createExperiment: (questionId, title) =>
-        run((s, e) => createExperiment(s, { questionId, title }, e)),
+        run((s, e) => createExperiment(s, { questionId, title }, e)).then(
+          isDone,
+        ),
       editQuestion: (id, title) =>
-        run((s, e) => editQuestion(s, id, { title }, e)),
+        run((s, e) => editQuestion(s, id, { title }, e)).then(isDone),
       editExperiment: (id, changed) =>
-        run((s, e) => editExperiment(s, id, changed, e)),
+        run((s, e) => editExperiment(s, id, changed, e)).then(isDone),
       moveExperiment: (id, questionId) =>
-        run((s, e) => moveExperiment(s, id, questionId, e)),
-      removeExperiment: (id) => run((s, e) => removeExperiment(s, id, e)),
-      removeQuestion: (id) => run((s, e) => removeQuestion(s, id, e)),
+        run((s, e) => moveExperiment(s, id, questionId, e)).then(isDone),
+      removeExperiment: (id) =>
+        run((s, e) => removeExperiment(s, id, e)).then(isDone),
+      removeQuestion: (id) =>
+        run((s, e) => removeQuestion(s, id, e)).then(isDone),
       refresh: () =>
         enqueue(reload).catch(() => setNotice(messages.unexpected)),
+      editExperimentSection: (id, key, text) =>
+        run((s, e) => editSectionText(s, id, key, text, e), {
+          quiet: true,
+          silent: true,
+        }).then((done): AutosaveOutcome => {
+          if (done.kind === "done") return { ok: true };
+          const message = outcomeMessage(done);
+          return { ok: false, message: message ?? messages.unexpected };
+        }),
       changeSettings: (change, { immediate = false } = {}) =>
         committerRef.current?.change(change, {
           persist: latest.current.writable,
