@@ -18,6 +18,7 @@
 mod atomic;
 mod backup;
 pub mod cache;
+pub mod capture;
 mod clock;
 mod create;
 mod error;
@@ -25,7 +26,7 @@ pub mod history;
 pub mod hygiene;
 mod list;
 pub mod lock;
-mod names;
+pub mod names;
 mod path;
 mod project;
 mod read;
@@ -37,9 +38,12 @@ pub mod watch;
 
 pub use atomic::{AtomicIo, RealIo, LOCK_RETRY_BUDGET};
 pub use backup::Backup;
+pub use capture::{CaptureName, CaptureOutcome, CaptureResult, CapturedVersion, KnownVersion};
 pub use clock::{Clock, SystemClock};
 pub use create::{Created, NewProject};
-pub use error::{CreateError, LockError, OpenError, PathError, ReadError, WriteError};
+pub use error::{
+    CaptureError, CreateError, LockError, OpenError, PathError, ReadError, WriteError,
+};
 pub use history::{Expected, SaveOutcome};
 pub use list::NotebookListing;
 pub use path::ProjectRelPath;

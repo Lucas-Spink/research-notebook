@@ -28,7 +28,8 @@ use nb_fs::lock::{
 use nb_fs::settings::SettingsStore;
 use nb_fs::watch::WatchRegistry;
 use nb_fs::{
-    Expected, NewProject, ProjectRelPath, ProjectRoot, SaveOutcome, SystemClock, WriteError,
+    CaptureName, CaptureResult, Expected, KnownVersion, NewProject, ProjectRelPath, ProjectRoot,
+    SaveOutcome, SystemClock, WriteError,
 };
 
 /// Every operation nb-fs offers, with valid and invalid arguments.
@@ -96,7 +97,81 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
 
     lock_scenario(project, root);
     history_scenario(project, root);
+    capture_scenario(project, root);
     watch_scenario(project, root);
+}
+
+/// S3-T01. Capturing copies an analysis file into `evidence/` only, hashing
+/// and verifying before placing it; identical content afterwards is a
+/// duplicate and creates no second version; every refused attempt (a folder
+/// as the source, a destination outside `_notebook/`) leaves nothing behind.
+/// The source itself, `results/pca/pca.csv`, is read here and is part of
+/// what the snapshot proves is untouched.
+fn capture_scenario(project: &TestProject, root: &ProjectRoot) {
+    let folder = ProjectRelPath::parse("_notebook/experiments/EXP-001/evidence").unwrap();
+    let source = project.on_disk("results/pca/pca.csv");
+
+    let first = root
+        .capture_copy(
+            &source,
+            &folder,
+            CaptureName::New {
+                original_file_name: "pca.csv",
+            },
+            &[],
+        )
+        .unwrap();
+    let CaptureResult::Created(version) = first.result else {
+        panic!("expected a new version");
+    };
+    assert_eq!(version.file_name, "pca.csv");
+    assert_eq!(version.number, 1);
+
+    // Capturing the same source again duplicates an existing version: no
+    // second version is created.
+    let known = [KnownVersion {
+        sha256: version.sha256,
+        number: version.number,
+        same_artefact: true,
+    }];
+    let again = root
+        .capture_copy(
+            &source,
+            &folder,
+            CaptureName::Version {
+                stem: "pca",
+                extension: ".csv",
+            },
+            &known,
+        )
+        .unwrap();
+    assert_eq!(again.result, CaptureResult::Duplicate { version: 1 });
+    assert!(!project.exists("_notebook/experiments/EXP-001/evidence/pca.v2.csv"));
+
+    // Refused: a folder as the source, and a destination outside _notebook/.
+    assert!(root
+        .capture_copy(
+            &project.on_disk("scripts"),
+            &folder,
+            CaptureName::New {
+                original_file_name: "run.R",
+            },
+            &[],
+        )
+        .is_err());
+    let outside = ProjectRelPath::parse("results/pca").unwrap();
+    assert!(root
+        .capture_copy(
+            &source,
+            &outside,
+            CaptureName::New {
+                original_file_name: "pca.csv",
+            },
+            &[],
+        )
+        .is_err());
+
+    assert!(project.temp_files().is_empty());
 }
 
 /// S2-T09. Snapshots, the trash and version-change backups move and copy

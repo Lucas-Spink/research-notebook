@@ -69,8 +69,12 @@ export interface Plan {
 export type NotebookError =
   /** A value is not allowed by the format; `field` names it when one caused it. */
   | { kind: "invalid"; message: string; field?: string }
-  /** The question or experiment named does not exist. */
-  | { kind: "notFound"; entity: "question" | "experiment"; id: string };
+  /** The question, experiment or artefact named does not exist. */
+  | {
+      kind: "notFound";
+      entity: "question" | "experiment" | "artefact";
+      id: string;
+    };
 
 export const PROJECT_PATH = "_notebook/project.yaml";
 

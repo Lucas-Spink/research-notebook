@@ -111,6 +111,34 @@ pub enum ReadError {
     Io { path: String, source: io::Error },
 }
 
+/// Why a capture into `evidence/` or `methods/` could not be completed
+/// (spec 7.4, FR-EVD-03 to FR-EVD-05). None of these outcomes ever modify,
+/// move or remove the source file.
+#[derive(Debug, thiserror::Error)]
+pub enum CaptureError {
+    #[error("cannot read the source file: {source}")]
+    Source { source: io::Error },
+    #[error("the source is not a file")]
+    SourceNotAFile,
+    #[error(transparent)]
+    Write(#[from] WriteError),
+    /// What was read back does not match what was copied (FR-EVD-03): the
+    /// copy is discarded rather than trusted.
+    #[error(
+        "the copy did not verify: expected {expected_size} bytes ({expected_sha256}), found {actual_size} bytes ({actual_sha256})"
+    )]
+    VerificationFailed {
+        expected_size: u64,
+        expected_sha256: String,
+        actual_size: u64,
+        actual_sha256: String,
+    },
+    /// A version's file name is already taken. Versions are immutable, so
+    /// nothing already there is ever replaced.
+    #[error("`{path}` already exists")]
+    VersionExists { path: String },
+}
+
 /// Why the project lock could not be acquired, refreshed or released. A lock
 /// that is held by someone else, or that cannot be written because the medium
 /// is read-only, is an outcome, not an error.
