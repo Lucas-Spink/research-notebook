@@ -1,4 +1,5 @@
 import type {
+  ColumnKey,
   ExperimentStatus,
   NotebookError,
   Problem,
@@ -40,6 +41,68 @@ export const messages = {
   readOnlyItem: "Read-only: another file has the same ID",
   unexpected: "Something unexpected happened. The list has been refreshed.",
 } as const;
+
+/** Text of the workspace table (FR-TBL-01 to FR-TBL-05, FR-TBL-10). */
+export const tableMessages = {
+  tableLabel: "Experiments by question",
+  experimentColumn: "Experiment",
+  emptyCell: "Empty",
+  resultsNone: "None yet",
+  noMotivation: "No motivation yet",
+  noMatches: "No experiments in this question match the filter.",
+  filterLabel: "Filter experiments",
+  filterPlaceholder: "Ref, title or text",
+  statusFilterLabel: "Status",
+  allStatuses: "All statuses",
+  sortLabel: "Sort within each question",
+  sortNone: "Project order",
+  sortRef: "Ref",
+  sortTitle: "Title",
+  sortStatus: "Status",
+  sortStarted: "Started",
+  sortCompleted: "Completed",
+  ascending: "Ascending",
+  descending: "Descending",
+  changeDirection: "Change sort direction",
+  columnsButton: "Columns",
+  columnsHeading: "Columns",
+  resetColumns: "Reset columns",
+  sessionOnly:
+    "This project is read-only, so column changes are kept only until it is closed.",
+  detailsHeading: "Selected",
+  detailsHint:
+    "Select an experiment or a question in the table to edit, move or delete it.",
+} as const;
+
+const columnLabels: Record<ColumnKey, string> = {
+  motivation: "Motivation",
+  methods: "Methods",
+  results: "Results",
+  results_notes: "Results notes",
+  interpretation: "Interpretation",
+  literature: "Literature",
+};
+
+export function columnLabel(key: ColumnKey): string {
+  return columnLabels[key];
+}
+
+export const showColumnLabel = (label: string) => `Show ${label}`;
+export const widthLabel = (label: string) => `Width of ${label} (pixels)`;
+export const resizeLabel = (label: string) => `Resize ${label} column`;
+export const collapseLabel = (ref: string) => `Collapse ${ref}`;
+export const expandLabel = (ref: string) => `Expand ${ref}`;
+export const selectLabel = (ref: string) => `Select ${ref}`;
+
+/** "2 experiments", or "1 of 2 experiments" while a filter is in force (FR-TBL-03). */
+export function countLabel(
+  shown: number,
+  total: number,
+  filtered: boolean,
+): string {
+  const noun = total === 1 ? "experiment" : "experiments";
+  return filtered ? `${shown} of ${total} ${noun}` : `${total} ${noun}`;
+}
 
 /** Warning shown before an experiment is moved to the trash. */
 export function deleteExperimentWarning(ref: string): string {

@@ -23,7 +23,10 @@ export interface NewProjectFiles {
 }
 
 /** Spec 5.3 default widths, in CSS pixels, in the order the table shows the columns. */
-const DEFAULT_COLUMN_WIDTHS: Record<(typeof COLUMN_KEYS)[number], number> = {
+export const DEFAULT_COLUMN_WIDTHS: Record<
+  (typeof COLUMN_KEYS)[number],
+  number
+> = {
   motivation: 220,
   methods: 260,
   results: 280,
