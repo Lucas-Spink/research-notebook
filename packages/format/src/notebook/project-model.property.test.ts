@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { COLUMN_KEYS } from "../schema";
+import { COLUMN_KEYS, RECOGNISED_SECTIONS } from "../schema";
 import { emptyState, must, testEnv } from "../../test/notebook-support";
 import { parseExperiment, parseProject, parseQuestion } from "../files";
 import {
@@ -14,6 +14,7 @@ import {
   createExperiment,
   createQuestion,
   editExperiment,
+  editExperimentSection,
   moveExperiment,
   removeExperiment,
   removeQuestion,
@@ -36,6 +37,7 @@ type Op =
   | { kind: "removeQuestion"; index: number }
   | { kind: "move"; index: number; question: number }
   | { kind: "edit"; index: number; status: number }
+  | { kind: "section"; index: number; section: number; text: string }
   | { kind: "width"; column: number; width: number }
   | { kind: "hide"; column: number; hidden: boolean }
   | { kind: "collapse"; question: number; collapsed: boolean }
@@ -75,6 +77,17 @@ const op = (allowLowering: boolean): fc.Arbitrary<Op> =>
         .map(([index, status]): Op => ({ kind: "edit", index, status })),
     },
     {
+      weight: 3,
+      arbitrary: fc
+        .tuple(fc.nat(9), fc.nat(2), safeSectionText())
+        .map(([index, section, text]): Op => ({
+          kind: "section",
+          index,
+          section,
+          text,
+        })),
+    },
+    {
       weight: 2,
       arbitrary: fc
         .tuple(fc.nat(5), fc.integer({ min: 1, max: 2000 }))
@@ -102,6 +115,18 @@ const op = (allowLowering: boolean): fc.Arbitrary<Op> =>
   );
 
 const STATUSES = ["planned", "running", "complete", "abandoned"] as const;
+
+/**
+ * Text that never breaks a section's structure: no `#`, backtick or `<`, so
+ * it can never form a heading, a fence or a literature marker. The refusal
+ * path itself is covered in `sections.test.ts`; this property only needs
+ * operations that always succeed, like every other one here.
+ */
+function safeSectionText(): fc.Arbitrary<string> {
+  return fc
+    .string({ maxLength: 40 })
+    .map((text) => text.replace(/[#`<>]/g, ""));
+}
 
 /** Applies one operation; `null` when it does not apply to the state (nothing to pick). */
 function apply(
@@ -162,6 +187,20 @@ function apply(
             state,
             experiment.file.frontmatter.id,
             { status: STATUSES[step.status] ?? "planned" },
+            env,
+          );
+    }
+    case "section": {
+      const experiment = experimentAt(step.index);
+      const key =
+        RECOGNISED_SECTIONS[step.section % RECOGNISED_SECTIONS.length];
+      return experiment === undefined || key === undefined
+        ? null
+        : editExperimentSection(
+            state,
+            experiment.file.frontmatter.id,
+            key,
+            step.text,
             env,
           );
     }
