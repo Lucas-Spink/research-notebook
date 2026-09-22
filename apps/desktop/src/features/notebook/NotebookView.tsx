@@ -188,6 +188,7 @@ export function NotebookView({
             sharedRefs={shared}
             actions={actions}
             disabled={disabled}
+            writable={writable}
           />
           <NewTitleForm
             label={messages.newQuestionLabel}
