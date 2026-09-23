@@ -150,6 +150,37 @@ pub enum LinkError {
     NotAFile { path: PathBuf },
 }
 
+/// Why an inbox request could not be imported or removed (spec 5.10). None
+/// of these outcomes ever alter the request folder or its payload; a request
+/// that fails stays exactly as it was, for the caller to list with the error.
+#[derive(Debug, thiserror::Error)]
+pub enum InboxError {
+    /// `request_id` or a payload name is empty, contains a path separator, or
+    /// is otherwise not a single safe segment.
+    #[error("`{request_id}` is not a valid inbox request folder name")]
+    InvalidRequestId { request_id: String },
+    /// The payload's actual bytes do not match what the request declared
+    /// (spec 5.10 `sha256`, `size`): the payload is discarded rather than
+    /// trusted, and nothing is moved.
+    #[error(
+        "the payload does not match the request: expected {expected_size} bytes ({expected_sha256}), found {actual_size} bytes ({actual_sha256})"
+    )]
+    PayloadMismatch {
+        expected_size: u64,
+        expected_sha256: String,
+        actual_size: u64,
+        actual_sha256: String,
+    },
+    #[error(transparent)]
+    Read(#[from] ReadError),
+    #[error(transparent)]
+    Link(#[from] LinkError),
+    #[error(transparent)]
+    Capture(#[from] CaptureError),
+    #[error(transparent)]
+    Write(#[from] WriteError),
+}
+
 /// Why the project lock could not be acquired, refreshed or released. A lock
 /// that is held by someone else, or that cannot be written because the medium
 /// is read-only, is an outcome, not an error.

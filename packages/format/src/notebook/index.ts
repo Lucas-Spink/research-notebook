@@ -26,6 +26,15 @@ export {
   checkSourceForUpdate,
   type SourceUpdateStatus,
 } from "./update-from-source";
+export {
+  defaultDisplayName,
+  inferArtefactType,
+  knownVersionsFor,
+  matchInboxSource,
+  planInboxImport,
+  type InboxImportPlan,
+  type KnownVersionInfo,
+} from "./inbox";
 export { editExperimentSection } from "./sections";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
