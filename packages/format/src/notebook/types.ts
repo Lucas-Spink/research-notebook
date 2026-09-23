@@ -69,10 +69,10 @@ export interface Plan {
 export type NotebookError =
   /** A value is not allowed by the format; `field` names it when one caused it. */
   | { kind: "invalid"; message: string; field?: string }
-  /** The question, experiment or artefact named does not exist. */
+  /** The question, experiment, artefact or group named does not exist. */
   | {
       kind: "notFound";
-      entity: "question" | "experiment" | "artefact";
+      entity: "question" | "experiment" | "artefact" | "group";
       id: string;
     };
 
