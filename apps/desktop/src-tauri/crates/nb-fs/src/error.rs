@@ -150,6 +150,22 @@ pub enum LinkError {
     NotAFile { path: PathBuf },
 }
 
+/// Why a discovery scan could not start (FR-EVD-09). Once a scan is under
+/// way, an unreadable subfolder is recorded and skipped rather than failing
+/// the whole scan.
+#[derive(Debug, thiserror::Error)]
+pub enum DiscoveryError {
+    #[error("`{pattern}` is not a valid glob pattern: {message}")]
+    InvalidPattern {
+        pattern: String,
+        message: &'static str,
+    },
+    #[error("cannot read `{path}`: {source}")]
+    Io { path: PathBuf, source: io::Error },
+    #[error("`{path}` is not a folder")]
+    NotAFolder { path: PathBuf },
+}
+
 /// Why an inbox request could not be imported or removed (spec 5.10). None
 /// of these outcomes ever alter the request folder or its payload; a request
 /// that fails stays exactly as it was, for the caller to list with the error.

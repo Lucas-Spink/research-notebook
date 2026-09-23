@@ -180,7 +180,7 @@ fn io_error(path: &Path, source: io::Error) -> LinkError {
     }
 }
 
-fn to_timestamp(time: SystemTime) -> Timestamp {
+pub(crate) fn to_timestamp(time: SystemTime) -> Timestamp {
     let seconds = time
         .duration_since(SystemTime::UNIX_EPOCH)
         .map_or(0, |duration| {

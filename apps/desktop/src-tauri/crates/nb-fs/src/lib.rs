@@ -21,6 +21,7 @@ pub mod cache;
 pub mod capture;
 mod clock;
 mod create;
+pub mod discovery;
 mod error;
 pub mod history;
 pub mod hygiene;
@@ -44,8 +45,8 @@ pub use capture::{CaptureName, CaptureOutcome, CaptureResult, CapturedVersion, K
 pub use clock::{Clock, SystemClock};
 pub use create::{Created, NewProject};
 pub use error::{
-    CaptureError, CreateError, InboxError, LinkError, LockError, OpenError, PathError, ReadError,
-    WriteError,
+    CaptureError, CreateError, DiscoveryError, InboxError, LinkError, LockError, OpenError,
+    PathError, ReadError, WriteError,
 };
 pub use history::{Expected, SaveOutcome};
 pub use inbox::PayloadExpectation;
