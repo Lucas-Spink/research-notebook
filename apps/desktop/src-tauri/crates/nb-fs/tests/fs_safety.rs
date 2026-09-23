@@ -17,11 +17,13 @@
 mod common;
 
 use std::fs;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use common::{
     make_dir_link, snapshot_outside_notebook, snapshot_outside_notebook_except, TestProject,
 };
+use nb_fs::discovery::{discover, DiscoveryOptions};
 use nb_fs::lock::{
     AcquireOutcome, LockEnv, LockInfo, RefreshOutcome, ReleaseOutcome, SystemEnv, Timestamp,
 };
@@ -100,6 +102,7 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     history_scenario(project, root);
     capture_scenario(project, root);
     link_scenario(project);
+    discovery_scenario(project);
     inbox_scenario(project, root);
     watch_scenario(project, root);
 }
@@ -275,6 +278,55 @@ fn link_scenario(project: &TestProject) {
         project.read("data/counts.bin"),
         (0..=255u8).collect::<Vec<_>>()
     );
+}
+
+/// S3-T07. Discovery only reads: a full scan of the project root, with the
+/// notebook's link to analysis results inside `_notebook/`, a scan cancelled
+/// part-way, and a refused pattern leave every analysis file as it was.
+fn discovery_scenario(project: &TestProject) {
+    let captured = vec!["data/counts.bin".to_owned()];
+    let cancel = AtomicBool::new(false);
+    let found = discover(
+        project.root(),
+        &DiscoveryOptions::default(),
+        &captured,
+        &cancel,
+        &mut |_| {},
+    )
+    .unwrap();
+    assert!(found
+        .files
+        .iter()
+        .any(|f| f.rel_path == "data/counts.bin" && f.captured));
+    assert!(found
+        .files
+        .iter()
+        .all(|f| !f.rel_path.starts_with("_notebook")));
+
+    let cancelled = discover(
+        project.root(),
+        &DiscoveryOptions::default(),
+        &captured,
+        &cancel,
+        &mut |_| cancel.store(true, Ordering::Relaxed),
+    )
+    .unwrap();
+    assert!(cancelled.cancelled);
+
+    // Refused: an invalid pattern and a folder that does not exist.
+    let bad = DiscoveryOptions {
+        include: vec!["[".to_owned()],
+        exclude: Vec::new(),
+    };
+    assert!(discover(project.root(), &bad, &[], &cancel, &mut |_| {}).is_err());
+    assert!(discover(
+        &project.on_disk("no-such-folder"),
+        &DiscoveryOptions::default(),
+        &[],
+        &cancel,
+        &mut |_| {}
+    )
+    .is_err());
 }
 
 /// S2-T09. Snapshots, the trash and version-change backups move and copy
