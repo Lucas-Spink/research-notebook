@@ -5,6 +5,7 @@
     "lib": ["ES2022"],
     "composite": true,
     "declaration": true,
+    "types": ["node", "vscode"],
     "outDir": "dist",
     "rootDir": "src"
   },
