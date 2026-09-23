@@ -131,6 +131,11 @@ describe("moveGroup", () => {
     expect(file.groups[0]?.groups[0]?.groups[0]?.id).toBe(GC);
   });
 
+  it("appends when no position is given", () => {
+    const file = must(moveGroup(sample(), GB, GA));
+    expect(file.groups[0]?.groups.map((g) => g.id)).toEqual([GC, GB]);
+  });
+
   it("moves a nested group to the top level", () => {
     const file = must(moveGroup(sample(), GC, null, 1));
     expect(ids(file)).toEqual([GA, GC, GB]);

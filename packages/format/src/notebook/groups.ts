@@ -118,14 +118,14 @@ export function renameGroup(
 
 /**
  * Moves a group with everything inside it to position `index` among
- * `parent`'s groups (`null`: the top level). This both nests and reorders
+ * `parent`'s groups (`null`: the top level; no `index`: the end). This both nests and reorders
  * (FR-GRP-01, FR-GRP-04). A group cannot go inside itself.
  */
 export function moveGroup(
   file: ArtefactsFileModel,
   groupId: string,
   parent: string | null,
-  index: number,
+  index?: number,
 ): Changed {
   const node = findGroup(file.groups, groupId);
   if (node === undefined) return fail(missingGroup(groupId));
