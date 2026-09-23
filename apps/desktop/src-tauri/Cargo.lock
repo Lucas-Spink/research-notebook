@@ -3855,6 +3855,7 @@ name = "nb-fs"
 version = "0.1.0"
 dependencies = [
  "gethostname",
+ "glob",
  "notify",
  "proptest",
  "serde",
