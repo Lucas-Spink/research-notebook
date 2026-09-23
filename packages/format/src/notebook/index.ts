@@ -35,6 +35,7 @@ export {
   type InboxImportPlan,
   type KnownVersionInfo,
 } from "./inbox";
+export { capturedSourcePaths } from "./discovery";
 export { editExperimentSection } from "./sections";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
