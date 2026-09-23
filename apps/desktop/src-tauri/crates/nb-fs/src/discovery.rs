@@ -237,6 +237,7 @@ impl Scan<'_> {
     /// enter. Links are neither followed nor proposed.
     fn visit(&mut self, rel_dir: &str, entry: &DirEntry) -> Option<String> {
         let Ok(kind) = entry.file_type() else {
+            self.found.skipped.push(entry.path());
             return None;
         };
         if kind.is_symlink() {
