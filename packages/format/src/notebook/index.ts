@@ -36,6 +36,17 @@ export {
   type KnownVersionInfo,
 } from "./inbox";
 export { capturedSourcePaths } from "./discovery";
+export {
+  addToGroup,
+  createGroup,
+  deleteGroup,
+  moveGroup,
+  moveToGroup,
+  removeFromGroup,
+  renameGroup,
+  reorderItem,
+  ungroupedArtefacts,
+} from "./groups";
 export { editExperimentSection } from "./sections";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
