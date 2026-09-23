@@ -55,7 +55,12 @@ impl ProjectRoot {
 
     /// The text and hash of `relative` (to `_notebook/`), which must resolve
     /// to a regular UTF-8 file inside `_notebook/`.
-    fn read_confined(&self, relative: &str) -> Result<(String, String), ReadError> {
+    ///
+    /// `pub(crate)`: inbox requests (spec 5.10) read `request.json` the same
+    /// confined way, but are not notebook data files ([`is_notebook_data_path`]
+    /// deliberately excludes `inbox/`, since they are not watched or parsed
+    /// by this crate — only read once, for `packages/format` to parse).
+    pub(crate) fn read_confined(&self, relative: &str) -> Result<(String, String), ReadError> {
         let display = format!("{NOTEBOOK_PREFIX}{relative}");
         let io_error = |source| ReadError::Io {
             path: display.clone(),

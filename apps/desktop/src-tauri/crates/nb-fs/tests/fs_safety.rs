@@ -29,8 +29,8 @@ use nb_fs::settings::SettingsStore;
 use nb_fs::watch::WatchRegistry;
 use nb_fs::{
     find_relink_candidates, observe_link, stat_link, CaptureName, CaptureResult, Expected,
-    KnownVersion, LinkStatus, NewProject, ProjectRelPath, ProjectRoot, RelinkExpectation,
-    SaveOutcome, SystemClock, WriteError,
+    KnownVersion, LinkStatus, NewProject, PayloadExpectation, ProjectRelPath, ProjectRoot,
+    RelinkExpectation, SaveOutcome, SystemClock, WriteError,
 };
 
 /// Every operation nb-fs offers, with valid and invalid arguments.
@@ -100,7 +100,73 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     history_scenario(project, root);
     capture_scenario(project, root);
     link_scenario(project);
+    inbox_scenario(project, root);
     watch_scenario(project, root);
+}
+
+/// S3-T05. Inbox import only ever touches `_notebook/inbox/` and the
+/// experiment folder it copies into: nothing outside `_notebook/` is read
+/// or written. A request whose declared hash does not match its payload is
+/// refused, leaving the payload and the rest of the project untouched.
+fn inbox_scenario(project: &TestProject, root: &ProjectRoot) {
+    use sha2::{Digest, Sha256};
+
+    let evidence = ProjectRelPath::parse("_notebook/experiments/EXP-001/evidence").unwrap();
+    let request_id = "01JAX9Q2B7N4M8T6V3W5Y1Z0KC";
+    let contents = b"from vscode";
+    fs::create_dir_all(project.on_disk(&format!("_notebook/inbox/{request_id}"))).unwrap();
+    fs::write(
+        project.on_disk(&format!("_notebook/inbox/{request_id}/notes.txt")),
+        contents,
+    )
+    .unwrap();
+
+    assert_eq!(
+        root.list_inbox_requests().unwrap(),
+        vec![request_id.to_owned()]
+    );
+
+    // Refused: a declared hash that does not match the payload leaves it in
+    // place and nothing is copied.
+    let wrong_sha256 = format!("{:x}", Sha256::digest(b"not the payload"));
+    assert!(root
+        .import_inbox_payload(
+            request_id,
+            "notes.txt",
+            PayloadExpectation {
+                sha256: &wrong_sha256,
+                size: contents.len() as u64,
+            },
+            &evidence,
+            CaptureName::New {
+                original_file_name: "notes.txt",
+            },
+            &[],
+        )
+        .is_err());
+    assert_eq!(
+        project.read(&format!("_notebook/inbox/{request_id}/notes.txt")),
+        contents
+    );
+    assert!(!project.exists("_notebook/experiments/EXP-001/evidence/notes.txt"));
+
+    let sha256 = format!("{:x}", Sha256::digest(contents));
+    root.import_inbox_payload(
+        request_id,
+        "notes.txt",
+        PayloadExpectation {
+            sha256: &sha256,
+            size: contents.len() as u64,
+        },
+        &evidence,
+        CaptureName::New {
+            original_file_name: "notes.txt",
+        },
+        &[],
+    )
+    .unwrap();
+    root.remove_inbox_request(request_id).unwrap();
+    assert!(root.list_inbox_requests().unwrap().is_empty());
 }
 
 /// S3-T01. Capturing copies an analysis file into `evidence/` only, hashing
