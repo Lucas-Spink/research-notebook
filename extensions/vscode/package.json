@@ -1,6 +1,51 @@
 {
-  "name": "vscode-extension",
+  "name": "research-notebook-vscode",
+  "displayName": "Research Notebook",
+  "description": "Add a file from the workspace to a Research Notebook experiment as evidence or a method.",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "publisher": "research-notebook",
+  "license": "AGPL-3.0-or-later",
+  "engines": {
+    "vscode": "^1.138.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/bundle.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "researchNotebook.addFileToExperiment",
+        "title": "Research Notebook: Add file to experiment",
+        "category": "Research Notebook"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "researchNotebook.addFileToExperiment",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "researchNotebook.addFileToExperiment",
+          "when": "resourceScheme == file"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/bundle.js",
+    "test": "vitest run --root ../.. --project unit extensions/vscode"
+  },
+  "dependencies": {
+    "@research-notebook/format": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/vscode": "1.138.0",
+    "esbuild": "0.28.2"
+  }
 }
