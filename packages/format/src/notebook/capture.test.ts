@@ -98,6 +98,68 @@ describe("applyCapture, new artefact (FR-EVD-03)", () => {
     );
     expect(result.ok).toBe(true);
   });
+
+  it("records provenance on the version when nb-git found it (FR-EVD-12)", () => {
+    const result = must(
+      applyCapture(
+        EMPTY,
+        {
+          kind: "new",
+          name: "PCA script",
+          role: "method",
+          type: "script",
+          source: { root: "project", path: "scripts/02_pca.R" },
+        },
+        {
+          file: "methods/02_pca.R",
+          sha256: "b".repeat(64),
+          size: 4121,
+          number: 1,
+          provenance: {
+            repo: ".",
+            commit: "3".repeat(40),
+            pathInRepo: "scripts/02_pca.R",
+            fileDirty: false,
+            treeDirty: true,
+          },
+        },
+        testEnv(),
+      ),
+    );
+
+    const artefact = result.file.artefacts[0];
+    const version =
+      artefact?.mode === "copy" ? artefact.versions[0] : undefined;
+    expect(version?.provenance).toEqual({
+      repo: ".",
+      commit: "3".repeat(40),
+      path_in_repo: "scripts/02_pca.R",
+      file_dirty: false,
+      tree_dirty: true,
+    });
+  });
+
+  it("omits provenance when nb-git found none", () => {
+    const result = must(
+      applyCapture(
+        EMPTY,
+        {
+          kind: "new",
+          name: "A",
+          role: "result",
+          type: "other",
+          source: { root: "project", path: "a" },
+        },
+        { file: "evidence/a", sha256: "c".repeat(64), size: 1, number: 1 },
+        testEnv(),
+      ),
+    );
+
+    const artefact = result.file.artefacts[0];
+    const version =
+      artefact?.mode === "copy" ? artefact.versions[0] : undefined;
+    expect(version?.provenance).toBeUndefined();
+  });
 });
 
 describe("applyCapture, existing artefact (FR-EVD-03, FR-EVD-04)", () => {
@@ -136,6 +198,41 @@ describe("applyCapture, existing artefact (FR-EVD-03, FR-EVD-04)", () => {
         captured: "2026-09-22T11:00:00Z",
       },
     ]);
+  });
+
+  it("records provenance on an appended version (FR-EVD-12)", () => {
+    const file = withArtefact();
+    const result = must(
+      applyCapture(
+        file,
+        { kind: "existing", artefactId: "01JAXR5D8K2M4N6P8Q0R2S4T6V" },
+        {
+          file: "evidence/pca_by_treatment.v2.pdf",
+          sha256: "d".repeat(64),
+          size: 200,
+          number: 2,
+          provenance: {
+            repo: "vendor/analysis-repo",
+            commit: "4".repeat(40),
+            pathInRepo: "results/pca_by_treatment.pdf",
+            fileDirty: true,
+            treeDirty: true,
+          },
+        },
+        testEnv(),
+      ),
+    );
+
+    const artefact = result.file.artefacts[0];
+    const versions = artefact?.mode === "copy" ? artefact.versions : [];
+    expect(versions[0]?.provenance).toBeUndefined();
+    expect(versions[1]?.provenance).toEqual({
+      repo: "vendor/analysis-repo",
+      commit: "4".repeat(40),
+      path_in_repo: "results/pca_by_treatment.pdf",
+      file_dirty: true,
+      tree_dirty: true,
+    });
   });
 
   it("refuses an artefact id that does not exist", () => {
