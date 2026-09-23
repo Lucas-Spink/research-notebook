@@ -9,6 +9,7 @@ const numRuns = Number(process.env.FC_NUM_RUNS ?? 200);
 const commandArb = fc.record({
   kind: fc.constantFrom("new", "existing"),
   pick: fc.nat({ max: 50 }),
+  withProvenance: fc.boolean(),
 });
 
 /** The last version number of a copy-mode artefact, or 0 for a link-mode one. */
@@ -61,6 +62,15 @@ describe("applyCapture sequences (S3-G01)", () => {
                 ) + 1;
 
             const before = file.artefacts;
+            const provenance = command.withProvenance
+              ? {
+                  repo: ".",
+                  commit: sequence.toString(16).padStart(40, "0"),
+                  pathInRepo: `data/${sequence}.bin`,
+                  fileDirty: sequence % 2 === 0,
+                  treeDirty: sequence % 3 === 0,
+                }
+              : undefined;
             const result = applyCapture(
               file,
               target,
@@ -69,6 +79,7 @@ describe("applyCapture sequences (S3-G01)", () => {
                 sha256: sequence.toString(16).padStart(64, "0"),
                 size: sequence,
                 number,
+                ...(provenance !== undefined && { provenance }),
               },
               env,
             );
@@ -84,6 +95,30 @@ describe("applyCapture sequences (S3-G01)", () => {
                   at(artefact.versions, i - 1).v,
                 );
               }
+            }
+
+            const targetId = isNew
+              ? at(file.artefacts, file.artefacts.length - 1).id
+              : target.kind === "existing"
+                ? target.artefactId
+                : undefined;
+            const targetArtefact = file.artefacts.find(
+              (a) => a.id === targetId,
+            );
+            const targetVersion =
+              targetArtefact?.mode === "copy"
+                ? targetArtefact.versions[targetArtefact.versions.length - 1]
+                : undefined;
+            if (provenance === undefined) {
+              expect(targetVersion?.provenance).toBeUndefined();
+            } else {
+              expect(targetVersion?.provenance).toEqual({
+                repo: provenance.repo,
+                commit: provenance.commit,
+                path_in_repo: provenance.pathInRepo,
+                file_dirty: provenance.fileDirty,
+                tree_dirty: provenance.treeDirty,
+              });
             }
             for (const earlier of before) {
               const now = file.artefacts.find((a) => a.id === earlier.id);

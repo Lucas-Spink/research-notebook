@@ -21,6 +21,19 @@ export interface CapturedFile {
   sha256: string;
   size: number;
   number: number;
+  /**
+   * Git provenance for the source file (FR-EVD-12), from `nb-git`'s
+   * `provenance_in_project` (S3-T04, ADR-0032) — a separate lookup from the
+   * copy itself, not part of what `nb-fs`'s `CapturedVersion` returns.
+   * Absent when the source is not inside a usable git repository.
+   */
+  provenance?: {
+    repo: string;
+    commit: string;
+    pathInRepo: string;
+    fileDirty: boolean;
+    treeDirty: boolean;
+  };
 }
 
 /** What a capture is for: a brand-new artefact, or a later version of one
@@ -54,6 +67,15 @@ export function applyCapture(
     sha256: captured.sha256,
     size: captured.size,
     captured: formatTimestamp(env.now()),
+    ...(captured.provenance !== undefined && {
+      provenance: {
+        repo: captured.provenance.repo,
+        commit: captured.provenance.commit,
+        path_in_repo: captured.provenance.pathInRepo,
+        file_dirty: captured.provenance.fileDirty,
+        tree_dirty: captured.provenance.treeDirty,
+      },
+    }),
   };
 
   if (target.kind === "existing") {
