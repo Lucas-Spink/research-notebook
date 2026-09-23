@@ -22,6 +22,10 @@ export {
   type LinkObservation,
   type LinkTarget,
 } from "./link";
+export {
+  checkSourceForUpdate,
+  type SourceUpdateStatus,
+} from "./update-from-source";
 export { editExperimentSection } from "./sections";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
