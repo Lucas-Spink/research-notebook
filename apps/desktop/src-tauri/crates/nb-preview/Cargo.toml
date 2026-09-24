@@ -10,3 +10,8 @@ workspace = true
 [dependencies]
 image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
 thiserror = "2"
+nb-fs = { path = "../nb-fs", version = "0.1.0" }
+
+[dev-dependencies]
+proptest = "1.11.0"
+tempfile = "=3.27.0"
