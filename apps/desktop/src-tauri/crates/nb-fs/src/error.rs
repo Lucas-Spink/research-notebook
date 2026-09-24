@@ -107,6 +107,10 @@ pub enum ReadError {
     /// Not one of the notebook data files that may be read this way.
     #[error("`{path}` is not a notebook data file")]
     NotDataFile { path: String },
+    /// Not a captured version's file in an experiment's `evidence/` or
+    /// `methods/` folder, the only files a preview may open.
+    #[error("`{path}` is not a file in evidence/ or methods/")]
+    NotVersionFile { path: String },
     #[error("cannot read `{path}`: {source}")]
     Io { path: String, source: io::Error },
 }

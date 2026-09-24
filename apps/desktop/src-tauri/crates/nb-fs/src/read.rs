@@ -1,9 +1,9 @@
 //! Reading notebook files as text (FR-PRJ-02, FR-HIS-05). The text is
 //! parsed by `packages/format`, the only parser (AGENTS.md rule 2).
 
-use std::fs;
+use std::fs::{self, File};
 use std::io;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
@@ -84,6 +84,80 @@ impl ProjectRoot {
         let text = String::from_utf8(bytes).map_err(|_| ReadError::NotUtf8 { path: display })?;
         Ok((text, sha256))
     }
+}
+
+impl ProjectRoot {
+    /// Opens a captured version's file for reading, for previews (spec 8).
+    /// The path must name a file under
+    /// `_notebook/experiments/<experiment>/evidence/` or `methods/`, and must
+    /// resolve to a regular file under such a folder, so a link can reach
+    /// neither a notebook data file nor anything outside `_notebook/`. Never
+    /// writes; the caller decides how much of the file to read.
+    pub fn open_version_file(&self, path: &ProjectRelPath) -> Result<VersionFile, ReadError> {
+        let display = path.to_string();
+        let not_version = || ReadError::NotVersionFile {
+            path: display.clone(),
+        };
+        let relative = path
+            .as_str()
+            .strip_prefix(NOTEBOOK_PREFIX)
+            .filter(|relative| is_version_file_path(Path::new(relative)))
+            .ok_or_else(not_version)?;
+        let io_error = |source| ReadError::Io {
+            path: display.clone(),
+            source,
+        };
+        let resolved = match fs::canonicalize(self.notebook.join(relative)) {
+            Ok(resolved) => resolved,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                return Err(ReadError::Missing { path: display })
+            }
+            Err(e) => return Err(io_error(e)),
+        };
+        let Ok(inside) = resolved.strip_prefix(&self.notebook) else {
+            return Err(ReadError::EscapesNotebook { path: display });
+        };
+        if !is_version_file_path(inside) {
+            return Err(not_version());
+        }
+        // Checked before opening: Windows refuses to open a folder as a file.
+        if !fs::metadata(&resolved).map_err(io_error)?.is_file() {
+            return Err(ReadError::NotAFile { path: display });
+        }
+        let file = File::open(&resolved).map_err(io_error)?;
+        let len = file.metadata().map_err(io_error)?.len();
+        Ok(VersionFile {
+            path: resolved,
+            file,
+            len,
+        })
+    }
+}
+
+/// Whether `relative` (to `_notebook/`) has the form
+/// `experiments/<experiment>/{evidence,methods}/<at least one name>`.
+fn is_version_file_path(relative: &Path) -> bool {
+    let names: Option<Vec<&str>> = relative
+        .components()
+        .map(|c| match c {
+            Component::Normal(name) => name.to_str(),
+            _ => None,
+        })
+        .collect();
+    matches!(
+        names.as_deref(),
+        Some(["experiments", _, "evidence" | "methods", _, ..])
+    )
+}
+
+/// A captured version's file, open for reading.
+#[derive(Debug)]
+pub struct VersionFile {
+    /// Where the file resolved to, absolute and free of links.
+    pub path: PathBuf,
+    pub file: File,
+    /// Its length when opened.
+    pub len: u64,
 }
 
 /// A notebook data file read as text.
