@@ -17,7 +17,7 @@ use specta::Type;
 pub struct VersionPath(String);
 
 impl VersionPath {
-    pub(super) fn to_rel(&self) -> Result<ProjectRelPath, PreviewFailure> {
+    pub(crate) fn to_rel(&self) -> Result<ProjectRelPath, PreviewFailure> {
         ProjectRelPath::parse(&self.0).map_err(|_| PreviewFailure::FileUnavailable)
     }
 

@@ -953,6 +953,7 @@ name = "desktop"
 version = "0.1.0"
 dependencies = [
  "nb-fs",
+ "nb-opener",
  "nb-preview",
  "proptest",
  "serde",
@@ -3900,6 +3901,10 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.20",
 ]
+
+[[package]]
+name = "nb-opener"
+version = "0.1.0"
 
 [[package]]
 name = "nb-preview"

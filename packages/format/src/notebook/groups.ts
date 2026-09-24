@@ -282,6 +282,28 @@ export function reorderItem(
   );
 }
 
+/**
+ * Every path of group names, root to leaf, that leads to a group holding
+ * `artefactId` (FR-PRV-01: "group locations"). More than one path means the
+ * artefact is a member of more than one group; none means it is ungrouped
+ * or not in the file.
+ */
+export function groupLocationsOf(
+  file: ArtefactsFileModel,
+  artefactId: string,
+): string[][] {
+  const found: string[][] = [];
+  const visit = (groups: Groups, path: readonly string[]): void => {
+    for (const group of groups) {
+      const here = [...path, group.name];
+      if (group.items.includes(artefactId)) found.push(here);
+      visit(group.groups, here);
+    }
+  };
+  visit(file.groups, []);
+  return found;
+}
+
 /** Result artefacts in no group, in capture order: the Ungrouped area (FR-GRP-05). */
 export function ungroupedArtefacts(file: ArtefactsFileModel): ArtefactModel[] {
   const members = new Set<string>();

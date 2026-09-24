@@ -9,6 +9,7 @@ import {
   moveToGroup,
   removeFromGroup,
   renameGroup,
+  groupLocationsOf,
   reorderItem,
   ungroupedArtefacts,
 } from "./groups";
@@ -243,5 +244,26 @@ describe("ungroupedArtefacts", () => {
     const file = must(removeFromGroup(sample(), R3, GB));
     expect(ungroupedArtefacts(file).map((a) => a.id)).toEqual([R3]);
     expect(ungroupedArtefacts(sample())).toEqual([]);
+  });
+});
+
+describe("groupLocationsOf (FR-PRV-01)", () => {
+  it("gives the path of group names down to a direct member", () => {
+    expect(groupLocationsOf(sample(), R3)).toEqual([["Tables"]]);
+  });
+
+  it("gives every path when an artefact is a member of more than one group", () => {
+    expect(groupLocationsOf(sample(), R2)).toEqual([
+      ["Figures"],
+      ["Figures", "Supplementary"],
+    ]);
+  });
+
+  it("is empty for an artefact with no membership, or one not in the file", () => {
+    const file = must(removeFromGroup(sample(), R3, GB));
+    expect(groupLocationsOf(file, R3)).toEqual([]);
+    expect(groupLocationsOf(sample(), "01JB0000000000000000000099")).toEqual(
+      [],
+    );
   });
 });
