@@ -59,7 +59,9 @@ impl From<ReadError> for ProjectError {
     fn from(error: ReadError) -> Self {
         match error {
             ReadError::Missing { .. } => Self::NotAProject,
-            ReadError::NotDataFile { .. } => Self::FileUnavailable,
+            ReadError::NotDataFile { .. } | ReadError::NotVersionFile { .. } => {
+                Self::FileUnavailable
+            }
             ReadError::NotAFile { .. }
             | ReadError::EscapesNotebook { .. }
             | ReadError::NotUtf8 { .. }
