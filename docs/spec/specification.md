@@ -1223,7 +1223,7 @@ Spec section affected:
 | Bundled citation style list | Stage 5 |
 | Whether gix status support is sufficient or the git CLI is required | Stage 1 |
 | Reference machine specification for performance thresholds | Stage 1 |
-| Default thumbnail sizes and cache size limit | Stage 3 |
+| Default thumbnail sizes and cache size limit | Stage 3 (resolved in ADR-0037: 256 px, 256 MiB) |
 | Code-signing route for Windows open-source releases | Stage 7 |
 
 Appendix A. Example files
