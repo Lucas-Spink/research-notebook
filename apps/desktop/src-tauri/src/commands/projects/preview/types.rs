@@ -119,12 +119,13 @@ impl From<PreviewError> for PreviewFailure {
     }
 }
 
-/// A file the webview may load through the asset protocol, by its absolute
-/// path, for `convertFileSrc`.
+/// A file the webview may load through the asset protocol. `url` is ready
+/// for an `<img src>` or pdf.js; the file was allowed in the protocol's
+/// scope before it was returned.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssetFile {
-    pub path: String,
+    pub url: String,
 }
 
 /// What the webview renders a file as itself (spec 8).

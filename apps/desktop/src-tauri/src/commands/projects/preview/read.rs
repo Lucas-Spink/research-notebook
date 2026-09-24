@@ -16,8 +16,8 @@ use nb_preview::webview::{check_webview_file, WebviewKind};
 use nb_preview::PreviewError;
 
 use super::types::{
-    AssetFile, AssetKind, Dimensions, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview,
-    TextPreview, VersionPath,
+    AssetKind, Dimensions, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview, TextPreview,
+    VersionPath,
 };
 
 /// The cached thumbnail of a raster image version, made if needed.
@@ -26,7 +26,7 @@ pub(super) fn thumbnail(
     cache: &ThumbnailCache,
     file: &VersionPath,
     sha256: &Sha256Hex,
-) -> Result<AssetFile, PreviewFailure> {
+) -> Result<PathBuf, PreviewFailure> {
     let key = ThumbnailKey::new(sha256.to_hash()?, DEFAULT_THUMBNAIL_SIZE);
     // Opened even when the cache has the thumbnail, so a version whose file
     // has gone is reported as missing rather than shown from the cache.
@@ -34,17 +34,17 @@ pub(super) fn thumbnail(
     let path = cached_raster_thumbnail(cache, &key, move || {
         Ok::<_, PreviewError>((BufReader::new(opened.file), opened.len))
     })?;
-    asset_file(path)
+    Ok(path)
 }
 
-/// The absolute path of a file the webview renders itself, once it passes
-/// its spec 8 bound. The caller allows exactly this file in the asset
+/// The resolved absolute path of a file the webview renders itself, once it
+/// passes its spec 8 bound. The caller allows exactly this file in the asset
 /// protocol's scope.
 pub(super) fn asset(
     root: &ProjectRoot,
     file: &VersionPath,
     kind: AssetKind,
-) -> Result<AssetFile, PreviewFailure> {
+) -> Result<PathBuf, PreviewFailure> {
     let opened = root.open_version_file(&file.to_rel()?)?;
     let kind = match kind {
         AssetKind::Image => WebviewKind::Image,
@@ -52,7 +52,7 @@ pub(super) fn asset(
         AssetKind::Svg => WebviewKind::Svg,
     };
     check_webview_file(kind, opened.len)?;
-    asset_file(opened.path)
+    Ok(opened.path)
 }
 
 pub(super) fn table(
@@ -107,14 +107,6 @@ pub(super) fn notebook(
         language: info.language,
         kernel: info.kernel,
     })
-}
-
-fn asset_file(path: PathBuf) -> Result<AssetFile, PreviewFailure> {
-    let path = path
-        .into_os_string()
-        .into_string()
-        .map_err(|_| PreviewFailure::FileUnavailable)?;
-    Ok(AssetFile { path })
 }
 
 #[cfg(test)]
@@ -219,8 +211,8 @@ mod tests {
 
         let file = asset(&root, &path(&format!("{EVIDENCE}/a.svg")), AssetKind::Svg).unwrap();
 
-        assert!(PathBuf::from(&file.path).is_absolute());
-        assert!(file.path.ends_with("a.svg"));
+        assert!(file.is_absolute());
+        assert!(file.ends_with("a.svg"));
     }
 
     #[test]

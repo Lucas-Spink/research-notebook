@@ -9,8 +9,9 @@
 
 mod read;
 mod types;
+mod url;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use nb_fs::cache::CacheDir;
@@ -98,10 +99,12 @@ pub async fn preview_thumbnail(
     sha256: Sha256Hex,
 ) -> Result<AssetFile, PreviewFailure> {
     let cache = cache.0.clone().ok_or(PreviewFailure::CacheUnavailable)?;
-    in_project(&folders, folder, move |root| {
+    let path = in_project(&folders, folder, move |root| {
         read::thumbnail(&root, &cache, &file, &sha256)
     })
-    .await
+    .await?;
+    // The thumbnail folder is already in the asset protocol's scope.
+    asset_file(&path)
 }
 
 /// Lets the webview load one version's file as an image, PDF or SVG, if it
@@ -115,14 +118,23 @@ pub async fn preview_asset(
     file: VersionPath,
     kind: AssetKind,
 ) -> Result<AssetFile, PreviewFailure> {
-    let asset = in_project(&folders, folder, move |root| {
+    let path = in_project(&folders, folder, move |root| {
         read::asset(&root, &file, kind)
     })
     .await?;
+    let asset = asset_file(&path)?;
     app.asset_protocol_scope()
-        .allow_file(&asset.path)
+        .allow_file(&path)
         .map_err(|_| PreviewFailure::Internal)?;
     Ok(asset)
+}
+
+/// The asset URL of `path`, which must be valid Unicode to have one.
+fn asset_file(path: &Path) -> Result<AssetFile, PreviewFailure> {
+    let text = path.to_str().ok_or(PreviewFailure::FileUnavailable)?;
+    Ok(AssetFile {
+        url: url::asset_url(text),
+    })
 }
 
 /// The header and first rows of a delimited table version (spec 8):

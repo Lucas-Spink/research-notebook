@@ -147,11 +147,12 @@ export const commands = {
 
 /* Types */
 /**
- *  A file the webview may load through the asset protocol, by its absolute
- *  path, for `convertFileSrc`.
+ *  A file the webview may load through the asset protocol. `url` is ready
+ *  for an `<img src>` or pdf.js; the file was allowed in the protocol's
+ *  scope before it was returned.
  */
 export type AssetFile = {
-	path: string,
+	url: string,
 };
 
 /**  What the webview renders a file as itself (spec 8). */
