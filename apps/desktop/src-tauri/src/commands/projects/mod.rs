@@ -12,6 +12,7 @@ mod folders;
 pub mod history;
 mod ids;
 pub mod lock;
+pub mod preview;
 mod types;
 pub mod watch;
 
