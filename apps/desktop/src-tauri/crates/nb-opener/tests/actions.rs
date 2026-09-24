@@ -23,6 +23,10 @@ impl Launcher for Recording {
         }
         Ok(())
     }
+
+    fn write_stdin(&mut self, _program: &str, _args: &[String], _text: &str) -> io::Result<()> {
+        panic!("not exercised by these tests");
+    }
 }
 
 #[cfg(windows)]
