@@ -57,5 +57,5 @@ pub use link::{
 pub use list::NotebookListing;
 pub use path::ProjectRelPath;
 pub use project::{ProjectRoot, NOTEBOOK_DIR};
-pub use read::DataFile;
+pub use read::{DataFile, VersionFile};
 pub use trash::Trashed;

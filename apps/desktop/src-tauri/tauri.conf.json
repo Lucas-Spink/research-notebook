@@ -24,9 +24,13 @@
         "style-src": "'self'",
         "img-src": "'self' asset: http://asset.localhost",
         "font-src": "'self'",
-        "connect-src": "'self' ipc: http://ipc.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost asset: http://asset.localhost",
         "object-src": "'none'",
         "frame-src": "'none'"
+      },
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
       }
     }
   },

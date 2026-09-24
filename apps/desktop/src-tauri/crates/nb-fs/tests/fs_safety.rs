@@ -17,6 +17,7 @@
 mod common;
 
 use std::fs;
+use std::io::Read;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -103,6 +104,7 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     capture_scenario(project, root);
     link_scenario(project);
     discovery_scenario(project);
+    preview_scenario(project, root);
     inbox_scenario(project, root);
     watch_scenario(project, root);
 }
@@ -327,6 +329,36 @@ fn discovery_scenario(project: &TestProject) {
         &mut |_| {}
     )
     .is_err());
+}
+
+/// S3-T10. Previews only read a captured version's file through
+/// `open_version_file`: reading one to the end, and being refused for an
+/// `evidence/` folder that is a link to analysis results, an analysis file
+/// named directly and a notebook data file, changes nothing.
+fn preview_scenario(project: &TestProject, root: &ProjectRoot) {
+    let evidence = project.on_disk("_notebook/experiments/EXP-PRV/evidence");
+    fs::create_dir_all(&evidence).unwrap();
+    fs::write(evidence.join("plot.png"), b"not really a png").unwrap();
+    let rel = |p: &str| ProjectRelPath::parse(p).unwrap();
+
+    let mut opened = root
+        .open_version_file(&rel("_notebook/experiments/EXP-PRV/evidence/plot.png"))
+        .unwrap();
+    let mut bytes = Vec::new();
+    opened.file.read_to_end(&mut bytes).unwrap();
+    assert_eq!(bytes, b"not really a png");
+    drop(opened);
+
+    let linked = project.on_disk("_notebook/experiments/EXP-LNK");
+    fs::create_dir_all(&linked).unwrap();
+    make_dir_link(&linked.join("evidence"), &project.on_disk("results/pca"));
+    for refused in [
+        "_notebook/experiments/EXP-LNK/evidence/pca.csv",
+        "results/pca/pca.csv",
+        "_notebook/project.yaml",
+    ] {
+        assert!(root.open_version_file(&rel(refused)).is_err(), "{refused}");
+    }
 }
 
 /// S2-T09. Snapshots, the trash and version-change backups move and copy

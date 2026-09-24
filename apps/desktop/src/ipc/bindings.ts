@@ -124,9 +124,40 @@ export const commands = {
 	pollProjectChanges: (folder: FolderHandle) => typedError<ChangeReport, ProjectError>(__TAURI_INVOKE("poll_project_changes", { folder })),
 	/**  Stops watching the project. */
 	stopProjectWatch: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("stop_project_watch", { folder })),
+	/**
+	 *  The 256 px thumbnail of a raster image version, from the cache or made
+	 *  now (spec 8, FR-PRV-04). `sha256` is the version's recorded hash.
+	 */
+	previewThumbnail: (folder: FolderHandle, file: VersionPath, sha256: Sha256Hex) => typedError<AssetFile, PreviewFailure>(__TAURI_INVOKE("preview_thumbnail", { folder, file, sha256 })),
+	/**
+	 *  Lets the webview load one version's file as an image, PDF or SVG, if it
+	 *  is within its spec 8 bound, and returns the path to load it by.
+	 */
+	previewAsset: (folder: FolderHandle, file: VersionPath, kind: AssetKind) => typedError<AssetFile, PreviewFailure>(__TAURI_INVOKE("preview_asset", { folder, file, kind })),
+	/**
+	 *  The header and first rows of a delimited table version (spec 8):
+	 *  200 rows from 256 KiB, or 2,000 rows from 8 MiB when `expanded`.
+	 */
+	previewTable: (folder: FolderHandle, file: VersionPath, expanded: boolean) => typedError<TablePreview, PreviewFailure>(__TAURI_INVOKE("preview_table", { folder, file, expanded })),
+	/**  The first 500 lines of a script or text version, from at most 1 MiB. */
+	previewText: (folder: FolderHandle, file: VersionPath) => typedError<TextPreview, PreviewFailure>(__TAURI_INVOKE("preview_text", { folder, file })),
+	/**  The language and kernel of a notebook version, from at most 1 MiB. */
+	previewNotebook: (folder: FolderHandle, file: VersionPath) => typedError<NotebookPreview, PreviewFailure>(__TAURI_INVOKE("preview_notebook", { folder, file })),
 };
 
 /* Types */
+/**
+ *  A file the webview may load through the asset protocol. `url` is ready
+ *  for an `<img src>` or pdf.js; the file was allowed in the protocol's
+ *  scope before it was returned.
+ */
+export type AssetFile = {
+	url: string,
+};
+
+/**  What the webview renders a file as itself (spec 8). */
+export type AssetKind = "image" | "pdf" | "svg";
+
 /**  A backup that was made. */
 export type BackupMade = {
 	folder: string,
@@ -173,6 +204,14 @@ export type CreatedProject = {
 	path: string,
 	hygiene: HygieneReport[],
 };
+
+/**  Rows (without the header) and columns of a whole table. */
+export type Dimensions = {
+	rows: number,
+	columns: number,
+};
+
+export type Encoding = "utf8" | "utf8Bom" | "windows1252";
 
 /**  What the caller believes is on disk. */
 export type ExpectedFile = { kind: "absent" } | { kind: "sha256"; sha256: string };
@@ -259,12 +298,20 @@ export type NotebookFiles = {
 	experimentFolders: string[],
 };
 
+export type NotebookKind = "jupyter" | "rMarkdown" | "quarto";
+
 /**
  *  A project-relative path of a notebook data file, such as
  *  `_notebook/questions/Q-01.md`, checked so a command never receives free
  *  text where a path belongs. Backslashes are accepted and stored as `/`.
  */
 export type NotebookPath = string;
+
+export type NotebookPreview = {
+	kind: NotebookKind,
+	language: string | null,
+	kernel: string | null,
+};
 
 /**
  *  A project folder that was opened. The text is `project.yaml` exactly as it
@@ -276,6 +323,31 @@ export type OpenedProject = {
 	path: string,
 	projectYaml: string,
 };
+
+/**
+ *  Why a preview could not be made. The `kind` is the key of the message
+ *  the webview shows with its recovery action (FR-PRV-05); no path or system
+ *  text is sent.
+ */
+export type PreviewFailure = 
+/**  The project folder can no longer be opened. */
+{ kind: "projectUnavailable" } | 
+/**  The version's file is not there. */
+{ kind: "fileMissing" } | 
+/**  The file is there but cannot be opened, or is not a version file. */
+{ kind: "fileUnavailable" } | 
+/**  The file's name does not fit the preview asked for. */
+{ kind: "notPreviewable" } | 
+/**  Above the spec 8 size bound for this preview. */
+{ kind: "tooLarge" } | 
+/**  An image above 100 megapixels. */
+{ kind: "tooManyPixels" } | 
+/**  The content could not be decoded or parsed. */
+{ kind: "unreadable" } | 
+/**  The thumbnail cache could not be used. */
+{ kind: "cacheUnavailable" } | 
+/**  A background task failed. Not caused by the file. */
+{ kind: "internal" };
 
 /**
  *  Why a project command failed. The `kind` is the key of the user-facing
@@ -337,6 +409,29 @@ export type RecentEntry = {
 export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "changed"; current: string | null };
 
 /**
+ *  A version's SHA-256 as `artefacts.yaml` records it: 64 lowercase
+ *  hexadecimal characters.
+ */
+export type Sha256Hex = string;
+
+export type TablePreview = {
+	header: string[],
+	rows: string[][],
+	encoding: Encoding,
+	complete: boolean,
+	moreRows: boolean,
+	moreColumns: boolean,
+	/**  Present only when the whole file was read (spec 8). */
+	dimensions: Dimensions | null,
+};
+
+export type TextPreview = {
+	lines: string[],
+	encoding: Encoding,
+	complete: boolean,
+};
+
+/**
  *  A project-relative path the trash command accepts: a question file, or the
  *  folder of an experiment.
  */
@@ -353,6 +448,13 @@ export type TrashedItem = {
  *  file, never as part of a path.
  */
 export type Ulid = string;
+
+/**
+ *  The project-relative path of a captured version's file, such as
+ *  `_notebook/experiments/EXP-001/evidence/plot.png`. Backslashes are
+ *  accepted and stored as `/`. Where it resolves is checked again by `nb-fs`.
+ */
+export type VersionPath = string;
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

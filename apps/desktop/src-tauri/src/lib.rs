@@ -36,6 +36,11 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         commands::projects::watch::start_project_watch,
         commands::projects::watch::poll_project_changes,
         commands::projects::watch::stop_project_watch,
+        commands::projects::preview::preview_thumbnail,
+        commands::projects::preview::preview_asset,
+        commands::projects::preview::preview_table,
+        commands::projects::preview::preview_text,
+        commands::projects::preview::preview_notebook,
     ])
 }
 
@@ -70,6 +75,9 @@ pub fn run() {
             // Recent projects and external root paths belong to this machine
             // (spec 9.4: %APPDATA%\<app id> or ~/Library/Application Support/<app id>).
             app.manage(SettingsStore::new(app.path().app_config_dir()?));
+            // Thumbnails live in the application cache folder (spec 9.4).
+            let previews = commands::projects::preview::PreviewCache::open(app.handle());
+            app.manage(previews);
             Ok(())
         })
         .invoke_handler(builder.invoke_handler())
