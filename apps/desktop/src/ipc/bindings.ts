@@ -143,6 +143,25 @@ export const commands = {
 	previewText: (folder: FolderHandle, file: VersionPath) => typedError<TextPreview, PreviewFailure>(__TAURI_INVOKE("preview_text", { folder, file })),
 	/**  The language and kernel of a notebook version, from at most 1 MiB. */
 	previewNotebook: (folder: FolderHandle, file: VersionPath) => typedError<NotebookPreview, PreviewFailure>(__TAURI_INVOKE("preview_notebook", { folder, file })),
+	/**
+	 *  Acts on a captured version's file, resolved and confined to
+	 *  `evidence/` or `methods/` the same way a preview would be (spec 6.5).
+	 */
+	openCapturedFileAction: (folder: FolderHandle, file: VersionPath, action: FileActionKind) => typedError<null, OpenFailure>(__TAURI_INVOKE("open_captured_file_action", { folder, file, action })),
+	/**
+	 *  Acts on a linked artefact's source file, resolved from the project root
+	 *  or a configured external root (FR-PRJ-07). Never confined the way a
+	 *  version file is: a source may legitimately be anywhere under either.
+	 */
+	openLinkedFileAction: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath, action: FileActionKind) => typedError<null, OpenFailure>(__TAURI_INVOKE("open_linked_file_action", { folder, projectId, root, path, action })),
+	/**  Opens the project's own root folder in the file manager. */
+	openProjectFolder: (folder: FolderHandle) => typedError<null, OpenFailure>(__TAURI_INVOKE("open_project_folder", { folder })),
+	/**
+	 *  A linked artefact's current availability (FR-EVD-07, FR-EVD-08): checked
+	 *  now, never read from a stored flag (ADR-0031 §1), and nothing is
+	 *  written by checking it.
+	 */
+	linkedArtefactAvailability: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath) => typedError<Availability, OpenFailure>(__TAURI_INVOKE("linked_artefact_availability", { folder, projectId, root, path })),
 };
 
 /* Types */
@@ -157,6 +176,12 @@ export type AssetFile = {
 
 /**  What the webview renders a file as itself (spec 8). */
 export type AssetKind = "image" | "pdf" | "svg";
+
+/**
+ *  A linked artefact's availability, checked live and never persisted
+ *  (ADR-0031 §1): recomputed on every call, not read from a stored flag.
+ */
+export type Availability = { kind: "available"; size: number } | { kind: "missing" } | { kind: "rootUnresolved" } | { kind: "rootFolderMissing" };
 
 /**  A backup that was made. */
 export type BackupMade = {
@@ -227,6 +252,9 @@ export type ExternalRootStatus = {
 	 */
 	available: boolean,
 };
+
+/**  One of FR-PRV-02's distinct actions. */
+export type FileActionKind = "openFile" | "reveal" | "openInVsCode" | "copyPath";
 
 /**  What reading a notebook data file found. */
 export type FileRead = 
@@ -312,6 +340,24 @@ export type NotebookPreview = {
 	language: string | null,
 	kernel: string | null,
 };
+
+/**
+ *  Why an action on a file or folder could not be completed. The `kind` is
+ *  the key of the user-facing message; no path or system text is sent.
+ */
+export type OpenFailure = 
+/**  The project folder can no longer be opened. */
+{ kind: "projectUnavailable" } | 
+/**  The version's file is not there, or is not a version file. */
+{ kind: "fileUnavailable" } | 
+/**  The artefact's external root has no folder set on this machine. */
+{ kind: "rootUnresolved" } | 
+/**  The external root's folder is set but no longer exists. */
+{ kind: "rootFolderMissing" } | 
+/**  The application's settings could not be read. */
+{ kind: "settingsUnavailable" } | 
+/**  The action itself failed to start. */
+{ kind: "actionFailed" };
 
 /**
  *  A project folder that was opened. The text is `project.yaml` exactly as it
@@ -413,6 +459,20 @@ export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "c
  *  hexadecimal characters.
  */
 export type Sha256Hex = string;
+
+/**
+ *  An artefact's `source.path` (spec 5.8): relative to its `source.root`,
+ *  which may be the project root itself rather than `_notebook/`, so this
+ *  is checked lexically (no `..`, not absolute) but not confined to the
+ *  notebook the way [`nb_fs::ProjectRelPath`] otherwise is.
+ */
+export type SourcePath = string;
+
+/**
+ *  An artefact's `source.root` (spec 5.8): the literal `"project"`, or the
+ *  `ulid` of one of the project's `external_roots`.
+ */
+export type SourceRoot = string;
 
 export type TablePreview = {
 	header: string[],

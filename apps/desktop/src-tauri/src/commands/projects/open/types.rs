@@ -117,7 +117,7 @@ impl From<ReadError> for OpenFailure {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Availability {
-    Available { size: u64 },
+    Available { size: u32 },
     Missing,
     RootUnresolved,
     RootFolderMissing,

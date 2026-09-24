@@ -91,7 +91,12 @@ pub(super) fn linked_availability(
     };
     match stat_link(&resolved).map_err(|_| OpenFailure::FileUnavailable)? {
         LinkStatus::Missing => Ok(Availability::Missing),
-        LinkStatus::Present { size, .. } => Ok(Availability::Available { size }),
+        // Specta cannot export u64 (bigint precision loss), and this size is
+        // shown to the person, not used to decide anything: a file above
+        // 4 GiB is shown as its cap rather than exactly.
+        LinkStatus::Present { size, .. } => Ok(Availability::Available {
+            size: u32::try_from(size).unwrap_or(u32::MAX),
+        }),
     }
 }
 
