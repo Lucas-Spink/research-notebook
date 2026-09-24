@@ -6,6 +6,7 @@
 //! - [`table`]: header and first rows of delimited tables, gzip included.
 //! - [`text`]: first lines of scripts and text.
 //! - [`notebook`]: language and kernel of notebooks.
+//! - [`webview`]: size bounds for files the webview renders itself.
 //! - [`cache`]: the thumbnail cache (S3-T09, FR-PRV-04).
 //!
 //! PDF, SVG and HTML are handled in the webview (ADR-0014, ADR-0038).
@@ -16,6 +17,7 @@ pub mod notebook;
 pub mod raster;
 pub mod table;
 pub mod text;
+pub mod webview;
 
 use crate::cache::{ThumbnailCacheError, DEFAULT_THUMBNAIL_SIZE};
 
