@@ -13,11 +13,46 @@
   gap: 0.5rem;
 }
 
-.expanded__textarea {
+.expanded__editor {
   box-sizing: border-box;
   width: 100%;
   min-height: 6rem;
-  font: inherit;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.expanded__editor .ProseMirror {
+  min-height: 5rem;
+  outline: none;
+}
+
+.expanded__static-wrapper {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 6rem;
+  border: 1px dashed currentColor;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: text;
+}
+
+.expanded__passthrough {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.expanded__passthrough-label {
+  margin: 0 0 0.25rem;
+  font-style: italic;
+}
+
+.expanded__passthrough-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: monospace;
 }
 
 .expanded__status {

@@ -78,7 +78,13 @@ export const tableMessages = {
 /** Text of the expanded experiment view (FR-EDT-03, FR-TBL-07). */
 export const expandedMessages = {
   heading: "Sections",
+  passthroughLabel: "Not editable here — kept as written",
 } as const;
+
+/** Label for the button that makes a static section the live editor (FR-EDT-03: only one editor is live at a time). */
+export function editLabel(label: string): string {
+  return `Edit ${label}`;
+}
 
 const autosaveStatusLabels: Record<AutosaveStatus, string> = {
   saved: "Saved",

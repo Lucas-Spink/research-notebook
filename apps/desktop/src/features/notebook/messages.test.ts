@@ -1,6 +1,7 @@
 import type { NotebookError, Problem } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
 import {
+  editLabel,
   loadFailureMessage,
   outcomeMessage,
   problemMessage,
@@ -105,5 +106,10 @@ describe("messages", () => {
   it("explains both ways loading can fail", () => {
     expect(loadFailureMessage("projectFile")).toContain("Nothing was changed");
     expect(loadFailureMessage("unavailable")).toContain("Nothing was changed");
+  });
+
+  it("names the section a static editor's activation control will open", () => {
+    expect(editLabel("Methods")).toBe("Edit Methods");
+    expect(editLabel("Results notes")).toBe("Edit Results notes");
   });
 });
