@@ -3,10 +3,11 @@ import type {
   LoadedExperiment,
   RecognisedSectionKey,
 } from "@research-notebook/format";
+import { useState } from "react";
 import { columnLabel, expandedMessages, messages } from "../messages";
 import type { AutosaveOutcome } from "./model/autosave";
 import { useAutosave, type AutosaveField } from "./model/useAutosave";
-import { SectionEditor } from "./SectionEditor";
+import { RichSectionEditor } from "./RichSectionEditor";
 import "./ExpandedExperimentView.css";
 
 type Props = {
@@ -26,6 +27,13 @@ function sectionText(
   return experiment.file.body.sections.find((s) => s.key === key)?.body ?? "";
 }
 
+function editorKey(
+  experiment: LoadedExperiment,
+  key: RecognisedSectionKey,
+): string {
+  return `${experiment.file.frontmatter.id}:${key}`;
+}
+
 /** One section's autosave field, starting from the experiment's own stored text. */
 function useSectionField(
   experiment: LoadedExperiment,
@@ -33,18 +41,22 @@ function useSectionField(
   onSaveSection: Props["onSaveSection"],
 ): AutosaveField {
   return useAutosave({
-    editorKey: `${experiment.file.frontmatter.id}:${key}`,
+    editorKey: editorKey(experiment, key),
     initial: sectionText(experiment, key),
     commit: (text) => onSaveSection(key, text),
   });
 }
 
+const DEFAULT_LIVE_SECTION: RecognisedSectionKey = "methods";
+
 /**
- * The expanded experiment view (FR-TBL-07, FR-EDT-03): Methods, then Results
- * Notes and Interpretation side by side at 1280 px or more. Plain Markdown
- * text, autosaved; no rich formatting or artefact references yet (those are
- * Stage 4, ADR-0028). The side-by-side layout is CSS only; it is not
- * asserted by width here.
+ * The expanded experiment view (FR-TBL-07, FR-EDT-01 to FR-EDT-03): Methods,
+ * then Results Notes and Interpretation side by side at 1280 px or more.
+ * Formatted text with passthrough blocks for unsupported Markdown
+ * (ADR-0028, this task). Only one of the three mounts a live editor
+ * instance at a time (S4-G08); the other two show a static, read-only
+ * rendering that activates it. The side-by-side layout is CSS only; it is
+ * not asserted by width here.
  */
 export function ExpandedExperimentView({
   item,
@@ -52,6 +64,18 @@ export function ExpandedExperimentView({
   onSaveSection,
 }: Props) {
   const { experiment, readOnly } = item;
+  const experimentId = experiment.file.frontmatter.id;
+
+  // Resetting to the default live section when a different experiment is
+  // selected, without an effect (React's documented pattern for state that
+  // must reset when a prop changes): https://react.dev/learn/you-might-not-need-an-effect
+  const [trackedExperimentId, setTrackedExperimentId] = useState(experimentId);
+  const [live, setLive] = useState<RecognisedSectionKey>(DEFAULT_LIVE_SECTION);
+  if (trackedExperimentId !== experimentId) {
+    setTrackedExperimentId(experimentId);
+    setLive(DEFAULT_LIVE_SECTION);
+  }
+
   const methods = useSectionField(experiment, "methods", onSaveSection);
   const resultsNotes = useSectionField(
     experiment,
@@ -66,24 +90,24 @@ export function ExpandedExperimentView({
 
   if (readOnly) return <p>{messages.readOnlyItem}</p>;
 
+  const sectionProps = (key: RecognisedSectionKey, field: AutosaveField) => ({
+    label: columnLabel(key),
+    editorKey: editorKey(experiment, key),
+    initialMarkdown: sectionText(experiment, key),
+    field,
+    disabled,
+    live: live === key,
+    onActivate: () => setLive(key),
+  });
+
   return (
     <div className="expanded" aria-labelledby="expanded-heading">
       <h5 id="expanded-heading">{expandedMessages.heading}</h5>
-      <SectionEditor
-        label={columnLabel("methods")}
-        field={methods}
-        disabled={disabled}
-      />
+      <RichSectionEditor {...sectionProps("methods", methods)} />
       <div className="expanded__pair">
-        <SectionEditor
-          label={columnLabel("results_notes")}
-          field={resultsNotes}
-          disabled={disabled}
-        />
-        <SectionEditor
-          label={columnLabel("interpretation")}
-          field={interpretation}
-          disabled={disabled}
+        <RichSectionEditor {...sectionProps("results_notes", resultsNotes)} />
+        <RichSectionEditor
+          {...sectionProps("interpretation", interpretation)}
         />
       </div>
     </div>
