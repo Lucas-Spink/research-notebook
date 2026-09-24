@@ -135,6 +135,23 @@ describe("PreviewPanel", () => {
     });
   });
 
+  it("checks availability again on request", async () => {
+    const api = fakePanelApi({ availability: { kind: "missing" } });
+    const { container } = mount(sample(), LINK_ID, api);
+    await act(() => Promise.resolve());
+    expect(api.calls).toHaveLength(1);
+
+    const recheck = [...container.querySelectorAll("button")].find(
+      (b) => b.textContent === "Check again",
+    );
+    await act(async () => {
+      recheck?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(api.calls).toHaveLength(2);
+  });
+
   it("offers the five distinct file actions", async () => {
     const { container } = mount(sample(), COPY_ID);
     await act(() => Promise.resolve());

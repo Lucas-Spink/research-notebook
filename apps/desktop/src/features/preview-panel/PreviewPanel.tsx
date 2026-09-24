@@ -2,6 +2,7 @@ import {
   groupLocationsOf,
   type ArtefactsFileModel,
 } from "@research-notebook/format";
+import { useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import {
   formatSize,
@@ -50,6 +51,7 @@ export function PreviewPanel({
     : { kind: "other" as const, reason: "type" as const };
   const version = artefact ? latestVersion(artefact) : undefined;
   const linkSource = artefact ? linkSourceOf(artefact) : undefined;
+  const [recheck, setRecheck] = useState(0);
 
   const preview = usePreview({
     api,
@@ -61,7 +63,7 @@ export function PreviewPanel({
     folder,
     projectId,
     source: linkSource,
-    attempt: 0,
+    attempt: recheck,
   });
   const target: ActionTarget =
     linkSource !== undefined
@@ -122,6 +124,13 @@ export function PreviewPanel({
                 ? m.availability.text(availability.availability)
                 : m.actionFailures.actionFailed}
           </p>
+          <button
+            type="button"
+            disabled={availability?.status === "checking"}
+            onClick={() => setRecheck((n) => n + 1)}
+          >
+            {m.availability.recheck}
+          </button>
         </div>
       )}
 
