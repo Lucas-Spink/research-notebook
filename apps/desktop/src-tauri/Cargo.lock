@@ -3892,6 +3892,9 @@ name = "nb-preview"
 version = "0.1.0"
 dependencies = [
  "image",
+ "nb-fs",
+ "proptest",
+ "tempfile",
  "thiserror 2.0.20",
 ]
 

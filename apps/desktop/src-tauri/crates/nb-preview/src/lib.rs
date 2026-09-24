@@ -2,9 +2,16 @@
 //! section 8). Scoped to PNG and JPEG input, as the task's definition of
 //! done names; the full raster type list (gif, webp, tif, tiff, bmp) and
 //! the 200 MB / 100 megapixel bound belong to the production preview work
-//! in Stage 3 (S3-T09, S3-T10).
+//! in Stage 3 (S3-T10).
+//!
+//! [`cache`] keeps generated thumbnails in the application cache folder
+//! (S3-T09, FR-PRV-04).
+
+pub mod cache;
 
 use image::{DynamicImage, ImageFormat};
+
+use crate::cache::ThumbnailCacheError;
 
 /// Longest edge of a generated thumbnail, in pixels (spec section 8).
 const MAX_EDGE: u32 = 256;
@@ -13,6 +20,8 @@ const MAX_EDGE: u32 = 256;
 pub enum PreviewError {
     #[error("could not decode the image: {0}")]
     Decode(#[from] image::ImageError),
+    #[error("could not cache the thumbnail: {0}")]
+    Cache(#[from] ThumbnailCacheError),
 }
 
 /// Generates a thumbnail PNG for a PNG or JPEG image, scaled to fit within
