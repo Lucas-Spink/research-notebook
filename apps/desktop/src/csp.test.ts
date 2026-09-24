@@ -15,8 +15,14 @@ interface TauriConf {
   app?: {
     security?: {
       csp?: string | Record<string, string | string[]> | null;
+      assetProtocol?: { enable?: boolean; scope?: unknown };
     };
   };
+}
+
+function readSecurity() {
+  const conf = JSON.parse(readFileSync(tauriConfPath, "utf-8")) as TauriConf;
+  return conf.app?.security;
 }
 
 function readCsp():
@@ -60,5 +66,29 @@ describe("content security policy", () => {
       "'none'",
     ]);
     expect(directiveSources(directives["frame-src"] ?? "")).toEqual(["'none'"]);
+  });
+
+  // S3-T10 (spec 6.7, 8, gate S3-G09): previews add no way for file content
+  // to run as code.
+  it("runs scripts only from the application itself", () => {
+    const directives = readCsp() as Record<string, string | string[]>;
+    expect(directiveSources(directives["script-src"] ?? "")).toEqual([
+      "'self'",
+    ]);
+  });
+
+  it("loads images only from the application and the asset protocol, never data: or blob:", () => {
+    const directives = readCsp() as Record<string, string | string[]>;
+    expect(directiveSources(directives["img-src"] ?? "")).toEqual([
+      "'self'",
+      "asset:",
+      "http://asset.localhost",
+    ]);
+  });
+
+  it("enables the asset protocol with no static scope; files are allowed one at a time", () => {
+    const asset = readSecurity()?.assetProtocol;
+    expect(asset?.enable).toBe(true);
+    expect(asset?.scope).toEqual([]);
   });
 });
