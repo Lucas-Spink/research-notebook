@@ -14,14 +14,22 @@ afterEach(() => {
   root = null;
 });
 
-function mount(resolved: ResolvedReference, onActivate = () => undefined) {
+function mount(
+  resolved: ResolvedReference,
+  onActivate = () => undefined,
+  onUpdate: (() => void) | undefined = undefined,
+) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
   act(() =>
     root?.render(
-      <ArtefactRefChip resolved={resolved} onActivate={onActivate} />,
+      <ArtefactRefChip
+        resolved={resolved}
+        onActivate={onActivate}
+        onUpdate={onUpdate}
+      />,
     ),
   );
   return container;
@@ -72,6 +80,38 @@ const RESOLVED_LINK: ResolvedReference = {
   label: "Raw counts",
   fileName: "counts.h5",
   version: null,
+};
+
+const RESOLVED_OUTDATED: ResolvedReference = {
+  status: "resolved",
+  artefact: {
+    id: "01JB0000000000000000000001",
+    name: "PCA by treatment",
+    role: "result",
+    mode: "copy",
+    type: "pdf",
+    source: { root: "project", path: "scripts/pca.R" },
+    created: "2026-01-01T00:00:00Z",
+    versions: [
+      {
+        v: 1,
+        file: "evidence/pca.v1.pdf",
+        sha256: "a".repeat(64),
+        size: 10,
+        captured: "2026-01-01T00:00:00Z",
+      },
+      {
+        v: 2,
+        file: "evidence/pca.v2.pdf",
+        sha256: "b".repeat(64),
+        size: 20,
+        captured: "2026-01-02T00:00:00Z",
+      },
+    ],
+  },
+  label: "PCA by treatment",
+  fileName: "pca.v1.pdf",
+  version: 1,
 };
 
 describe("ArtefactRefChip", () => {
@@ -162,5 +202,42 @@ describe("ArtefactRefChip", () => {
     expect(
       view.querySelector('[role="button"]')?.getAttribute("tabindex"),
     ).toBe("0");
+  });
+
+  it("shows no newer-version mark when pinned to the latest version", () => {
+    const view = mount(RESOLVED_COPY);
+    expect(view.textContent).not.toContain("Newer version");
+  });
+
+  it("marks a reference pinned to an older version than its artefact now has (FR-EDT-07)", () => {
+    const view = mount(RESOLVED_OUTDATED);
+    expect(view.textContent).toContain("Newer version available");
+  });
+
+  it("shows no Update control for an outdated reference when no onUpdate is given (a static section)", () => {
+    const view = mount(RESOLVED_OUTDATED);
+    expect(view.querySelector("button")).toBeNull();
+  });
+
+  it("offers an Update control for an outdated reference when onUpdate is given (the live editor)", () => {
+    const onUpdate = vi.fn();
+    const view = mount(RESOLVED_OUTDATED, () => undefined, onUpdate);
+    const button = view.querySelector("button");
+    expect(button?.textContent).toBe("Update");
+    expect(button?.getAttribute("aria-label")).toBe(
+      "Update PCA by treatment to v2",
+    );
+  });
+
+  it("calls onUpdate, not onActivate, when the Update control is clicked", () => {
+    const onActivate = vi.fn();
+    const onUpdate = vi.fn();
+    const view = mount(RESOLVED_OUTDATED, onActivate, onUpdate);
+    const button = view.querySelector("button");
+    act(() => {
+      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onUpdate).toHaveBeenCalledOnce();
+    expect(onActivate).not.toHaveBeenCalled();
   });
 });
