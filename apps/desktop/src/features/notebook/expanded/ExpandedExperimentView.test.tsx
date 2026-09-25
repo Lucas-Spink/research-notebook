@@ -41,6 +41,7 @@ function mount(
         item={item()}
         disabled={false}
         folder={1}
+        projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
         onSaveSection={() => Promise.resolve({ ok: true })}
         {...props}
       />,

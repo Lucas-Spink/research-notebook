@@ -29,6 +29,8 @@ export const panelMessages = {
       dirty
         ? `From ${commit.slice(0, 8)} (uncommitted changes at capture)`
         : `From ${commit.slice(0, 8)}`,
+    /** Marks the version a reference chip opened (FR-EDT-06), which may not be the latest. */
+    pinned: "Pinned",
   },
   link: {
     heading: "Link",

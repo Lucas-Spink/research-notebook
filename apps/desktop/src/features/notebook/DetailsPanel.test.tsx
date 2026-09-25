@@ -59,6 +59,7 @@ function render(
         disabled={overrides.disabled ?? false}
         writable={overrides.writable ?? true}
         folder={1}
+        projectId={state.project.id}
       />,
     ),
   );

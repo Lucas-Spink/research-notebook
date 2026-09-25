@@ -1,8 +1,40 @@
+import type { ArtefactsFileModel } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AutosaveField } from "./model/useAutosave";
 import { RichSectionEditor } from "./RichSectionEditor";
+
+const ULID = "01JB0000000000000000000001";
+
+function artefactsFile(): ArtefactsFileModel {
+  return {
+    format_version: 1,
+    artefacts: [
+      {
+        id: ULID,
+        name: "PCA by treatment",
+        role: "result",
+        mode: "copy",
+        type: "pdf",
+        source: { root: "project", path: "scripts/pca.R" },
+        created: "2026-01-01T00:00:00Z",
+        versions: [
+          {
+            v: 1,
+            file: "evidence/pca.v1.pdf",
+            sha256: "a".repeat(64),
+            size: 10,
+            captured: "2026-01-01T00:00:00Z",
+          },
+        ],
+      },
+    ],
+    groups: [],
+  };
+}
+
+const REFERENCE = `[Stale label](evidence/pca.v1.pdf "art:${ULID} v1")`;
 
 let container: HTMLDivElement | null = null;
 let root: Root | null = null;
@@ -43,6 +75,7 @@ function mount(
         live={true}
         onActivate={() => undefined}
         artefacts={null}
+        onActivateReference={() => undefined}
         {...props}
       />,
     ),
@@ -94,6 +127,24 @@ describe("RichSectionEditor — live", () => {
     expect(
       view.querySelector(".ProseMirror")?.getAttribute("contenteditable"),
     ).toBe("false");
+  });
+
+  it("renders a resolved reference as a chip and activates it with its ULID and pinned version (FR-EDT-06)", async () => {
+    const onActivateReference = vi.fn();
+    const view = mount({
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFile(),
+      onActivateReference,
+    });
+    // The NodeView's own portal settles on the next tick, after `useEditor`'s
+    // initial content has built ProseMirror's node views.
+    await act(() => Promise.resolve());
+    const chip = view.querySelector(".expanded__artefact-ref--chip");
+    expect(chip?.textContent).toBe("PCA by treatment");
+    act(() => {
+      chip?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onActivateReference).toHaveBeenCalledWith(ULID, 1);
   });
 });
 
@@ -147,6 +198,24 @@ describe("RichSectionEditor — static", () => {
     act(() => {
       button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it("activates a resolved reference chip's own callback, not the section's (they nest, but must not both fire)", () => {
+    const onActivate = vi.fn();
+    const onActivateReference = vi.fn();
+    const view = mount({
+      live: false,
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFile(),
+      onActivate,
+      onActivateReference,
+    });
+    const chip = view.querySelector(".expanded__artefact-ref--chip");
+    act(() => {
+      chip?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onActivateReference).toHaveBeenCalledWith(ULID, 1);
     expect(onActivate).not.toHaveBeenCalled();
   });
 });

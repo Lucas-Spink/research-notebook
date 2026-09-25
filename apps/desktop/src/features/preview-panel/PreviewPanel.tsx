@@ -11,7 +11,11 @@ import {
   type FileDetails,
 } from "../preview";
 import { linkSourceOf } from "./model/availability";
-import { fileDetailsFor, latestVersion, previewPlanFor } from "./model/details";
+import {
+  fileDetailsFor,
+  previewPlanFor,
+  resolveVersion,
+} from "./model/details";
 import type { PanelApi } from "./model/api";
 import { panelMessages as m } from "./messages";
 import { useAvailability } from "./useAvailability";
@@ -27,6 +31,12 @@ export type Props = {
   experimentFolder: string;
   file: ArtefactsFileModel;
   artefactId: string;
+  /**
+   * Which version to show; the latest by default. A reference chip passes
+   * its pinned version (FR-EDT-06), which may not be the latest once
+   * FR-EDT-07 lets versions diverge.
+   */
+  version?: number | null;
 };
 
 /**
@@ -41,15 +51,16 @@ export function PreviewPanel({
   experimentFolder,
   file,
   artefactId,
+  version: pinned,
 }: Props) {
   const artefact = file.artefacts.find((a) => a.id === artefactId);
+  const version = artefact ? resolveVersion(artefact, pinned) : undefined;
   const details: FileDetails = artefact
-    ? fileDetailsFor(artefact, experimentFolder)
+    ? fileDetailsFor(artefact, experimentFolder, version)
     : { name: "", fileName: "", size: 0, location: "" };
   const plan = artefact
-    ? previewPlanFor(artefact)
+    ? previewPlanFor(artefact, version)
     : { kind: "other" as const, reason: "type" as const };
-  const version = artefact ? latestVersion(artefact) : undefined;
   const linkSource = artefact ? linkSourceOf(artefact) : undefined;
   const [recheck, setRecheck] = useState(0);
 
@@ -97,6 +108,7 @@ export function PreviewPanel({
           {artefact.versions.map((v) => (
             <li key={v.v}>
               {m.versions.captured(v.v, v.captured)}
+              {pinned != null && v.v === pinned && ` ${m.versions.pinned}`}
               {v.provenance && (
                 <span className="panel__provenance">
                   {" "}

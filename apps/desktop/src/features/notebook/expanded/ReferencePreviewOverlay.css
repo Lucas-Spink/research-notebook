@@ -1,0 +1,9 @@
+.expanded__reference-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: auto;
+  background: canvas;
+  padding: 1rem;
+  box-sizing: border-box;
+}

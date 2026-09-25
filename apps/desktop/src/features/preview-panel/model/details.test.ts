@@ -5,6 +5,7 @@ import {
   latestVersion,
   linkFileName,
   previewPlanFor,
+  resolveVersion,
 } from "./details";
 
 const EXPERIMENT = "EXP-001";
@@ -88,6 +89,39 @@ describe("fileDetailsFor", () => {
       location: "data/counts.h5",
     });
   });
+
+  it("gives an explicit version's file name, size and location instead of the latest (FR-EDT-06's pinned version)", () => {
+    const details = fileDetailsFor(
+      copyArtefact,
+      EXPERIMENT,
+      resolveVersion(copyArtefact, 1),
+    );
+    expect(details).toEqual({
+      name: "Volcano plot",
+      fileName: "volcano.png",
+      size: 100,
+      location: "_notebook/experiments/EXP-001/evidence/volcano.png",
+    });
+  });
+});
+
+describe("resolveVersion", () => {
+  it("is the named version when it exists", () => {
+    expect(resolveVersion(copyArtefact, 1)?.file).toBe("evidence/volcano.png");
+  });
+
+  it("falls back to the latest version when the named one does not exist", () => {
+    expect(resolveVersion(copyArtefact, 99)?.v).toBe(2);
+  });
+
+  it("is the latest version when none is named", () => {
+    expect(resolveVersion(copyArtefact, undefined)?.v).toBe(2);
+    expect(resolveVersion(copyArtefact, null)?.v).toBe(2);
+  });
+
+  it("is undefined for a link-mode artefact", () => {
+    expect(resolveVersion(linkArtefact, 1)).toBeUndefined();
+  });
 });
 
 describe("linkFileName", () => {
@@ -106,5 +140,11 @@ describe("previewPlanFor", () => {
       kind: "other",
       reason: "linked",
     });
+  });
+
+  it("plans from an explicit version's file name instead of the latest", () => {
+    expect(
+      previewPlanFor(copyArtefact, resolveVersion(copyArtefact, 1)),
+    ).toEqual({ kind: "image" });
   });
 });

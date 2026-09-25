@@ -39,6 +39,7 @@ function model(
     notice: null,
     failure: null,
     actions,
+    projectId: state.project.id,
     ...overrides,
   };
 }

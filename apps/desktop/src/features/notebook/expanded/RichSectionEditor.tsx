@@ -24,6 +24,8 @@ type Props = {
   onActivate: () => void;
   /** The experiment's artefacts, for the @ autocomplete (FR-EDT-04); `null` while unavailable. */
   artefacts: ArtefactsFileModel | null;
+  /** Opens a reference's pinned version's preview (FR-EDT-06). */
+  onActivateReference: (ulid: string, version: number | null) => void;
 };
 
 /**
@@ -42,6 +44,7 @@ export function RichSectionEditor({
   live,
   onActivate,
   artefacts,
+  onActivateReference,
 }: Props) {
   const id = useId();
   return (
@@ -64,6 +67,7 @@ export function RichSectionEditor({
           field={field}
           disabled={disabled}
           artefacts={artefacts}
+          onActivateReference={onActivateReference}
         />
       ) : (
         <StaticSection
@@ -72,6 +76,8 @@ export function RichSectionEditor({
           initialMarkdown={initialMarkdown}
           disabled={disabled}
           onActivate={onActivate}
+          artefacts={artefacts}
+          onActivateReference={onActivateReference}
         />
       )}
     </div>
@@ -85,6 +91,7 @@ function LiveEditor({
   field,
   disabled,
   artefacts,
+  onActivateReference,
 }: {
   id: string;
   label: string;
@@ -92,20 +99,32 @@ function LiveEditor({
   field: AutosaveField;
   disabled: boolean;
   artefacts: ArtefactsFileModel | null;
+  onActivateReference: (ulid: string, version: number | null) => void;
 }) {
-  // A stable function, read at call time: the suggestion plugin is built
-  // once per editor instance (below), but the experiment's artefacts can
-  // arrive or change after that — this ref is how `search` sees the
-  // current ones without the editor's extensions (and so the editor
-  // itself) being recreated every time they do.
+  // Stable functions, read at call time: the suggestion plugin and the
+  // chip's NodeView are built once per editor instance (below), but the
+  // experiment's artefacts can arrive or change after that — these refs are
+  // how they see the current ones without the editor's extensions (and so
+  // the editor itself) being recreated every time they do.
   const artefactsRef = useRef(artefacts);
   artefactsRef.current = artefacts;
+  const onActivateReferenceRef = useRef(onActivateReference);
+  onActivateReferenceRef.current = onActivateReference;
   const search = useCallback((query: string) => {
     const file = artefactsRef.current;
     return file === null ? [] : searchArtefacts(file, query);
   }, []);
+  const resolve = useCallback(() => artefactsRef.current, []);
+  const activate = useCallback(
+    (ulid: string, version: number | null) =>
+      onActivateReferenceRef.current(ulid, version),
+    [],
+  );
 
-  const extensions = useMemo(() => liveEditorExtensions(search), [search]);
+  const extensions = useMemo(
+    () => liveEditorExtensions(search, { resolve, onActivate: activate }),
+    [search, resolve, activate],
+  );
   const editor = useEditor({
     extensions,
     content: parseSectionMarkdown(initialMarkdown),
@@ -132,12 +151,16 @@ function StaticSection({
   initialMarkdown,
   disabled,
   onActivate,
+  artefacts,
+  onActivateReference,
 }: {
   id: string;
   label: string;
   initialMarkdown: string;
   disabled: boolean;
   onActivate: () => void;
+  artefacts: ArtefactsFileModel | null;
+  onActivateReference: (ulid: string, version: number | null) => void;
 }) {
   const doc = useMemo(
     () => parseSectionMarkdown(initialMarkdown),
@@ -163,7 +186,11 @@ function StaticSection({
             }
       }
     >
-      <StaticSectionContent doc={doc} />
+      <StaticSectionContent
+        doc={doc}
+        artefacts={artefacts}
+        onActivateReference={onActivateReference}
+      />
     </div>
   );
 }

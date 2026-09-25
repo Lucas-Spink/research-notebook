@@ -80,6 +80,9 @@ export const tableMessages = {
 export const expandedMessages = {
   heading: "Sections",
   passthroughLabel: "Not editable here — kept as written",
+  /** The dialog a reference chip opens (FR-EDT-06). */
+  referencePreviewHeading: "Reference preview",
+  closePreview: "Close",
 } as const;
 
 /** Label for the button that makes a static section the live editor (FR-EDT-03: only one editor is live at a time). */

@@ -55,6 +55,7 @@ export function NotebookView({
     notice,
     failure,
     actions,
+    projectId,
   } = notebook;
   const disabled = busy || !writable;
   const [filter, setFilter] = useState<FilterState>(NO_FILTER);
@@ -194,6 +195,7 @@ export function NotebookView({
             disabled={disabled}
             writable={writable}
             folder={folder}
+            projectId={projectId}
           />
           <NewTitleForm
             label={messages.newQuestionLabel}
