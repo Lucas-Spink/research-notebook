@@ -1,0 +1,47 @@
+.artefact-autocomplete {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 16rem;
+  min-width: 16rem;
+  overflow-y: auto;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.artefact-autocomplete__empty {
+  padding: 0.25rem 0.5rem;
+  font-style: italic;
+}
+
+.artefact-autocomplete__option {
+  display: grid;
+  grid-template-columns: 1rem 1fr;
+  column-gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.artefact-autocomplete__option--active {
+  background: Highlight;
+  color: HighlightText;
+}
+
+.artefact-icon {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.artefact-autocomplete__label {
+  font-weight: 600;
+}
+
+.artefact-autocomplete__meta {
+  grid-column: 2;
+  font-size: 0.85em;
+}

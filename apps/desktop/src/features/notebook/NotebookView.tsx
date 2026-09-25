@@ -1,5 +1,6 @@
 import type { ColumnKey, Problem } from "@research-notebook/format";
 import { useMemo, useState } from "react";
+import type { FolderHandle } from "../../ipc/bindings";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { QuestionChoice } from "./ExperimentItem";
 import { messages, problemMessage } from "./messages";
@@ -35,9 +36,12 @@ function sharedRefs(problems: readonly Problem[]): ReadonlySet<string> {
  */
 export function NotebookView({
   notebook,
+  folder,
   viewportHeight,
 }: {
   notebook: NotebookModel;
+  /** The open project, so the expanded view can read an experiment's artefacts.yaml (FR-EDT-04). */
+  folder: FolderHandle;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
 }) {
@@ -189,6 +193,7 @@ export function NotebookView({
             actions={actions}
             disabled={disabled}
             writable={writable}
+            folder={folder}
           />
           <NewTitleForm
             label={messages.newQuestionLabel}

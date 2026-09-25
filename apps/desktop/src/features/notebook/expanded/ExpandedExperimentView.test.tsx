@@ -40,6 +40,7 @@ function mount(
       <ExpandedExperimentView
         item={item()}
         disabled={false}
+        folder={1}
         onSaveSection={() => Promise.resolve({ ok: true })}
         {...props}
       />,

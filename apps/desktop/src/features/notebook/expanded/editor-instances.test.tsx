@@ -44,6 +44,7 @@ function mount() {
       <ExpandedExperimentView
         item={item}
         disabled={false}
+        folder={1}
         onSaveSection={() => Promise.resolve({ ok: true })}
       />,
     ),
@@ -106,6 +107,7 @@ describe("editor-instances (S4-G08)", () => {
         <ExpandedExperimentView
           item={{ ...item, readOnly: true }}
           disabled={false}
+          folder={1}
           onSaveSection={() => Promise.resolve({ ok: true })}
         />,
       ),

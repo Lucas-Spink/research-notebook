@@ -58,6 +58,7 @@ function render(
         actions={actions}
         disabled={overrides.disabled ?? false}
         writable={overrides.writable ?? true}
+        folder={1}
       />,
     ),
   );

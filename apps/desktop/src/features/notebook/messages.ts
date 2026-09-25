@@ -1,4 +1,5 @@
 import type {
+  ArtefactModel,
   ColumnKey,
   ExperimentStatus,
   NotebookError,
@@ -84,6 +85,34 @@ export const expandedMessages = {
 /** Label for the button that makes a static section the live editor (FR-EDT-03: only one editor is live at a time). */
 export function editLabel(label: string): string {
   return `Edit ${label}`;
+}
+
+/** Text of the @ autocomplete (FR-EDT-04). */
+export const artefactAutocompleteMessages = {
+  label: "Artefacts",
+  empty: "No matching artefacts",
+  ungrouped: "Ungrouped",
+} as const;
+
+const artefactTypeLabels: Record<ArtefactModel["type"], string> = {
+  image: "Image",
+  pdf: "PDF",
+  svg: "SVG",
+  table: "Table",
+  script: "Script",
+  notebook: "Notebook",
+  text: "Text",
+  html: "HTML",
+  other: "Other",
+};
+
+export function artefactTypeLabel(type: ArtefactModel["type"]): string {
+  return artefactTypeLabels[type];
+}
+
+/** "v2" for a captured artefact's version. */
+export function artefactVersionLabel(version: number): string {
+  return `v${version}`;
 }
 
 const autosaveStatusLabels: Record<AutosaveStatus, string> = {

@@ -13,5 +13,5 @@ type Props = {
 /** The questions and experiments of the open project (FR-EXP-01 to 08). */
 export function NotebookPanel({ folder, writable, changes }: Props) {
   const notebook = useNotebook({ folder, writable, changes });
-  return <NotebookView notebook={notebook} />;
+  return <NotebookView notebook={notebook} folder={folder} />;
 }
