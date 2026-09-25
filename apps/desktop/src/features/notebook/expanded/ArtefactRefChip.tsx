@@ -26,9 +26,11 @@ type Props = {
  * One artefact reference (FR-EDT-06): the artefact's current display name,
  * with its filename and pinned version shown on hover or focus, and
  * activatable by click, Enter or Space to open that version's preview.
- * Pending (the experiment's artefacts have not loaded yet) and detached (the
- * artefact or its pinned version is gone; FR-EDT-08's own rendering is a
- * later task) references show their last known label plainly instead. A
+ * Pending (the experiment's artefacts have not loaded yet) shows its last
+ * known label plainly, not yet interactive. Detached (the artefact or its
+ * pinned version is gone, FR-EDT-08) shows the same last known label but
+ * marked as detached, so it reads differently from a reference that will
+ * resolve shortly. Neither is interactive: there is nothing to open. A
  * reference pinned to an older version than its artefact now has is marked,
  * with an Update control offered wherever the document can be changed
  * (FR-EDT-07).
@@ -37,8 +39,21 @@ export function ArtefactRefChip({ resolved, onActivate, onUpdate }: Props) {
   const detailId = useId();
   const [showDetail, setShowDetail] = useState(false);
 
-  if (resolved.status !== "resolved") {
+  if (resolved.status === "pending") {
     return <span className="expanded__artefact-ref">{resolved.label}</span>;
+  }
+
+  if (resolved.status === "detached") {
+    return (
+      <span className="expanded__artefact-ref-group">
+        <span className="expanded__artefact-ref expanded__artefact-ref--detached">
+          {resolved.label}
+        </span>
+        <span className="expanded__artefact-ref-newer">
+          {expandedMessages.detachedBadge}
+        </span>
+      </span>
+    );
   }
 
   const detail =

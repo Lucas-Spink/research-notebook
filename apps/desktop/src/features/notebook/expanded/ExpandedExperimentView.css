@@ -55,9 +55,17 @@
   font-family: monospace;
 }
 
-/* Plain fallback for a pending or detached reference (FR-EDT-04/05, FR-EDT-08). */
+/* Plain fallback for a pending reference, not yet resolved (FR-EDT-04/05). */
 .expanded__artefact-ref {
   border-bottom: 1px dotted currentColor;
+}
+
+/* A detached reference: its artefact no longer exists (FR-EDT-08). Shown
+ * struck through and muted, next to the "Artefact removed" badge. */
+.expanded__artefact-ref--detached {
+  border-bottom: none;
+  text-decoration: line-through;
+  opacity: 0.7;
 }
 
 /* A resolved reference (FR-EDT-06): interactive, with its filename and

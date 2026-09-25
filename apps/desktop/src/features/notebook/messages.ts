@@ -85,6 +85,8 @@ export const expandedMessages = {
   closePreview: "Close",
   /** Shown next to a reference whose artefact has a newer version (FR-EDT-07). */
   newerVersionBadge: "Newer version available",
+  /** Shown on a reference whose artefact no longer exists (FR-EDT-08). */
+  detachedBadge: "Artefact removed",
   /** The one-reference update control, next to the badge. */
   updateReference: "Update",
   /** The section-wide update control, offered under the live editor. */
