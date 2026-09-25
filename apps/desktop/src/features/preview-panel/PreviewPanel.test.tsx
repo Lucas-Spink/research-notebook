@@ -1,9 +1,14 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ArtefactsFileModel } from "@research-notebook/format";
+import type {
+  ArtefactsFileModel,
+  ReferenceIndex,
+} from "@research-notebook/format";
 import { PreviewPanel } from "./PreviewPanel";
 import { fakePanelApi, FOLDER, PROJECT_ID } from "./model/fakeApi";
+
+const NO_REFERENCES: ReferenceIndex = new Map();
 
 let container: HTMLDivElement | null = null;
 let root: Root | null = null;
@@ -20,6 +25,7 @@ function mount(
   artefactId: string,
   api = fakePanelApi(),
   version?: number | null,
+  references: ReferenceIndex = NO_REFERENCES,
 ) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
@@ -34,6 +40,7 @@ function mount(
         experimentFolder="EXP-001"
         file={file}
         artefactId={artefactId}
+        references={references}
         {...(version === undefined ? {} : { version })}
       />,
     ),
@@ -136,6 +143,49 @@ describe("PreviewPanel", () => {
     const { container } = mount(sample(), LINK_ID);
     await act(() => Promise.resolve());
     expect(container.textContent).toContain("Not in any group.");
+  });
+
+  it("says an artefact nothing references is not referenced anywhere", async () => {
+    const { container } = mount(sample(), COPY_ID);
+    await act(() => Promise.resolve());
+    expect(container.textContent).toContain("Not referenced anywhere.");
+  });
+
+  it("lists every experiment and section that references the artefact (FR-SRC-03)", async () => {
+    const references: ReferenceIndex = new Map([
+      [
+        COPY_ID,
+        [
+          {
+            experimentFolder: "EXP-001",
+            experimentRef: "EXP-001",
+            experimentTitle: "Baseline run",
+            section: "methods",
+          },
+          {
+            experimentFolder: "EXP-002",
+            experimentRef: "EXP-002",
+            experimentTitle: "Replicate",
+            section: "interpretation",
+          },
+        ],
+      ],
+    ]);
+    const { container } = mount(
+      sample(),
+      COPY_ID,
+      fakePanelApi(),
+      undefined,
+      references,
+    );
+    await act(() => Promise.resolve());
+    const items = [
+      ...container.querySelectorAll('[aria-label="Referenced in"] li'),
+    ];
+    expect(items.map((item) => item.textContent)).toEqual([
+      "EXP-001 Baseline run / Methods",
+      "EXP-002 Replicate / Interpretation",
+    ]);
   });
 
   it("lists every version's capture time for a copy-mode artefact", async () => {

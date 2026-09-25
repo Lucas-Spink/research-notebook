@@ -27,6 +27,19 @@
   font-size: 0.875em;
 }
 
+.panel__references {
+  font-size: 0.875em;
+}
+
+.panel__references h4 {
+  margin: 0;
+}
+
+.panel__references ul {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+
 .panel__provenance {
   opacity: 0.8;
 }

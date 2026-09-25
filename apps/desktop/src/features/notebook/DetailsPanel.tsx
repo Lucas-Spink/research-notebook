@@ -2,6 +2,7 @@ import type {
   ArrangedExperiment,
   ArrangedQuestion,
   RecognisedSectionKey,
+  ReferenceIndex,
 } from "@research-notebook/format";
 import type { FolderHandle } from "../../ipc/bindings";
 import { ExpandedExperimentView } from "./expanded/ExpandedExperimentView";
@@ -32,6 +33,9 @@ type Props = {
   folder: FolderHandle;
   /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
   projectId: string | null;
+  /** Every experiment and section that references an artefact, across the
+   * whole project (FR-SRC-03). */
+  references: ReferenceIndex;
   /** The section to open the expanded view at, when the selection came from a search result (FR-SRC-02); `null` otherwise. */
   focusSection: RecognisedSectionKey | null;
 };
@@ -50,6 +54,7 @@ export function DetailsPanel({
   writable,
   folder,
   projectId,
+  references,
   focusSection,
 }: Props) {
   return (
@@ -74,6 +79,7 @@ export function DetailsPanel({
             disabled={!writable}
             folder={folder}
             projectId={projectId}
+            references={references}
             focusSection={focusSection}
             onSaveSection={(key, text) =>
               actions.editExperimentSection(

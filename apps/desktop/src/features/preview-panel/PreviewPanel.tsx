@@ -1,6 +1,8 @@
 import {
   groupLocationsOf,
+  referencedIn,
   type ArtefactsFileModel,
+  type ReferenceIndex,
 } from "@research-notebook/format";
 import { useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
@@ -37,6 +39,9 @@ export type Props = {
    * FR-EDT-07 lets versions diverge.
    */
   version?: number | null;
+  /** Every experiment and section that references an artefact, across the
+   * whole project (FR-SRC-03), built once by the caller from `Arranged`. */
+  references: ReferenceIndex;
 };
 
 /**
@@ -52,6 +57,7 @@ export function PreviewPanel({
   file,
   artefactId,
   version: pinned,
+  references,
 }: Props) {
   const artefact = file.artefacts.find((a) => a.id === artefactId);
   const version = artefact ? resolveVersion(artefact, pinned) : undefined;
@@ -85,6 +91,7 @@ export function PreviewPanel({
   if (artefact === undefined) return null;
 
   const locations = groupLocationsOf(file, artefactId);
+  const referenceLocations = referencedIn(references, artefactId);
 
   return (
     <section className="panel" aria-label={details.name}>
@@ -102,6 +109,25 @@ export function PreviewPanel({
           ? m.ungroupedNote
           : `${m.groupLocations} ${locations.map((path) => path.join(" / ")).join("; ")}`}
       </p>
+
+      <div className="panel__references">
+        <h4>{m.referencedIn.heading}</h4>
+        {referenceLocations.length === 0 ? (
+          <p>{m.referencedIn.none}</p>
+        ) : (
+          <ul aria-label={m.referencedIn.heading}>
+            {referenceLocations.map((location, index) => (
+              <li key={index}>
+                {m.referencedIn.location(
+                  location.experimentRef,
+                  location.experimentTitle,
+                  location.section,
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {artefact.mode === "copy" ? (
         <ul className="panel__versions" aria-label={m.versions.heading}>
