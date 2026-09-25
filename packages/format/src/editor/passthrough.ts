@@ -53,6 +53,11 @@ const REPRESENTABLE_TYPES: ReadonlySet<string> = new Set([
   "codespan",
   "link",
   "space",
+  // An artefact reference (spec 5.6, FR-EDT-04): a link whose title starts
+  // "art:" and holds a valid ULID tokenizes as this instead of "link" (see
+  // ./artefactRef.ts); anything else with an art:-prefixed title stays a
+  // plain "link", already representable above.
+  "artefactRef",
 ]);
 
 /**

@@ -1,6 +1,7 @@
 import type { JSONContent } from "@tiptap/core";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import { buildArtefactRefNode } from "./artefactRef";
 import { parseSectionMarkdown, serialiseSectionMarkdown } from "./markdown";
 
 const numRuns = Number(process.env.FC_NUM_RUNS ?? 200);
@@ -8,10 +9,11 @@ const numRuns = Number(process.env.FC_NUM_RUNS ?? 200);
 /**
  * fast-check generators for the FR-EDT-01 section-editor schema: plain text,
  * a single mark at a time (bold, italic or inline code — combining/nesting
- * marks is not covered here), links, headings restricted to levels 3 and 4,
- * bulleted and numbered lists of plain-text items, block quotes and code
- * blocks. Excludes characters MarkdownManager escapes (*, _, `, ~, [, ], \)
- * and Markdown block markers at a paragraph's start, the same constraints
+ * marks is not covered here), links, artefact references (spec 5.6,
+ * FR-EDT-04, S4-G04), headings restricted to levels 3 and 4, bulleted and
+ * numbered lists of plain-text items, block quotes and code blocks.
+ * Excludes characters MarkdownManager escapes (*, _, `, ~, [, ], \) and
+ * Markdown block markers at a paragraph's start, the same constraints
  * `test/arbitraries.ts` already documents for the notebook-level parser.
  */
 
@@ -176,6 +178,46 @@ function linkNode(): fc.Arbitrary<JSONContent> {
     }));
 }
 
+// Crockford Base32, excluding I, L, O, U (matches schema/common.ts's Ulid).
+const ULID_CHARS = [..."0123456789ABCDEFGHJKMNPQRSTVWXYZ"];
+
+function ulid(): fc.Arbitrary<string> {
+  return fc
+    .tuple(
+      fc.constantFrom(..."01234567"),
+      fc.array(fc.constantFrom(...ULID_CHARS), {
+        minLength: 25,
+        maxLength: 25,
+      }),
+    )
+    .map(([first, rest]) => first + rest.join(""));
+}
+
+// No whitespace or ")" (spec 5.6's target = "[^\s)]+"); no "]" (the label's
+// own delimiter) either, though nothing here would put one in a target.
+function artefactRefTarget(): fc.Arbitrary<string> {
+  return fc
+    .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789/_.-"), {
+      minLength: 1,
+      maxLength: 20,
+    })
+    .map((chars) => `evidence/${chars.join("")}`);
+}
+
+function artefactRefNode(): fc.Arbitrary<JSONContent> {
+  return fc
+    .tuple(
+      ulid(),
+      fc.option(fc.integer({ min: 1, max: 99 }), { nil: null }),
+      safeText(1, 12),
+      artefactRefTarget(),
+    )
+    .map(([id, version, label, target]) => ({
+      type: "paragraph",
+      content: [buildArtefactRefNode({ ulid: id, version, label, target })],
+    }));
+}
+
 function blockquoteNode(): fc.Arbitrary<JSONContent> {
   return paragraphNode().map((paragraph) => ({
     type: "blockquote",
@@ -214,6 +256,7 @@ function blockNode(): fc.Arbitrary<JSONContent> {
     paragraphNode(),
     headingNode(),
     linkNode(),
+    artefactRefNode(),
     blockquoteNode(),
     codeBlockNode(),
     listNode(),
