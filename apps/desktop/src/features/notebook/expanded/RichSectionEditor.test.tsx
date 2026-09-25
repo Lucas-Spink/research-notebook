@@ -187,6 +187,24 @@ describe("RichSectionEditor — live", () => {
     expect(onChange).toHaveBeenCalledWith("PCA on normalised counts.");
   });
 
+  it("rewrites a stale reference label to its artefact's current name on every save, automatically (FR-EDT-09)", async () => {
+    const onChange = vi.fn();
+    const view = mount({
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFile(),
+      field: field({ onChange }),
+    });
+    await act(() => Promise.resolve());
+    const pm = view.querySelector(".ProseMirror");
+    if (pm === null) throw new Error("no editor");
+    act(() => {
+      pm.dispatchEvent(new InputEvent("input", { bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      `[PCA by treatment](evidence/pca.v1.pdf "art:${ULID} v1")`,
+    );
+  });
+
   it("disables the editor when asked, e.g. a read-only project", () => {
     const view = mount({ disabled: true });
     expect(
