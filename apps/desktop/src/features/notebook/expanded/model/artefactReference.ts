@@ -79,3 +79,22 @@ export function resolveReference(
     version: null,
   };
 }
+
+/** The attrs a reference should take to point at its artefact's latest
+ * version (FR-EDT-07). `null` when there is nothing to update to: the
+ * reference is not resolved, its artefact is link mode (no versions to be
+ * newer than), or it is already pinned to the latest version. */
+export function newerVersionUpdate(
+  resolved: ResolvedReference,
+): { version: number; target: string; label: string } | null {
+  if (resolved.status !== "resolved") return null;
+  if (resolved.artefact.mode !== "copy") return null;
+  const latest = resolved.artefact.versions.at(-1);
+  if (latest === undefined || resolved.version === null) return null;
+  if (latest.v <= resolved.version) return null;
+  return {
+    version: latest.v,
+    target: latest.file,
+    label: resolved.artefact.name,
+  };
+}

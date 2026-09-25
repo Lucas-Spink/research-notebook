@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { readReferenceAttrs, resolveReference } from "./artefactReference";
+import {
+  newerVersionUpdate,
+  readReferenceAttrs,
+  resolveReference,
+} from "./artefactReference";
 
 const COPY_ID = "01JB0000000000000000000001";
 const LINK_ID = "01JB0000000000000000000002";
@@ -133,6 +137,44 @@ describe("resolveReference", () => {
       label: "Raw counts",
       fileName: "counts.h5",
       version: null,
+    });
+  });
+});
+
+describe("newerVersionUpdate", () => {
+  it("is null for a pending or detached reference", () => {
+    expect(newerVersionUpdate({ status: "pending", label: "x" })).toBeNull();
+    expect(newerVersionUpdate({ status: "detached", label: "x" })).toBeNull();
+  });
+
+  it("is null for a link-mode artefact, which has no versions to be newer", () => {
+    const resolved = resolveReference(sample(), {
+      ulid: LINK_ID,
+      version: null,
+      label: "Raw counts",
+    });
+    expect(newerVersionUpdate(resolved)).toBeNull();
+  });
+
+  it("is null when already pinned to the latest version", () => {
+    const resolved = resolveReference(sample(), {
+      ulid: COPY_ID,
+      version: 2,
+      label: "PCA by treatment",
+    });
+    expect(newerVersionUpdate(resolved)).toBeNull();
+  });
+
+  it("gives the latest version's number, file and the artefact's current name when pinned to an older version (FR-EDT-07)", () => {
+    const resolved = resolveReference(sample(), {
+      ulid: COPY_ID,
+      version: 1,
+      label: "Stale label",
+    });
+    expect(newerVersionUpdate(resolved)).toEqual({
+      version: 2,
+      target: "evidence/pca.v2.pdf",
+      label: "PCA by treatment",
     });
   });
 });
