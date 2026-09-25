@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { summariseMarkdown } from "../index";
+import {
+  summariseMarkdown,
+  summariseMarkdownParts,
+  type SummaryPart,
+} from "../index";
 
 /** FR-TBL-05: table cells show plain, bounded summaries of Markdown. */
 
@@ -128,6 +132,141 @@ describe("summariseMarkdown", () => {
       "\uD800",
     ]) {
       expect(() => summariseMarkdown(text)).not.toThrow();
+    }
+  });
+});
+
+/** FR-TBL-05, FR-EDT-06: table cells show an artefact reference as a chip,
+ * not as flattened text, so `summariseMarkdownParts` keeps its ULID and
+ * version alongside its label instead of reducing it to a word like
+ * `summariseMarkdown` does. */
+describe("summariseMarkdownParts", () => {
+  const text = (value: string): SummaryPart => ({ kind: "text", text: value });
+
+  it("gives plain text back as a single text part, just like summariseMarkdown", () => {
+    const input = "**bold** and [an ordinary link](https://x) and text.";
+    expect(summariseMarkdownParts(input)).toEqual([
+      { kind: "text", text: summariseMarkdown(input) },
+    ]);
+  });
+
+  it("gives an empty summary as no parts at all", () => {
+    expect(summariseMarkdownParts("")).toEqual([]);
+    expect(summariseMarkdownParts(" \n\t ")).toEqual([]);
+  });
+
+  it("keeps a copy-mode reference as its own part, with the label, ULID and version", () => {
+    const parts = summariseMarkdownParts(
+      'See [PCA by treatment](evidence/pca.v2.pdf "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2") for detail.',
+    );
+    expect(parts).toEqual([
+      text("See "),
+      {
+        kind: "ref",
+        label: "PCA by treatment",
+        ulid: "01JAXR5D8K2M4N6P8Q0R2S4T6V",
+        version: 2,
+      },
+      text(" for detail."),
+    ]);
+  });
+
+  it("keeps a link-mode reference with a null version", () => {
+    const parts = summariseMarkdownParts(
+      '[Raw counts](../../../data/counts.h5 "art:01JAXR9Q1W3E5R7T9Y1V3J5N7P")',
+    );
+    expect(parts).toEqual([
+      {
+        kind: "ref",
+        label: "Raw counts",
+        ulid: "01JAXR9Q1W3E5R7T9Y1V3J5N7P",
+        version: null,
+      },
+    ]);
+  });
+
+  it("reads a target in angle brackets, for a path with a space in it", () => {
+    const parts = summariseMarkdownParts(
+      '[PCA by treatment](<../../evidence/pca by treatment.pdf> "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2")',
+    );
+    expect(parts).toEqual([
+      {
+        kind: "ref",
+        label: "PCA by treatment",
+        ulid: "01JAXR5D8K2M4N6P8Q0R2S4T6V",
+        version: 2,
+      },
+    ]);
+  });
+
+  it("still shows the label when the title's ULID is not valid, with a null ULID", () => {
+    const parts = summariseMarkdownParts('[Odd](x.pdf "art:not-a-ulid")');
+    expect(parts).toEqual([
+      { kind: "ref", label: "Odd", ulid: null, version: null },
+    ]);
+  });
+
+  it("keeps multiple references in order, each its own part", () => {
+    const parts = summariseMarkdownParts(
+      '[A](a.pdf "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v1") and ' +
+        '[B](b.pdf "art:01JAXR9Q1W3E5R7T9Y1V3J5N7P")',
+    );
+    expect(parts.filter((p) => p.kind === "ref").map((p) => p.label)).toEqual([
+      "A",
+      "B",
+    ]);
+  });
+
+  it("leaves a link whose title is not an artefact reference as plain text", () => {
+    expect(
+      summariseMarkdownParts('see [the paper](https://example.org "Title")'),
+    ).toEqual([text("see the paper")]);
+  });
+
+  it("leaves a citation as written, as plain text", () => {
+    expect(summariseMarkdownParts("as shown [@z:u:7XK2PQ9M]")).toEqual([
+      text("as shown [@z:u:7XK2PQ9M]"),
+    ]);
+  });
+
+  it("is bounded: the visible text never exceeds the length asked for", () => {
+    const long =
+      "word ".repeat(50) +
+      '[PCA by treatment](evidence/pca.v2.pdf "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2") ' +
+      "more words ".repeat(50);
+    const parts = summariseMarkdownParts(long, 60);
+    const visible = parts
+      .map((p) => (p.kind === "ref" ? p.label : p.text))
+      .join("");
+    expect([...visible].length).toBeLessThanOrEqual(60);
+  });
+
+  it("falls back to plain text, not a broken chip, when the cut lands inside a reference", () => {
+    const parts = summariseMarkdownParts(
+      '[PCA by treatment](evidence/pca.v2.pdf "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2")',
+      6,
+    );
+    expect(parts.some((p) => p.kind === "ref")).toBe(false);
+    expect(parts.every((p) => p.kind === "text")).toBe(true);
+  });
+
+  it("never throws on unbalanced or odd input", () => {
+    for (const value of [
+      "*",
+      "**",
+      "[",
+      "](",
+      "[](",
+      "![",
+      "```",
+      "<",
+      "<!--",
+      "|",
+      "\\",
+      "\uD800",
+      '[x](y "art:',
+    ]) {
+      expect(() => summariseMarkdownParts(value)).not.toThrow();
     }
   });
 });
