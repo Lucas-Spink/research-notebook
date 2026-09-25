@@ -19,6 +19,7 @@ function mount(
   file: ArtefactsFileModel,
   artefactId: string,
   api = fakePanelApi(),
+  version?: number | null,
 ) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
@@ -33,6 +34,7 @@ function mount(
         experimentFolder="EXP-001"
         file={file}
         artefactId={artefactId}
+        {...(version === undefined ? {} : { version })}
       />,
     ),
   );
@@ -82,6 +84,32 @@ function sample(): ArtefactsFileModel {
       },
     ],
     groups: [{ id: GROUP_ID, name: "Figures", items: [COPY_ID], groups: [] }],
+  };
+}
+
+/** `sample()`'s copy-mode artefact with a second version, for tests that
+ * tell the pinned version apart from the latest (FR-EDT-06). */
+function twoVersions(): ArtefactsFileModel {
+  const file = sample();
+  return {
+    ...file,
+    artefacts: file.artefacts.map((artefact) =>
+      artefact.id === COPY_ID && artefact.mode === "copy"
+        ? {
+            ...artefact,
+            versions: [
+              ...artefact.versions,
+              {
+                v: 2,
+                file: "evidence/volcano-v2.dat",
+                sha256: "c".repeat(64),
+                size: 150,
+                captured: "2026-09-02T09:00:00Z",
+              },
+            ],
+          }
+        : artefact,
+    ),
   };
 }
 
@@ -206,5 +234,30 @@ describe("PreviewPanel", () => {
     const { container } = mount(sample(), "01JB0000000000000000000099");
     await act(() => Promise.resolve());
     expect(container.querySelector(".panel")).toBeNull();
+  });
+
+  it("shows an explicit version's file, not the latest, and marks it Pinned (FR-EDT-06)", async () => {
+    const file = twoVersions();
+    const { container } = mount(file, COPY_ID, fakePanelApi(), 1);
+    await act(() => Promise.resolve());
+    expect(container.textContent).toContain("volcano.dat");
+    expect(container.textContent).not.toContain("volcano-v2.dat");
+    const items = [...container.querySelectorAll('[aria-label="Versions"] li')];
+    expect(
+      items.find((li) => li.textContent?.includes("v1"))?.textContent,
+    ).toContain("Pinned");
+    expect(
+      items.find((li) => li.textContent?.includes("v2"))?.textContent,
+    ).not.toContain("Pinned");
+  });
+
+  it("shows the latest version, unmarked, when no version is given", async () => {
+    const file = twoVersions();
+    const { container } = mount(file, COPY_ID);
+    await act(() => Promise.resolve());
+    expect(container.textContent).toContain("volcano-v2.dat");
+    for (const li of container.querySelectorAll('[aria-label="Versions"] li')) {
+      expect(li.textContent).not.toContain("Pinned");
+    }
   });
 });
