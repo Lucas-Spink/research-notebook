@@ -36,6 +36,71 @@ function artefactsFile(): ArtefactsFileModel {
 
 const REFERENCE = `[Stale label](evidence/pca.v1.pdf "art:${ULID} v1")`;
 
+const ULID2 = "01JB0000000000000000000002";
+
+/** Two copy-mode artefacts, each with a newer version than `REFERENCE` and
+ * `TWO_REFERENCES` below are pinned to (FR-EDT-07). */
+function artefactsFileOutdated(): ArtefactsFileModel {
+  return {
+    format_version: 1,
+    artefacts: [
+      {
+        id: ULID,
+        name: "PCA by treatment",
+        role: "result",
+        mode: "copy",
+        type: "pdf",
+        source: { root: "project", path: "scripts/pca.R" },
+        created: "2026-01-01T00:00:00Z",
+        versions: [
+          {
+            v: 1,
+            file: "evidence/pca.v1.pdf",
+            sha256: "a".repeat(64),
+            size: 10,
+            captured: "2026-01-01T00:00:00Z",
+          },
+          {
+            v: 2,
+            file: "evidence/pca.v2.pdf",
+            sha256: "b".repeat(64),
+            size: 20,
+            captured: "2026-01-02T00:00:00Z",
+          },
+        ],
+      },
+      {
+        id: ULID2,
+        name: "Raw counts",
+        role: "result",
+        mode: "copy",
+        type: "table",
+        source: { root: "project", path: "scripts/counts.R" },
+        created: "2026-01-01T00:00:00Z",
+        versions: [
+          {
+            v: 1,
+            file: "evidence/counts.v1.csv",
+            sha256: "c".repeat(64),
+            size: 10,
+            captured: "2026-01-01T00:00:00Z",
+          },
+          {
+            v: 2,
+            file: "evidence/counts.v2.csv",
+            sha256: "d".repeat(64),
+            size: 20,
+            captured: "2026-01-02T00:00:00Z",
+          },
+        ],
+      },
+    ],
+    groups: [],
+  };
+}
+
+const TWO_REFERENCES = `[Stale PCA](evidence/pca.v1.pdf "art:${ULID} v1") and [Stale counts](evidence/counts.v1.csv "art:${ULID2} v1")`;
+
 let container: HTMLDivElement | null = null;
 let root: Root | null = null;
 
@@ -146,6 +211,71 @@ describe("RichSectionEditor — live", () => {
     });
     expect(onActivateReference).toHaveBeenCalledWith(ULID, 1);
   });
+
+  it("updates a single outdated reference to its artefact's latest version and autosaves the result (FR-EDT-07)", async () => {
+    const onChange = vi.fn();
+    const view = mount({
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFileOutdated(),
+      field: field({ onChange }),
+    });
+    await act(() => Promise.resolve());
+    expect(view.textContent).toContain("Newer version available");
+    const updateButton = view.querySelector(".expanded__artefact-ref-update");
+    expect(updateButton?.textContent).toBe("Update");
+    act(() => {
+      updateButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      `[PCA by treatment](evidence/pca.v2.pdf "art:${ULID} v2")`,
+    );
+    // The NodeView's own portal settles on the next tick, same as on mount.
+    await act(() => Promise.resolve());
+    expect(view.querySelector(".expanded__artefact-ref-newer")).toBeNull();
+  });
+
+  it("shows an 'Update all in section' button when any reference is outdated, and updates every outdated reference in one action (FR-EDT-07)", async () => {
+    const onChange = vi.fn();
+    const view = mount({
+      initialMarkdown: TWO_REFERENCES,
+      artefacts: artefactsFileOutdated(),
+      field: field({ onChange }),
+    });
+    await act(() => Promise.resolve());
+    const updateAll = view.querySelector(".expanded__update-all");
+    expect(updateAll?.textContent).toBe("Update all in section");
+    act(() => {
+      updateAll?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const savedText = onChange.mock.calls.at(-1)?.[0] as string;
+    expect(savedText).toContain(`art:${ULID} v2`);
+    expect(savedText).toContain(`art:${ULID2} v2`);
+    expect(view.querySelector(".expanded__update-all")).toBeNull();
+    // The NodeViews' own portals settle on the next tick, same as on mount.
+    await act(() => Promise.resolve());
+    expect(view.querySelector(".expanded__artefact-ref-newer")).toBeNull();
+  });
+
+  it("shows no 'Update all in section' button when nothing is outdated", async () => {
+    const view = mount({
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFile(),
+    });
+    await act(() => Promise.resolve());
+    expect(view.querySelector(".expanded__update-all")).toBeNull();
+  });
+
+  it("offers no Update controls when disabled (read-only), though the mark still shows (FR-EDT-07)", async () => {
+    const view = mount({
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFileOutdated(),
+      disabled: true,
+    });
+    await act(() => Promise.resolve());
+    expect(view.textContent).toContain("Newer version available");
+    expect(view.querySelector(".expanded__artefact-ref-update")).toBeNull();
+    expect(view.querySelector(".expanded__update-all")).toBeNull();
+  });
 });
 
 describe("RichSectionEditor — static", () => {
@@ -217,5 +347,15 @@ describe("RichSectionEditor — static", () => {
     });
     expect(onActivateReference).toHaveBeenCalledWith(ULID, 1);
     expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it("marks an outdated reference but offers no Update control, since a static section cannot be changed (FR-EDT-07)", () => {
+    const view = mount({
+      live: false,
+      initialMarkdown: REFERENCE,
+      artefacts: artefactsFileOutdated(),
+    });
+    expect(view.textContent).toContain("Newer version available");
+    expect(view.querySelector(".expanded__artefact-ref-update")).toBeNull();
   });
 });

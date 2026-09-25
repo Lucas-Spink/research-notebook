@@ -84,6 +84,12 @@ function renderNode(node: JSONContent, ctx: Context) {
               ? undefined
               : () => ctx.onActivateReference(ulid, version)
           }
+          // A static section is not the live editor, so its content cannot
+          // change here (FR-EDT-03): the "newer version" mark still shows
+          // (ArtefactRefChip computes it from `resolved`), but the Update
+          // control only appears once this section is activated into the
+          // live editor (ArtefactRefChipExtension.tsx).
+          onUpdate={undefined}
         />
       );
     }

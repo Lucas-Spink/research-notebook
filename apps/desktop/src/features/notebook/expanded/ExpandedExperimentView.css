@@ -81,6 +81,43 @@
   font-size: 0.85em;
 }
 
+.expanded__artefact-ref-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* A reference pinned to an older version than its artefact now has
+ * (FR-EDT-07). Shown next to the chip in both the live and static
+ * sections; the Update control inside is only present in the live editor. */
+.expanded__artefact-ref-newer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+.expanded__artefact-ref-update {
+  font: inherit;
+  font-style: normal;
+  padding: 0 0.375rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.expanded__update-all {
+  display: block;
+  margin: 0.375rem 0 0;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
 .expanded__status {
   font-weight: 600;
 }

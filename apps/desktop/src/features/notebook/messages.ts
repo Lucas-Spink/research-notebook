@@ -83,7 +83,18 @@ export const expandedMessages = {
   /** The dialog a reference chip opens (FR-EDT-06). */
   referencePreviewHeading: "Reference preview",
   closePreview: "Close",
+  /** Shown next to a reference whose artefact has a newer version (FR-EDT-07). */
+  newerVersionBadge: "Newer version available",
+  /** The one-reference update control, next to the badge. */
+  updateReference: "Update",
+  /** The section-wide update control, offered under the live editor. */
+  updateAllInSection: "Update all in section",
 } as const;
+
+/** aria-label for a chip's "Update" button (FR-EDT-07). */
+export function updateReferenceLabel(label: string, version: number): string {
+  return `Update ${label} to ${artefactVersionLabel(version)}`;
+}
 
 /** Label for the button that makes a static section the live editor (FR-EDT-03: only one editor is live at a time). */
 export function editLabel(label: string): string {

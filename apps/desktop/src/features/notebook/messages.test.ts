@@ -8,6 +8,7 @@ import {
   outcomeMessage,
   problemMessage,
   refusalMessage,
+  updateReferenceLabel,
 } from "./messages";
 import type { Performed } from "./model/perform";
 import { sampleNotebook } from "./model/fakeApi";
@@ -129,5 +130,11 @@ describe("messages", () => {
 
   it("labels a version as vN", () => {
     expect(artefactVersionLabel(2)).toBe("v2");
+  });
+
+  it("names the reference and the version an Update control moves it to (FR-EDT-07)", () => {
+    expect(updateReferenceLabel("PCA by treatment", 2)).toBe(
+      "Update PCA by treatment to v2",
+    );
   });
 });
