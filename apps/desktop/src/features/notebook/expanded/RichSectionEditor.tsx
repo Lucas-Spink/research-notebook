@@ -9,6 +9,7 @@ import { autosaveStatusText, editLabel, expandedMessages } from "../messages";
 import { liveEditorExtensions } from "./liveEditorExtensions";
 import { searchArtefacts } from "./model/artefactSearch";
 import {
+  rewriteReferences,
   sectionHasNewerVersions,
   updateAllReferences,
 } from "./model/sectionReferences";
@@ -143,7 +144,18 @@ function LiveEditor({
     editable: !disabled,
     editorProps: { attributes: { id, "aria-label": label } },
     onUpdate: ({ editor: current }) => {
-      field.onChange(serialiseSectionMarkdown(current.getJSON()));
+      const file = artefactsRef.current;
+      const json = current.getJSON();
+      // FR-EDT-09: every save carries current metadata, automatically — not
+      // a user action, unlike FR-EDT-07's version update. A pure transform
+      // of the JSON about to be serialised, not a transaction on the
+      // editor's own document (contrast `updateAllReferences`), so the
+      // editor's undo history is unaffected.
+      field.onChange(
+        serialiseSectionMarkdown(
+          file === null ? json : rewriteReferences(json, file),
+        ),
+      );
     },
     onBlur: () => {
       field.onBlur();
