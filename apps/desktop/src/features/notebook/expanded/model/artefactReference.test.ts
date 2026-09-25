@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ArtefactsFileModel } from "@research-notebook/format";
 import {
+  parseSectionMarkdown,
+  serialiseSectionMarkdown,
+} from "@research-notebook/format";
+import {
   newerVersionUpdate,
   readReferenceAttrs,
   resolveReference,
@@ -176,5 +180,23 @@ describe("newerVersionUpdate", () => {
       target: "evidence/pca.v2.pdf",
       label: "PCA by treatment",
     });
+  });
+});
+
+describe("a detached reference is preserved on save (FR-EDT-08)", () => {
+  it("round-trips a section's Markdown unchanged through parse and serialise when its reference resolves as detached", () => {
+    const text =
+      'A note about [Removed artefact](evidence/gone.v1.pdf "art:01JB0000000000000000000099 v1").';
+    const doc = parseSectionMarkdown(text);
+    const node = doc.content?.[0]?.content?.find(
+      (n) => n.type === "artefactRef",
+    );
+    expect(node).toBeDefined();
+    const resolved = resolveReference(
+      sample(),
+      readReferenceAttrs(node?.attrs),
+    );
+    expect(resolved.status).toBe("detached");
+    expect(serialiseSectionMarkdown(doc)).toBe(text);
   });
 });

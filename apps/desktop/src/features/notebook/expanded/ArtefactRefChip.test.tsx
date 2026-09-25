@@ -121,10 +121,20 @@ describe("ArtefactRefChip", () => {
     expect(view.querySelector('[role="button"]')).toBeNull();
   });
 
-  it("shows the last known label plainly, not interactively, when detached", () => {
+  it("shows the last known label, not interactively, marked as detached (FR-EDT-08)", () => {
     const view = mount({ status: "detached", label: "Removed artefact" });
-    expect(view.textContent).toBe("Removed artefact");
+    expect(view.textContent).toContain("Removed artefact");
+    expect(view.textContent).toContain("Artefact removed");
     expect(view.querySelector('[role="button"]')).toBeNull();
+    expect(
+      view.querySelector(".expanded__artefact-ref--detached"),
+    ).not.toBeNull();
+  });
+
+  it("does not mark a pending reference as detached", () => {
+    const view = mount({ status: "pending", label: "Old name" });
+    expect(view.textContent).toBe("Old name");
+    expect(view.querySelector(".expanded__artefact-ref--detached")).toBeNull();
   });
 
   it("shows the artefact's current display name when resolved", () => {
