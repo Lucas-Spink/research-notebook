@@ -60,6 +60,7 @@ function render(
         writable={overrides.writable ?? true}
         folder={1}
         projectId={state.project.id}
+        focusSection={null}
       />,
     ),
   );
