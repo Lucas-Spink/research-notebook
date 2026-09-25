@@ -2,6 +2,7 @@ import type {
   ArrangedExperiment,
   ArrangedQuestion,
 } from "@research-notebook/format";
+import type { FolderHandle } from "../../ipc/bindings";
 import { ExpandedExperimentView } from "./expanded/ExpandedExperimentView";
 import { ExperimentItem, type QuestionChoice } from "./ExperimentItem";
 import { tableMessages } from "./messages";
@@ -26,6 +27,8 @@ type Props = {
    * interrupt someone typing (autosave runs quietly, ADR-0028).
    */
   writable: boolean;
+  /** The open project, so the expanded view can read an experiment's artefacts.yaml (FR-EDT-04). */
+  folder: FolderHandle;
 };
 
 /**
@@ -40,6 +43,7 @@ export function DetailsPanel({
   actions,
   disabled,
   writable,
+  folder,
 }: Props) {
   return (
     <section className="notebook__details" aria-labelledby="notebook-details">
@@ -61,6 +65,7 @@ export function DetailsPanel({
           <ExpandedExperimentView
             item={selected.item}
             disabled={!writable}
+            folder={folder}
             onSaveSection={(key, text) =>
               actions.editExperimentSection(
                 selected.item.experiment.file.frontmatter.id,

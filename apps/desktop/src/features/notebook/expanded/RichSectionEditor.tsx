@@ -1,11 +1,13 @@
+import type { ArtefactsFileModel } from "@research-notebook/format";
 import {
   parseSectionMarkdown,
   serialiseSectionMarkdown,
 } from "@research-notebook/format";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useEffect, useId, useMemo } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef } from "react";
 import { autosaveStatusText, editLabel } from "../messages";
 import { liveEditorExtensions } from "./liveEditorExtensions";
+import { searchArtefacts } from "./model/artefactSearch";
 import type { AutosaveField } from "./model/useAutosave";
 import { StaticSectionContent } from "./StaticSectionContent";
 
@@ -20,6 +22,8 @@ type Props = {
   /** Whether this is the one section editor currently live (FR-EDT-03, S4-G08). */
   live: boolean;
   onActivate: () => void;
+  /** The experiment's artefacts, for the @ autocomplete (FR-EDT-04); `null` while unavailable. */
+  artefacts: ArtefactsFileModel | null;
 };
 
 /**
@@ -37,6 +41,7 @@ export function RichSectionEditor({
   disabled,
   live,
   onActivate,
+  artefacts,
 }: Props) {
   const id = useId();
   return (
@@ -58,6 +63,7 @@ export function RichSectionEditor({
           initialMarkdown={initialMarkdown}
           field={field}
           disabled={disabled}
+          artefacts={artefacts}
         />
       ) : (
         <StaticSection
@@ -78,14 +84,28 @@ function LiveEditor({
   initialMarkdown,
   field,
   disabled,
+  artefacts,
 }: {
   id: string;
   label: string;
   initialMarkdown: string;
   field: AutosaveField;
   disabled: boolean;
+  artefacts: ArtefactsFileModel | null;
 }) {
-  const extensions = useMemo(() => liveEditorExtensions(), []);
+  // A stable function, read at call time: the suggestion plugin is built
+  // once per editor instance (below), but the experiment's artefacts can
+  // arrive or change after that — this ref is how `search` sees the
+  // current ones without the editor's extensions (and so the editor
+  // itself) being recreated every time they do.
+  const artefactsRef = useRef(artefacts);
+  artefactsRef.current = artefacts;
+  const search = useCallback((query: string) => {
+    const file = artefactsRef.current;
+    return file === null ? [] : searchArtefacts(file, query);
+  }, []);
+
+  const extensions = useMemo(() => liveEditorExtensions(search), [search]);
   const editor = useEditor({
     extensions,
     content: parseSectionMarkdown(initialMarkdown),

@@ -1,6 +1,8 @@
 import type { NotebookError, Problem } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
 import {
+  artefactTypeLabel,
+  artefactVersionLabel,
   editLabel,
   loadFailureMessage,
   outcomeMessage,
@@ -111,5 +113,21 @@ describe("messages", () => {
   it("names the section a static editor's activation control will open", () => {
     expect(editLabel("Methods")).toBe("Edit Methods");
     expect(editLabel("Results notes")).toBe("Edit Results notes");
+  });
+
+  it("labels every artefact type for the @ autocomplete (FR-EDT-04)", () => {
+    expect(artefactTypeLabel("image")).toBe("Image");
+    expect(artefactTypeLabel("pdf")).toBe("PDF");
+    expect(artefactTypeLabel("svg")).toBe("SVG");
+    expect(artefactTypeLabel("table")).toBe("Table");
+    expect(artefactTypeLabel("script")).toBe("Script");
+    expect(artefactTypeLabel("notebook")).toBe("Notebook");
+    expect(artefactTypeLabel("text")).toBe("Text");
+    expect(artefactTypeLabel("html")).toBe("HTML");
+    expect(artefactTypeLabel("other")).toBe("Other");
+  });
+
+  it("labels a version as vN", () => {
+    expect(artefactVersionLabel(2)).toBe("v2");
   });
 });

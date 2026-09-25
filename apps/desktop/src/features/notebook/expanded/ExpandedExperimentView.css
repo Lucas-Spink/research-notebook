@@ -55,6 +55,11 @@
   font-family: monospace;
 }
 
+/* Plain fallback for a reference node (FR-EDT-04/05); chip styling is S4-T03. */
+.expanded__artefact-ref {
+  border-bottom: 1px dotted currentColor;
+}
+
 .expanded__status {
   font-weight: 600;
 }

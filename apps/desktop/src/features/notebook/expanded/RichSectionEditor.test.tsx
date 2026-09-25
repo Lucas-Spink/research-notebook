@@ -42,6 +42,7 @@ function mount(
         disabled={false}
         live={true}
         onActivate={() => undefined}
+        artefacts={null}
         {...props}
       />,
     ),

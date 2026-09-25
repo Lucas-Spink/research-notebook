@@ -4,7 +4,10 @@ import type {
   RecognisedSectionKey,
 } from "@research-notebook/format";
 import { useState } from "react";
+import type { FolderHandle } from "../../../ipc/bindings";
+import { commands } from "../../../ipc/bindings";
 import { columnLabel, expandedMessages, messages } from "../messages";
+import { useExperimentArtefacts } from "./model/useExperimentArtefacts";
 import type { AutosaveOutcome } from "./model/autosave";
 import { useAutosave, type AutosaveField } from "./model/useAutosave";
 import { RichSectionEditor } from "./RichSectionEditor";
@@ -13,6 +16,8 @@ import "./ExpandedExperimentView.css";
 type Props = {
   item: ArrangedExperiment;
   disabled: boolean;
+  /** The open project, so the @ autocomplete can read this experiment's artefacts.yaml (FR-EDT-04). */
+  folder: FolderHandle;
   /** Autosaves one section's text (FR-EDT-03). Resolves whether it was saved. */
   onSaveSection: (
     key: RecognisedSectionKey,
@@ -61,10 +66,12 @@ const DEFAULT_LIVE_SECTION: RecognisedSectionKey = "methods";
 export function ExpandedExperimentView({
   item,
   disabled,
+  folder,
   onSaveSection,
 }: Props) {
   const { experiment, readOnly } = item;
   const experimentId = experiment.file.frontmatter.id;
+  const artefacts = useExperimentArtefacts(commands, folder, experiment.folder);
 
   // Resetting to the default live section when a different experiment is
   // selected, without an effect (React's documented pattern for state that
@@ -98,6 +105,7 @@ export function ExpandedExperimentView({
     disabled,
     live: live === key,
     onActivate: () => setLive(key),
+    artefacts,
   });
 
   return (

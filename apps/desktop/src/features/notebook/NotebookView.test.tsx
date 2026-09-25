@@ -46,7 +46,11 @@ function model(
 function render(notebook: NotebookModel, viewportHeight = 720): HTMLElement {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
-    <NotebookView notebook={notebook} viewportHeight={viewportHeight} />,
+    <NotebookView
+      notebook={notebook}
+      folder={1}
+      viewportHeight={viewportHeight}
+    />,
   );
   return container;
 }

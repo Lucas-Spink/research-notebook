@@ -1,5 +1,8 @@
 import type { JSONContent } from "@research-notebook/format";
-import { PASSTHROUGH_NODE_NAME } from "@research-notebook/format";
+import {
+  ARTEFACT_REF_NODE_NAME,
+  PASSTHROUGH_NODE_NAME,
+} from "@research-notebook/format";
 import { Fragment } from "react";
 import { expandedMessages } from "../messages";
 
@@ -41,6 +44,14 @@ function renderNode(node: JSONContent) {
         <pre>
           <code>{renderNodes(node.content)}</code>
         </pre>
+      );
+    case ARTEFACT_REF_NODE_NAME:
+      // Plain fallback (FR-EDT-04/05 only); chip styling and hover/focus
+      // detail are S4-T03 (FR-EDT-06).
+      return (
+        <span className="expanded__artefact-ref">
+          {typeof node.attrs?.label === "string" ? node.attrs.label : ""}
+        </span>
       );
     case PASSTHROUGH_NODE_NAME:
       return (
