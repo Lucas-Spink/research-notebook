@@ -46,6 +46,7 @@ function mount() {
         disabled={false}
         folder={1}
         projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+        focusSection={null}
         onSaveSection={() => Promise.resolve({ ok: true })}
       />,
     ),
@@ -110,6 +111,7 @@ describe("editor-instances (S4-G08)", () => {
           disabled={false}
           folder={1}
           projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+          focusSection={null}
           onSaveSection={() => Promise.resolve({ ok: true })}
         />,
       ),

@@ -31,6 +31,8 @@ type Props = {
   artefacts: ArtefactsFileModel | null;
   /** Opens a reference's pinned version's preview (FR-EDT-06). */
   onActivateReference: (ulid: string, version: number | null) => void;
+  /** The section's own container, so opening it from a search result can scroll to it (FR-SRC-02). */
+  containerRef?: (element: HTMLDivElement | null) => void;
 };
 
 /**
@@ -50,10 +52,11 @@ export function RichSectionEditor({
   onActivate,
   artefacts,
   onActivateReference,
+  containerRef,
 }: Props) {
   const id = useId();
   return (
-    <div className="expanded__field">
+    <div className="expanded__field" ref={containerRef}>
       <div className="expanded__field-head">
         <label htmlFor={id}>{label}</label>
         <span

@@ -1,7 +1,7 @@
 import type { ArrangedExperiment } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { sampleNotebook } from "../model/fakeApi";
 import { ExpandedExperimentView } from "./ExpandedExperimentView";
 
@@ -42,6 +42,7 @@ function mount(
         disabled={false}
         folder={1}
         projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+        focusSection={null}
         onSaveSection={() => Promise.resolve({ ok: true })}
         {...props}
       />,
@@ -147,6 +148,24 @@ describe("ExpandedExperimentView", () => {
     const view = mount();
     for (const status of view.querySelectorAll('[role="status"]')) {
       expect(status.textContent).toBe("Saved");
+    }
+  });
+
+  it("opens with the requested section live and scrolls to it, when opened from search (FR-SRC-02)", () => {
+    const scrollIntoView = vi.fn();
+    HTMLDivElement.prototype.scrollIntoView = scrollIntoView;
+    try {
+      const view = mount({ focusSection: "interpretation" });
+      const interpretation = [
+        ...view.querySelectorAll(".expanded__field"),
+      ].find(
+        (field) =>
+          field.querySelector("label")?.textContent === "Interpretation",
+      );
+      expect(interpretation?.querySelector(".ProseMirror")).not.toBeNull();
+      expect(scrollIntoView).toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(HTMLDivElement.prototype, "scrollIntoView");
     }
   });
 });

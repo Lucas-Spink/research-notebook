@@ -1,10 +1,15 @@
-import type { ColumnKey, Problem } from "@research-notebook/format";
+import type {
+  ColumnKey,
+  Problem,
+  RecognisedSectionKey,
+} from "@research-notebook/format";
 import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { QuestionChoice } from "./ExperimentItem";
 import { messages, problemMessage } from "./messages";
 import { NewTitleForm } from "./NewTitleForm";
+import { SearchPanel } from "./search/SearchPanel";
 import { columnLayout } from "./table/model/columns";
 import {
   UNASSIGNED_KEY,
@@ -61,6 +66,20 @@ export function NotebookView({
   const [filter, setFilter] = useState<FilterState>(NO_FILTER);
   const [sort, setSort] = useState<SortState>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  /** Which section to focus, set only when the selection came from a search result (FR-SRC-02). */
+  const [focusSection, setFocusSection] = useState<RecognisedSectionKey | null>(
+    null,
+  );
+
+  function select(key: string) {
+    setSelectedKey(key);
+    setFocusSection(null);
+  }
+
+  function openSearchResult(key: string, section: RecognisedSectionKey | null) {
+    setSelectedKey(key);
+    setFocusSection(section);
+  }
 
   const layout = useMemo(
     () => (table === null ? [] : columnLayout(table)),
@@ -142,6 +161,11 @@ export function NotebookView({
       </div>
       {arranged !== null && (
         <>
+          <SearchPanel
+            arranged={arranged}
+            folder={folder}
+            onOpenResult={openSearchResult}
+          />
           <TableToolbar
             filter={filter}
             onFilter={setFilter}
@@ -181,8 +205,8 @@ export function NotebookView({
               selectedKey={selectedKey}
               sharedRefs={shared}
               folder={folder}
-              onSelectExperiment={(row) => setSelectedKey(row.key)}
-              onSelectQuestion={(row) => setSelectedKey(row.key)}
+              onSelectExperiment={(row) => select(row.key)}
+              onSelectQuestion={(row) => select(row.key)}
               onToggle={toggle}
               onResize={resize}
               {...(viewportHeight === undefined ? {} : { viewportHeight })}
@@ -197,6 +221,7 @@ export function NotebookView({
             writable={writable}
             folder={folder}
             projectId={projectId}
+            focusSection={focusSection}
           />
           <NewTitleForm
             label={messages.newQuestionLabel}

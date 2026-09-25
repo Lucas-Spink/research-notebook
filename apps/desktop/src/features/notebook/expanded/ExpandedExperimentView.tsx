@@ -3,7 +3,7 @@ import type {
   LoadedExperiment,
   RecognisedSectionKey,
 } from "@research-notebook/format";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { commands } from "../../../ipc/bindings";
 import { columnLabel, expandedMessages, messages } from "../messages";
@@ -21,6 +21,8 @@ type Props = {
   folder: FolderHandle;
   /** `project.yaml`'s own id, for the reference preview's external root lookups (FR-PRJ-07); `null` before the project has loaded. */
   projectId: string | null;
+  /** Opens straight to this section and scrolls it into view, when the experiment was opened from a search result (FR-SRC-02); `null` for the ordinary default. */
+  focusSection: RecognisedSectionKey | null;
   /** Autosaves one section's text (FR-EDT-03). Resolves whether it was saved. */
   onSaveSection: (
     key: RecognisedSectionKey,
@@ -74,25 +76,49 @@ export function ExpandedExperimentView({
   disabled,
   folder,
   projectId,
+  focusSection,
   onSaveSection,
 }: Props) {
   const { experiment, readOnly } = item;
   const experimentId = experiment.file.frontmatter.id;
   const artefacts = useExperimentArtefacts(commands, folder, experiment.folder);
 
-  // Resetting to the default live section when a different experiment is
-  // selected, without an effect (React's documented pattern for state that
-  // must reset when a prop changes): https://react.dev/learn/you-might-not-need-an-effect
+  // Resetting to the default (or requested) live section when a different
+  // experiment is selected, or a new search result is opened, without an
+  // effect (React's documented pattern for state that must reset when a
+  // prop changes): https://react.dev/learn/you-might-not-need-an-effect
   const [trackedExperimentId, setTrackedExperimentId] = useState(experimentId);
-  const [live, setLive] = useState<RecognisedSectionKey>(DEFAULT_LIVE_SECTION);
+  const [trackedFocusSection, setTrackedFocusSection] = useState(focusSection);
+  const [live, setLive] = useState<RecognisedSectionKey>(
+    focusSection ?? DEFAULT_LIVE_SECTION,
+  );
   const [openReference, setOpenReference] = useState<OpenReference | null>(
     null,
   );
-  if (trackedExperimentId !== experimentId) {
+  if (
+    trackedExperimentId !== experimentId ||
+    trackedFocusSection !== focusSection
+  ) {
     setTrackedExperimentId(experimentId);
-    setLive(DEFAULT_LIVE_SECTION);
+    setTrackedFocusSection(focusSection);
+    setLive(focusSection ?? DEFAULT_LIVE_SECTION);
     setOpenReference(null);
   }
+
+  // Scrolls to the requested section once it is the live one (FR-SRC-02);
+  // re-runs only when a new search result is actually opened, not on every
+  // render, since `trackedFocusSection` only changes then.
+  const sectionElements = useRef<
+    Partial<Record<RecognisedSectionKey, HTMLDivElement | null>>
+  >({});
+  useEffect(() => {
+    if (trackedFocusSection === null) return;
+    // Optional call, not just optional access: jsdom (the test environment)
+    // does not implement scrollIntoView at all.
+    sectionElements.current[trackedFocusSection]?.scrollIntoView?.({
+      block: "center",
+    });
+  }, [trackedExperimentId, trackedFocusSection]);
 
   const methods = useSectionField(experiment, "methods", onSaveSection);
   const resultsNotes = useSectionField(
@@ -119,6 +145,9 @@ export function ExpandedExperimentView({
     artefacts,
     onActivateReference: (ulid: string, version: number | null) =>
       setOpenReference({ ulid, version }),
+    containerRef: (element: HTMLDivElement | null) => {
+      sectionElements.current[key] = element;
+    },
   });
 
   return (
