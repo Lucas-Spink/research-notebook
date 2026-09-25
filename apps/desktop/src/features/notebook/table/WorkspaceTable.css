@@ -97,6 +97,29 @@
   overflow-wrap: anywhere;
 }
 
+/* An artefact reference inside a summary cell (FR-EDT-06): a small, static
+ * chip, never focusable or clickable — the table holds no live editor and
+ * shows a read-only overview (FR-TBL-05). */
+.wtable__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.35rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.wtable__chip--detached {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.wtable__chip-badge {
+  font-style: italic;
+}
+
 .wtable__question {
   display: flex;
   align-items: center;

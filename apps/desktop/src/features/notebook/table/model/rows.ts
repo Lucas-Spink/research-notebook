@@ -1,12 +1,14 @@
 import {
   refNumber,
   summariseMarkdown,
+  summariseMarkdownParts,
   type Arranged,
   type ArrangedExperiment,
   type ArrangedQuestion,
   type ExperimentStatus,
   type ExperimentFile,
   type LoadedExperiment,
+  type SummaryPart,
 } from "@research-notebook/format";
 
 /** The collapse key of the Unassigned group, which has no ID to store in project.yaml. */
@@ -20,12 +22,14 @@ export type SortState = {
 } | null;
 export type FilterState = { text: string; status: ExperimentStatus | "all" };
 
-/** Plain, bounded summaries of an experiment's sections, one per cell (FR-TBL-05). */
+/** Bounded summaries of an experiment's sections, one per cell (FR-TBL-05).
+ * Each is a sequence of parts rather than a plain string, so an artefact
+ * reference (FR-EDT-06) can be shown as a chip instead of flattened text. */
 export type Summaries = {
-  methods: string;
-  results_notes: string;
-  interpretation: string;
-  literature: string;
+  methods: readonly SummaryPart[];
+  results_notes: readonly SummaryPart[];
+  interpretation: readonly SummaryPart[];
+  literature: readonly SummaryPart[];
 };
 
 /** A question's full-width header row (FR-TBL-02), or the Unassigned one. */
@@ -81,10 +85,10 @@ function summariesOf(file: ExperimentFile): Summaries {
   const cached = summaryCache.get(file);
   if (cached !== undefined) return cached;
   const made: Summaries = {
-    methods: summariseMarkdown(section(file, "methods")),
-    results_notes: summariseMarkdown(section(file, "results_notes")),
-    interpretation: summariseMarkdown(section(file, "interpretation")),
-    literature: summariseMarkdown(file.body.literature ?? ""),
+    methods: summariseMarkdownParts(section(file, "methods")),
+    results_notes: summariseMarkdownParts(section(file, "results_notes")),
+    interpretation: summariseMarkdownParts(section(file, "interpretation")),
+    literature: summariseMarkdownParts(file.body.literature ?? ""),
   };
   summaryCache.set(file, made);
   return made;

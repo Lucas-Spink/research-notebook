@@ -180,6 +180,12 @@ describe("buildRows: grouping and order", () => {
 describe("buildRows: cell summaries (FR-TBL-05)", () => {
   const { state } = sampleNotebook();
 
+  /** Flattens a summary's parts back to plain text, for assertions that do
+   * not care whether a bit of it is a reference chip. */
+  const flat = (
+    parts: readonly { kind: string; text?: string; label?: string }[],
+  ) => parts.map((p) => (p.kind === "ref" ? p.label : p.text)).join("");
+
   it("summarises each section as plain text", () => {
     const s = edited(
       edited(
@@ -194,11 +200,34 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
       withSection("interpretation", "- PC1 separates\n- by [treatment](t.png)"),
     );
     const first = experiments(rowsOf(s))[0];
-    expect(first?.summaries.methods).toBe(
+    expect(flat(first?.summaries.methods ?? [])).toBe(
       "PCA on variance-stabilised counts [@z:u:7XK2PQ9M].",
     );
-    expect(first?.summaries.interpretation).toBe("PC1 separates by treatment");
-    expect(first?.summaries.results_notes).toBe("");
+    expect(flat(first?.summaries.interpretation ?? [])).toBe(
+      "PC1 separates by treatment",
+    );
+    expect(first?.summaries.results_notes).toEqual([]);
+  });
+
+  it("keeps an artefact reference as a ref part, not flattened text", () => {
+    const s = edited(
+      state,
+      "EXP-001",
+      withSection(
+        "methods",
+        'See [PCA by treatment](evidence/pca.v2.pdf "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2").',
+      ),
+    );
+    expect(experiments(rowsOf(s))[0]?.summaries.methods).toEqual([
+      { kind: "text", text: "See " },
+      {
+        kind: "ref",
+        label: "PCA by treatment",
+        ulid: "01JAXR5D8K2M4N6P8Q0R2S4T6V",
+        version: 2,
+      },
+      { kind: "text", text: "." },
+    ]);
   });
 
   it("summarises the literature block without its heading marker", () => {
@@ -212,7 +241,7 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
         },
       },
     }));
-    expect(experiments(rowsOf(s))[0]?.summaries.literature).toBe(
+    expect(flat(experiments(rowsOf(s))[0]?.summaries.literature ?? [])).toBe(
       "Literature Love et al. (2014).",
     );
   });
@@ -223,7 +252,7 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
       "EXP-001",
       withSection("methods", "word ".repeat(10_000)),
     );
-    const summary = experiments(rowsOf(s))[0]?.summaries.methods ?? "";
+    const summary = flat(experiments(rowsOf(s))[0]?.summaries.methods ?? []);
     expect([...summary].length).toBeLessThanOrEqual(240);
     expect(summary.endsWith("…")).toBe(true);
   });

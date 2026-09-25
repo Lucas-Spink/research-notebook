@@ -180,6 +180,7 @@ export function NotebookView({
               layout={layout}
               selectedKey={selectedKey}
               sharedRefs={shared}
+              folder={folder}
               onSelectExperiment={(row) => setSelectedKey(row.key)}
               onSelectQuestion={(row) => setSelectedKey(row.key)}
               onToggle={toggle}

@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef, useState } from "react";
+import type { FolderHandle } from "../../../ipc/bindings";
 import { columnLabel, resizeLabel, tableMessages } from "../messages";
 import {
   EXPERIMENT_COLUMN_WIDTH,
@@ -65,6 +66,8 @@ type Props = {
   selectedKey: string | null;
   /** Refs that more than one file holds, to flag where they are shown. */
   sharedRefs: ReadonlySet<string>;
+  /** The open project, so a cell's reference chips can read each experiment's artefacts.yaml (FR-EDT-06). */
+  folder: FolderHandle;
   onSelectExperiment: (row: ExperimentRow) => void;
   onSelectQuestion: (row: HeaderRow) => void;
   onToggle: (row: HeaderRow) => void;
@@ -90,6 +93,7 @@ export function WorkspaceTable({
   layout,
   selectedKey,
   sharedRefs,
+  folder,
   onSelectExperiment,
   onSelectQuestion,
   onToggle,
@@ -238,6 +242,7 @@ export function WorkspaceTable({
                 sharesRef={sharedRefs.has(
                   row.item.experiment.file.frontmatter.ref,
                 )}
+                folder={folder}
                 onSelect={onSelectExperiment}
               />
             );

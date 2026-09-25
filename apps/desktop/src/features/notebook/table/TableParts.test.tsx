@@ -1,10 +1,14 @@
+import type {
+  ArtefactsFileModel,
+  SummaryPart,
+} from "@research-notebook/format";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { sampleNotebook } from "../model/fakeApi";
 import { ColumnsMenu } from "./ColumnsMenu";
 import { columnLayout } from "./model/columns";
 import type { HeaderRow } from "./model/rows";
-import { EmptyRowView, QuestionHeaderRowView } from "./TableRows";
+import { EmptyRowView, QuestionHeaderRowView, SummaryCell } from "./TableRows";
 
 function html(node: React.ReactElement): HTMLElement {
   const container = document.createElement("div");
@@ -158,5 +162,126 @@ describe("ColumnsMenu", () => {
       (b) => b.textContent,
     );
     expect(buttons).toEqual(["Reset columns"]);
+  });
+});
+
+/** FR-TBL-05, FR-EDT-06: a cell's summary shows an artefact reference as a
+ * static chip, resolved against the experiment's artefacts.yaml, with no
+ * editor instance and nothing to click. */
+describe("SummaryCell", () => {
+  const text = (value: string): SummaryPart => ({ kind: "text", text: value });
+  const ref = (
+    label: string,
+    ulid: string | null = "01JB0000000000000000000001",
+    version: number | null = 2,
+  ): SummaryPart => ({ kind: "ref", label, ulid, version });
+
+  const artefacts: ArtefactsFileModel = {
+    format_version: 1,
+    groups: [],
+    artefacts: [
+      {
+        id: "01JB0000000000000000000001",
+        name: "PCA by treatment (current)",
+        role: "result",
+        mode: "copy",
+        type: "pdf",
+        source: { root: "project", path: "scripts/pca.R" },
+        created: "2026-01-01T00:00:00Z",
+        versions: [
+          {
+            v: 1,
+            file: "evidence/pca.v1.pdf",
+            sha256: "a".repeat(64),
+            size: 10,
+            captured: "2026-01-01T00:00:00Z",
+          },
+          {
+            v: 2,
+            file: "evidence/pca.v2.pdf",
+            sha256: "b".repeat(64),
+            size: 20,
+            captured: "2026-01-02T00:00:00Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  function cell(
+    parts: readonly SummaryPart[],
+    file: ArtefactsFileModel | null,
+  ) {
+    return html(<SummaryCell parts={parts} artefacts={file} />);
+  }
+
+  it("shows an em dash for an empty summary", () => {
+    const view = cell([], artefacts);
+    expect(view.querySelector(".wtable__empty")).not.toBeNull();
+  });
+
+  it("shows a pending reference's last known label plainly, before artefacts.yaml has loaded", () => {
+    const view = cell([text("See "), ref("Loading name"), text(".")], null);
+    const chip = view.querySelector(".wtable__chip");
+    expect(chip?.textContent).toBe("Loading name");
+  });
+
+  it("shows a resolved reference's current name, not its stored label", () => {
+    const view = cell([ref("Old label")], artefacts);
+    const chip = view.querySelector(".wtable__chip");
+    expect(chip?.textContent).toBe("PCA by treatment (current)");
+  });
+
+  it("marks a reference pinned to an older version as having a newer one", () => {
+    const view = cell(
+      [ref("PCA by treatment", "01JB0000000000000000000001", 1)],
+      artefacts,
+    );
+    expect(view.querySelector(".wtable__chip")?.textContent).toContain(
+      "Newer version available",
+    );
+  });
+
+  it("does not mark a reference already at the latest version", () => {
+    const view = cell(
+      [ref("PCA by treatment", "01JB0000000000000000000001", 2)],
+      artefacts,
+    );
+    expect(view.querySelector(".wtable__chip")?.textContent).not.toContain(
+      "Newer version available",
+    );
+  });
+
+  it("marks a reference to an artefact no longer in artefacts.yaml as detached", () => {
+    const view = cell(
+      [ref("Removed artefact", "01JB0000000000000000000099")],
+      artefacts,
+    );
+    const chip = view.querySelector(".wtable__chip--detached");
+    expect(chip?.textContent).toContain("Removed artefact");
+    expect(chip?.textContent).toContain("Artefact removed");
+  });
+
+  it("marks a reference whose title held no valid ULID as detached too", () => {
+    const view = cell([ref("Odd", null, null)], artefacts);
+    expect(view.querySelector(".wtable__chip--detached")).not.toBeNull();
+  });
+
+  it("never makes a chip focusable or clickable: the table holds no live editor", () => {
+    const view = cell([ref("PCA by treatment")], artefacts);
+    const chip = view.querySelector(".wtable__chip");
+    expect(chip?.getAttribute("role")).toBeNull();
+    expect(chip?.getAttribute("tabindex")).toBeNull();
+    expect(chip?.tagName).not.toBe("BUTTON");
+  });
+
+  it("mixes plain text and chips in one cell, in order", () => {
+    const view = cell(
+      [text("See "), ref("PCA by treatment"), text(" for detail.")],
+      artefacts,
+    );
+    expect(view.querySelector(".wtable__clamp")?.textContent).toBe(
+      "See PCA by treatment (current) for detail.",
+    );
   });
 });

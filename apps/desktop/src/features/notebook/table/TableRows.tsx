@@ -1,9 +1,21 @@
-import type { ColumnKey } from "@research-notebook/format";
-import type { CSSProperties, ReactNode } from "react";
+import type {
+  ArtefactsFileModel,
+  ColumnKey,
+  SummaryPart,
+} from "@research-notebook/format";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
+import type { FolderHandle } from "../../../ipc/bindings";
+import { commands } from "../../../ipc/bindings";
+import {
+  newerVersionUpdate,
+  resolveReference,
+} from "../expanded/model/artefactReference";
+import { useExperimentArtefacts } from "../expanded/model/useExperimentArtefacts";
 import {
   collapseLabel,
   countLabel,
   expandLabel,
+  expandedMessages,
   messages,
   selectLabel,
   statusLabel,
@@ -14,9 +26,61 @@ import type { ExperimentRow, HeaderRow } from "./model/rows";
 /** Where a virtual row sits: taken out of the flow so only the rows in view exist. */
 export type RowPlace = { style: CSSProperties; index: number };
 
-/** A cell's text, clamped to a few lines by the style sheet, with the full text as its tooltip. */
-function Clamped({ text }: { text: string }) {
-  if (text === "") {
+/** An artefact reference inside a summary cell (FR-EDT-06), resolved against
+ * the experiment's artefacts.yaml so its label, "detached" and "newer
+ * version" state are current. Deliberately not focusable or clickable: the
+ * table holds no live editor and this is a read-only overview (FR-TBL-05),
+ * unlike the equivalent chip in the expanded view. */
+function ReferenceChip({
+  part,
+  artefacts,
+}: {
+  part: Extract<SummaryPart, { kind: "ref" }>;
+  artefacts: ArtefactsFileModel | null;
+}) {
+  const resolved = resolveReference(artefacts, {
+    ulid: part.ulid,
+    version: part.version,
+    label: part.label,
+  });
+  if (resolved.status === "detached") {
+    return (
+      <span className="wtable__chip wtable__chip--detached">
+        {resolved.label}
+        <span className="wtable__chip-badge">
+          {expandedMessages.detachedBadge}
+        </span>
+      </span>
+    );
+  }
+  const newer =
+    resolved.status === "resolved" && newerVersionUpdate(resolved) !== null;
+  return (
+    <span className="wtable__chip">
+      {resolved.label}
+      {newer && (
+        <span className="wtable__chip-badge">
+          {expandedMessages.newerVersionBadge}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** A cell's summary, clamped to a few lines by the style sheet. An artefact
+ * reference shows as a chip (FR-EDT-06); the tooltip falls back to its
+ * label, since a native `title` attribute cannot hold markup. */
+export function SummaryCell({
+  parts,
+  artefacts,
+}: {
+  parts: readonly SummaryPart[];
+  artefacts: ArtefactsFileModel | null;
+}) {
+  const flat = parts
+    .map((part) => (part.kind === "ref" ? part.label : part.text))
+    .join("");
+  if (flat === "") {
     return (
       <span className="wtable__empty">
         <span aria-hidden="true">—</span>
@@ -25,23 +89,47 @@ function Clamped({ text }: { text: string }) {
     );
   }
   return (
-    <div className="wtable__clamp" title={text}>
-      {text}
+    <div className="wtable__clamp" title={flat}>
+      {parts.map((part, index) =>
+        part.kind === "ref" ? (
+          <ReferenceChip key={index} part={part} artefacts={artefacts} />
+        ) : (
+          <Fragment key={index}>{part.text}</Fragment>
+        ),
+      )}
     </div>
   );
 }
 
 /** What a cell of `column` shows for one experiment. Read-only: the table holds no editors (FR-TBL-05). */
-function cellFor(column: ColumnKey, row: ExperimentRow): ReactNode {
+function cellFor(
+  column: ColumnKey,
+  row: ExperimentRow,
+  artefacts: ArtefactsFileModel | null,
+): ReactNode {
   switch (column) {
     case "methods":
-      return <Clamped text={row.summaries.methods} />;
+      return (
+        <SummaryCell parts={row.summaries.methods} artefacts={artefacts} />
+      );
     case "results_notes":
-      return <Clamped text={row.summaries.results_notes} />;
+      return (
+        <SummaryCell
+          parts={row.summaries.results_notes}
+          artefacts={artefacts}
+        />
+      );
     case "interpretation":
-      return <Clamped text={row.summaries.interpretation} />;
+      return (
+        <SummaryCell
+          parts={row.summaries.interpretation}
+          artefacts={artefacts}
+        />
+      );
     case "literature":
-      return <Clamped text={row.summaries.literature} />;
+      return (
+        <SummaryCell parts={row.summaries.literature} artefacts={artefacts} />
+      );
     case "results":
       return <span className="wtable__muted">{tableMessages.resultsNone}</span>;
     case "motivation":
@@ -57,6 +145,9 @@ type ExperimentProps = {
   experimentWidth: number;
   selected: boolean;
   sharesRef: boolean;
+  /** The open project, so a reference chip can read this experiment's
+   * artefacts.yaml (FR-EDT-06), the same as the expanded view. */
+  folder: FolderHandle;
   onSelect: (row: ExperimentRow) => void;
 };
 
@@ -68,8 +159,14 @@ export function ExperimentRowView({
   experimentWidth,
   selected,
   sharesRef,
+  folder,
   onSelect,
 }: ExperimentProps) {
+  const artefacts = useExperimentArtefacts(
+    commands,
+    folder,
+    row.item.experiment.folder,
+  );
   const front = row.item.experiment.file.frontmatter;
   const dates = [
     front.started === undefined
@@ -127,7 +224,7 @@ export function ExperimentRowView({
           className="wtable__cell"
           style={{ width: column.width }}
         >
-          {cellFor(column.key, row)}
+          {cellFor(column.key, row, artefacts)}
         </div>
       ))}
     </div>
