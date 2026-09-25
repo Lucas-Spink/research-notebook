@@ -7,6 +7,7 @@ import {
 import { Editor } from "@tiptap/react";
 import { describe, expect, it } from "vitest";
 import {
+  rewriteReferences,
   sectionHasNewerVersions,
   updateAllReferences,
 } from "./sectionReferences";
@@ -110,8 +111,8 @@ describe("updateAllReferences", () => {
       `[PCA by treatment](evidence/pca.v2.pdf "art:${ULID} v2")`,
     );
     // Already pinned to the latest version: untouched, including its
-    // hand-typed label (relabelling everything on save is FR-EDT-09, a
-    // later task).
+    // hand-typed label (relabelling everything on save is `rewriteReferences`,
+    // below, run separately and unconditionally on every save — FR-EDT-09).
     expect(text).toContain(
       `[Current counts](evidence/counts.v2.csv "art:${ULID2} v2")`,
     );
@@ -122,5 +123,72 @@ describe("updateAllReferences", () => {
     const before = serialiseSectionMarkdown(editor.getJSON());
     updateAllReferences(editor, artefacts());
     expect(serialiseSectionMarkdown(editor.getJSON())).toBe(before);
+  });
+});
+
+const LINK_ULID = "01JB0000000000000000000003";
+const DETACHED_ULID = "01JB0000000000000000000099";
+
+/** Adds a link-mode artefact to `artefacts()`, for `rewriteReferences`'s
+ * label-only reach into link mode (S4-T02's own scope limit on a link-mode
+ * target still applies here). */
+function artefactsWithLink(): ArtefactsFileModel {
+  const file = artefacts();
+  return {
+    ...file,
+    artefacts: [
+      ...file.artefacts,
+      {
+        id: LINK_ULID,
+        name: "Raw counts",
+        role: "result",
+        mode: "link",
+        type: "table",
+        source: { root: "project", path: "data/counts.h5" },
+        created: "2026-01-01T00:00:00Z",
+        link: {
+          sha256: "e".repeat(64),
+          size: 100,
+          observed_mtime: "2026-01-01T00:00:00Z",
+          checked: "2026-01-01T00:00:00Z",
+        },
+      },
+    ],
+  };
+}
+
+describe("rewriteReferences (FR-EDT-09)", () => {
+  it("rewrites a copy-mode reference's label and target to its artefact's current name and pinned version's file, leaving the ULID and version unchanged", () => {
+    const doc = parseSectionMarkdown(
+      `[Old name](evidence/old-path.pdf "art:${ULID} v1")`,
+    );
+    const rewritten = rewriteReferences(doc, artefacts());
+    expect(serialiseSectionMarkdown(rewritten)).toBe(
+      `[PCA by treatment](evidence/pca.v1.pdf "art:${ULID} v1")`,
+    );
+  });
+
+  it("rewrites a link-mode reference's label only, leaving its target as previously written", () => {
+    const doc = parseSectionMarkdown(
+      `[Old name](../../../data/counts.h5 "art:${LINK_ULID}")`,
+    );
+    const rewritten = rewriteReferences(doc, artefactsWithLink());
+    expect(serialiseSectionMarkdown(rewritten)).toBe(
+      `[Raw counts](../../../data/counts.h5 "art:${LINK_ULID}")`,
+    );
+  });
+
+  it("leaves a detached reference untouched (FR-EDT-08)", () => {
+    const text = `[Removed artefact](evidence/gone.v1.pdf "art:${DETACHED_ULID} v1")`;
+    const doc = parseSectionMarkdown(text);
+    const rewritten = rewriteReferences(doc, artefacts());
+    expect(serialiseSectionMarkdown(rewritten)).toBe(text);
+  });
+
+  it("leaves an already-current reference unchanged", () => {
+    const text = `[PCA by treatment](evidence/pca.v1.pdf "art:${ULID} v1")`;
+    const doc = parseSectionMarkdown(text);
+    const rewritten = rewriteReferences(doc, artefacts());
+    expect(serialiseSectionMarkdown(rewritten)).toBe(text);
   });
 });
