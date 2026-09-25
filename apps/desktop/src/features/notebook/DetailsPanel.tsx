@@ -29,6 +29,8 @@ type Props = {
   writable: boolean;
   /** The open project, so the expanded view can read an experiment's artefacts.yaml (FR-EDT-04). */
   folder: FolderHandle;
+  /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
+  projectId: string | null;
 };
 
 /**
@@ -44,6 +46,7 @@ export function DetailsPanel({
   disabled,
   writable,
   folder,
+  projectId,
 }: Props) {
   return (
     <section className="notebook__details" aria-labelledby="notebook-details">
@@ -66,6 +69,7 @@ export function DetailsPanel({
             item={selected.item}
             disabled={!writable}
             folder={folder}
+            projectId={projectId}
             onSaveSection={(key, text) =>
               actions.editExperimentSection(
                 selected.item.experiment.file.frontmatter.id,

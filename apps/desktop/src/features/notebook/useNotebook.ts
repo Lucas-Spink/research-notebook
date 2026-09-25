@@ -346,6 +346,8 @@ export function useNotebook({ folder, writable, changes }: Options) {
     notice,
     failure: view.status === "failed" ? loadFailureMessage(view.reason) : null,
     actions,
+    /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
+    projectId: state?.project.id ?? null,
   };
 }
 

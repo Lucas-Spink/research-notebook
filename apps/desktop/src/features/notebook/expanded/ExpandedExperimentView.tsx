@@ -10,6 +10,7 @@ import { columnLabel, expandedMessages, messages } from "../messages";
 import { useExperimentArtefacts } from "./model/useExperimentArtefacts";
 import type { AutosaveOutcome } from "./model/autosave";
 import { useAutosave, type AutosaveField } from "./model/useAutosave";
+import { ReferencePreviewOverlay } from "./ReferencePreviewOverlay";
 import { RichSectionEditor } from "./RichSectionEditor";
 import "./ExpandedExperimentView.css";
 
@@ -18,12 +19,17 @@ type Props = {
   disabled: boolean;
   /** The open project, so the @ autocomplete can read this experiment's artefacts.yaml (FR-EDT-04). */
   folder: FolderHandle;
+  /** `project.yaml`'s own id, for the reference preview's external root lookups (FR-PRJ-07); `null` before the project has loaded. */
+  projectId: string | null;
   /** Autosaves one section's text (FR-EDT-03). Resolves whether it was saved. */
   onSaveSection: (
     key: RecognisedSectionKey,
     text: string,
   ) => Promise<AutosaveOutcome>;
 };
+
+/** A reference chip's activation (FR-EDT-06), waiting to open its preview. */
+type OpenReference = { ulid: string; version: number | null };
 
 function sectionText(
   experiment: LoadedExperiment,
@@ -67,6 +73,7 @@ export function ExpandedExperimentView({
   item,
   disabled,
   folder,
+  projectId,
   onSaveSection,
 }: Props) {
   const { experiment, readOnly } = item;
@@ -78,9 +85,13 @@ export function ExpandedExperimentView({
   // must reset when a prop changes): https://react.dev/learn/you-might-not-need-an-effect
   const [trackedExperimentId, setTrackedExperimentId] = useState(experimentId);
   const [live, setLive] = useState<RecognisedSectionKey>(DEFAULT_LIVE_SECTION);
+  const [openReference, setOpenReference] = useState<OpenReference | null>(
+    null,
+  );
   if (trackedExperimentId !== experimentId) {
     setTrackedExperimentId(experimentId);
     setLive(DEFAULT_LIVE_SECTION);
+    setOpenReference(null);
   }
 
   const methods = useSectionField(experiment, "methods", onSaveSection);
@@ -106,6 +117,8 @@ export function ExpandedExperimentView({
     live: live === key,
     onActivate: () => setLive(key),
     artefacts,
+    onActivateReference: (ulid: string, version: number | null) =>
+      setOpenReference({ ulid, version }),
   });
 
   return (
@@ -118,6 +131,18 @@ export function ExpandedExperimentView({
           {...sectionProps("interpretation", interpretation)}
         />
       </div>
+      {openReference !== null && artefacts !== null && projectId !== null && (
+        <ReferencePreviewOverlay
+          api={commands}
+          folder={folder}
+          projectId={projectId}
+          experimentFolder={experiment.folder}
+          file={artefacts}
+          artefactId={openReference.ulid}
+          version={openReference.version}
+          onClose={() => setOpenReference(null)}
+        />
+      )}
     </div>
   );
 }
