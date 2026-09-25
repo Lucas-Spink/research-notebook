@@ -3,11 +3,15 @@ import {
   parseSectionMarkdown,
   serialiseSectionMarkdown,
 } from "@research-notebook/format";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
-import { autosaveStatusText, editLabel } from "../messages";
+import { autosaveStatusText, editLabel, expandedMessages } from "../messages";
 import { liveEditorExtensions } from "./liveEditorExtensions";
 import { searchArtefacts } from "./model/artefactSearch";
+import {
+  sectionHasNewerVersions,
+  updateAllReferences,
+} from "./model/sectionReferences";
 import type { AutosaveField } from "./model/useAutosave";
 import { StaticSectionContent } from "./StaticSectionContent";
 
@@ -110,6 +114,8 @@ function LiveEditor({
   artefactsRef.current = artefacts;
   const onActivateReferenceRef = useRef(onActivateReference);
   onActivateReferenceRef.current = onActivateReference;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
   const search = useCallback((query: string) => {
     const file = artefactsRef.current;
     return file === null ? [] : searchArtefacts(file, query);
@@ -120,10 +126,16 @@ function LiveEditor({
       onActivateReferenceRef.current(ulid, version),
     [],
   );
+  const canUpdate = useCallback(() => !disabledRef.current, []);
 
   const extensions = useMemo(
-    () => liveEditorExtensions(search, { resolve, onActivate: activate }),
-    [search, resolve, activate],
+    () =>
+      liveEditorExtensions(search, {
+        resolve,
+        onActivate: activate,
+        canUpdate,
+      }),
+    [search, resolve, activate, canUpdate],
   );
   const editor = useEditor({
     extensions,
@@ -142,7 +154,31 @@ function LiveEditor({
     editor.setEditable(!disabled);
   }, [editor, disabled]);
 
-  return <EditorContent editor={editor} className="expanded__editor" />;
+  // Re-evaluated on every transaction (a reference's own Update, typing, an
+  // undo) via `useEditorState`'s subscription, and on every render this
+  // component gets for another reason (for example `artefacts` arriving or
+  // changing later), since the selector closes over the current `artefacts`
+  // prop directly (FR-EDT-07).
+  const hasOutdatedReferences = useEditorState({
+    editor,
+    selector: ({ editor: current }) =>
+      sectionHasNewerVersions(current, artefacts),
+  });
+
+  return (
+    <>
+      <EditorContent editor={editor} className="expanded__editor" />
+      {!disabled && hasOutdatedReferences && artefacts !== null && (
+        <button
+          type="button"
+          className="expanded__update-all"
+          onClick={() => updateAllReferences(editor, artefacts)}
+        >
+          {expandedMessages.updateAllInSection}
+        </button>
+      )}
+    </>
+  );
 }
 
 function StaticSection({
