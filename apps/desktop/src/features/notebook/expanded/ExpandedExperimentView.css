@@ -55,9 +55,30 @@
   font-family: monospace;
 }
 
-/* Plain fallback for a reference node (FR-EDT-04/05); chip styling is S4-T03. */
+/* Plain fallback for a pending or detached reference (FR-EDT-04/05, FR-EDT-08). */
 .expanded__artefact-ref {
   border-bottom: 1px dotted currentColor;
+}
+
+/* A resolved reference (FR-EDT-06): interactive, with its filename and
+ * pinned version shown on hover or focus. */
+.expanded__artefact-ref--chip {
+  position: relative;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+
+.expanded__artefact-ref-detail {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  z-index: 10;
+  white-space: nowrap;
+  background: canvas;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.85em;
 }
 
 .expanded__status {
