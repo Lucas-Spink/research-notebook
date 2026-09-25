@@ -1,0 +1,40 @@
+.notebook__search {
+  margin: 0.5rem 0;
+}
+
+.notebook__search-panel {
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+.notebook__search-results {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notebook__search-group {
+  margin: 0.5rem 0 0.25rem;
+  font-weight: 600;
+}
+
+.notebook__search-hit {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notebook__search-hit-field {
+  flex: 0 0 auto;
+  font-weight: 600;
+  font-size: 0.85em;
+}

@@ -9,6 +9,7 @@ import { assertNever } from "../../shared/assertNever";
 import type { AutosaveStatus } from "./expanded/model/autosave";
 import type { LoadFailure } from "./model/load";
 import type { Performed } from "./model/perform";
+import type { SearchHit } from "./search/model/searchIndex";
 
 /** User-facing text for the notebook feature, in British English (AGENTS.md section 5). */
 export const messages = {
@@ -101,6 +102,52 @@ export function updateReferenceLabel(label: string, version: number): string {
 /** Label for the button that makes a static section the live editor (FR-EDT-03: only one editor is live at a time). */
 export function editLabel(label: string): string {
   return `Edit ${label}`;
+}
+
+/** Text of project search (FR-SRC-01, FR-SRC-02). */
+export const searchMessages = {
+  toggle: "Search",
+  heading: "Search",
+  queryLabel: "Search this project",
+  queryPlaceholder: "Title, section text, artefact name or filename",
+  empty: "No matches.",
+  titleField: "Title",
+  motivationField: "Motivation",
+  artefactNameField: "Artefact name",
+  artefactFilenameField: "Filename",
+} as const;
+
+/** Which field a search hit came from, as a short label next to its snippet. */
+export function searchHitFieldLabel(hit: SearchHit): string {
+  switch (hit.kind) {
+    case "title":
+      return searchMessages.titleField;
+    case "motivation":
+      return searchMessages.motivationField;
+    case "section":
+      return columnLabel(hit.section);
+    case "artefactName":
+      return searchMessages.artefactNameField;
+    case "artefactFilename":
+      return searchMessages.artefactFilenameField;
+    default:
+      return assertNever(hit);
+  }
+}
+
+/** The matched text or snippet a search hit shows. */
+export function searchHitText(hit: SearchHit): string {
+  switch (hit.kind) {
+    case "title":
+    case "artefactName":
+    case "artefactFilename":
+      return hit.text;
+    case "motivation":
+    case "section":
+      return hit.snippet;
+    default:
+      return assertNever(hit);
+  }
 }
 
 /** Text of the @ autocomplete (FR-EDT-04). */
