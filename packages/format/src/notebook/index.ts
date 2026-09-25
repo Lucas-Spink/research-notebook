@@ -49,6 +49,12 @@ export {
   ungroupedArtefacts,
 } from "./groups";
 export { editExperimentSection } from "./sections";
+export {
+  buildReferenceIndex,
+  referencedIn,
+  type ReferenceIndex,
+  type ReferenceLocation,
+} from "./references";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
 export type {

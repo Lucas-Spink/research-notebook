@@ -1,8 +1,17 @@
-import type { ARTEFACT_TYPES } from "@research-notebook/format";
+import type {
+  ARTEFACT_TYPES,
+  RecognisedSectionKey,
+} from "@research-notebook/format";
 import type { Availability, OpenFailure } from "../../ipc/bindings";
 import { formatSize } from "../preview";
 
 type ArtefactType = (typeof ARTEFACT_TYPES)[number];
+
+const sectionLabels: Record<RecognisedSectionKey, string> = {
+  methods: "Methods",
+  results_notes: "Results notes",
+  interpretation: "Interpretation",
+};
 
 /** User-facing text for the preview panel, in British English (AGENTS.md
  * section 5). */
@@ -22,6 +31,12 @@ export const panelMessages = {
   } satisfies Record<ArtefactType, string>,
   groupLocations: "In",
   ungroupedNote: "Not in any group.",
+  referencedIn: {
+    heading: "Referenced in",
+    none: "Not referenced anywhere.",
+    location: (ref: string, title: string, section: RecognisedSectionKey) =>
+      `${ref} ${title} / ${sectionLabels[section]}`,
+  },
   versions: {
     heading: "Versions",
     captured: (v: number, when: string) => `v${v}, captured ${when}`,

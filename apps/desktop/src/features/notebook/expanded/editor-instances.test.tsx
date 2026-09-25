@@ -1,9 +1,14 @@
-import type { ArrangedExperiment } from "@research-notebook/format";
+import type {
+  ArrangedExperiment,
+  ReferenceIndex,
+} from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { sampleNotebook } from "../model/fakeApi";
 import { ExpandedExperimentView } from "./ExpandedExperimentView";
+
+const NO_REFERENCES: ReferenceIndex = new Map();
 
 /**
  * S4-G08: "At most one editor instance mounted at any time." FR-EDT-03
@@ -46,6 +51,7 @@ function mount() {
         disabled={false}
         folder={1}
         projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+        references={NO_REFERENCES}
         focusSection={null}
         onSaveSection={() => Promise.resolve({ ok: true })}
       />,
@@ -111,6 +117,7 @@ describe("editor-instances (S4-G08)", () => {
           disabled={false}
           folder={1}
           projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+          references={NO_REFERENCES}
           focusSection={null}
           onSaveSection={() => Promise.resolve({ ok: true })}
         />,

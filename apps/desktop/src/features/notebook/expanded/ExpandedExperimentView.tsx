@@ -2,6 +2,7 @@ import type {
   ArrangedExperiment,
   LoadedExperiment,
   RecognisedSectionKey,
+  ReferenceIndex,
 } from "@research-notebook/format";
 import { useEffect, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
@@ -21,6 +22,9 @@ type Props = {
   folder: FolderHandle;
   /** `project.yaml`'s own id, for the reference preview's external root lookups (FR-PRJ-07); `null` before the project has loaded. */
   projectId: string | null;
+  /** Every experiment and section that references an artefact, across the
+   * whole project (FR-SRC-03), for the reference preview's "Referenced in" list. */
+  references: ReferenceIndex;
   /** Opens straight to this section and scrolls it into view, when the experiment was opened from a search result (FR-SRC-02); `null` for the ordinary default. */
   focusSection: RecognisedSectionKey | null;
   /** Autosaves one section's text (FR-EDT-03). Resolves whether it was saved. */
@@ -76,6 +80,7 @@ export function ExpandedExperimentView({
   disabled,
   folder,
   projectId,
+  references,
   focusSection,
   onSaveSection,
 }: Props) {
@@ -169,6 +174,7 @@ export function ExpandedExperimentView({
           file={artefacts}
           artefactId={openReference.ulid}
           version={openReference.version}
+          references={references}
           onClose={() => setOpenReference(null)}
         />
       )}

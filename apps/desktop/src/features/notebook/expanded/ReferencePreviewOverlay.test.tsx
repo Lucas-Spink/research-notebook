@@ -1,4 +1,7 @@
-import type { ArtefactsFileModel } from "@research-notebook/format";
+import type {
+  ArtefactsFileModel,
+  ReferenceIndex,
+} from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +11,7 @@ import { ReferencePreviewOverlay } from "./ReferencePreviewOverlay";
 const FOLDER = 1;
 const PROJECT_ID = "01JAX9Q2B7N4M8T6V3W5Y1Z0KC";
 const ARTEFACT_ID = "01JB0000000000000000000001";
+const NO_REFERENCES: ReferenceIndex = new Map();
 
 function sample(): ArtefactsFileModel {
   return {
@@ -96,6 +100,7 @@ function mount(version: number | null, onClose = () => undefined) {
         file={sample()}
         artefactId={ARTEFACT_ID}
         version={version}
+        references={NO_REFERENCES}
         onClose={onClose}
       />,
     ),

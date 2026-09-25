@@ -2,14 +2,24 @@ import {
   newProject,
   parseExperiment,
   parseQuestion,
+  type Arranged,
+  type ArrangedExperiment,
   type ExperimentFile,
+  type LoadedExperiment,
   type NotebookEnv,
   type NotebookState,
   type Plan,
   type QuestionFile,
+  type RecognisedSectionKey,
   type Result,
 } from "../src";
 import { PROJECT_ID } from "./samples";
+
+const RECOGNISED_SECTION_KEYS: readonly RecognisedSectionKey[] = [
+  "methods",
+  "results_notes",
+  "interpretation",
+];
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
@@ -95,6 +105,53 @@ export function deepFreeze<T>(value: T): T {
     for (const inner of Object.values(value)) deepFreeze(inner);
   }
   return value;
+}
+
+/** A `LoadedExperiment` fixture with only what `references.ts` and its tests
+ * read: the ref, title and each recognised section's raw Markdown body. Not
+ * schema-valid in every field, the way `search/model/searchFixtures.ts`
+ * (apps/desktop) is not either. */
+export function loadedExperiment(
+  folder: string,
+  ref: string,
+  questionId: string,
+  sections: Partial<Record<RecognisedSectionKey, string>> = {},
+): LoadedExperiment {
+  return {
+    folder,
+    file: {
+      frontmatter: {
+        id: `01JAX${ref.padEnd(21, "0")}`,
+        ref,
+        question: questionId,
+        title: `Experiment ${ref}`,
+        status: "planned",
+        created: "2026-09-21T10:00:00Z",
+        updated: "2026-09-21T10:00:00Z",
+      },
+      body: {
+        preamble: "",
+        sections: RECOGNISED_SECTION_KEYS.map((key) => ({
+          key,
+          body: sections[key] ?? "",
+        })),
+        literature: null,
+      },
+    },
+  };
+}
+
+/** `experiments` as `Arranged`'s `unassigned` list: `references.ts` reads
+ * every experiment the same way whichever question it sits under. */
+export function arrangedFrom(
+  experiments: readonly LoadedExperiment[],
+): Arranged {
+  const unassigned: ArrangedExperiment[] = experiments.map((experiment) => ({
+    experiment,
+    readOnly: false,
+    absentFromOrder: true,
+  }));
+  return { questions: [], unassigned, problems: [] };
 }
 
 /** The item at `index`, or a failure: the tests' stand-in for a non-null assertion. */

@@ -1,9 +1,14 @@
-import type { ArrangedExperiment } from "@research-notebook/format";
+import type {
+  ArrangedExperiment,
+  ReferenceIndex,
+} from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sampleNotebook } from "../model/fakeApi";
 import { ExpandedExperimentView } from "./ExpandedExperimentView";
+
+const NO_REFERENCES: ReferenceIndex = new Map();
 
 const { state } = sampleNotebook();
 const experiment = state.experiments[0];
@@ -42,6 +47,7 @@ function mount(
         disabled={false}
         folder={1}
         projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+        references={NO_REFERENCES}
         focusSection={null}
         onSaveSection={() => Promise.resolve({ ok: true })}
         {...props}

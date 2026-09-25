@@ -1,7 +1,9 @@
-import type {
-  ColumnKey,
-  Problem,
-  RecognisedSectionKey,
+import {
+  buildReferenceIndex,
+  type ColumnKey,
+  type Problem,
+  type RecognisedSectionKey,
+  type ReferenceIndex,
 } from "@research-notebook/format";
 import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
@@ -24,6 +26,7 @@ import type { NotebookModel } from "./useNotebook";
 import "./NotebookPanel.css";
 
 const NO_FILTER: FilterState = { text: "", status: "all" };
+const EMPTY_REFERENCES: ReferenceIndex = new Map();
 
 /** The refs that two or more files of one kind hold, so each can be flagged where it is shown. */
 function sharedRefs(problems: readonly Problem[]): ReadonlySet<string> {
@@ -100,6 +103,11 @@ export function NotebookView({
   );
   const shared = useMemo(
     () => sharedRefs(arranged?.problems ?? []),
+    [arranged],
+  );
+  const references = useMemo(
+    () =>
+      arranged === null ? EMPTY_REFERENCES : buildReferenceIndex(arranged),
     [arranged],
   );
   const questions = useMemo<QuestionChoice[]>(
@@ -221,6 +229,7 @@ export function NotebookView({
             writable={writable}
             folder={folder}
             projectId={projectId}
+            references={references}
             focusSection={focusSection}
           />
           <NewTitleForm

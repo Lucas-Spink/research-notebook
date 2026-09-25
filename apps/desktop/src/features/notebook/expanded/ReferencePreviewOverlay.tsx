@@ -1,4 +1,7 @@
-import type { ArtefactsFileModel } from "@research-notebook/format";
+import type {
+  ArtefactsFileModel,
+  ReferenceIndex,
+} from "@research-notebook/format";
 import { useEffect, useRef } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { PreviewPanel, type PanelApi } from "../../preview-panel";
@@ -14,6 +17,9 @@ type Props = {
   artefactId: string;
   /** The reference's pinned version; `null` for a link-mode artefact. */
   version: number | null;
+  /** Every experiment and section that references an artefact, across the
+   * whole project (FR-SRC-03). */
+  references: ReferenceIndex;
   onClose: () => void;
 };
 
@@ -32,6 +38,7 @@ export function ReferencePreviewOverlay({
   file,
   artefactId,
   version,
+  references,
   onClose,
 }: Props) {
   const box = useRef<HTMLElement>(null);
@@ -62,6 +69,7 @@ export function ReferencePreviewOverlay({
         file={file}
         artefactId={artefactId}
         version={version}
+        references={references}
       />
     </section>
   );
