@@ -18,6 +18,33 @@ const ARTEFACT_REF_SEARCH = /\[[^\]]*\]\([^\s)]+\s+"art:[^"]*"\)/;
 const ARTEFACT_REF_ANCHORED = /^\[([^\]]*)\]\(([^\s)]+)\s+"art:([^"]*)"\)/;
 const VERSIONED_ULID = /^([0-9A-Z]{26})(?: v(\d+))?$/;
 
+/**
+ * Every artefact-reference link in a block of text, not just at its start
+ * (spec 5.6: a Markdown link whose title starts "art:"). Unlike
+ * `ARTEFACT_REF_SEARCH` this also accepts an angle-bracketed target, so it
+ * matches whatever `ARTEFACT_REF_ANCHORED` would once cut to that point.
+ * Used by `notebook/summary.ts`, which reads a section's raw Markdown
+ * directly rather than through the editor's tokenizer.
+ */
+export const ARTEFACT_REF_LINK =
+  /\[([^\]\n]*)\]\((?:<[^>\n]*>|[^\s()\n]+)\s+"art:([^"\n]*)"\)/g;
+
+/**
+ * Parses a reference's title body (the text after `art:`, before the
+ * closing quote): the ULID and, for copy mode, the version as written, or
+ * `null` if the ULID is not valid. Shared with `notebook/summary.ts` so
+ * there is one place that decides what counts as a reference.
+ */
+export function parseArtefactRefTitle(
+  titleBody: string,
+): { ulid: string; version: string | undefined } | null {
+  const parts = VERSIONED_ULID.exec(titleBody);
+  if (!parts) return null;
+  const [, ulid, version] = parts;
+  if (ulid === undefined || !Ulid.safeParse(ulid).success) return null;
+  return { ulid, version };
+}
+
 function expectString(value: unknown, field: string): string {
   if (typeof value !== "string") {
     throw new Error(`expected token.${field} to be a string`);
@@ -68,19 +95,15 @@ export const ArtefactRef = Node.create({
       const match = ARTEFACT_REF_ANCHORED.exec(src);
       if (!match) return undefined;
       const [raw, label, target, titleBody] = match;
-      const parts = VERSIONED_ULID.exec(titleBody ?? "");
-      if (!parts) return undefined;
-      const [, ulid, version] = parts;
-      if (ulid === undefined || !Ulid.safeParse(ulid).success) {
-        return undefined;
-      }
+      const parsed = parseArtefactRefTitle(titleBody ?? "");
+      if (parsed === null) return undefined;
       return {
         type: ARTEFACT_REF_NODE_NAME,
         raw,
         label,
         target,
-        ulid,
-        version,
+        ulid: parsed.ulid,
+        version: parsed.version,
       };
     },
   },

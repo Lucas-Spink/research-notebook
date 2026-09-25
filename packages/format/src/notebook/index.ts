@@ -58,7 +58,11 @@ export type {
   Plan,
   Step,
 } from "./types";
-export { summariseMarkdown } from "./summary";
+export {
+  summariseMarkdown,
+  summariseMarkdownParts,
+  type SummaryPart,
+} from "./summary";
 export {
   changeTableSettings,
   resetTableColumns,

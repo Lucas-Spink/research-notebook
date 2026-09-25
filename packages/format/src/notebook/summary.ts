@@ -6,6 +6,11 @@
  * throws and never takes long.
  */
 
+import {
+  ARTEFACT_REF_LINK,
+  parseArtefactRefTitle,
+} from "../editor/artefactRef";
+
 const DEFAULT_MAX = 240;
 /** Summaries are for cells, not documents: longer requests are cut here. */
 const MAX_LENGTH = 1000;
@@ -92,8 +97,39 @@ function withoutInlineMarkup(line: string): string {
   return out.replace(/~~(?=\S)(.+?)(?<=\S)~~/g, "$1");
 }
 
-/** The prose and code of `text` as pieces, one per line, with markup removed. */
-function pieces(text: string): string[] {
+/** An artefact reference found while tagging a line for `summariseMarkdownParts`. */
+type RefTag = { label: string; ulid: string | null; version: number | null };
+
+/** Marks around a tagged reference's label, private-use codepoints outside
+ * both the surrogate range and `protect`/`restore`'s sentinel range, so
+ * neither step can mistake or disturb them. */
+const REF_MARK_START = "";
+const REF_MARK_END = "";
+
+/** Replaces every artefact-reference link in `line` with its label wrapped
+ * in ref marks, appending each one's ULID and version to `refs` in the same
+ * order they appear. An invalid ULID still tags the link (so its label is
+ * still shown as a chip), with a `null` ULID recorded for it. */
+function markArtefactRefs(line: string, refs: RefTag[]): string {
+  return line.replace(
+    ARTEFACT_REF_LINK,
+    (_all, label: string, titleBody: string) => {
+      const parsed = parseArtefactRefTitle(titleBody);
+      refs.push({
+        label,
+        ulid: parsed?.ulid ?? null,
+        version: parsed?.version === undefined ? null : Number(parsed.version),
+      });
+      return `${REF_MARK_START}${label}${REF_MARK_END}`;
+    },
+  );
+}
+
+/** The prose and code of `text` as pieces, one per line, with markup removed.
+ * With `tagRefs`, an artefact reference's label is wrapped in ref marks
+ * first (`markArtefactRefs`) so `summariseMarkdownParts` can find it again
+ * after the rest of the line is stripped down like any other link. */
+function pieces(text: string, tagRefs = false, refs: RefTag[] = []): string[] {
   const out: string[] = [];
   let fence: string | null = null;
   for (const line of text.split("\n")) {
@@ -109,7 +145,8 @@ function pieces(text: string): string[] {
       !(line.includes("|") && TABLE_SEPARATOR.test(line)) &&
       !REFERENCE_DEFINITION.test(line)
     ) {
-      out.push(withoutInlineMarkup(withoutBlockMarkers(line)));
+      const prepared = tagRefs ? markArtefactRefs(line, refs) : line;
+      out.push(withoutInlineMarkup(withoutBlockMarkers(prepared)));
     }
   }
   return out;
@@ -147,4 +184,75 @@ export function summariseMarkdown(
     );
   const text = pieces(withoutComments(window)).join(" ");
   return cut(restore(text).replace(/\s+/g, " ").trim(), max);
+}
+
+/** One piece of a structured summary (`summariseMarkdownParts`): plain text,
+ * or an artefact reference's label with the ULID and version parsed from
+ * its title, for a caller that wants to show it as a chip rather than as
+ * plain text (FR-TBL-05, FR-EDT-06). `ulid` is `null` for a reference whose
+ * title did not hold a valid ULID; the label is still shown. */
+export type SummaryPart =
+  | { kind: "text"; text: string }
+  | { kind: "ref"; label: string; ulid: string | null; version: number | null };
+
+const MARKED_REF = /([^]*)/g;
+
+function stripStrayMarks(text: string): string {
+  return text.replace(/[]/g, "");
+}
+
+/** Splits `marked` (ref-tagged, joined and cut) back into parts, pairing
+ * each intact ref mark with the next entry of `refs` in order: `cut` only
+ * ever removes a suffix, so the marks that survive are always a prefix of
+ * `refs` in the order `markArtefactRefs` recorded them. A mark truncated by
+ * the cut has no closing mark left to match, so it falls through to plain
+ * text instead of showing a broken chip. */
+function toParts(marked: string, refs: readonly RefTag[]): SummaryPart[] {
+  const parts: SummaryPart[] = [];
+  let last = 0;
+  let refIndex = 0;
+  for (const match of marked.matchAll(MARKED_REF)) {
+    const index = match.index ?? 0;
+    const before = stripStrayMarks(marked.slice(last, index));
+    if (before !== "") parts.push({ kind: "text", text: before });
+    const label = match[1] ?? "";
+    const ref = refs[refIndex];
+    refIndex += 1;
+    if (label !== "") {
+      parts.push({
+        kind: "ref",
+        label,
+        ulid: ref?.ulid ?? null,
+        version: ref?.version ?? null,
+      });
+    }
+    last = index + match[0].length;
+  }
+  const tail = stripStrayMarks(marked.slice(last));
+  if (tail !== "") parts.push({ kind: "text", text: tail });
+  return parts;
+}
+
+/**
+ * `summariseMarkdown`, but with every artefact reference kept as its own
+ * part instead of flattened into the text, so a caller can render it as a
+ * chip (FR-TBL-05). The text parts and the bound on the total length are
+ * otherwise identical; an ordinary link still shows only its label as text.
+ */
+export function summariseMarkdownParts(
+  markdown: string,
+  maxLength: number = DEFAULT_MAX,
+): SummaryPart[] {
+  const max = Math.min(Math.max(Math.trunc(maxLength) || 1, 1), MAX_LENGTH);
+  const window = markdown
+    .slice(0, max * WINDOW_FACTOR)
+    .replace(UNSAFE, REPLACEMENT)
+    .replace(/\r\n?/g, "\n")
+    .replace(/\\([\\`*_{}[\]()#+\-.!|~<>])/g, (_all, char: string) =>
+      protect(char),
+    );
+  const refs: RefTag[] = [];
+  const text = pieces(withoutComments(window), true, refs).join(" ");
+  const flat = restore(text).replace(/\s+/g, " ").trim();
+  return toParts(cut(flat, max), refs);
 }
