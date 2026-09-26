@@ -195,6 +195,7 @@ Entry requirement: Stage 3 gate passed.
 | S4-T08 | Implement search | FTS5 search across sections, titles, display names and filenames; grouped results opening at the location. | 7.9 | No |  |
 | S4-T09 | Implement Referenced in lookup | Artefact panel lists every reference with experiment and section. | FR-SRC-03 | No |  |
 | S4-T10 | Run internal alpha | Maintainer records one real experiment end to end on a copy of a real project and files issues. | 13 | Yes | Manual task for the maintainer. Help by preparing a copy of a real project and a checklist; do not run it on the original. |
+| S4-T11 | Edit in the table | Methods, Results Notes, Interpretation, title and status edit in place in the table; the edited row grows and stays rendered; one live editor across table and expanded view, saving before switching; keyboard grid navigation; section columns fill spare width. | FR-TBL-05, FR-TBL-11, FR-TBL-12, FR-EDT-03 | Yes | Follows ADR-0043, which supersedes ADR-0005. No on-disk format change: reuse the existing save actions. Deliver as separate pull requests: documents, shared live editor, section cells, keyboard grid, title and status, column width. |
 
 ### Stage 4 gate tests
 
@@ -207,9 +208,11 @@ Entry requirement: Stage 3 gate passed.
 | S4-G05 | Autosave crash window | Fault injection | `pnpm test:e2e -- autosave-crash` | Killing the app 2 s after typing loses at most 1.5 s of input; file never partial | Both | Yes |
 | S4-G06 | Search speed and coverage | Performance | `pnpm bench -- search` | Results under 200 ms on large fixture; matches in every section type | Both | Yes |
 | S4-G07 | Referenced in is complete | Property | `pnpm test:property -- reverse-refs` | Lookup equals brute-force scan of all files | Both | Yes |
-| S4-G08 | Single live editor | Unit | `pnpm test:unit -- editor-instances` | At most one editor instance mounted at any time | Both | Yes |
+| S4-G08 | Single live editor | Unit | `pnpm test:unit -- editor-instances` | At most one editor instance mounted at any time across the table and the expanded view | Both | Yes |
 | S4-G09 | Autocomplete accessibility | Accessibility | `pnpm test:a11y` plus NVDA on Windows and VoiceOver on macOS | Combobox announced and operable by keyboard | Both | Partly |
 | S4-G10 | Internal alpha complete | Manual | Maintainer dogfood on a copy of a real project | One real experiment recorded end to end; blocking issues fixed | Both | No |
+| S4-G11 | Inline edit saves | Unit | `pnpm test:unit -- inline-edit` | A section edited in a table cell writes the same file bytes as the same edit in the expanded view; switching cells saves pending text first | Both | Yes |
+| S4-G12 | Scroll with an active editor | Performance | Profile scrolling the 500-experiment table in the webview devtools with one cell being edited, on each platform | No frame longer than 50 ms; the edited row stays rendered and keeps its text | Both | No |
 
 ## Stage 5: Citations and Literature
 

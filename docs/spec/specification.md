@@ -204,10 +204,10 @@ project opens and updated as files change.
 | **Column** | **Source** | **Editable in** |
 |----|----|----|
 | Motivation | Body of questions/\<ref\>.md; shown once per question header row. | Question panel |
-| Methods | \## Methods section of experiment.md, plus method-role artefacts. | Expanded view |
+| Methods | \## Methods section of experiment.md, plus method-role artefacts. | Table cell, expanded view |
 | Results | Result-role artefacts and the group tree in artefacts.yaml, with thumbnails. | Expanded view, Results panel |
-| Results Notes | \## Results notes section. | Expanded view |
-| Interpretation | \## Interpretation section. | Expanded view |
+| Results Notes | \## Results notes section. | Table cell, expanded view |
+| Interpretation | \## Interpretation section. | Table cell, expanded view |
 | Literature | Generated from citations in Methods and Interpretation; written to the literature block. | Read-only |
 
 Row order and question order come from project.yaml. Column widths,
@@ -810,12 +810,14 @@ schema version; any mismatch triggers a full rebuild.
 | FR-TBL-02 | Show a full-width header row per question with title, Motivation summary, experiment count and a collapse control. | Must |
 | FR-TBL-03 | Apply sorting and filtering within each question; headers remain visible and show "n of m" when filtered. | Must |
 | FR-TBL-04 | Resize and hide columns; persist settings in project.yaml. | Must |
-| FR-TBL-05 | Render cells as read-only, line-clamped summaries from Markdown; the table contains no live editor instances. | Must |
+| FR-TBL-05 | Render cells as read-only, line-clamped summaries from Markdown, except the one cell being edited; at most one live rich editor exists in the application at a time (ADR-0043). | Must |
 | FR-TBL-06 | Results cells show group counts, up to four thumbnails and Browse all. | Must |
 | FR-TBL-07 | The expanded experiment view edits all sections, with Results Notes and Interpretation side by side at widths of 1280 px or more. | Must |
 | FR-TBL-08 | Reorder experiments and questions by drag, keyboard or menu. | Should |
 | FR-TBL-09 | Filter by status, text, missing evidence and references with newer versions. | Should |
 | FR-TBL-10 | Virtualise rows so projects with hundreds of experiments scroll smoothly. | Must |
+| FR-TBL-11 | Edit Methods, Results Notes, Interpretation, title and status in place in the table: click, or Enter or F2 on a focused cell, starts editing; Escape saves and returns focus to the cell; the edited row grows to fit its editor. Arrow keys move between cells outside an editor. | Must |
+| FR-TBL-12 | Section columns share spare window width in proportion to their stored widths; stored widths remain the minimum. | Should |
 
 7.4 Evidence capture and linking
 
@@ -862,7 +864,7 @@ schema version; any mismatch triggers a full rebuild.
 |----|----|----|
 | FR-EDT-01 | Support paragraphs, bold, italic, inline code, bulleted and numbered lists, links, headings of levels 3 and 4, block quotes and code blocks. | Must |
 | FR-EDT-02 | Preserve unsupported Markdown, including tables and raw HTML, as read-only passthrough blocks. | Must |
-| FR-EDT-03 | Allow one live editor at a time; autosave one second after the last change and on blur; show Saved, Saving, Unsaved or Error. | Must |
+| FR-EDT-03 | Allow one live editor at a time across the table and the expanded view, saving pending text before another opens; autosave one second after the last change and on blur; show Saved, Saving, Unsaved or Error. | Must |
 | FR-EDT-04 | Typing @ at the start of a line, after whitespace or after an opening bracket opens autocomplete over the experiment's artefacts, searching display name and filename, showing type icon, group path and version, with keyboard navigation and Escape to dismiss. | Must |
 | FR-EDT-05 | Pin inserted references to the artefact's latest version. | Must |
 | FR-EDT-06 | Render references as chips with the current display name; hover or focus shows filename and version; activation opens the pinned version's preview. | Must |
@@ -1200,7 +1202,7 @@ evidence links.
 | ADR-0002 | packages/format is the only parser and serialiser of notebook files. |
 | ADR-0003 | Evidence is captured as immutable versions by default, with linking above a size threshold. |
 | ADR-0004 | Pandoc citation syntax and Markdown links with art: titles are the inline reference formats. |
-| ADR-0005 | TanStack Table replaces AG Grid; cells are read-only and one live editor exists at a time. |
+| ADR-0005 | TanStack Table replaces AG Grid; cells are read-only and one live editor exists at a time. Superseded by ADR-0043: cells are edited in place, still with one live editor at a time. |
 | ADR-0006 | The project is licensed AGPL-3.0-or-later. |
 | ADR-0007 | Typst generates PDF/A exports from JSON data. |
 | ADR-0008 | Stable and development builds use different application identifiers. |
@@ -1210,7 +1212,7 @@ Spec section affected:
    - ADR-0001 → 5, 6.5 (format files, nb-fs)
    - ADR-0002 → 6.3 (component responsibilities)
    - ADR-0004 → 5.6, 5.7 (reference/citation syntax)
-   - ADR-0005 → 7.3 (workspace table)
+   - ADR-0005 → 7.3 (workspace table); superseded by ADR-0043 → 4.3, 7.3, 7.7
    - ADR-0006 → 6.1 (technology stack, licences)
    - ADR-0007 → 7.12 (PDF/A export)
    - ADR-0008 → ADR itself / spec 9.4 area
