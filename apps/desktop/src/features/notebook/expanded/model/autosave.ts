@@ -18,6 +18,8 @@ export type Autosave = {
   change(text: string): void;
   /** Saves at once (e.g. on blur), without waiting for the debounce. Resolves once settled. */
   flush(): Promise<void>;
+  /** Whether everything typed is saved and no save is in flight. */
+  isSettled(): boolean;
   /**
    * Stops the timer. Unsaved text is saved once, best-effort, so switching
    * projects while mid-sentence does not lose it; nothing is reported
@@ -99,6 +101,7 @@ export function createAutosave(initial: string, options: Options): Autosave {
       schedule();
     },
     flush: runAttempt,
+    isSettled: () => !isDirty() && running === null,
     dispose() {
       stopTimer();
       if (isDirty() && running === null) {

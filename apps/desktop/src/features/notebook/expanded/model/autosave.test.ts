@@ -206,4 +206,25 @@ describe("createAutosave", () => {
     await vi.advanceTimersByTimeAsync(DELAY * 2);
     expect(commits).toEqual([]);
   });
+
+  it("is settled only when nothing is unsaved and no save is in flight", async () => {
+    const { autosave, resolve } = setup("");
+    expect(autosave.isSettled()).toBe(true);
+    autosave.change("a");
+    expect(autosave.isSettled()).toBe(false);
+    const flushed = autosave.flush();
+    expect(autosave.isSettled()).toBe(false);
+    await resolve();
+    await flushed;
+    expect(autosave.isSettled()).toBe(true);
+  });
+
+  it("is not settled after a save fails, since the text is still unsaved", async () => {
+    const { autosave, resolve } = setup("");
+    autosave.change("a");
+    const flushed = autosave.flush();
+    await resolve({ ok: false, message: "Disk full" });
+    await flushed;
+    expect(autosave.isSettled()).toBe(false);
+  });
 });
