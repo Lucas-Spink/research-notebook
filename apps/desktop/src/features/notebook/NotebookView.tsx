@@ -20,6 +20,7 @@ import {
   UNASSIGNED_KEY,
   buildRows,
   type FilterState,
+  type ExperimentRow,
   type HeaderRow,
   type SortState,
 } from "./table/model/rows";
@@ -65,7 +66,11 @@ function openedSection(
   section: RecognisedSectionKey | null,
 ): LiveTarget | null {
   return selected?.kind === "experiment"
-    ? { folder: selected.item.experiment.folder, section: section ?? "methods" }
+    ? {
+        folder: selected.item.experiment.folder,
+        section: section ?? "methods",
+        surface: "details",
+      }
     : null;
 }
 
@@ -126,6 +131,22 @@ export function NotebookView({
 
   function select(key: string) {
     openSelection(key, null);
+  }
+
+  // Editing in a cell selects its row only once the cell is live, so a
+  // section whose save failed is never left open where it is not shown.
+  function editInTable(row: ExperimentRow, section: RecognisedSectionKey) {
+    void live
+      .activate({
+        folder: row.item.experiment.folder,
+        section,
+        surface: "table",
+      })
+      .then((opened) => {
+        if (!opened) return;
+        setSelectedKey(row.key);
+        setFocusSection(null);
+      });
   }
 
   const layout = useMemo(
@@ -246,6 +267,13 @@ export function NotebookView({
               onSelectQuestion={(row) => select(row.key)}
               onToggle={toggle}
               onResize={resize}
+              editing={{
+                live,
+                writable,
+                projectId,
+                references,
+                onEdit: editInTable,
+              }}
               {...(viewportHeight === undefined ? {} : { viewportHeight })}
             />
           )}
