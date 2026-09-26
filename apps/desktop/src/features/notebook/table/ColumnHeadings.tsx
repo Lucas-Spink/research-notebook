@@ -5,7 +5,8 @@ import { ResizeHandle } from "./ResizeHandle";
 type Props = {
   height: number;
   experimentWidth: number;
-  columns: readonly { key: ColumnKey; width: number }[];
+  /** Each shown column's drawn width, and the stored width its resize handle reads and changes. */
+  columns: readonly { key: ColumnKey; width: number; stored: number }[];
   /** A column edge is being dragged to `width`, or the drag ended (`null`). */
   onLive: (key: ColumnKey, width: number | null) => void;
   onCommit: (
@@ -47,7 +48,7 @@ export function ColumnHeadings({
           {columnLabel(column.key)}
           <ResizeHandle
             label={resizeLabel(columnLabel(column.key))}
-            width={column.width}
+            width={column.stored}
             onLive={(width) => onLive(column.key, width)}
             onCommit={(width, options) => onCommit(column.key, width, options)}
           />

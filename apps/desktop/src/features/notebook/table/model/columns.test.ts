@@ -11,7 +11,9 @@ import {
   keyboardWidth,
   mergeOverlay,
   motivationColumn,
+  spareShares,
   withOverlay,
+  type ColumnLayout,
 } from "./columns";
 
 /** FR-TBL-04: which columns show, how wide, from project.yaml. */
@@ -164,5 +166,62 @@ describe("keyboardWidth", () => {
     for (const key of ["Tab", "Enter", "a", "ArrowUp", "ArrowDown", "Escape"]) {
       expect(keyboardWidth(300, key, false), key).toBeNull();
     }
+  });
+});
+
+/** FR-TBL-12 (ADR-0043 point 8): section columns share spare window width. */
+describe("spareShares", () => {
+  const col = (key: ColumnLayout["key"], width: number): ColumnLayout => ({
+    key,
+    width,
+    hidden: false,
+  });
+  const shown: ColumnLayout[] = [
+    col("methods", 200),
+    col("results", 100),
+    col("results_notes", 300),
+    col("interpretation", 500),
+    col("literature", 100),
+  ];
+  const total = gridWidth(shown);
+
+  it("gives nothing when the window is no wider than the columns", () => {
+    expect(spareShares(shown, total).size).toBe(0);
+    expect(spareShares(shown, total - 50).size).toBe(0);
+    expect(spareShares(shown, 0).size).toBe(0);
+  });
+
+  it("shares the spare width between the section columns in proportion to their widths", () => {
+    const shares = spareShares(shown, total + 1000);
+    expect(shares.get("methods")).toBe(200);
+    expect(shares.get("results_notes")).toBe(300);
+    expect(shares.get("interpretation")).toBe(500);
+  });
+
+  it("never widens Results or Literature", () => {
+    const shares = spareShares(shown, total + 1000);
+    expect(shares.has("results")).toBe(false);
+    expect(shares.has("literature")).toBe(false);
+  });
+
+  it("hands out every spare pixel, in whole pixels", () => {
+    for (const spare of [1, 7, 333, 1001]) {
+      const shares = [...spareShares(shown, total + spare).values()];
+      expect(shares.every(Number.isInteger)).toBe(true);
+      expect(shares.reduce((sum, n) => sum + n, 0)).toBe(spare);
+    }
+  });
+
+  it("shares only between the section columns that are shown", () => {
+    const withoutNotes = shown.filter((c) => c.key !== "results_notes");
+    const shares = spareShares(withoutNotes, gridWidth(withoutNotes) + 700);
+    expect(shares.get("methods")).toBe(200);
+    expect(shares.get("interpretation")).toBe(500);
+    expect(shares.has("results_notes")).toBe(false);
+  });
+
+  it("gives nothing when no section column is shown", () => {
+    const others = [col("results", 100), col("literature", 100)];
+    expect(spareShares(others, gridWidth(others) + 500).size).toBe(0);
   });
 });

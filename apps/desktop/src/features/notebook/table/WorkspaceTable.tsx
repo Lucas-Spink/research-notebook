@@ -18,6 +18,7 @@ import {
   gridColumns,
   gridWidth,
   motivationColumn,
+  spareShares,
   type ColumnLayout,
 } from "./model/columns";
 import { withPinned } from "./model/pinned";
@@ -27,6 +28,7 @@ import {
   ExperimentRowView,
   QuestionHeaderRowView,
 } from "./TableRows";
+import { useElementWidth } from "./useElementWidth";
 import { useGridFocus } from "./useGridFocus";
 import "./WorkspaceTable.css";
 
@@ -160,7 +162,20 @@ export function WorkspaceTable({
   });
   const visible = table.getVisibleLeafColumns();
   const experimentWidth = visible[0]?.getSize() ?? EXPERIMENT_COLUMN_WIDTH;
-  const cells = gridColumns(shown);
+  // Spare window width goes to the section columns (FR-TBL-12). Shares come
+  // from the saved widths, so they hold still while an edge is dragged and
+  // the dragged edge follows the pointer; the stored width stays what a
+  // resize handle reads and changes.
+  const available = useElementWidth(scrollRef);
+  const shares = useMemo(
+    () => spareShares(gridColumns(layout), available),
+    [layout, available],
+  );
+  const cells = gridColumns(shown).map((column) => ({
+    ...column,
+    stored: column.width,
+    width: column.width + (shares.get(column.key) ?? 0),
+  }));
   const total = gridWidth(cells);
   const motivation = motivationColumn(shown);
 
