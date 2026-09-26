@@ -17,6 +17,7 @@ use tauri::State;
 use super::folders::{FolderHandle, PickedFolders};
 use super::ids::Ulid;
 use super::preview::VersionPath;
+pub(super) use resolve::{resolve_root, RootProblem};
 pub use types::{Availability, FileActionKind, OpenFailure, SourcePath, SourceRoot};
 
 /// Runs blocking work off the async runtime's threads, as previews and
