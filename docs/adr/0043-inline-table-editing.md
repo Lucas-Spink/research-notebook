@@ -1,6 +1,6 @@
 # ADR-0043: Edit sections, title and status inline in the workspace table
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-26
 - Deciders: maintainer
 - Spec sections affected: 4.3 (column table), 7.3 (FR-TBL-05, FR-TBL-11, FR-TBL-12), 7.7 (FR-EDT-03), 15.1; gates S4-G08, S4-G11, S4-G12
