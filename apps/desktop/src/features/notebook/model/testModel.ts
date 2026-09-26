@@ -7,6 +7,7 @@ export const stubActions: NotebookActions = {
   createExperiment: () => Promise.resolve(true),
   editQuestion: () => Promise.resolve(true),
   editExperiment: () => Promise.resolve(true),
+  editArtefacts: () => Promise.resolve(true),
   moveExperiment: () => Promise.resolve(true),
   removeExperiment: () => Promise.resolve(true),
   removeQuestion: () => Promise.resolve(true),

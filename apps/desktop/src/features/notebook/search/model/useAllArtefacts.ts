@@ -30,7 +30,7 @@ async function inGroups<T, R>(
  * Every listed experiment folder's `artefacts.yaml`, read once when
  * `enabled` turns on (search is opened), for the artefact name and filename
  * fields of FR-SRC-01. A read or parse failure just leaves that experiment's
- * artefacts out of the results, the same as `useExperimentArtefacts`.
+ * artefacts out of the results.
  */
 export function useAllArtefacts(
   api: ReadApi,

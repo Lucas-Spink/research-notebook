@@ -1,5 +1,4 @@
 import "./App.css";
-import PreviewSpike from "./features/preview-spike/PreviewSpike";
 import { ProjectsStart } from "./features/projects";
 
 // The Stage 1 table spike (features/table-spike) is no longer mounted: the
@@ -10,7 +9,6 @@ function App() {
     <main className="container">
       <h1>Research Notebook</h1>
       <ProjectsStart />
-      <PreviewSpike />
     </main>
   );
 }

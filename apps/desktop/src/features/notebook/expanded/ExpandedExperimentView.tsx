@@ -14,7 +14,7 @@ import {
 } from "../editing/model/liveEditor";
 import type { LiveEditor } from "../editing/useLiveEditor";
 import { columnLabel, expandedMessages, messages } from "../messages";
-import { useExperimentArtefacts } from "./model/useExperimentArtefacts";
+import { evidenceOf } from "../model/evidence";
 import type { AutosaveField } from "./model/useAutosave";
 import { ReferencePreviewOverlay } from "./ReferencePreviewOverlay";
 import { RichSectionEditor } from "./RichSectionEditor";
@@ -68,7 +68,7 @@ export function ExpandedExperimentView({
 }: Props) {
   const { experiment, readOnly } = item;
   const experimentId = experiment.file.frontmatter.id;
-  const artefacts = useExperimentArtefacts(commands, folder, experiment.folder);
+  const artefacts = evidenceOf(item);
 
   // Closing an open reference preview when a different experiment is
   // selected, or a new search result is opened, without an effect (React's

@@ -5,6 +5,7 @@ import {
   changeTableSettings,
   createExperiment,
   createQuestion,
+  editArtefacts as editArtefactsFile,
   editExperiment,
   editExperimentSection as editSectionText,
   editQuestion,
@@ -13,6 +14,7 @@ import {
   removeQuestion,
   resetTableColumns,
   type Arranged,
+  type ArtefactsFileModel,
   type ExperimentChanges,
   type NotebookEnv,
   type NotebookError,
@@ -68,6 +70,17 @@ export type NotebookActions = {
   createExperiment(questionId: string, title: string): Promise<boolean>;
   editQuestion(id: string, title: string): Promise<boolean>;
   editExperiment(id: string, changes: ExperimentChanges): Promise<boolean>;
+  /**
+   * Changes one experiment's artefacts.yaml (ADR-0044): `change` is given the
+   * file as loaded and returns the next one. Resolves whether it was saved; a
+   * refusal or failure is shown as a notice, like any other action.
+   */
+  editArtefacts(
+    folder: string,
+    change: (
+      file: ArtefactsFileModel,
+    ) => Result<ArtefactsFileModel, NotebookError>,
+  ): Promise<boolean>;
   moveExperiment(id: string, questionId: string): Promise<boolean>;
   removeExperiment(id: string): Promise<boolean>;
   removeQuestion(id: string): Promise<boolean>;
@@ -287,6 +300,10 @@ export function useNotebook({ folder, writable, changes }: Options) {
         run((s, e) => editQuestion(s, id, { title }, e)).then(isDone),
       editExperiment: (id, changed) =>
         run((s, e) => editExperiment(s, id, changed, e)).then(isDone),
+      editArtefacts: (experimentFolder, change) =>
+        run((s, e) => editArtefactsFile(s, experimentFolder, change, e)).then(
+          isDone,
+        ),
       moveExperiment: (id, questionId) =>
         run((s, e) => moveExperiment(s, id, questionId, e)).then(isDone),
       removeExperiment: (id) =>

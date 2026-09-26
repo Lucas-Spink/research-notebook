@@ -1,11 +1,14 @@
 import {
   createExperiment,
   createQuestion,
+  editArtefacts,
   editExperiment,
   moveExperiment,
   parseProject,
   removeExperiment,
   removeQuestion,
+  type NotebookEnv,
+  type NotebookState,
 } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "../../../shared/sha256";
@@ -25,6 +28,30 @@ import { perform, type Deps } from "./perform";
 
 const PROJECT = "_notebook/project.yaml";
 const EXP_1 = "_notebook/experiments/EXP-001/experiment.md";
+const ARTEFACTS_1 = "_notebook/experiments/EXP-001/artefacts.yaml";
+const GROUP_IDS: Record<string, string> = {
+  Figures: "01JB0000000000000000000G01",
+  Tables: "01JB0000000000000000000G02",
+};
+
+/** Adds an empty group to EXP-001's artefacts: the smallest change to its artefacts.yaml. */
+function addGroup(state: NotebookState, name: string, env: NotebookEnv) {
+  return editArtefacts(
+    state,
+    "EXP-001",
+    (file) => ({
+      ok: true,
+      value: {
+        ...file,
+        groups: [
+          ...file.groups,
+          { id: GROUP_IDS[name] ?? "", name, items: [], groups: [] },
+        ],
+      },
+    }),
+    env,
+  );
+}
 
 async function setup(options: { writable?: boolean } = {}) {
   const sample = sampleNotebook();
@@ -360,6 +387,44 @@ describe("perform: the application's own writes are not outside changes", () => 
     expect(changes.held).toHaveProperty(
       "_notebook/experiments/EXP-002/experiment.md",
     );
+  });
+
+  it("holds artefacts.yaml's new hash, so a second change to it is written too (ADR-0044)", async () => {
+    const { sample, project, loaded, deps } = await setup();
+    const first = await perform(deps(), loaded, (state) =>
+      addGroup(state, "Figures", sample.env),
+    );
+    if (first.kind !== "done") throw new Error(first.kind);
+    const second = await perform(deps(), first.loaded, (state) =>
+      addGroup(state, "Tables", sample.env),
+    );
+    expect(second.kind).toBe("done");
+    expect(project.disk[ARTEFACTS_1]).toContain("Tables");
+  });
+
+  it("does not overwrite an artefacts.yaml changed on disk since it was read", async () => {
+    const { sample, project, loaded, deps } = await setup();
+    const elsewhere =
+      "format_version: 1\nartefacts: []\ngroups: []\n# edited elsewhere\n";
+    project.disk[ARTEFACTS_1] = elsewhere;
+    const done = await perform(deps(), loaded, (state) =>
+      addGroup(state, "Figures", sample.env),
+    );
+    expect(done).toEqual({
+      kind: "interrupted",
+      reason: "changed",
+      written: 0,
+    });
+    expect(project.disk[ARTEFACTS_1]).toBe(elsewhere);
+  });
+
+  it("stops holding an experiment's artefacts.yaml when its folder goes to the trash", async () => {
+    const { sample, changes, loaded, deps } = await setup();
+    expect(changes.held).toHaveProperty(ARTEFACTS_1);
+    await perform(deps(), loaded, (state) =>
+      removeExperiment(state, sample.one, sample.env),
+    );
+    expect(changes.held).not.toHaveProperty(ARTEFACTS_1);
   });
 
   it("does not keep an unsaved copy of a write that failed", async () => {

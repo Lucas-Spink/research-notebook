@@ -40,7 +40,9 @@ function isHeld(path: string): boolean {
   return (
     path === "_notebook/project.yaml" ||
     /^_notebook\/questions\/[^/]+\.md$/.test(path) ||
-    /^_notebook\/experiments\/[^/]+\/experiment\.md$/.test(path)
+    /^_notebook\/experiments\/[^/]+\/(experiment\.md|artefacts\.yaml)$/.test(
+      path,
+    )
   );
 }
 
@@ -102,6 +104,7 @@ async function writeFile(
 async function trash(deps: Deps, path: string): Promise<Failed | null> {
   // Stop watching first: the files going away are ours, not an outside change.
   deps.changes.untrack(`${path}/experiment.md`);
+  deps.changes.untrack(`${path}/artefacts.yaml`);
   deps.changes.untrack(path);
   const result = await deps.api.moveToTrash(deps.folder, path);
   if (result.status === "ok") return null;

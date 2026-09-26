@@ -5,9 +5,8 @@ import type {
 } from "@research-notebook/format";
 import type { CSSProperties, ReactNode } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
-import { commands } from "../../../ipc/bindings";
 import { isLiveIn } from "../editing/model/liveEditor";
-import { useExperimentArtefacts } from "../expanded/model/useExperimentArtefacts";
+import { evidenceOf } from "../model/evidence";
 import {
   collapseLabel,
   countLabel,
@@ -107,11 +106,7 @@ export function ExperimentRowView({
   editing,
   focusCol,
 }: ExperimentProps) {
-  const artefacts = useExperimentArtefacts(
-    commands,
-    folder,
-    row.item.experiment.folder,
-  );
+  const artefacts = evidenceOf(row.item);
   return (
     <div
       ref={place.measure?.ref}
