@@ -7,10 +7,11 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useMemo, useRef, useState } from "react";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { columnLabel, resizeLabel, tableMessages } from "../messages";
+import type { TableEditing } from "./EditableSectionCell";
 import {
   EXPERIMENT_COLUMN_WIDTH,
   gridColumns,
@@ -18,6 +19,7 @@ import {
   motivationColumn,
   type ColumnLayout,
 } from "./model/columns";
+import { withPinned } from "./model/pinned";
 import type { ExperimentRow, HeaderRow, TableRow } from "./model/rows";
 import { ResizeHandle } from "./ResizeHandle";
 import {
@@ -34,7 +36,11 @@ const features = tableFeatures({
 });
 const columnHelper = createColumnHelper<typeof features, ExperimentRow>();
 
-/** Rows are a fixed height, so scrolling never has to measure them (FR-TBL-10). */
+/**
+ * Rows are a fixed height, so scrolling never has to measure them
+ * (FR-TBL-10); only the row being edited is measured, as it grows to fit
+ * its editor (ADR-0043).
+ */
 const COLUMN_HEADER_HEIGHT = 40;
 const QUESTION_ROW_HEIGHT = 64;
 const EXPERIMENT_ROW_HEIGHT = 112;
@@ -76,17 +82,36 @@ type Props = {
     width: number,
     options: { immediate: boolean },
   ) => void;
+  /** Editing sections in their cells (FR-TBL-11). */
+  editing: TableEditing;
   /** Height of the window before it is measured. Only tests set it. */
   viewportHeight?: number;
 };
 
+/** The index of the row whose section is being edited in its cell, if any. */
+function editedRow(
+  rows: readonly TableRow[],
+  editing: TableEditing,
+): number | null {
+  const target = editing.live.target;
+  if (target === null || target.surface !== "table") return null;
+  const index = rows.findIndex(
+    (row) =>
+      row.kind === "experiment" && row.item.experiment.folder === target.folder,
+  );
+  return index === -1 ? null : index;
+}
+
 /**
- * The workspace table (FR-TBL-01 to FR-TBL-05, FR-TBL-10): a header row per
- * question, an experiment row under it, read-only line-clamped cells, and only
- * the rows in view mounted. TanStack Table holds the column model (order,
- * visibility, size); TanStack Virtual holds the window of rows (ADR-0005).
- * The scroll area takes keyboard focus so arrow keys and Page Up and Down
- * scroll it, which is also how a row not yet mounted is reached.
+ * The workspace table (FR-TBL-01 to FR-TBL-05, FR-TBL-10, FR-TBL-11): a
+ * header row per question, an experiment row under it, line-clamped
+ * summaries that open for editing in place, and only the rows in view
+ * mounted. TanStack Table holds the column model (order, visibility, size);
+ * TanStack Virtual holds the window of rows. The row being edited is the one
+ * row measured, and is always rendered, even out of view, so its editor is
+ * never unmounted by scrolling (ADR-0043). The scroll area takes keyboard
+ * focus so arrow keys and Page Up and Down scroll it, which is also how a
+ * row not yet mounted is reached.
  */
 export function WorkspaceTable({
   rows,
@@ -98,6 +123,7 @@ export function WorkspaceTable({
   onSelectQuestion,
   onToggle,
   onResize,
+  editing,
   viewportHeight = INITIAL_VIEWPORT_HEIGHT,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -136,6 +162,9 @@ export function WorkspaceTable({
   const total = gridWidth(cells);
   const motivation = motivationColumn(shown);
 
+  const edited = editedRow(rows, editing);
+  const editedKey = edited === null ? null : (rows[edited]?.key ?? null);
+
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -145,10 +174,17 @@ export function WorkspaceTable({
       return kind === "empty" ? EMPTY_ROW_HEIGHT : EXPERIMENT_ROW_HEIGHT;
     },
     getItemKey: (index) => rows[index]?.key ?? index,
+    rangeExtractor: (range) => withPinned(defaultRangeExtractor(range), edited),
     overscan: OVERSCAN,
     scrollMargin: COLUMN_HEADER_HEIGHT,
     initialRect: { width: total, height: viewportHeight },
   });
+
+  // A row that has stopped being edited goes back to its fixed height: its
+  // measured size is forgotten, and only the newly edited row is measured.
+  useEffect(() => {
+    virtualizer.measure();
+  }, [virtualizer, editedKey]);
 
   return (
     <div
@@ -231,11 +267,25 @@ export function WorkspaceTable({
             if (row.kind === "empty") {
               return <EmptyRowView key={row.key} place={place} />;
             }
+            const growing =
+              item.index === edited
+                ? {
+                    ...place,
+                    style: {
+                      minHeight: EXPERIMENT_ROW_HEIGHT,
+                      transform: place.style.transform,
+                    },
+                    measure: {
+                      ref: virtualizer.measureElement,
+                      dataIndex: item.index,
+                    },
+                  }
+                : place;
             return (
               <ExperimentRowView
                 key={row.key}
                 row={row}
-                place={place}
+                place={growing}
                 columns={cells}
                 experimentWidth={experimentWidth}
                 selected={selectedKey === row.key}
@@ -244,6 +294,7 @@ export function WorkspaceTable({
                 )}
                 folder={folder}
                 onSelect={onSelectExperiment}
+                editing={editing}
               />
             );
           })}

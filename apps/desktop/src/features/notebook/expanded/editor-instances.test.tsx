@@ -52,7 +52,11 @@ function mount(shown: ArrangedExperiment = item) {
     root?.render(
       <LiveEditorHarness
         items={[shown]}
-        initial={{ folder: shown.experiment.folder, section: "methods" }}
+        initial={{
+          folder: shown.experiment.folder,
+          section: "methods",
+          surface: "details",
+        }}
       >
         {(live) => (
           <ExpandedExperimentView
@@ -133,7 +137,11 @@ describe("editor-instances (S4-G08)", () => {
       root?.render(
         <LiveEditorHarness
           items={[item, second]}
-          initial={{ folder: experiment.folder, section: "methods" }}
+          initial={{
+            folder: experiment.folder,
+            section: "methods",
+            surface: "details",
+          }}
         >
           {(live) => (
             <>

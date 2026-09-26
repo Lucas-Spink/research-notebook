@@ -42,14 +42,20 @@ const arrangedWith = (readOnlyFirst = false, withFirst = true): Arranged => ({
   problems: [],
 });
 
-const methodsOfFirst: LiveTarget = { folder: first.folder, section: "methods" };
+const methodsOfFirst: LiveTarget = {
+  folder: first.folder,
+  section: "methods",
+  surface: "details",
+};
 const notesOfFirst: LiveTarget = {
   folder: first.folder,
   section: "results_notes",
+  surface: "details",
 };
 const methodsOfSecond: LiveTarget = {
   folder: second.folder,
   section: "methods",
+  surface: "details",
 };
 
 type Save = {

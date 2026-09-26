@@ -5,7 +5,13 @@ import type {
 } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
 import { sampleNotebook } from "../../model/fakeApi";
-import { editableExperiment, liveKey, sectionText } from "./liveEditor";
+import {
+  editableExperiment,
+  isLiveIn,
+  liveKey,
+  sectionText,
+  type LiveTarget,
+} from "./liveEditor";
 
 const { state } = sampleNotebook();
 const [first, second] = state.experiments;
@@ -47,10 +53,34 @@ const shown = (experiment: LoadedExperiment, readOnly = false) => ({
 
 describe("liveKey", () => {
   it("names one experiment's section, and nothing when no section is live", () => {
-    expect(liveKey({ folder: "EXP-001", section: "methods" })).toBe(
-      "EXP-001:methods",
-    );
+    expect(
+      liveKey({ folder: "EXP-001", section: "methods", surface: "details" }),
+    ).toBe("EXP-001:methods");
     expect(liveKey(null)).toBe("");
+  });
+
+  it("names the same autosave for a section in the table or the details panel", () => {
+    expect(
+      liveKey({ folder: "EXP-001", section: "methods", surface: "table" }),
+    ).toBe(
+      liveKey({ folder: "EXP-001", section: "methods", surface: "details" }),
+    );
+  });
+});
+
+describe("isLiveIn", () => {
+  const target: LiveTarget = {
+    folder: "EXP-001",
+    section: "methods",
+    surface: "table",
+  };
+
+  it("is true only for the same experiment, section and surface", () => {
+    expect(isLiveIn(target, "EXP-001", "methods", "table")).toBe(true);
+    expect(isLiveIn(target, "EXP-001", "methods", "details")).toBe(false);
+    expect(isLiveIn(target, "EXP-001", "interpretation", "table")).toBe(false);
+    expect(isLiveIn(target, "EXP-002", "methods", "table")).toBe(false);
+    expect(isLiveIn(null, "EXP-001", "methods", "table")).toBe(false);
   });
 });
 

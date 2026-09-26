@@ -6,7 +6,12 @@ import type {
 import { useEffect, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { commands } from "../../../ipc/bindings";
-import { liveKey, sectionText } from "../editing/model/liveEditor";
+import {
+  isLiveIn,
+  liveKey,
+  sectionText,
+  type LiveTarget,
+} from "../editing/model/liveEditor";
 import type { LiveEditor } from "../editing/useLiveEditor";
 import { columnLabel, expandedMessages, messages } from "../messages";
 import { useExperimentArtefacts } from "./model/useExperimentArtefacts";
@@ -100,25 +105,29 @@ export function ExpandedExperimentView({
 
   if (readOnly) return <p>{messages.readOnlyItem}</p>;
 
-  const liveSection =
-    live.target?.folder === experiment.folder ? live.target.section : null;
-
-  const sectionProps = (key: RecognisedSectionKey) => ({
-    label: columnLabel(key),
-    editorKey: liveKey({ folder: experiment.folder, section: key }),
-    initialMarkdown: sectionText(experiment, key),
-    field: liveSection === key ? live.field : STATIC_FIELD,
-    disabled,
-    live: liveSection === key,
-    onActivate: () =>
-      void live.activate({ folder: experiment.folder, section: key }),
-    artefacts,
-    onActivateReference: (ulid: string, version: number | null) =>
-      setOpenReference({ ulid, version }),
-    containerRef: (element: HTMLDivElement | null) => {
-      sectionElements.current[key] = element;
-    },
-  });
+  const sectionProps = (key: RecognisedSectionKey) => {
+    const here: LiveTarget = {
+      folder: experiment.folder,
+      section: key,
+      surface: "details",
+    };
+    const isLive = isLiveIn(live.target, experiment.folder, key, "details");
+    return {
+      label: columnLabel(key),
+      editorKey: liveKey(here),
+      initialMarkdown: sectionText(experiment, key),
+      field: isLive ? live.field : STATIC_FIELD,
+      disabled,
+      live: isLive,
+      onActivate: () => void live.activate(here),
+      artefacts,
+      onActivateReference: (ulid: string, version: number | null) =>
+        setOpenReference({ ulid, version }),
+      containerRef: (element: HTMLDivElement | null) => {
+        sectionElements.current[key] = element;
+      },
+    };
+  };
 
   return (
     <div className="expanded" aria-labelledby="expanded-heading">

@@ -149,10 +149,24 @@ describe("ArtefactRefChip", () => {
     act(() => {
       chip?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
     });
-    expect(view.querySelector('[role="tooltip"]')?.textContent).toContain(
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain(
       "pca.v2.pdf",
     );
-    expect(view.querySelector('[role="tooltip"]')?.textContent).toContain("v2");
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain(
+      "v2",
+    );
+  });
+
+  it("renders its detail into the document body, so a table cell's scrolling editor cannot clip it (ADR-0043)", () => {
+    const view = mount(RESOLVED_COPY);
+    const chip = view.querySelector('[role="button"]');
+    act(() => {
+      chip?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
+    expect(view.querySelector('[role="tooltip"]')).toBeNull();
+    const tooltip = document.querySelector('[role="tooltip"]');
+    expect(tooltip?.parentElement).toBe(document.body);
+    expect(chip?.getAttribute("aria-describedby")).toBe(tooltip?.id);
   });
 
   it("shows the filename, with no version, for a link-mode artefact", () => {
@@ -161,7 +175,7 @@ describe("ArtefactRefChip", () => {
     act(() => {
       chip?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
     });
-    expect(view.querySelector('[role="tooltip"]')?.textContent).toBe(
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(
       "counts.h5",
     );
   });
@@ -172,11 +186,11 @@ describe("ArtefactRefChip", () => {
     act(() => {
       chip?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     });
-    expect(view.querySelector('[role="tooltip"]')).not.toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
     act(() => {
       chip?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
     });
-    expect(view.querySelector('[role="tooltip"]')).toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
   });
 
   it("activates on click", () => {

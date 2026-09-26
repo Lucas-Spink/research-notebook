@@ -8,7 +8,8 @@ import { sampleNotebook } from "../model/fakeApi";
 import { ColumnsMenu } from "./ColumnsMenu";
 import { columnLayout } from "./model/columns";
 import type { HeaderRow } from "./model/rows";
-import { EmptyRowView, QuestionHeaderRowView, SummaryCell } from "./TableRows";
+import { SummaryCell } from "./SummaryCell";
+import { EmptyRowView, QuestionHeaderRowView } from "./TableRows";
 
 function html(node: React.ReactElement): HTMLElement {
   const container = document.createElement("div");

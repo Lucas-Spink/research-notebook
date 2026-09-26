@@ -76,11 +76,11 @@
   cursor: pointer;
 }
 
+/* Placed in window coordinates at the chip's top-left, then lifted above it. */
 .expanded__artefact-ref-detail {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  z-index: 10;
+  position: fixed;
+  transform: translateY(calc(-100% - 2px));
+  z-index: 30;
   white-space: nowrap;
   background: canvas;
   border: 1px solid currentColor;

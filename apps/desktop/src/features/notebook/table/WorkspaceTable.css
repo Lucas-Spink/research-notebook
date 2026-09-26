@@ -86,6 +86,38 @@
   padding: 0.5rem;
 }
 
+/* A section's summary, which opens for editing in place (FR-TBL-11). */
+.wtable__edit {
+  height: 100%;
+  cursor: text;
+}
+
+.wtable__edit:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: -2px;
+}
+
+/* The one cell being edited: its content sets the row's height (ADR-0043). */
+.wtable__cell--editing {
+  overflow: visible;
+}
+
+/* Long sections scroll inside the editor instead of growing the row without end. */
+.wtable__cell--editing .expanded__editor {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+/* The column heading already names the section; the label stays for screen readers. */
+.wtable__cell--editing .expanded__field-head label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* Four lines of a summary, however long the section is (FR-TBL-05). */
 .wtable__clamp {
   display: -webkit-box;

@@ -62,7 +62,11 @@ function render(
         initial={
           item === null
             ? null
-            : { folder: item.experiment.folder, section: "methods" }
+            : {
+                folder: item.experiment.folder,
+                section: "methods",
+                surface: "details",
+              }
         }
       >
         {(live) => (

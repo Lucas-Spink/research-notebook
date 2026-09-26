@@ -52,6 +52,7 @@ function mount(
         initial={{
           folder: shown.experiment.folder,
           section: props.focusSection ?? "methods",
+          surface: "details",
         }}
       >
         {(live) => (
