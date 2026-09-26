@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
+import { LiveEditorHarness } from "./editing/liveEditorHarness";
 import { sampleNotebook } from "./model/fakeApi";
 import type { NotebookActions } from "./useNotebook";
 
@@ -52,20 +53,34 @@ function render(
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
+  // Opened the way NotebookView opens a selection: its Methods live.
+  const item = selected?.kind === "experiment" ? selected.item : null;
   act(() =>
     root?.render(
-      <DetailsPanel
-        selected={selected}
-        questions={[]}
-        sharedRefs={new Set()}
-        actions={actions}
-        disabled={overrides.disabled ?? false}
-        writable={overrides.writable ?? true}
-        folder={1}
-        projectId={state.project.id}
-        references={NO_REFERENCES}
-        focusSection={null}
-      />,
+      <LiveEditorHarness
+        items={item === null ? [] : [item]}
+        initial={
+          item === null
+            ? null
+            : { folder: item.experiment.folder, section: "methods" }
+        }
+      >
+        {(live) => (
+          <DetailsPanel
+            selected={selected}
+            questions={[]}
+            sharedRefs={new Set()}
+            actions={actions}
+            disabled={overrides.disabled ?? false}
+            writable={overrides.writable ?? true}
+            folder={1}
+            projectId={state.project.id}
+            references={NO_REFERENCES}
+            focusSection={null}
+            live={live}
+          />
+        )}
+      </LiveEditorHarness>,
     ),
   );
   return container;

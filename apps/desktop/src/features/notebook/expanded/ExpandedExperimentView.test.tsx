@@ -5,6 +5,7 @@ import type {
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LiveEditorHarness } from "../editing/liveEditorHarness";
 import { sampleNotebook } from "../model/fakeApi";
 import { ExpandedExperimentView } from "./ExpandedExperimentView";
 
@@ -33,25 +34,39 @@ afterEach(() => {
   root = null;
 });
 
+/** Mounts the view the way a selection opens it: Methods live, or the section a search result asked for. */
 function mount(
-  props: Partial<React.ComponentProps<typeof ExpandedExperimentView>> = {},
+  props: Partial<
+    Omit<React.ComponentProps<typeof ExpandedExperimentView>, "live">
+  > = {},
 ) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
+  const shown = props.item ?? item();
   act(() =>
     root?.render(
-      <ExpandedExperimentView
-        item={item()}
-        disabled={false}
-        folder={1}
-        projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
-        references={NO_REFERENCES}
-        focusSection={null}
-        onSaveSection={() => Promise.resolve({ ok: true })}
-        {...props}
-      />,
+      <LiveEditorHarness
+        items={[shown]}
+        initial={{
+          folder: shown.experiment.folder,
+          section: props.focusSection ?? "methods",
+        }}
+      >
+        {(live) => (
+          <ExpandedExperimentView
+            item={shown}
+            disabled={false}
+            folder={1}
+            projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
+            references={NO_REFERENCES}
+            focusSection={null}
+            {...props}
+            live={live}
+          />
+        )}
+      </LiveEditorHarness>,
     ),
   );
   return container;

@@ -26,6 +26,14 @@ export type AutosaveField = {
   onBlur: () => void;
 };
 
+export type AutosaveHandle = {
+  field: AutosaveField;
+  /** Whether everything typed is saved and no save is in flight. */
+  isSettled: () => boolean;
+  /** Saves now, without waiting for the debounce. Resolves whether everything typed is saved. */
+  settle: () => Promise<boolean>;
+};
+
 /**
  * The React side of `createAutosave` (FR-EDT-03): holds the text a textarea
  * shows and the status a label shows. A new `editorKey` — a different
@@ -42,7 +50,7 @@ export function useAutosave({
   editorKey,
   initial,
   commit,
-}: Options): AutosaveField {
+}: Options): AutosaveHandle {
   const [text, setText] = useState(initial);
   const [status, setStatus] = useState<AutosaveStatus>("saved");
   const [message, setMessage] = useState<string | null>(null);
@@ -81,5 +89,21 @@ export function useAutosave({
     void autosaveRef.current?.flush();
   }, []);
 
-  return { text, status, message, onChange, onBlur };
+  const isSettled = useCallback(
+    () => autosaveRef.current?.isSettled() ?? true,
+    [],
+  );
+
+  const settle = useCallback(async () => {
+    const autosave = autosaveRef.current;
+    if (autosave === null) return true;
+    await autosave.flush();
+    return autosave.isSettled();
+  }, []);
+
+  return {
+    field: { text, status, message, onChange, onBlur },
+    isSettled,
+    settle,
+  };
 }

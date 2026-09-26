@@ -5,6 +5,7 @@ import type {
   ReferenceIndex,
 } from "@research-notebook/format";
 import type { FolderHandle } from "../../ipc/bindings";
+import type { LiveEditor } from "./editing/useLiveEditor";
 import { ExpandedExperimentView } from "./expanded/ExpandedExperimentView";
 import { ExperimentItem, type QuestionChoice } from "./ExperimentItem";
 import { tableMessages } from "./messages";
@@ -36,8 +37,10 @@ type Props = {
   /** Every experiment and section that references an artefact, across the
    * whole project (FR-SRC-03). */
   references: ReferenceIndex;
-  /** The section to open the expanded view at, when the selection came from a search result (FR-SRC-02); `null` otherwise. */
+  /** The section to scroll the expanded view to, when the selection came from a search result (FR-SRC-02); `null` otherwise. */
   focusSection: RecognisedSectionKey | null;
+  /** The application's one live section editor (FR-EDT-03, ADR-0043). */
+  live: LiveEditor;
 };
 
 /**
@@ -56,6 +59,7 @@ export function DetailsPanel({
   projectId,
   references,
   focusSection,
+  live,
 }: Props) {
   return (
     <section className="notebook__details" aria-labelledby="notebook-details">
@@ -81,13 +85,7 @@ export function DetailsPanel({
             projectId={projectId}
             references={references}
             focusSection={focusSection}
-            onSaveSection={(key, text) =>
-              actions.editExperimentSection(
-                selected.item.experiment.file.frontmatter.id,
-                key,
-                text,
-              )
-            }
+            live={live}
           />
         </>
       )}
