@@ -1,8 +1,11 @@
 import {
+  artefactsPath,
+  parseArtefacts,
   parseExperiment,
   parseProject,
   parseQuestion,
   PROJECT_PATH,
+  type LoadedArtefacts,
   type LoadedExperiment,
   type LoadedQuestion,
 } from "@research-notebook/format";
@@ -55,8 +58,9 @@ async function inGroups<T, R>(
 const stem = (fileName: string) => fileName.replace(/\.md$/, "");
 
 /**
- * Reads `project.yaml`, every question and every experiment of the project
- * (nothing is written) and parses them with `packages/format`.
+ * Reads `project.yaml`, every question and every experiment of the project,
+ * with each experiment's `artefacts.yaml` (nothing is written), and parses
+ * them with `packages/format`.
  *
  * A file that cannot be read or parsed is left out and reported in
  * `unreadable`, and its name is kept in `reservedRefs` so its ref is not given
@@ -122,6 +126,28 @@ export async function loadNotebook(
     if (read.kind !== "missing") unreadable.push(path);
   }
 
+  // Each loaded experiment's evidence (ADR-0044). One that cannot be read or
+  // parsed is reported and left alone; its experiment still loads.
+  const artefacts: Record<string, LoadedArtefacts> = {};
+  const artefactReads = await inGroups(
+    experiments,
+    async ({ folder: name }) => {
+      const path = artefactsPath(name);
+      return { name, path, read: await readFile(api, folder, path) };
+    },
+  );
+  for (const { name, path, read } of artefactReads) {
+    if (read.kind === "missing") continue;
+    const parsed = read.kind === "text" ? parseArtefacts(read.text) : null;
+    if (read.kind === "text" && parsed?.ok) {
+      artefacts[name] = { kind: "file", file: parsed.value };
+      hashes[path] = read.sha256;
+    } else {
+      artefacts[name] = { kind: "unreadable" };
+      unreadable.push(path);
+    }
+  }
+
   return {
     ok: true,
     value: {
@@ -131,6 +157,7 @@ export async function loadNotebook(
         experiments,
         reservedRefs,
         unreadable,
+        artefacts,
       },
       hashes,
     },

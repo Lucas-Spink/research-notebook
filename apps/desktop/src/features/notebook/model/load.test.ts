@@ -24,12 +24,50 @@ describe("loadNotebook", () => {
         "_notebook/questions/Q-001.md",
         "_notebook/questions/Q-002.md",
         "_notebook/experiments/EXP-001/experiment.md",
+        "_notebook/experiments/EXP-001/artefacts.yaml",
         "_notebook/experiments/EXP-002/experiment.md",
+        "_notebook/experiments/EXP-002/artefacts.yaml",
       ].sort(),
     );
     expect(result.value.hashes["_notebook/questions/Q-001.md"]).toBe(
       project.hash("_notebook/questions/Q-001.md"),
     );
+  });
+
+  it("reads each experiment's artefacts.yaml into the state (ADR-0044)", async () => {
+    const { project } = loaded();
+    const result = await loadNotebook(project.read, 1);
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.value.state.artefacts?.["EXP-001"]).toEqual({
+      kind: "file",
+      file: { format_version: 1, artefacts: [], groups: [] },
+    });
+    expect(
+      result.value.hashes["_notebook/experiments/EXP-001/artefacts.yaml"],
+    ).toBe(project.hash("_notebook/experiments/EXP-001/artefacts.yaml"));
+  });
+
+  it("reports an artefacts.yaml it cannot parse, holds no hash for it and marks that evidence unreadable", async () => {
+    const { project } = loaded();
+    const path = "_notebook/experiments/EXP-001/artefacts.yaml";
+    project.disk[path] = "format_version: 1\nartefacts: [not, valid\n";
+    const result = await loadNotebook(project.read, 1);
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.value.state.artefacts?.["EXP-001"]).toEqual({
+      kind: "unreadable",
+    });
+    expect(result.value.state.unreadable).toEqual([path]);
+    expect(result.value.hashes).not.toHaveProperty(path);
+    expect(result.value.state.experiments).toHaveLength(2);
+  });
+
+  it("gives an experiment with no artefacts.yaml no entry, which reads as no evidence yet", async () => {
+    const { project } = loaded();
+    delete project.disk["_notebook/experiments/EXP-002/artefacts.yaml"];
+    const result = await loadNotebook(project.read, 1);
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.value.state.artefacts).not.toHaveProperty("EXP-002");
+    expect(result.value.state.unreadable).toEqual([]);
   });
 
   it("writes nothing", async () => {

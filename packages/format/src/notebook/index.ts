@@ -56,8 +56,15 @@ export {
   type ReferenceLocation,
 } from "./references";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
-export { PROJECT_PATH, type NotebookEnv, type NotebookError } from "./types";
+export { artefactsOf, editArtefacts, EMPTY_ARTEFACTS } from "./artefacts-edit";
+export {
+  artefactsPath,
+  PROJECT_PATH,
+  type NotebookEnv,
+  type NotebookError,
+} from "./types";
 export type {
+  LoadedArtefacts,
   LoadedExperiment,
   LoadedQuestion,
   NotebookState,

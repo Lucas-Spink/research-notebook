@@ -1,7 +1,9 @@
 import {
+  artefactsPath,
   createExperiment,
   createQuestion,
   newProject,
+  serialiseArtefacts,
   serialiseExperiment,
   serialiseProject,
   serialiseQuestion,
@@ -47,6 +49,11 @@ export function filesOf(state: NotebookState): Record<string, string> {
   for (const experiment of state.experiments) {
     files[`_notebook/experiments/${experiment.folder}/experiment.md`] =
       serialiseExperiment(experiment.file);
+  }
+  for (const [folder, loaded] of Object.entries(state.artefacts ?? {})) {
+    if (loaded.kind === "file") {
+      files[artefactsPath(folder)] = serialiseArtefacts(loaded.file);
+    }
   }
   return files;
 }
