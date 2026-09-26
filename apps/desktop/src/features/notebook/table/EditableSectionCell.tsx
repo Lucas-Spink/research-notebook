@@ -1,5 +1,6 @@
 import type {
   ArtefactsFileModel,
+  ExperimentChanges,
   RecognisedSectionKey,
   ReferenceIndex,
   SummaryPart,
@@ -27,6 +28,11 @@ export type TableEditing = {
   references: ReferenceIndex;
   /** Opens this row's section for editing in its cell. */
   onEdit: (row: ExperimentRow, section: RecognisedSectionKey) => void;
+  /** Saves an experiment's title or status (FR-EXP-05). Resolves whether it was saved. */
+  onEditExperiment: (
+    id: string,
+    changes: ExperimentChanges,
+  ) => Promise<boolean>;
 };
 
 type Props = {

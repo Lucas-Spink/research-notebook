@@ -6,7 +6,7 @@ import { Editor } from "@tiptap/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll } from "vitest";
-import { columnLabel, editLabel, selectLabel } from "../messages";
+import { columnLabel, editLabel, selectLabel, titleOfLabel } from "../messages";
 import { stubActions, testModel } from "../model/testModel";
 import { NotebookView } from "../NotebookView";
 import type { NotebookModel } from "../useNotebook";
@@ -122,12 +122,12 @@ export function detailsOf(view: HTMLElement): HTMLElement {
   return found;
 }
 
-/** The table row of the experiment `ref`. */
+/** The table row of the experiment `ref`, found by its title (a button, or a text box while renaming). */
 export function rowOf(view: HTMLElement, ref: string): HTMLElement {
-  const button = tableOf(view).querySelector(
-    `button[aria-label="${selectLabel(ref)}"]`,
+  const title = tableOf(view).querySelector(
+    `button[aria-label="${selectLabel(ref)}"], input[aria-label="${titleOfLabel(ref)}"]`,
   );
-  const row = button?.closest('[role="row"]');
+  const row = title?.closest('[role="row"]');
   if (!(row instanceof HTMLElement)) throw new Error(`no row for ${ref}`);
   return row;
 }

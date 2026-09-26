@@ -222,7 +222,13 @@ describe("NotebookView: the table", () => {
 
   it("shows status in words, not only in a style", () => {
     const row = rowsIn(render(model(state)))[1];
-    expect(text(row?.querySelector(".wtable__status"))).toBe("Planned");
+    // Editable in place (FR-TBL-11): a select shows its chosen option's words.
+    const status = row?.querySelector(".wtable__status");
+    const shown =
+      status instanceof HTMLSelectElement
+        ? status.selectedOptions[0]?.textContent
+        : status?.textContent;
+    expect(shown).toBe("Planned");
   });
 
   it("can be scrolled with the keyboard", () => {

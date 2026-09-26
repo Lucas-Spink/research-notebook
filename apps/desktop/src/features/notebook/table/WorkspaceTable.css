@@ -198,6 +198,18 @@
   font-weight: 600;
 }
 
+/* The title and status, edited in place (FR-TBL-11). */
+.wtable__title-input {
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+}
+
+.wtable__status-select {
+  font: inherit;
+  font-weight: 600;
+}
+
 .wtable__muted,
 .wtable__count {
   opacity: 0.75;
