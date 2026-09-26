@@ -10,7 +10,8 @@ import {
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
-import { columnLabel, resizeLabel, tableMessages } from "../messages";
+import { tableMessages } from "../messages";
+import { ColumnHeadings } from "./ColumnHeadings";
 import type { TableEditing } from "./EditableSectionCell";
 import {
   EXPERIMENT_COLUMN_WIDTH,
@@ -21,12 +22,12 @@ import {
 } from "./model/columns";
 import { withPinned } from "./model/pinned";
 import type { ExperimentRow, HeaderRow, TableRow } from "./model/rows";
-import { ResizeHandle } from "./ResizeHandle";
 import {
   EmptyRowView,
   ExperimentRowView,
   QuestionHeaderRowView,
 } from "./TableRows";
+import { useGridFocus } from "./useGridFocus";
 import "./WorkspaceTable.css";
 
 const features = tableFeatures({
@@ -127,6 +128,7 @@ export function WorkspaceTable({
   viewportHeight = INITIAL_VIEWPORT_HEIGHT,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   // The width while a column edge is being dragged; saved only when it ends.
   const [live, setLive] = useState<{ key: ColumnKey; width: number } | null>(
     null,
@@ -164,6 +166,15 @@ export function WorkspaceTable({
 
   const edited = editedRow(rows, editing);
   const editedKey = edited === null ? null : (rows[edited]?.key ?? null);
+  const focus = useGridFocus({
+    rows,
+    colCount: cells.length + 1,
+    grid: gridRef,
+    scrollToIndex: (index) =>
+      virtualizer.scrollToIndex(index, { align: "auto" }),
+    closeEditor: () => editing.live.activate(null),
+  });
+  const pinned = [edited, focus.rowIndex].filter((index) => index !== null);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -174,7 +185,7 @@ export function WorkspaceTable({
       return kind === "empty" ? EMPTY_ROW_HEIGHT : EXPERIMENT_ROW_HEIGHT;
     },
     getItemKey: (index) => rows[index]?.key ?? index,
-    rangeExtractor: (range) => withPinned(defaultRangeExtractor(range), edited),
+    rangeExtractor: (range) => withPinned(defaultRangeExtractor(range), pinned),
     overscan: OVERSCAN,
     scrollMargin: COLUMN_HEADER_HEIGHT,
     initialRect: { width: total, height: viewportHeight },
@@ -195,46 +206,24 @@ export function WorkspaceTable({
       tabIndex={0}
     >
       <div
-        role="table"
+        ref={gridRef}
+        role="grid"
         aria-label={tableMessages.tableLabel}
+        onKeyDown={focus.onKeyDown}
+        onFocus={focus.onFocus}
         aria-rowcount={rows.length + 1}
         aria-colcount={cells.length + 1}
         style={{ width: total }}
       >
-        <div
-          role="row"
-          aria-rowindex={1}
-          className="wtable__columns"
-          style={{ height: COLUMN_HEADER_HEIGHT }}
-        >
-          <div
-            role="columnheader"
-            className="wtable__heading"
-            style={{ width: experimentWidth }}
-          >
-            {tableMessages.experimentColumn}
-          </div>
-          {cells.map((column) => (
-            <div
-              key={column.key}
-              role="columnheader"
-              className="wtable__heading"
-              style={{ width: column.width }}
-            >
-              {columnLabel(column.key)}
-              <ResizeHandle
-                label={resizeLabel(columnLabel(column.key))}
-                width={column.width}
-                onLive={(width) =>
-                  setLive(width === null ? null : { key: column.key, width })
-                }
-                onCommit={(width, options) =>
-                  onResize(column.key, width, options)
-                }
-              />
-            </div>
-          ))}
-        </div>
+        <ColumnHeadings
+          height={COLUMN_HEADER_HEIGHT}
+          experimentWidth={experimentWidth}
+          columns={cells}
+          onLive={(key, width) =>
+            setLive(width === null ? null : { key, width })
+          }
+          onCommit={onResize}
+        />
         <div
           className="wtable__body"
           style={{ height: virtualizer.getTotalSize() - COLUMN_HEADER_HEIGHT }}
@@ -295,6 +284,9 @@ export function WorkspaceTable({
                 folder={folder}
                 onSelect={onSelectExperiment}
                 editing={editing}
+                focusCol={
+                  focus.cell?.rowKey === row.key ? focus.cell.col : null
+                }
               />
             );
           })}

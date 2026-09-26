@@ -49,6 +49,7 @@ function cellFor(
   artefacts: ArtefactsFileModel | null,
   folder: FolderHandle,
   editing: TableEditing,
+  tabbable: boolean,
 ): ReactNode {
   switch (column) {
     case "methods":
@@ -62,6 +63,7 @@ function cellFor(
           artefacts={artefacts}
           folder={folder}
           editing={editing}
+          tabbable={tabbable}
         />
       );
     case "literature":
@@ -88,6 +90,8 @@ type ExperimentProps = {
   folder: FolderHandle;
   onSelect: (row: ExperimentRow) => void;
   editing: TableEditing;
+  /** The column of this row holding the grid's one tab stop, or `null` when another row has it (ADR-0043 point 5). */
+  focusCol: number | null;
 };
 
 /** One experiment (FR-TBL-01), whose section cells edit in place (FR-TBL-11). */
@@ -101,6 +105,7 @@ export function ExperimentRowView({
   folder,
   onSelect,
   editing,
+  focusCol,
 }: ExperimentProps) {
   const artefacts = useExperimentArtefacts(
     commands,
@@ -126,12 +131,16 @@ export function ExperimentRowView({
       style={place.style}
     >
       <div
-        role="cell"
+        role="gridcell"
+        data-grid-row={row.key}
+        data-grid-col={0}
         className="wtable__cell"
         style={{ width: experimentWidth }}
       >
         <button
           type="button"
+          tabIndex={focusCol === 0 ? 0 : -1}
+          data-grid-focus
           className="wtable__select"
           aria-pressed={selected}
           aria-label={selectLabel(front.ref)}
@@ -159,7 +168,13 @@ export function ExperimentRowView({
           </div>
         )}
       </div>
-      {columns.map((column) => {
+      {columns.map((column, index) => {
+        const col = index + 1;
+        const tabbable = focusCol === col;
+        // A section that can be edited holds its own control (its Edit
+        // button, or its live editor), which takes the tab stop instead.
+        const ownControl =
+          isSection(column.key) && editing.writable && !row.item.readOnly;
         const isEditing =
           isSection(column.key) &&
           isLiveIn(
@@ -171,11 +186,14 @@ export function ExperimentRowView({
         return (
           <div
             key={column.key}
-            role="cell"
+            role="gridcell"
+            data-grid-row={row.key}
+            data-grid-col={col}
+            tabIndex={ownControl ? undefined : tabbable ? 0 : -1}
             className={`wtable__cell${isEditing ? " wtable__cell--editing" : ""}`}
             style={{ width: column.width }}
           >
-            {cellFor(column.key, row, artefacts, folder, editing)}
+            {cellFor(column.key, row, artefacts, folder, editing, tabbable)}
           </div>
         );
       })}
@@ -275,7 +293,7 @@ export function EmptyRowView({ place }: { place: RowPlace }) {
       className="wtable__none"
       style={place.style}
     >
-      <div role="cell">{tableMessages.noMatches}</div>
+      <div role="gridcell">{tableMessages.noMatches}</div>
     </div>
   );
 }
