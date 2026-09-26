@@ -7,6 +7,7 @@
 //! text of `project.yaml` goes to the webview to be parsed by
 //! `packages/format`; this crate never parses a notebook file.
 
+pub mod evidence;
 pub mod files;
 mod folders;
 pub mod history;

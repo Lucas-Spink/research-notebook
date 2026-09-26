@@ -21,7 +21,7 @@ use super::types::{Availability, OpenFailure, SourcePath, SourceRoot};
 /// from [`OpenFailure`] so the availability command can report these as
 /// ordinary outcomes rather than command errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum RootProblem {
+pub(in crate::commands::projects) enum RootProblem {
     Unresolved,
     FolderMissing,
     SettingsUnavailable,
@@ -39,7 +39,7 @@ impl From<RootProblem> for OpenFailure {
 
 /// The folder `root` names: `project_root` itself, or the configured folder
 /// of the external root it identifies.
-pub(super) fn resolve_root(
+pub(in crate::commands::projects) fn resolve_root(
     settings: &SettingsStore,
     project_root: &Path,
     project_id: &str,
@@ -64,7 +64,7 @@ pub(super) fn resolve_root(
 
 /// The absolute path `root`/`path` names, joining `path`'s already-validated
 /// forward-slash segments onto the resolved root folder.
-pub(super) fn resolve_source(
+pub(in crate::commands::projects) fn resolve_source(
     settings: &SettingsStore,
     project_root: &Path,
     project_id: &str,
