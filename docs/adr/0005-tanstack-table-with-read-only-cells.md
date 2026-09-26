@@ -1,6 +1,6 @@
 # ADR-0005: TanStack Table with read-only cells
 
-- Status: Accepted
+- Status: Superseded by ADR-0043
 - Date: 2026-09-15
 - Deciders: maintainer
 - Spec sections affected: see specification chapter 15.1
