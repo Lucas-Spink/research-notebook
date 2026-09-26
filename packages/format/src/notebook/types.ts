@@ -1,5 +1,5 @@
 import type { ExperimentFile, QuestionFile } from "../files";
-import type { ProjectYamlModel } from "../schema";
+import type { ArtefactsFileModel, ProjectYamlModel } from "../schema";
 
 /** The clock, identifier source and version a notebook operation is given, so tests are deterministic. */
 export interface NotebookEnv {
@@ -24,6 +24,14 @@ export interface LoadedExperiment {
 }
 
 /**
+ * An experiment's `artefacts.yaml` as it was read: what it holds, or that it
+ * could not be read or parsed, in which case it is left untouched and that
+ * experiment's evidence cannot be changed (AGENTS.md rule 5, ADR-0044).
+ */
+export type LoadedArtefacts =
+  { kind: "file"; file: ArtefactsFileModel } | { kind: "unreadable" };
+
+/**
  * Everything the questions-and-experiments operations need to know about an
  * open project, as `packages/format` parsed it. Operations never change one:
  * they return the next state in a [`Plan`].
@@ -44,6 +52,12 @@ export interface NotebookState {
    * `project.yaml` that name no known file are kept, because one may be theirs.
    */
   unreadable: readonly string[];
+  /**
+   * Each experiment's `artefacts.yaml`, by experiment folder, for those that
+   * have one (ADR-0044). Left out where nothing has been loaded, which reads
+   * as no artefacts yet.
+   */
+  artefacts?: Readonly<Record<string, LoadedArtefacts>>;
 }
 
 /** One write, in the order it must happen. Paths are project-relative, from `_notebook/`. */
@@ -86,4 +100,9 @@ export function questionPath(fileName: string): string {
 /** `_notebook/experiments/<folder>`. */
 export function experimentFolderPath(folder: string): string {
   return `_notebook/experiments/${folder}`;
+}
+
+/** `_notebook/experiments/<folder>/artefacts.yaml`. */
+export function artefactsPath(folder: string): string {
+  return `${experimentFolderPath(folder)}/artefacts.yaml`;
 }

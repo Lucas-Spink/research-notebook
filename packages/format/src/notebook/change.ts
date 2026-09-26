@@ -120,7 +120,20 @@ export function removeExperiment(
       { kind: "trash", path: experimentFolderPath(found.folder) },
       projectStep(project.value),
     ],
-    next: { ...state, project: project.value, experiments },
+    next: {
+      ...state,
+      project: project.value,
+      experiments,
+      ...(state.artefacts === undefined
+        ? {}
+        : {
+            artefacts: Object.fromEntries(
+              Object.entries(state.artefacts).filter(
+                ([folder]) => folder !== found.folder,
+              ),
+            ),
+          }),
+    },
   });
 }
 

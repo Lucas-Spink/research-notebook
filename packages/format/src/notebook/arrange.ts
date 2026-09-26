@@ -5,7 +5,12 @@ import {
   type Problem,
 } from "./problems";
 import { refNumber } from "./refs";
-import type { LoadedExperiment, LoadedQuestion, NotebookState } from "./types";
+import type {
+  LoadedArtefacts,
+  LoadedExperiment,
+  LoadedQuestion,
+  NotebookState,
+} from "./types";
 
 /** An experiment as shown: where it sits, and whether it may be changed. */
 export interface ArrangedExperiment {
@@ -14,6 +19,8 @@ export interface ArrangedExperiment {
   readOnly: boolean;
   /** Not listed in `project.yaml`, so shown after the listed ones (FR-EXP-08). */
   absentFromOrder: boolean;
+  /** Its artefacts.yaml, when it has one (ADR-0044). */
+  artefacts?: LoadedArtefacts;
 }
 
 export interface ArrangedQuestion {
@@ -84,11 +91,15 @@ function placeExperiments(
   const shown = (
     experiment: LoadedExperiment,
     absentFromOrder: boolean,
-  ): ArrangedExperiment => ({
-    experiment,
-    readOnly: ids.experiments.later.has(experiment),
-    absentFromOrder,
-  });
+  ): ArrangedExperiment => {
+    const artefacts = state.artefacts?.[experiment.folder];
+    return {
+      experiment,
+      readOnly: ids.experiments.later.has(experiment),
+      absentFromOrder,
+      ...(artefacts === undefined ? {} : { artefacts }),
+    };
+  };
 
   const arranged = questions.map((question): ArrangedQuestion => {
     const id = question.file.frontmatter.id;

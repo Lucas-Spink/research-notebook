@@ -44,7 +44,7 @@ export interface ExperimentChanges {
  * stays true and the version-change backup is not made again at every open
  * (ADR-0025 point 8). Nothing to do when the versions already agree.
  */
-function withWriterStamp(
+export function withWriterStamp(
   state: NotebookState,
   env: NotebookEnv,
 ): { state: NotebookState; steps: Step[] } {

@@ -16,8 +16,10 @@ import {
   tidied,
   withExperimentAppended,
 } from "./project-edit";
+import { EMPTY_ARTEFACTS } from "./artefacts-edit";
 import { formatRef, nextRefNumber } from "./refs";
 import {
+  artefactsPath,
   experimentFolderPath,
   questionPath,
   type LoadedExperiment,
@@ -165,15 +167,19 @@ export function createExperiment(
       },
       {
         kind: "create",
-        path: `${folder}/artefacts.yaml`,
-        text: serialiseArtefacts({
-          format_version: 1,
-          artefacts: [],
-          groups: [],
-        }),
+        path: artefactsPath(experiment.folder),
+        text: serialiseArtefacts(EMPTY_ARTEFACTS),
       },
       projectStep(project.value),
     ],
-    next: { ...state, project: project.value, experiments },
+    next: {
+      ...state,
+      project: project.value,
+      experiments,
+      artefacts: {
+        ...state.artefacts,
+        [experiment.folder]: { kind: "file", file: EMPTY_ARTEFACTS },
+      },
+    },
   });
 }
