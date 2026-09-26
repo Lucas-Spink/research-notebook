@@ -1,19 +1,28 @@
 import type {
   ArrangedExperiment,
-  LoadedExperiment,
   RecognisedSectionKey,
   ReferenceIndex,
 } from "@research-notebook/format";
 import { useEffect, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { commands } from "../../../ipc/bindings";
+import { liveKey, sectionText } from "../editing/model/liveEditor";
+import type { LiveEditor } from "../editing/useLiveEditor";
 import { columnLabel, expandedMessages, messages } from "../messages";
 import { useExperimentArtefacts } from "./model/useExperimentArtefacts";
-import type { AutosaveOutcome } from "./model/autosave";
-import { useAutosave, type AutosaveField } from "./model/useAutosave";
+import type { AutosaveField } from "./model/useAutosave";
 import { ReferencePreviewOverlay } from "./ReferencePreviewOverlay";
 import { RichSectionEditor } from "./RichSectionEditor";
 import "./ExpandedExperimentView.css";
+
+/** A section that is not live shows its stored text, which is saved by definition. */
+const STATIC_FIELD: AutosaveField = {
+  text: "",
+  status: "saved",
+  message: null,
+  onChange: () => undefined,
+  onBlur: () => undefined,
+};
 
 type Props = {
   item: ArrangedExperiment;
@@ -25,55 +34,23 @@ type Props = {
   /** Every experiment and section that references an artefact, across the
    * whole project (FR-SRC-03), for the reference preview's "Referenced in" list. */
   references: ReferenceIndex;
-  /** Opens straight to this section and scrolls it into view, when the experiment was opened from a search result (FR-SRC-02); `null` for the ordinary default. */
+  /** Scrolls this section into view, when the experiment was opened from a search result (FR-SRC-02); `null` otherwise. */
   focusSection: RecognisedSectionKey | null;
-  /** Autosaves one section's text (FR-EDT-03). Resolves whether it was saved. */
-  onSaveSection: (
-    key: RecognisedSectionKey,
-    text: string,
-  ) => Promise<AutosaveOutcome>;
+  /** The application's one live section editor and its autosave (FR-EDT-03, ADR-0043). */
+  live: LiveEditor;
 };
 
 /** A reference chip's activation (FR-EDT-06), waiting to open its preview. */
 type OpenReference = { ulid: string; version: number | null };
 
-function sectionText(
-  experiment: LoadedExperiment,
-  key: RecognisedSectionKey,
-): string {
-  return experiment.file.body.sections.find((s) => s.key === key)?.body ?? "";
-}
-
-function editorKey(
-  experiment: LoadedExperiment,
-  key: RecognisedSectionKey,
-): string {
-  return `${experiment.file.frontmatter.id}:${key}`;
-}
-
-/** One section's autosave field, starting from the experiment's own stored text. */
-function useSectionField(
-  experiment: LoadedExperiment,
-  key: RecognisedSectionKey,
-  onSaveSection: Props["onSaveSection"],
-): AutosaveField {
-  return useAutosave({
-    editorKey: editorKey(experiment, key),
-    initial: sectionText(experiment, key),
-    commit: (text) => onSaveSection(key, text),
-  });
-}
-
-const DEFAULT_LIVE_SECTION: RecognisedSectionKey = "methods";
-
 /**
  * The expanded experiment view (FR-TBL-07, FR-EDT-01 to FR-EDT-03): Methods,
  * then Results Notes and Interpretation side by side at 1280 px or more.
  * Formatted text with passthrough blocks for unsupported Markdown
- * (ADR-0028, this task). Only one of the three mounts a live editor
- * instance at a time (S4-G08); the other two show a static, read-only
- * rendering that activates it. The side-by-side layout is CSS only; it is
- * not asserted by width here.
+ * (ADR-0028). A section is live only when it is the application's one live
+ * section (`live`, ADR-0043); every other section shows a static, read-only
+ * rendering that asks for it to become live. The side-by-side layout is CSS
+ * only; it is not asserted by width here.
  */
 export function ExpandedExperimentView({
   item,
@@ -82,21 +59,18 @@ export function ExpandedExperimentView({
   projectId,
   references,
   focusSection,
-  onSaveSection,
+  live,
 }: Props) {
   const { experiment, readOnly } = item;
   const experimentId = experiment.file.frontmatter.id;
   const artefacts = useExperimentArtefacts(commands, folder, experiment.folder);
 
-  // Resetting to the default (or requested) live section when a different
-  // experiment is selected, or a new search result is opened, without an
-  // effect (React's documented pattern for state that must reset when a
-  // prop changes): https://react.dev/learn/you-might-not-need-an-effect
+  // Closing an open reference preview when a different experiment is
+  // selected, or a new search result is opened, without an effect (React's
+  // documented pattern for state that must reset when a prop changes):
+  // https://react.dev/learn/you-might-not-need-an-effect
   const [trackedExperimentId, setTrackedExperimentId] = useState(experimentId);
   const [trackedFocusSection, setTrackedFocusSection] = useState(focusSection);
-  const [live, setLive] = useState<RecognisedSectionKey>(
-    focusSection ?? DEFAULT_LIVE_SECTION,
-  );
   const [openReference, setOpenReference] = useState<OpenReference | null>(
     null,
   );
@@ -106,7 +80,6 @@ export function ExpandedExperimentView({
   ) {
     setTrackedExperimentId(experimentId);
     setTrackedFocusSection(focusSection);
-    setLive(focusSection ?? DEFAULT_LIVE_SECTION);
     setOpenReference(null);
   }
 
@@ -125,28 +98,20 @@ export function ExpandedExperimentView({
     });
   }, [trackedExperimentId, trackedFocusSection]);
 
-  const methods = useSectionField(experiment, "methods", onSaveSection);
-  const resultsNotes = useSectionField(
-    experiment,
-    "results_notes",
-    onSaveSection,
-  );
-  const interpretation = useSectionField(
-    experiment,
-    "interpretation",
-    onSaveSection,
-  );
-
   if (readOnly) return <p>{messages.readOnlyItem}</p>;
 
-  const sectionProps = (key: RecognisedSectionKey, field: AutosaveField) => ({
+  const liveSection =
+    live.target?.folder === experiment.folder ? live.target.section : null;
+
+  const sectionProps = (key: RecognisedSectionKey) => ({
     label: columnLabel(key),
-    editorKey: editorKey(experiment, key),
+    editorKey: liveKey({ folder: experiment.folder, section: key }),
     initialMarkdown: sectionText(experiment, key),
-    field,
+    field: liveSection === key ? live.field : STATIC_FIELD,
     disabled,
-    live: live === key,
-    onActivate: () => setLive(key),
+    live: liveSection === key,
+    onActivate: () =>
+      void live.activate({ folder: experiment.folder, section: key }),
     artefacts,
     onActivateReference: (ulid: string, version: number | null) =>
       setOpenReference({ ulid, version }),
@@ -158,12 +123,10 @@ export function ExpandedExperimentView({
   return (
     <div className="expanded" aria-labelledby="expanded-heading">
       <h5 id="expanded-heading">{expandedMessages.heading}</h5>
-      <RichSectionEditor {...sectionProps("methods", methods)} />
+      <RichSectionEditor {...sectionProps("methods")} />
       <div className="expanded__pair">
-        <RichSectionEditor {...sectionProps("results_notes", resultsNotes)} />
-        <RichSectionEditor
-          {...sectionProps("interpretation", interpretation)}
-        />
+        <RichSectionEditor {...sectionProps("results_notes")} />
+        <RichSectionEditor {...sectionProps("interpretation")} />
       </div>
       {openReference !== null && artefacts !== null && projectId !== null && (
         <ReferencePreviewOverlay

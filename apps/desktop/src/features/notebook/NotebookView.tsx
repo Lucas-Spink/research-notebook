@@ -1,5 +1,6 @@
 import {
   buildReferenceIndex,
+  type Arranged,
   type ColumnKey,
   type Problem,
   type RecognisedSectionKey,
@@ -8,6 +9,8 @@ import {
 import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
+import type { LiveTarget } from "./editing/model/liveEditor";
+import { useLiveEditor } from "./editing/useLiveEditor";
 import type { QuestionChoice } from "./ExperimentItem";
 import { messages, problemMessage } from "./messages";
 import { NewTitleForm } from "./NewTitleForm";
@@ -33,6 +36,37 @@ function sharedRefs(problems: readonly Problem[]): ReadonlySet<string> {
   return new Set(
     problems.flatMap((p) => (p.kind === "duplicateRef" ? [p.ref] : [])),
   );
+}
+
+/** What a table row key selects, looked up each time so a deleted item just stops being selected. */
+function findSelected(
+  arranged: Arranged | null,
+  key: string | null,
+): Selected | null {
+  if (key === null || arranged === null) return null;
+  const group = arranged.questions.find(
+    (q) => `question:${q.question.fileName}` === key,
+  );
+  if (group !== undefined) return { kind: "question", group };
+  const groups = [
+    ...arranged.questions.map((q) => q.experiments),
+    arranged.unassigned,
+  ];
+  for (const items of groups) {
+    const item = items.find((i) => `experiment:${i.experiment.folder}` === key);
+    if (item !== undefined) return { kind: "experiment", item };
+  }
+  return null;
+}
+
+/** The section a new selection opens live in the expanded view: Methods, or the one a search result points to. */
+function openedSection(
+  selected: Selected | null,
+  section: RecognisedSectionKey | null,
+): LiveTarget | null {
+  return selected?.kind === "experiment"
+    ? { folder: selected.item.experiment.folder, section: section ?? "methods" }
+    : null;
 }
 
 /**
@@ -74,14 +108,24 @@ export function NotebookView({
     null,
   );
 
-  function select(key: string) {
-    setSelectedKey(key);
-    setFocusSection(null);
-  }
+  const live = useLiveEditor({
+    arranged,
+    save: (id, section, text) =>
+      actions.editExperimentSection(id, section, text),
+  });
 
-  function openSearchResult(key: string, section: RecognisedSectionKey | null) {
+  // A new selection always moves on: its section opens once the old one's
+  // pending text has been tried (ADR-0043).
+  function openSelection(key: string, section: RecognisedSectionKey | null) {
     setSelectedKey(key);
     setFocusSection(section);
+    void live.activate(openedSection(findSelected(arranged, key), section), {
+      force: true,
+    });
+  }
+
+  function select(key: string) {
+    openSelection(key, null);
   }
 
   const layout = useMemo(
@@ -121,25 +165,10 @@ export function NotebookView({
     [arranged],
   );
 
-  // What is selected is looked up each time, so a deleted item just stops being selected.
-  const selected: Selected | null = useMemo(() => {
-    if (selectedKey === null || arranged === null) return null;
-    const group = arranged.questions.find(
-      (q) => `question:${q.question.fileName}` === selectedKey,
-    );
-    if (group !== undefined) return { kind: "question", group };
-    const groups = [
-      ...arranged.questions.map((q) => q.experiments),
-      arranged.unassigned,
-    ];
-    for (const items of groups) {
-      const item = items.find(
-        (i) => `experiment:${i.experiment.folder}` === selectedKey,
-      );
-      if (item !== undefined) return { kind: "experiment", item };
-    }
-    return null;
-  }, [selectedKey, arranged]);
+  const selected = useMemo(
+    () => findSelected(arranged, selectedKey),
+    [selectedKey, arranged],
+  );
 
   function toggle(row: HeaderRow) {
     if (row.questionId === null) {
@@ -172,7 +201,7 @@ export function NotebookView({
           <SearchPanel
             arranged={arranged}
             folder={folder}
-            onOpenResult={openSearchResult}
+            onOpenResult={openSelection}
           />
           <TableToolbar
             filter={filter}
@@ -231,6 +260,7 @@ export function NotebookView({
             projectId={projectId}
             references={references}
             focusSection={focusSection}
+            live={live}
           />
           <NewTitleForm
             label={messages.newQuestionLabel}
