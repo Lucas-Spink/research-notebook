@@ -162,6 +162,23 @@ export const commands = {
 	 *  written by checking it.
 	 */
 	linkedArtefactAvailability: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath) => typedError<Availability, OpenFailure>(__TAURI_INVOKE("linked_artefact_availability", { folder, projectId, root, path })),
+	/**
+	 *  Asks the person for files to add (FR-EVD-01), starting in the project
+	 *  folder. Each is returned as a location under the project or one of
+	 *  `external_roots`, or refused with the reason (ADR-0044 point 1). Empty
+	 *  when the person cancels.
+	 */
+	pickEvidenceFiles: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) => typedError<ChosenFile[], EvidenceFailure>(__TAURI_INVOKE("pick_evidence_files", { folder, projectId, externalRoots })),
+	/**
+	 *  Copies the file at `root`/`path` into the experiment as a new version
+	 *  (FR-EVD-03 to FR-EVD-05, FR-EVD-12). The source is only read.
+	 */
+	captureEvidence: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath, experiment: ExperimentFolder, destination: Destination, naming: CaptureNaming, known: KnownVersionInput[]) => typedError<CaptureOutcomeDto, EvidenceFailure>(__TAURI_INVOKE("capture_evidence", { folder, projectId, root, path, experiment, destination, naming, known })),
+	/**
+	 *  The hash, size and modification time of the file at `root`/`path`, to
+	 *  record it as linked rather than copied (FR-EVD-02, FR-EVD-07).
+	 */
+	observeEvidence: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath) => typedError<LinkObservationDto, EvidenceFailure>(__TAURI_INVOKE("observe_evidence", { folder, projectId, root, path })),
 };
 
 /* Types */
@@ -188,6 +205,52 @@ export type BackupMade = {
 	folder: string,
 	copied: number,
 	skipped: number,
+};
+
+/**
+ *  How the captured file is named (FR-EVD-04): from the source's own name
+ *  for a new artefact, or from the first version's stem and extension for a
+ *  later one. Neither may contain a folder separator.
+ */
+export type CaptureNaming = { kind: "new"; originalFileName: string } | { kind: "version"; stem: string; extension: string };
+
+export type CaptureOutcomeDto = {
+	result: CaptureResultDto,
+	/**
+	 *  The same content is already a version of a different artefact: a
+	 *  warning to show, not a reason to refuse (ADR-0030).
+	 */
+	matchesOtherArtefact: boolean,
+	/**
+	 *  `None` when the source is not in a git repository the project can
+	 *  record (ADR-0032).
+	 */
+	provenance: CapturedProvenance | null,
+};
+
+/**  What a capture did (FR-EVD-03 to FR-EVD-05). */
+export type CaptureResultDto = 
+/**
+ *  A new version was placed. `file` is relative to the experiment
+ *  folder, beginning `evidence/` or `methods/`.
+ */
+{ kind: "created"; file: string; sha256: string; size: number | null; number: number } | 
+/**
+ *  The same content is already that artefact's `version`; nothing was
+ *  written.
+ */
+{ kind: "duplicate"; version: number };
+
+/**
+ *  Git provenance of the source (FR-EVD-12), as `CapturedFile.provenance`
+ *  in `packages/format` takes it.
+ */
+export type CapturedProvenance = {
+	repo: string,
+	commit: string,
+	pathInRepo: string,
+	fileDirty: boolean,
+	treeDirty: boolean,
 };
 
 /**  The changes found since the last poll. */
@@ -223,12 +286,26 @@ export type ChangedState =
 /**  The file exists but could not be read for a while. */
 { kind: "unreadable" };
 
+/**
+ *  One file the person picked or dropped: where it is and how big, or why
+ *  it cannot be captured. Its `name` is the file's own name, for display.
+ */
+export type ChosenFile = { kind: "located"; name: string; 
+/**
+ *  Bytes. A number, not a `u64`, which the bindings cannot carry;
+ *  exact for any file under 8 PiB.
+ */
+size: number | null; location: SourceLocation } | { kind: "refused"; name: string; reason: Refusal };
+
 export type CreatedProject = {
 	folder: FolderHandle,
 	/**  For display only. */
 	path: string,
 	hygiene: HygieneReport[],
 };
+
+/**  Which of an experiment's folders a capture goes into (spec 5.8). */
+export type Destination = "evidence" | "methods";
 
 /**  Rows (without the header) and columns of a whole table. */
 export type Dimensions = {
@@ -238,8 +315,41 @@ export type Dimensions = {
 
 export type Encoding = "utf8" | "utf8Bom" | "windows1252";
 
+/**
+ *  Why an evidence command could not complete. The `kind` is the key of the
+ *  user-facing message; no path or system text is sent.
+ */
+export type EvidenceFailure = 
+/**  The project folder can no longer be opened. */
+{ kind: "projectUnavailable" } | 
+/**  The application's settings could not be read. */
+{ kind: "settingsUnavailable" } | 
+/**
+ *  The source's external root has no folder set on this machine, or its
+ *  folder is gone.
+ */
+{ kind: "rootUnavailable" } | 
+/**  The source is not there, or is not a regular file. */
+{ kind: "sourceUnavailable" } | 
+/**  A name, folder or known version was not acceptable. */
+{ kind: "invalidRequest" } | 
+/**  The copy did not match its source after writing; nothing was kept. */
+{ kind: "verificationFailed" } | 
+/**  The version file that would be written already exists. */
+{ kind: "versionExists" } | 
+/**  Writing inside `_notebook/` failed. */
+{ kind: "writeFailed" } | 
+/**  The file picker could not be shown, or something else went wrong. */
+{ kind: "internal" };
+
 /**  What the caller believes is on disk. */
 export type ExpectedFile = { kind: "absent" } | { kind: "sha256"; sha256: string };
+
+/**
+ *  An experiment's folder under `experiments/`: one path segment, so a
+ *  capture can only ever land in that experiment's own folders.
+ */
+export type ExperimentFolder = string;
 
 /**  Where an external root of a project is on this machine (FR-PRJ-07). */
 export type ExternalRootStatus = {
@@ -283,6 +393,24 @@ export type HygieneReport = {
 export type HygieneStatus = "added" | "unchanged" | 
 /**  Not updated. The project exists; the entries can be added by hand. */
 "failed";
+
+/**
+ *  A version already recorded in the experiment's `artefacts.yaml`, which
+ *  the webview parsed (AGENTS.md rule 2), so a capture can tell a duplicate.
+ */
+export type KnownVersionInput = {
+	sha256: string,
+	number: number,
+	sameArtefact: boolean,
+};
+
+/**  A linked file's observation (FR-EVD-07), as `applyLink` takes it. */
+export type LinkObservationDto = {
+	sha256: string,
+	size: number | null,
+	/**  `YYYY-MM-DDTHH:MM:SSZ`. */
+	observedMtime: string,
+};
 
 /**  Who holds a lock and since when, for the banner. Times are RFC 3339 UTC. */
 export type LockHolder = {
@@ -451,6 +579,23 @@ export type RecentEntry = {
 	available: boolean,
 };
 
+/**
+ *  Why a chosen file cannot be captured. The `kind` is the key of the
+ *  user-facing message; no path or system text is sent.
+ */
+export type Refusal = 
+/**
+ *  Neither under the project folder nor under an external root set on
+ *  this machine, so the format cannot record where it came from.
+ */
+{ kind: "outsideRoots" } | 
+/**  Inside the project's own `_notebook/` folder. */
+{ kind: "insideNotebook" } | 
+/**  A folder, or something else that is not a regular file. */
+{ kind: "notAFile" } | 
+/**  It could not be read. */
+{ kind: "unreadable" };
+
 /**  What a save did. */
 export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "changed"; current: string | null };
 
@@ -459,6 +604,15 @@ export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "c
  *  hexadecimal characters.
  */
 export type Sha256Hex = string;
+
+/**
+ *  Where a file the person chose sits, in the terms `artefacts.yaml`
+ *  records (spec 5.8): a root and a path relative to it.
+ */
+export type SourceLocation = {
+	root: SourceRoot,
+	path: SourcePath,
+};
 
 /**
  *  An artefact's `source.path` (spec 5.8): relative to its `source.root`,
