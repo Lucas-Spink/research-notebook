@@ -205,7 +205,7 @@ project opens and updated as files change.
 |----|----|----|
 | Motivation | Body of questions/\<ref\>.md; shown once per question header row. | Question panel |
 | Methods | \## Methods section of experiment.md, plus method-role artefacts. | Table cell, expanded view |
-| Results | Result-role artefacts and the group tree in artefacts.yaml, with thumbnails. | Expanded view, Results panel |
+| Results | Result-role artefacts and the group tree in artefacts.yaml, with thumbnails. | Table cell, opened in place (ADR-0044) |
 | Results Notes | \## Results notes section. | Table cell, expanded view |
 | Interpretation | \## Interpretation section. | Table cell, expanded view |
 | Literature | Generated from citations in Methods and Interpretation; written to the literature block. | Read-only |
@@ -811,7 +811,7 @@ schema version; any mismatch triggers a full rebuild.
 | FR-TBL-03 | Apply sorting and filtering within each question; headers remain visible and show "n of m" when filtered. | Must |
 | FR-TBL-04 | Resize and hide columns; persist settings in project.yaml. | Must |
 | FR-TBL-05 | Render cells as read-only, line-clamped summaries from Markdown, except the one cell being edited; at most one live rich editor exists in the application at a time (ADR-0043). | Must |
-| FR-TBL-06 | Results cells show group counts, up to four thumbnails and Browse all. | Must |
+| FR-TBL-06 | Results cells show group counts, up to four thumbnails and Browse all; opened in place, a Results cell shows the experiment's groups as folders to create, nest, rename and delete, and its files to add, move, preview and relink (ADR-0044). | Must |
 | FR-TBL-07 | The expanded experiment view edits all sections, with Results Notes and Interpretation side by side at widths of 1280 px or more. | Must |
 | FR-TBL-08 | Reorder experiments and questions by drag, keyboard or menu. | Should |
 | FR-TBL-09 | Filter by status, text, missing evidence and references with newer versions. | Should |

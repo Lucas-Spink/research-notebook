@@ -164,10 +164,10 @@ Entry requirement: Stage 2 gate passed.
 | S3-G01 | Capture dedupe and versioning | Property | `pnpm test:property -- capture` and `cargo test -p nb-fs -- capture` | Same content creates no version; changed content creates v2; v1 bytes unchanged | Both | Yes |
 | S3-G02 | Group operations preserve data | Property | `pnpm test:property -- groups` | Random operation sequences keep every artefact ID, all file bytes and ordering; no duplicate item within a group | Both | Yes |
 | S3-G03 | Nothing outside _notebook changes during capture | Filesystem safety | `pnpm test:fs-safety` | Source files unchanged in bytes and modification time after capture, relink and discovery | Both | Yes |
-| S3-G04 | Inbox import while app closed | Integration | `cargo test --test inbox_import` | Requests written with no app running import on next open; invalid requests stay with error | Both | Yes |
+| S3-G04 | Inbox import while app closed | Integration | `cargo test -p nb-fs --test inbox_import` and `pnpm test:unit -- inbox-open` | Requests written with no app running import on next open; invalid requests stay with error | Both | Yes |
 | S3-G05 | VS Code extension writes valid requests | Integration | `pnpm test:vscode` | Request validates against schema; payload hash matches; provenance commit and dirty flags correct in a test repository | Both | Yes |
-| S3-G06 | Relink never auto-applies | Integration | `cargo test -p nb-fs -- relink` | Candidates returned ranked; artefact unchanged until confirm command is called | Both | Yes |
-| S3-G07 | Discovery on 50,000 files | Performance | `pnpm bench -- discovery` | Progress within 500 ms; cancel within 1 s; excluded folders not traversed | Both | Yes |
+| S3-G06 | Relink never auto-applies | Integration | `cargo test -p nb-fs -- relink` and `pnpm test:unit -- relink` | Candidates returned ranked; artefact unchanged until the person confirms a candidate (the UI calling `applyRelink`, ADR-0044) | Both | Yes |
+| S3-G07 | Discovery on 50,000 files | Performance | `cargo test -p nb-fs --test discovery_perf` (ADR-0035 §10) | Progress within 500 ms; cancel within 1 s; excluded folders not traversed | Both | Yes |
 | S3-G08 | Bounded table preview | Integration | `cargo test -p nb-preview -- bounds` | 2 GB CSV: read limits respected, memory increase under 50 MB; gzip works | Both | Yes |
 | S3-G09 | SVG scripts do not execute; HTML not rendered | Security | `pnpm test:e2e -- preview-security` | Script-bearing SVG triggers no script; HTML artefact offers only external open | Both | Yes |
 | S3-G10 | Windows-safe filenames | Property | `cargo test -p nb-fs -- filename_sanitise` (proptest) | Generated names are valid on Windows, NFC, at most 64 characters, and unique after case folding | Both | Yes |
@@ -196,6 +196,7 @@ Entry requirement: Stage 3 gate passed.
 | S4-T09 | Implement Referenced in lookup | Artefact panel lists every reference with experiment and section. | FR-SRC-03 | No |  |
 | S4-T10 | Run internal alpha | Maintainer records one real experiment end to end on a copy of a real project and files issues. | 13 | Yes | Manual task for the maintainer. Help by preparing a copy of a real project and a checklist; do not run it on the original. |
 | S4-T11 | Edit in the table | Methods, Results Notes, Interpretation, title and status edit in place in the table; the edited row grows and stays rendered; one live editor across table and expanded view, saving before switching; keyboard grid navigation; section columns fill spare width. | FR-TBL-05, FR-TBL-11, FR-TBL-12, FR-EDT-03 | Yes | Follows ADR-0043, which supersedes ADR-0005. No on-disk format change: reuse the existing save actions. Deliver as separate pull requests: documents, shared live editor, section cells, keyboard grid, title and status, column width. |
+| S4-T12 | Wire evidence into the table | Files are added to an experiment by picker, drag-and-drop, discovery and VS Code inbox (imported on open), copied or linked, and organised in the Results cell as folders; missing linked files can be relinked after confirmation; artefacts.yaml is loaded and written with the rest of the notebook; the preview spike is removed. | FR-TBL-06, FR-EVD-01, FR-EVD-02, FR-EVD-05, FR-EVD-08, FR-EVD-09, FR-GRP-01 to FR-GRP-06, 5.10 | Yes | Follows ADR-0044. The webview never holds absolute paths: Rust hands out source locations. No on-disk format change, no new dependency, no capability change. Deliver as separate pull requests: documents, loaded artefacts, capture commands, Results cell, adding files, inbox on open, discovery, relink. |
 
 ### Stage 4 gate tests
 
@@ -213,6 +214,7 @@ Entry requirement: Stage 3 gate passed.
 | S4-G10 | Internal alpha complete | Manual | Maintainer dogfood on a copy of a real project | One real experiment recorded end to end; blocking issues fixed | Both | No |
 | S4-G11 | Inline edit saves | Unit | `pnpm test:unit -- inline-edit` | A section edited in a table cell writes the same file bytes as the same edit in the expanded view; switching cells saves pending text first | Both | Yes |
 | S4-G12 | Scroll with an active editor | Performance | Profile scrolling the 500-experiment table in the webview devtools with one cell being edited, on each platform | No frame longer than 50 ms; the edited row stays rendered and keeps its text | Both | No |
+| S4-G13 | Evidence added in the table | Integration | `pnpm test:unit -- evidence-capture` and `pnpm test:fs-safety` | A picked or dropped file becomes a new artefact or version in artefacts.yaml; a duplicate makes no version; a file outside the project and external roots is refused; source files are unchanged | Both | Yes |
 
 ## Stage 5: Citations and Literature
 
