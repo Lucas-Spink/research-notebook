@@ -273,6 +273,8 @@ export function NotebookView({
                 projectId,
                 references,
                 onEdit: editInTable,
+                onEditExperiment: (id, changes) =>
+                  actions.editExperiment(id, changes),
               }}
               {...(viewportHeight === undefined ? {} : { viewportHeight })}
             />

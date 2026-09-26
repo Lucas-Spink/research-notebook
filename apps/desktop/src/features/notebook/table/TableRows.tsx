@@ -14,10 +14,10 @@ import {
   expandLabel,
   messages,
   selectLabel,
-  statusLabel,
   tableMessages,
 } from "../messages";
 import { EditableSectionCell, type TableEditing } from "./EditableSectionCell";
+import { ExperimentCell } from "./ExperimentCell";
 import type { ExperimentRow, HeaderRow } from "./model/rows";
 import { SummaryCell } from "./SummaryCell";
 
@@ -112,15 +112,6 @@ export function ExperimentRowView({
     folder,
     row.item.experiment.folder,
   );
-  const front = row.item.experiment.file.frontmatter;
-  const dates = [
-    front.started === undefined
-      ? null
-      : `${messages.startedLabel} ${front.started}`,
-    front.completed === undefined
-      ? null
-      : `${messages.completedLabel} ${front.completed}`,
-  ].filter((part) => part !== null);
   return (
     <div
       ref={place.measure?.ref}
@@ -130,44 +121,15 @@ export function ExperimentRowView({
       className={`wtable__row${selected ? " wtable__row--selected" : ""}`}
       style={place.style}
     >
-      <div
-        role="gridcell"
-        data-grid-row={row.key}
-        data-grid-col={0}
-        className="wtable__cell"
-        style={{ width: experimentWidth }}
-      >
-        <button
-          type="button"
-          tabIndex={focusCol === 0 ? 0 : -1}
-          data-grid-focus
-          className="wtable__select"
-          aria-pressed={selected}
-          aria-label={selectLabel(front.ref)}
-          onClick={() => onSelect(row)}
-        >
-          <strong>{front.ref}</strong> {front.title}
-        </button>
-        <div>
-          <span className="wtable__status">{statusLabel(front.status)}</span>
-          {dates.length > 0 && (
-            <span className="wtable__muted"> · {dates.join(" · ")}</span>
-          )}
-        </div>
-        {(sharesRef || row.item.absentFromOrder || row.item.readOnly) && (
-          <div className="wtable__flag">
-            {[
-              sharesRef ? messages.duplicateRefBadge : null,
-              row.item.readOnly ? messages.readOnlyItem : null,
-              row.item.absentFromOrder && !row.item.readOnly
-                ? messages.notInOrder
-                : null,
-            ]
-              .filter((part) => part !== null)
-              .join(" · ")}
-          </div>
-        )}
-      </div>
+      <ExperimentCell
+        row={row}
+        width={experimentWidth}
+        selected={selected}
+        sharesRef={sharesRef}
+        tabbable={focusCol === 0}
+        editing={editing}
+        onSelect={onSelect}
+      />
       {columns.map((column, index) => {
         const col = index + 1;
         const tabbable = focusCol === col;

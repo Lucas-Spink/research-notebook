@@ -215,6 +215,10 @@ export const resizeLabel = (label: string) => `Resize ${label} column`;
 export const collapseLabel = (ref: string) => `Collapse ${ref}`;
 export const expandLabel = (ref: string) => `Expand ${ref}`;
 export const selectLabel = (ref: string) => `Select ${ref}`;
+export const titleOfLabel = (ref: string) => `Title of ${ref}`;
+export const statusOfLabel = (ref: string) => `Status of ${ref}`;
+/** How to rename an experiment in the table (FR-TBL-11), shown on its title. */
+export const renameHint = "Double-click or press F2 to rename";
 
 /** "2 experiments", or "1 of 2 experiments" while a filter is in force (FR-TBL-03). */
 export function countLabel(
