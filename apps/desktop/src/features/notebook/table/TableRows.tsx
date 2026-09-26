@@ -16,6 +16,7 @@ import {
   tableMessages,
 } from "../messages";
 import { EditableSectionCell, type TableEditing } from "./EditableSectionCell";
+import { ResultsCell } from "./ResultsCell";
 import { ExperimentCell } from "./ExperimentCell";
 import type { ExperimentRow, HeaderRow } from "./model/rows";
 import { SummaryCell } from "./SummaryCell";
@@ -70,7 +71,15 @@ function cellFor(
         <SummaryCell parts={row.summaries.literature} artefacts={artefacts} />
       );
     case "results":
-      return <span className="wtable__muted">{tableMessages.resultsNone}</span>;
+      return (
+        <ResultsCell
+          row={row}
+          artefacts={artefacts}
+          folder={folder}
+          editing={editing}
+          tabbable={tabbable}
+        />
+      );
     case "motivation":
       // Shown once in the question's header row, not in each experiment's.
       return null;
@@ -129,17 +138,22 @@ export function ExperimentRowView({
         const col = index + 1;
         const tabbable = focusCol === col;
         // A section that can be edited holds its own control (its Edit
-        // button, or its live editor), which takes the tab stop instead.
+        // button, or its live editor), which takes the tab stop instead; the
+        // Results cell always does, since its folders can be browsed even
+        // read-only.
         const ownControl =
-          isSection(column.key) && editing.writable && !row.item.readOnly;
+          column.key === "results" ||
+          (isSection(column.key) && editing.writable && !row.item.readOnly);
         const isEditing =
-          isSection(column.key) &&
-          isLiveIn(
-            editing.live.target,
-            row.item.experiment.folder,
-            column.key,
-            "table",
-          );
+          (column.key === "results" &&
+            editing.openResults === row.item.experiment.folder) ||
+          (isSection(column.key) &&
+            isLiveIn(
+              editing.live.target,
+              row.item.experiment.folder,
+              column.key,
+              "table",
+            ));
         return (
           <div
             key={column.key}

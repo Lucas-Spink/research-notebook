@@ -44,6 +44,14 @@ import { loadNotebook, type LoadFailure } from "./model/load";
 /** What `run` resolves to: a `perform()` outcome, or a genuinely unexpected exception. */
 type RunOutcome = Performed | { kind: "unexpected" };
 
+/**
+ * How a change to an experiment's evidence went: saved, refused by the
+ * format (`error`, for the caller to show where the change was asked for),
+ * or not saved for another reason (`null`: the notice already says why).
+ */
+export type ArtefactsOutcome =
+  { ok: true } | { ok: false; error: NotebookError | null };
+
 type Options = {
   /** The open project, or `null` for none. */
   folder: FolderHandle | null;
@@ -79,8 +87,9 @@ export type NotebookActions = {
     folder: string,
     change: (
       file: ArtefactsFileModel,
+      env: NotebookEnv,
     ) => Result<ArtefactsFileModel, NotebookError>,
-  ): Promise<boolean>;
+  ): Promise<ArtefactsOutcome>;
   moveExperiment(id: string, questionId: string): Promise<boolean>;
   removeExperiment(id: string): Promise<boolean>;
   removeQuestion(id: string): Promise<boolean>;
@@ -301,9 +310,17 @@ export function useNotebook({ folder, writable, changes }: Options) {
       editExperiment: (id, changed) =>
         run((s, e) => editExperiment(s, id, changed, e)).then(isDone),
       editArtefacts: (experimentFolder, change) =>
-        run((s, e) => editArtefactsFile(s, experimentFolder, change, e)).then(
-          isDone,
-        ),
+        run(
+          (s, e) =>
+            editArtefactsFile(s, experimentFolder, (f) => change(f, e), e),
+          { silent: true },
+        ).then((done): ArtefactsOutcome => {
+          if (done.kind === "done") return { ok: true };
+          if (done.kind === "refused") return { ok: false, error: done.error };
+          // Not the change itself: the save failed. Shown like any other.
+          setNotice(outcomeMessage(done) ?? messages.unexpected);
+          return { ok: false, error: null };
+        }),
       moveExperiment: (id, questionId) =>
         run((s, e) => moveExperiment(s, id, questionId, e)).then(isDone),
       removeExperiment: (id) =>

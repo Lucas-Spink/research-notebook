@@ -91,16 +91,20 @@ type Props = {
   viewportHeight?: number;
 };
 
-/** The index of the row whose section is being edited in its cell, if any. */
+/** The index of the row open in the table, if any: grown to fit, and kept rendered. */
 function editedRow(
   rows: readonly TableRow[],
   editing: TableEditing,
 ): number | null {
+  // One thing is open in the table at a time: an open Results cell, or a
+  // section being edited in its cell (ADR-0044 point 4).
   const target = editing.live.target;
-  if (target === null || target.surface !== "table") return null;
+  const folder =
+    editing.openResults ??
+    (target !== null && target.surface === "table" ? target.folder : null);
+  if (folder === null) return null;
   const index = rows.findIndex(
-    (row) =>
-      row.kind === "experiment" && row.item.experiment.folder === target.folder,
+    (row) => row.kind === "experiment" && row.item.experiment.folder === folder,
   );
   return index === -1 ? null : index;
 }

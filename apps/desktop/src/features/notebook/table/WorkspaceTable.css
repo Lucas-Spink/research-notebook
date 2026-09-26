@@ -118,6 +118,50 @@
   white-space: nowrap;
 }
 
+/* A closed Results cell: counts by group, up to four thumbnails, Browse all (FR-TBL-06). */
+.wtable__results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.wtable__results-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.wtable__results-group {
+  opacity: 0.75;
+}
+
+.wtable__thumbs {
+  display: flex;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+.wtable__thumbs > * {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+.wtable__browse {
+  text-decoration: underline;
+}
+
+/* An open Results cell: the folder tree, scrolling inside after a point (ADR-0044). */
+.wtable__results-open {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.wtable__results-close {
+  float: right;
+}
+
 /* Four lines of a summary, however long the section is (FR-TBL-05). */
 .wtable__clamp {
   display: -webkit-box;

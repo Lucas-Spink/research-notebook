@@ -57,8 +57,9 @@ function focusTarget(grid: HTMLElement, cell: GridCell): HTMLElement | null {
  * The keyboard grid (FR-TBL-11, ADR-0043 point 5): one tab stop, moved by
  * the arrow keys, Home and End, and following focus that arrives by click or
  * Tab. Escape in a cell's editor saves, closes it and returns focus to the
- * cell. Keys typed in an editor, input or select are left to it, as is a key
- * something inside already handled (such as the @ autocomplete's Escape).
+ * cell. Keys typed in an editor, input, select or open Results tree are left
+ * to it, as is a key something inside already handled (such as the @
+ * autocomplete's Escape).
  */
 export function useGridFocus({
   rows,
@@ -95,7 +96,11 @@ export function useGridFocus({
       });
       return;
     }
-    if (target.closest("input, select, textarea") !== null) return;
+    // An open Results cell has its own tree keys (spec 7.5).
+    if (
+      target.closest("input, select, textarea, .wtable__results-open") !== null
+    )
+      return;
     const from = cellOf(target);
     if (from === null || !isGridKey(event.key)) return;
     event.preventDefault();
