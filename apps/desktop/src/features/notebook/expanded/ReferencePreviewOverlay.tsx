@@ -3,6 +3,7 @@ import type {
   ReferenceIndex,
 } from "@research-notebook/format";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { PreviewPanel, type PanelApi } from "../../preview-panel";
 import { expandedMessages } from "../messages";
@@ -47,7 +48,9 @@ export function ReferencePreviewOverlay({
     box.current?.querySelector<HTMLElement>("button")?.focus();
   }, []);
 
-  return (
+  // Rendered into the document body: inside a table row, the row's
+  // `transform` would make this fixed overlay relative to the row (ADR-0043).
+  return createPortal(
     <section
       ref={box}
       role="dialog"
@@ -71,6 +74,7 @@ export function ReferencePreviewOverlay({
         version={version}
         references={references}
       />
-    </section>
+    </section>,
+    document.body,
   );
 }

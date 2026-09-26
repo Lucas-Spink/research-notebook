@@ -105,10 +105,20 @@ function mount(version: number | null, onClose = () => undefined) {
       />,
     ),
   );
-  return container;
+  // The dialog is rendered into the document body, not where it is opened.
+  return document.body;
 }
 
 describe("ReferencePreviewOverlay", () => {
+  it("renders into the document body, so a table row's transform or clipping cannot trap it (ADR-0043)", async () => {
+    mount(1);
+    await act(() => Promise.resolve());
+    expect(container?.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')?.parentElement).toBe(
+      document.body,
+    );
+  });
+
   it("is a dialog showing the pinned version's preview panel, not the latest", async () => {
     const view = mount(1);
     await act(() => Promise.resolve());

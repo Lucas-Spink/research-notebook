@@ -1,4 +1,5 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   artefactVersionLabel,
   expandedMessages,
@@ -37,7 +38,17 @@ type Props = {
  */
 export function ArtefactRefChip({ resolved, onActivate, onUpdate }: Props) {
   const detailId = useId();
-  const [showDetail, setShowDetail] = useState(false);
+  const chip = useRef<HTMLSpanElement>(null);
+  // Where the detail shows, in window coordinates, while hovered or focused.
+  const [detailAt, setDetailAt] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+  const showDetail = () => {
+    const box = chip.current?.getBoundingClientRect();
+    setDetailAt({ left: box?.left ?? 0, top: box?.top ?? 0 });
+  };
+  const hideDetail = () => setDetailAt(null);
 
   if (resolved.status === "pending") {
     return <span className="expanded__artefact-ref">{resolved.label}</span>;
@@ -65,14 +76,15 @@ export function ArtefactRefChip({ resolved, onActivate, onUpdate }: Props) {
   return (
     <span className="expanded__artefact-ref-group">
       <span
+        ref={chip}
         className="expanded__artefact-ref expanded__artefact-ref--chip"
         role="button"
         tabIndex={0}
-        aria-describedby={showDetail ? detailId : undefined}
-        onMouseEnter={() => setShowDetail(true)}
-        onMouseLeave={() => setShowDetail(false)}
-        onFocus={() => setShowDetail(true)}
-        onBlur={() => setShowDetail(false)}
+        aria-describedby={detailAt === null ? undefined : detailId}
+        onMouseEnter={showDetail}
+        onMouseLeave={hideDetail}
+        onFocus={showDetail}
+        onBlur={hideDetail}
         onClick={(event) => {
           // A chip can sit inside a static section's own "make me the live
           // editor" click target; activating the chip must not also do that.
@@ -88,15 +100,20 @@ export function ArtefactRefChip({ resolved, onActivate, onUpdate }: Props) {
         }}
       >
         {resolved.label}
-        {showDetail && (
-          <span
-            role="tooltip"
-            id={detailId}
-            className="expanded__artefact-ref-detail"
-          >
-            {detail}
-          </span>
-        )}
+        {detailAt !== null &&
+          // Rendered into the document body and placed over the chip, so a
+          // table cell's scrolling editor cannot clip it (ADR-0043).
+          createPortal(
+            <span
+              role="tooltip"
+              id={detailId}
+              className="expanded__artefact-ref-detail"
+              style={{ left: detailAt.left, top: detailAt.top }}
+            >
+              {detail}
+            </span>,
+            document.body,
+          )}
       </span>
       {update !== null && (
         <span className="expanded__artefact-ref-newer">
