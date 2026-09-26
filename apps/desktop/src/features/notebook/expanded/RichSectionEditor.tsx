@@ -33,6 +33,8 @@ type Props = {
   onActivateReference: (ulid: string, version: number | null) => void;
   /** The section's own container, so opening it from a search result can scroll to it (FR-SRC-02). */
   containerRef?: (element: HTMLDivElement | null) => void;
+  /** Puts the caret at the end of the live editor once it mounts, as a table cell opened for editing does (ADR-0043). */
+  autoFocus?: boolean;
 };
 
 /**
@@ -53,6 +55,7 @@ export function RichSectionEditor({
   artefacts,
   onActivateReference,
   containerRef,
+  autoFocus = false,
 }: Props) {
   const id = useId();
   return (
@@ -76,6 +79,7 @@ export function RichSectionEditor({
           disabled={disabled}
           artefacts={artefacts}
           onActivateReference={onActivateReference}
+          autoFocus={autoFocus}
         />
       ) : (
         <StaticSection
@@ -100,6 +104,7 @@ function LiveEditor({
   disabled,
   artefacts,
   onActivateReference,
+  autoFocus,
 }: {
   id: string;
   label: string;
@@ -108,6 +113,7 @@ function LiveEditor({
   disabled: boolean;
   artefacts: ArtefactsFileModel | null;
   onActivateReference: (ulid: string, version: number | null) => void;
+  autoFocus: boolean;
 }) {
   // Stable functions, read at call time: the suggestion plugin and the
   // chip's NodeView are built once per editor instance (below), but the
@@ -145,6 +151,7 @@ function LiveEditor({
     extensions,
     content: parseSectionMarkdown(initialMarkdown),
     editable: !disabled,
+    autofocus: autoFocus ? "end" : false,
     editorProps: { attributes: { id, "aria-label": label } },
     onUpdate: ({ editor: current }) => {
       const file = artefactsRef.current;

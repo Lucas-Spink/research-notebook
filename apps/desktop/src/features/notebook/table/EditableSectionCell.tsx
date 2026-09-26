@@ -36,7 +36,12 @@ type Props = {
   artefacts: ArtefactsFileModel | null;
   folder: FolderHandle;
   editing: TableEditing;
+  /** Whether this cell holds the grid's one tab stop (ADR-0043 point 5). */
+  tabbable: boolean;
 };
+
+/** Keys that open a focused section for editing (FR-TBL-11). */
+const OPEN_KEYS = new Set(["Enter", " ", "F2"]);
 
 /** A reference chip's activation (FR-EDT-06), waiting to open its preview. */
 type OpenReference = { ulid: string; version: number | null };
@@ -44,10 +49,10 @@ type OpenReference = { ulid: string; version: number | null };
 /**
  * A Methods, Results Notes or Interpretation cell (FR-TBL-11). While it is
  * the application's live section on the table surface it holds the rich
- * editor; otherwise it shows the line-clamped summary (FR-TBL-05), which a
- * click, Enter or Space opens for editing. A read-only project, or an
- * experiment left read-only (spec P6, AGENTS.md rule 5), only shows the
- * summary.
+ * editor, with the caret in it; otherwise it shows the line-clamped summary
+ * (FR-TBL-05), which a click, Enter, Space or F2 opens for editing. A
+ * read-only project, or an experiment left read-only (spec P6, AGENTS.md
+ * rule 5), only shows the summary.
  */
 export function EditableSectionCell({
   row,
@@ -56,6 +61,7 @@ export function EditableSectionCell({
   artefacts,
   folder,
   editing,
+  tabbable,
 }: Props) {
   const [openReference, setOpenReference] = useState<OpenReference | null>(
     null,
@@ -86,18 +92,20 @@ export function EditableSectionCell({
       onActivateReference={(ulid, version) =>
         setOpenReference({ ulid, version })
       }
+      autoFocus
     />
   ) : !editing.writable || row.item.readOnly ? (
     <SummaryCell parts={parts} artefacts={artefacts} />
   ) : (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={tabbable ? 0 : -1}
+      data-grid-focus
       className="wtable__edit"
       aria-label={editLabel(label)}
       onClick={() => editing.onEdit(row, section)}
       onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
+        if (OPEN_KEYS.has(event.key)) {
           event.preventDefault();
           editing.onEdit(row, section);
         }

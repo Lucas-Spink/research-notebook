@@ -91,9 +91,9 @@ function withSection(
 describe("NotebookView: the table", () => {
   const { state, first } = sampleNotebook();
 
-  it("is a table with a heading row, a header row per question and a row per experiment", () => {
+  it("is a grid with a heading row, a header row per question and a row per experiment (ADR-0043)", () => {
     const view = render(model(state));
-    const table = view.querySelector('[role="table"]');
+    const table = view.querySelector('[role="grid"]');
     expect(table?.getAttribute("aria-rowcount")).toBe("5");
     const rows = rowsIn(view);
     expect(rows.map((r) => r.getAttribute("aria-rowindex"))).toEqual([
@@ -262,7 +262,7 @@ describe("NotebookView: only the rows in view are drawn (FR-TBL-10)", () => {
     expect(drawn).toBeGreaterThan(5);
     expect(drawn).toBeLessThan(40);
     // The table still says how big it is, so a screen reader can tell.
-    const table = view.querySelector('[role="table"]');
+    const table = view.querySelector('[role="grid"]');
     expect(Number(table?.getAttribute("aria-rowcount"))).toBeGreaterThan(500);
     expect(text(rowsIn(view)[0])).toContain("502 experiments");
   });
@@ -349,7 +349,7 @@ describe("NotebookView: controls", () => {
       table: null,
     });
     expect(loading.textContent).toContain("Loading");
-    expect(loading.querySelector('[role="table"]')).toBeNull();
+    expect(loading.querySelector('[role="grid"]')).toBeNull();
     const failed = render({
       ...model(state),
       view: { status: "failed", reason: "projectFile" },
@@ -358,7 +358,7 @@ describe("NotebookView: controls", () => {
       failure: "The project file could not be read.",
     });
     expect(failed.textContent).toContain("could not be read");
-    expect(failed.querySelector('[role="table"]')).toBeNull();
+    expect(failed.querySelector('[role="grid"]')).toBeNull();
   });
 
   it("says when there are no questions yet, and still offers to add one", () => {
