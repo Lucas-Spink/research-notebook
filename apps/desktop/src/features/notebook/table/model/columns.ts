@@ -81,6 +81,41 @@ export function gridWidth(columns: readonly ColumnLayout[]): number {
   return columns.reduce((sum, c) => sum + c.width, EXPERIMENT_COLUMN_WIDTH);
 }
 
+const SECTION_KEYS: readonly ColumnKey[] = [
+  "methods",
+  "results_notes",
+  "interpretation",
+];
+
+/**
+ * The extra width each shown section column takes, so the table fills a
+ * window `available` pixels wide (FR-TBL-12, ADR-0043 point 8): the spare
+ * width shared in proportion to the columns' own widths, in whole pixels
+ * adding up to exactly the spare width. Empty when there is no spare width
+ * or no section column is shown. The widths passed in are the stored ones,
+ * which stay the minimums.
+ */
+export function spareShares(
+  columns: readonly ColumnLayout[],
+  available: number,
+): ReadonlyMap<ColumnKey, number> {
+  const spare = Math.floor(available - gridWidth(columns));
+  const sections = columns.filter((c) => SECTION_KEYS.includes(c.key));
+  const weight = sections.reduce((sum, c) => sum + c.width, 0);
+  const shares = new Map<ColumnKey, number>();
+  if (spare <= 0 || weight === 0) return shares;
+  let given = 0;
+  sections.forEach((column, index) => {
+    const share =
+      index === sections.length - 1
+        ? spare - given
+        : Math.floor((spare * column.width) / weight);
+    given += share;
+    shares.set(column.key, share);
+  });
+  return shares;
+}
+
 /**
  * `table` with changes that are not saved yet applied, so the table shows
  * them at once and does not flick back while the save is under way.
