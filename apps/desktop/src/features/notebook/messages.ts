@@ -24,6 +24,8 @@ export const messages = {
   newQuestionPlaceholder: "For example, Do batch effects explain the signal?",
   addQuestion: "Add question",
   addExperiment: "Add experiment",
+  chooseQuestionLabel: "Question",
+  newExperimentPlaceholder: "For example, Baseline correction of raw counts",
   noExperiments: "No experiments in this question yet.",
   unassignedHeading: "Unassigned",
   unassignedNote:

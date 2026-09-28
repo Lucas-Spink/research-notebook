@@ -30,6 +30,20 @@
   margin: 0.25rem 0;
 }
 
+.notebook__top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background: var(--color-accent-soft, transparent);
+  border-radius: 6px;
+}
+
+.notebook__top-actions .notebook__new {
+  margin: 0;
+}
+
 .notebook__status {
   font-style: italic;
 }

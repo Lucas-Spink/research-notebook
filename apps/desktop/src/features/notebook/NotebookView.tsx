@@ -13,7 +13,6 @@ import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
 import type { QuestionChoice } from "./ExperimentItem";
 import { inboxRequestMessage, messages, problemMessage } from "./messages";
-import { NewTitleForm } from "./NewTitleForm";
 import { SearchPanel } from "./search/SearchPanel";
 import { columnLayout } from "./table/model/columns";
 import {
@@ -26,6 +25,7 @@ import {
 import { TableToolbar } from "./table/TableToolbar";
 import { useTableEditing } from "./table/useTableEditing";
 import { WorkspaceTable } from "./table/WorkspaceTable";
+import { TopActions } from "./TopActions";
 import type { NotebookModel } from "./useNotebook";
 import "./NotebookPanel.css";
 
@@ -256,6 +256,11 @@ export function NotebookView({
             }
             onReset={() => actions.resetColumns()}
           />
+          <TopActions
+            questions={questions}
+            disabled={disabled}
+            actions={actions}
+          />
           {arranged.problems.length > 0 && (
             <section aria-labelledby="notebook-problems">
               <h4 id="notebook-problems">{messages.problemsHeading}</h4>
@@ -307,13 +312,6 @@ export function NotebookView({
             references={references}
             focusSection={focusSection}
             live={live}
-          />
-          <NewTitleForm
-            label={messages.newQuestionLabel}
-            placeholder={messages.newQuestionPlaceholder}
-            submitLabel={messages.addQuestion}
-            disabled={disabled}
-            onSubmit={(title) => actions.createQuestion(title)}
           />
         </>
       )}

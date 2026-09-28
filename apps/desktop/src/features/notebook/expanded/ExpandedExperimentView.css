@@ -120,9 +120,10 @@
   display: block;
   margin: 0.375rem 0 0;
   padding: 0.25rem 0.625rem;
-  border: 1px solid currentColor;
+  border: 1px solid var(--color-highlight, currentColor);
   border-radius: 4px;
-  background: transparent;
+  background: var(--color-highlight-soft, transparent);
+  color: var(--color-highlight, currentColor);
   cursor: pointer;
 }
 
