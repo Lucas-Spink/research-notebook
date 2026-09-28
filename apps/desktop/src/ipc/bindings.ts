@@ -229,6 +229,13 @@ export const commands = {
 	 *  it had found so far, with `cancelled` set (ADR-0035 point 8).
 	 */
 	cancelDiscovery: () => __TAURI_INVOKE<void>("cancel_discovery"),
+	/**
+	 *  Ranked candidates for a missing linked artefact's new location (FR-EVD-08,
+	 *  ADR-0031 §3), among `chosen`'s direct entries. `chosen` is picked the same
+	 *  way a discovery folder is, with `pick_discovery_folder`. Nothing is
+	 *  applied; the caller confirms a candidate itself, through `editArtefacts`.
+	 */
+	listRelinkCandidates: (folder: FolderHandle, projectId: Ulid, chosen: DiscoveryFolder, fileName: string, size: number | null, sha256: string) => typedError<RelinkCandidateDto[], EvidenceFailure>(__TAURI_INVOKE("list_relink_candidates", { folder, projectId, chosen, fileName, size, sha256 })),
 };
 
 /** Events */
@@ -750,6 +757,25 @@ export type Refusal =
 { kind: "notAFolder" } | 
 /**  It could not be read. */
 { kind: "unreadable" };
+
+/**
+ *  One file found while looking for a missing link's new location (FR-EVD-08,
+ *  ADR-0031 §3), ranked by how many of the last known name, size and hash it
+ *  matches. Carries its own observation, so confirming it needs no second
+ *  read of the file.
+ */
+export type RelinkCandidateDto = {
+	location: SourceLocation,
+	/**  The file's own name, for display. */
+	name: string,
+	sha256: string,
+	size: number | null,
+	/**  `YYYY-MM-DDTHH:MM:SSZ`. */
+	observedMtime: string,
+	nameMatches: boolean,
+	sizeMatches: boolean,
+	hashMatches: boolean,
+};
 
 /**  What a save did. */
 export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "changed"; current: string | null };
