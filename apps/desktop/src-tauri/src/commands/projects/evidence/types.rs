@@ -313,6 +313,25 @@ pub struct DiscoveryResultDto {
     pub cancelled: bool,
 }
 
+/// One file found while looking for a missing link's new location (FR-EVD-08,
+/// ADR-0031 §3), ranked by how many of the last known name, size and hash it
+/// matches. Carries its own observation, so confirming it needs no second
+/// read of the file.
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RelinkCandidateDto {
+    pub location: SourceLocation,
+    /// The file's own name, for display.
+    pub name: String,
+    pub sha256: String,
+    pub size: f64,
+    /// `YYYY-MM-DDTHH:MM:SSZ`.
+    pub observed_mtime: String,
+    pub name_matches: bool,
+    pub size_matches: bool,
+    pub hash_matches: bool,
+}
+
 /// Why an evidence command could not complete. The `kind` is the key of the
 /// user-facing message; no path or system text is sent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
