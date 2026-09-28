@@ -21,7 +21,7 @@ import type {
   Refusal,
   commands,
 } from "../../../../ipc/bindings";
-import type { ArtefactsOutcome } from "../../useNotebook";
+import type { ArtefactsOutcome } from "../../model/api";
 
 /** The commands adding a file needs, so tests can stand in for them. */
 export type EvidenceApi = Pick<
@@ -125,9 +125,10 @@ function knownVersions(
 
 /**
  * Names a later version after the artefact's first, so the versions of one
- * artefact sit together (FR-EVD-04): its stem and extension.
+ * artefact sit together (FR-EVD-04): its stem and extension. Also used to
+ * name an inbox import matched to an existing artefact (ADR-0044 point 6).
  */
-function versionNaming(artefact: ArtefactModel): CaptureNaming | null {
+export function versionNaming(artefact: ArtefactModel): CaptureNaming | null {
   if (artefact.mode !== "copy") return null;
   const first = artefact.versions[0]?.file;
   if (first === undefined) return null;

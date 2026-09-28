@@ -28,6 +28,7 @@ export const messages = {
   unassignedNote:
     "These experiments belong to a question that no longer exists. Move them to a question to keep them together.",
   problemsHeading: "Things to check",
+  inboxHeading: "Files from VS Code that could not be added",
   edit: "Edit",
   save: "Save",
   cancel: "Cancel",
@@ -341,6 +342,11 @@ export function outcomeMessage(
     default:
       return assertNever(done);
   }
+}
+
+/** One waiting inbox request that could not be imported (ADR-0044 point 6, spec 5.10). */
+export function inboxRequestMessage(reason: string): string {
+  return `A file could not be added: ${reason}.`;
 }
 
 /** What is wrong, in a sentence that names the refs involved. Never a path or system text. */

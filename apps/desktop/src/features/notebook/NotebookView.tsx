@@ -12,7 +12,7 @@ import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
 import type { QuestionChoice } from "./ExperimentItem";
-import { messages, problemMessage } from "./messages";
+import { inboxRequestMessage, messages, problemMessage } from "./messages";
 import { NewTitleForm } from "./NewTitleForm";
 import { SearchPanel } from "./search/SearchPanel";
 import { columnLayout } from "./table/model/columns";
@@ -101,6 +101,7 @@ export function NotebookView({
     writable,
     notice,
     failure,
+    invalidInboxRequests,
     actions,
     projectId,
   } = notebook;
@@ -246,6 +247,16 @@ export function NotebookView({
                   <li key={`${problem.kind}-${index}`}>
                     {problemMessage(problem)}
                   </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {invalidInboxRequests.length > 0 && (
+            <section aria-labelledby="notebook-inbox">
+              <h4 id="notebook-inbox">{messages.inboxHeading}</h4>
+              <ul className="notebook__problems">
+                {invalidInboxRequests.map((item) => (
+                  <li key={item.request}>{inboxRequestMessage(item.reason)}</li>
                 ))}
               </ul>
             </section>

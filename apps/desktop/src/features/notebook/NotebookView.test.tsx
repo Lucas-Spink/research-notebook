@@ -39,6 +39,7 @@ function model(
     writable: true,
     notice: null,
     failure: null,
+    invalidInboxRequests: [],
     actions,
     projectId: state.project.id,
     evidence: null,

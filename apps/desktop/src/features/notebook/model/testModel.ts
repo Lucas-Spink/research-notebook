@@ -32,6 +32,7 @@ export function testModel(
     writable: true,
     notice: null,
     failure: null,
+    invalidInboxRequests: [],
     actions: stubActions,
     projectId: state.project.id,
     evidence: {
