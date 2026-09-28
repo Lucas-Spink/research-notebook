@@ -51,6 +51,10 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::projects::evidence::observe_evidence,
             commands::projects::evidence::watch_drops,
             commands::projects::evidence::unwatch_drops,
+            commands::projects::evidence::list_inbox_requests,
+            commands::projects::evidence::read_inbox_request,
+            commands::projects::evidence::import_inbox_payload,
+            commands::projects::evidence::remove_inbox_request,
         ])
         .events(collect_events![
             commands::projects::evidence::EvidenceDragged,
