@@ -7,11 +7,10 @@ import {
   type OpenMode,
   type ReadOnlyReason,
 } from "./mode";
-import type { OpenedProject } from "./flows";
+import { PROJECT_YAML, type OpenedProject } from "./flows";
 import { summariseProject, type ProjectSummary } from "./summary";
 
-/** The project-relative path of `project.yaml`, which the watcher reports. */
-export const PROJECT_YAML = "_notebook/project.yaml";
+export { PROJECT_YAML };
 
 /** What the reloaded `project.yaml` was found to hold: its text, or `null` if it is gone. */
 type Reloaded = { text: string } | null;
