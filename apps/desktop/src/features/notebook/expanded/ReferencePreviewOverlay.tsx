@@ -5,7 +5,11 @@ import type {
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { FolderHandle } from "../../../ipc/bindings";
-import { PreviewPanel, type PanelApi } from "../../preview-panel";
+import {
+  PreviewPanel,
+  type PanelApi,
+  type RelinkCapability,
+} from "../../preview-panel";
 import { expandedMessages } from "../messages";
 import "./ReferencePreviewOverlay.css";
 
@@ -21,6 +25,9 @@ type Props = {
   /** Every experiment and section that references an artefact, across the
    * whole project (FR-SRC-03). */
   references: ReferenceIndex;
+  /** Offers Relink for a missing linked artefact (FR-EVD-08); left out, it
+   * is not offered here. */
+  relink?: RelinkCapability;
   onClose: () => void;
 };
 
@@ -40,6 +47,7 @@ export function ReferencePreviewOverlay({
   artefactId,
   version,
   references,
+  relink,
   onClose,
 }: Props) {
   const box = useRef<HTMLElement>(null);
@@ -73,6 +81,7 @@ export function ReferencePreviewOverlay({
         artefactId={artefactId}
         version={version}
         references={references}
+        {...(relink === undefined ? {} : { relink })}
       />
     </section>,
     document.body,

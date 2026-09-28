@@ -10,6 +10,7 @@ mod discovery;
 mod dropped;
 mod inbox;
 mod locate;
+mod relink;
 mod types;
 
 use std::path::PathBuf;
@@ -28,7 +29,7 @@ pub use dropped::{on_drag, DropTargets, EvidenceDragged, EvidenceDropped};
 pub use types::{
     CaptureNaming, CaptureOutcomeDto, ChosenFile, ChosenFolder, Destination, DiscoveryFolder,
     DiscoveryOptionsDto, DiscoveryProgressDto, DiscoveryResultDto, EvidenceFailure,
-    ExperimentFolder, InboxName, KnownVersionInput, LinkObservationDto,
+    ExperimentFolder, InboxName, KnownVersionInput, LinkObservationDto, RelinkCandidateDto,
 };
 
 /// Runs blocking work off the async runtime's threads, as the other
@@ -395,4 +396,37 @@ pub async fn start_discovery(
 #[specta::specta]
 pub fn cancel_discovery(scans: State<'_, DiscoveryScans>) {
     scans.cancel();
+}
+
+/// Ranked candidates for a missing linked artefact's new location (FR-EVD-08,
+/// ADR-0031 §3), among `chosen`'s direct entries. `chosen` is picked the same
+/// way a discovery folder is, with `pick_discovery_folder`. Nothing is
+/// applied; the caller confirms a candidate itself, through `editArtefacts`.
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+#[specta::specta]
+pub async fn list_relink_candidates(
+    folders: State<'_, PickedFolders>,
+    settings: State<'_, SettingsStore>,
+    folder: FolderHandle,
+    project_id: Ulid,
+    chosen: DiscoveryFolder,
+    file_name: String,
+    size: f64,
+    sha256: String,
+) -> Result<Vec<RelinkCandidateDto>, EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    let settings = settings.inner().clone();
+    blocking(move || {
+        relink::list_candidates(
+            &settings,
+            &project,
+            &project_id,
+            &chosen,
+            &file_name,
+            size,
+            &sha256,
+        )
+    })
+    .await
 }

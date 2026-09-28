@@ -91,9 +91,10 @@ pub(super) fn checked_folder(
     Ok(resolved)
 }
 
-/// A discovered file's location: `chosen`'s root, with `rel_path` appended
-/// to its prefix.
-fn discovered_location(chosen: &DiscoveryFolder, rel_path: &str) -> Option<SourceLocation> {
+/// A file directly under `chosen`: its root, with `rel_path` appended to its
+/// prefix. Shared with relink, whose candidates sit the same way under a
+/// folder the person points at (ADR-0031 §3).
+pub(super) fn location_under(chosen: &DiscoveryFolder, rel_path: &str) -> Option<SourceLocation> {
     let full = match &chosen.prefix {
         Some(prefix) => format!("{}/{rel_path}", prefix.as_str()),
         None => rel_path.to_owned(),
@@ -136,7 +137,7 @@ fn result_dto(found: nb_fs::discovery::Discovery, chosen: &DiscoveryFolder) -> D
         .files
         .into_iter()
         .filter_map(|file| {
-            let location = discovered_location(chosen, &file.rel_path)?;
+            let location = location_under(chosen, &file.rel_path)?;
             let name = file
                 .rel_path
                 .rsplit('/')
@@ -203,7 +204,7 @@ mod tests {
 
     #[test]
     fn a_discovered_file_is_placed_under_the_chosen_folders_prefix() {
-        let location = discovered_location(&chosen("project", Some("results")), "pca.csv");
+        let location = location_under(&chosen("project", Some("results")), "pca.csv");
         assert_eq!(
             location,
             Some(SourceLocation {
@@ -215,7 +216,7 @@ mod tests {
 
     #[test]
     fn a_discovered_file_under_the_root_itself_keeps_its_own_path() {
-        let location = discovered_location(&chosen("project", None), "results/pca.csv");
+        let location = location_under(&chosen("project", None), "results/pca.csv");
         assert_eq!(
             location,
             Some(SourceLocation {

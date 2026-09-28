@@ -92,5 +92,11 @@ export function fakePanelApi(
         status: "ok" as const,
         data: { kind: "jupyter" as const, language: null, kernel: null },
       }),
+    // Relink is not exercised by the panel's own tests (its own tests live
+    // in `useRelink.test.ts` and `RelinkDialog.test.tsx`); safe stubs only.
+    pickDiscoveryFolder: () =>
+      Promise.resolve({ status: "ok" as const, data: null }),
+    listRelinkCandidates: () =>
+      Promise.resolve({ status: "ok" as const, data: [] }),
   };
 }

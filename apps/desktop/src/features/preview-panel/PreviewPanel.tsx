@@ -19,9 +19,12 @@ import {
   resolveVersion,
 } from "./model/details";
 import type { PanelApi } from "./model/api";
+import { relinkExpectationOf, type RelinkCapability } from "./model/relink";
 import { panelMessages as m } from "./messages";
+import { RelinkDialog } from "./RelinkDialog";
 import { useAvailability } from "./useAvailability";
 import { useFileActions, type ActionTarget } from "./useFileActions";
+import { useRelink } from "./useRelink";
 import "./PreviewPanel.css";
 
 export type Props = {
@@ -42,6 +45,9 @@ export type Props = {
   /** Every experiment and section that references an artefact, across the
    * whole project (FR-SRC-03), built once by the caller from `Arranged`. */
   references: ReferenceIndex;
+  /** Offers Relink for a missing linked artefact (FR-EVD-08); left out, it
+   * is not offered here. */
+  relink?: RelinkCapability;
 };
 
 /**
@@ -58,6 +64,7 @@ export function PreviewPanel({
   artefactId,
   version: pinned,
   references,
+  relink,
 }: Props) {
   const artefact = file.artefacts.find((a) => a.id === artefactId);
   const version = artefact ? resolveVersion(artefact, pinned) : undefined;
@@ -87,6 +94,15 @@ export function PreviewPanel({
       ? { kind: "linked", root: linkSource.root, path: linkSource.path }
       : { kind: "captured", file: details.location };
   const fileActions = useFileActions({ api, folder, projectId, target });
+  const relinking = useRelink({
+    api,
+    folder,
+    projectId,
+    experimentFolder,
+    artefactId,
+    expectation: artefact ? relinkExpectationOf(artefact) : undefined,
+    relink,
+  });
 
   if (artefact === undefined) return null;
 
@@ -169,6 +185,18 @@ export function PreviewPanel({
           >
             {m.availability.recheck}
           </button>
+          {relink !== undefined &&
+            availability?.status === "checked" &&
+            availability.availability.kind === "missing" && (
+              <button
+                type="button"
+                disabled={relinking.busy}
+                onClick={() => void relinking.pickFolder()}
+              >
+                {m.relink.findNewLocation}
+              </button>
+            )}
+          <RelinkDialog relink={relinking} />
         </div>
       )}
 

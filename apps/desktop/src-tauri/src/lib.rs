@@ -59,6 +59,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::projects::evidence::pick_discovery_folder,
             commands::projects::evidence::start_discovery,
             commands::projects::evidence::cancel_discovery,
+            commands::projects::evidence::list_relink_candidates,
         ])
         .events(collect_events![
             commands::projects::evidence::EvidenceDragged,
