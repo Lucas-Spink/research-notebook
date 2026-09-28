@@ -7,8 +7,8 @@
 use std::path::Path;
 
 use nb_fs::{
-    observe_link, CaptureName, CaptureResult, KnownVersion, ProjectRelPath, ProjectRoot,
-    NOTEBOOK_DIR,
+    observe_link, CaptureName, CaptureOutcome, CaptureResult, KnownVersion, ProjectRelPath,
+    ProjectRoot, NOTEBOOK_DIR,
 };
 
 use super::types::{
@@ -39,37 +39,67 @@ pub(super) fn capture(
     }
     let project =
         ProjectRoot::open(project_root).map_err(|_| EvidenceFailure::ProjectUnavailable)?;
+    let (prefix, folder) = destination_folder(experiment, destination)?;
+    let known = known_versions(known);
+    let outcome = project.capture_copy(source, &folder, capture_name(naming), &known)?;
+    outcome_dto(outcome, &prefix, || provenance_of(source, project_root))
+}
+
+/// `experiment`'s `destination` folder: its prefix under the project root,
+/// which a version's path is made relative to, and the folder itself.
+pub(super) fn destination_folder(
+    experiment: &ExperimentFolder,
+    destination: Destination,
+) -> Result<(String, ProjectRelPath), EvidenceFailure> {
     let prefix = format!("{NOTEBOOK_DIR}/experiments/{}/", experiment.as_str());
     let folder = ProjectRelPath::parse(&format!("{prefix}{}", destination.folder_name()))
         .map_err(|_| EvidenceFailure::InvalidRequest)?;
-    let name = match naming {
+    Ok((prefix, folder))
+}
+
+/// How a capture is named, as `nb-fs` takes it.
+pub(super) fn capture_name(naming: &CaptureNaming) -> CaptureName<'_> {
+    match naming {
         CaptureNaming::New { original_file_name } => CaptureName::New { original_file_name },
         CaptureNaming::Version { stem, extension } => CaptureName::Version { stem, extension },
-    };
-    let known: Vec<KnownVersion> = known
+    }
+}
+
+/// The versions already held, as `nb-fs` takes them.
+pub(super) fn known_versions(known: &[KnownVersionInput]) -> Vec<KnownVersion> {
+    known
         .iter()
         .map(|k| KnownVersion {
             sha256: k.sha256.clone(),
             number: k.number,
             same_artefact: k.same_artefact,
         })
-        .collect();
-    let outcome = project.capture_copy(source, &folder, name, &known)?;
+        .collect()
+}
+
+/// What a capture did, for the webview. `provenance` is asked for only when
+/// a new version was created.
+pub(super) fn outcome_dto(
+    outcome: CaptureOutcome,
+    prefix: &str,
+    provenance: impl FnOnce() -> Option<CapturedProvenance>,
+) -> Result<CaptureOutcomeDto, EvidenceFailure> {
     let (result, provenance) = match outcome.result {
         CaptureResult::Created(version) => {
             let file = version
                 .path
                 .as_str()
-                .strip_prefix(&prefix)
+                .strip_prefix(prefix)
                 .ok_or(EvidenceFailure::Internal)?
                 .to_owned();
+            let provenance = provenance();
             let created = CaptureResultDto::Created {
                 file,
                 sha256: version.sha256,
                 size: bytes(version.size),
                 number: version.number,
             };
-            (created, provenance_of(source, project_root))
+            (created, provenance)
         }
         CaptureResult::Duplicate { version } => (CaptureResultDto::Duplicate { version }, None),
     };

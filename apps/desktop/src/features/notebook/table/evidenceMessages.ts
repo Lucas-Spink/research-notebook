@@ -64,6 +64,10 @@ export function failureText(
       return "the copy did not match the original, so nothing was kept";
     case "versionExists":
       return "a version with that name already exists";
+    case "requestUnavailable":
+      return "it could not be read from the inbox";
+    case "payloadMismatch":
+      return "what was received does not match what was declared";
     case "writeFailed":
       return "it could not be written into the notebook";
     case "internal":

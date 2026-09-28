@@ -14,7 +14,6 @@ import {
   removeQuestion,
   resetTableColumns,
   type Arranged,
-  type ArtefactsFileModel,
   type ExperimentChanges,
   type NotebookEnv,
   type NotebookError,
@@ -30,8 +29,17 @@ import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { createFirstWriteGuard, type FirstWriteGuard } from "../history";
 import type { AutosaveOutcome } from "./expanded/model/autosave";
 import { loadFailureMessage, messages, outcomeMessage } from "./messages";
-import type { ChangesPort, Loaded } from "./model/api";
+import type {
+  ArtefactsOutcome,
+  ChangesPort,
+  EditArtefacts,
+  Loaded,
+} from "./model/api";
 import { holdFiles } from "./model/held";
+import {
+  importInboxOnOpen,
+  type InvalidInboxRequest,
+} from "./model/inboxImport";
 import type { Performed } from "./model/perform";
 import { perform } from "./model/perform";
 import { withOverlay } from "./table/model/columns";
@@ -44,13 +52,7 @@ import { loadNotebook, type LoadFailure } from "./model/load";
 /** What `run` resolves to: a `perform()` outcome, or a genuinely unexpected exception. */
 type RunOutcome = Performed | { kind: "unexpected" };
 
-/**
- * How a change to an experiment's evidence went: saved, refused by the
- * format (`error`, for the caller to show where the change was asked for),
- * or not saved for another reason (`null`: the notice already says why).
- */
-export type ArtefactsOutcome =
-  { ok: true } | { ok: false; error: NotebookError | null };
+export type { ArtefactsOutcome } from "./model/api";
 
 type Options = {
   /** The open project, or `null` for none. */
@@ -83,13 +85,7 @@ export type NotebookActions = {
    * file as loaded and returns the next one. Resolves whether it was saved; a
    * refusal or failure is shown as a notice, like any other action.
    */
-  editArtefacts(
-    folder: string,
-    change: (
-      file: ArtefactsFileModel,
-      env: NotebookEnv,
-    ) => Result<ArtefactsFileModel, NotebookError>,
-  ): Promise<ArtefactsOutcome>;
+  editArtefacts: EditArtefacts;
   moveExperiment(id: string, questionId: string): Promise<boolean>;
   removeExperiment(id: string): Promise<boolean>;
   removeQuestion(id: string): Promise<boolean>;
@@ -135,6 +131,11 @@ export function useNotebook({ folder, writable, changes }: Options) {
   // Layout changes not saved yet, shown at once, and the Unassigned group's own collapse.
   const [unsaved, setUnsaved] = useState<TableSettingsChange>({});
   const [unassignedCollapsed, setUnassignedCollapsed] = useState(false);
+  // Waiting inbox requests that could not be imported when the project last
+  // opened (ADR-0044 point 6), for the view to list with their reason.
+  const [invalidInboxRequests, setInvalidInboxRequests] = useState<
+    InvalidInboxRequest[]
+  >([]);
   const committerRef = useRef<SettingsCommitter | null>(null);
 
   const loadedRef = useRef<Loaded | null>(null);
@@ -246,6 +247,23 @@ export function useNotebook({ folder, writable, changes }: Options) {
     [appVersion, enqueue, env, reload],
   );
 
+  // Changes one experiment's artefacts.yaml (ADR-0044): shared by the
+  // person adding or organising evidence and by importing the inbox on open.
+  const editArtefacts = useCallback<EditArtefacts>(
+    (experimentFolder, change) =>
+      run(
+        (s, e) =>
+          editArtefactsFile(s, experimentFolder, (f) => change(f, e), e),
+        { silent: true },
+      ).then((done): ArtefactsOutcome => {
+        if (done.kind === "done") return { ok: true };
+        if (done.kind === "refused") return { ok: false, error: done.error };
+        setNotice(outcomeMessage(done) ?? messages.unexpected);
+        return { ok: false, error: null };
+      }),
+    [run],
+  );
+
   // Layout changes are coalesced into few writes; a new one for each project.
   useEffect(() => {
     const committer = createSettingsCommitter({
@@ -266,11 +284,14 @@ export function useNotebook({ folder, writable, changes }: Options) {
   }, [folder, run]);
 
   // Load when a project opens, and forget everything when it closes.
+  const inboxImportedRef = useRef(false);
   useEffect(() => {
     loadedRef.current = null;
     guardRef.current = null;
     setView({ status: "loading" });
     setNotice(null);
+    setInvalidInboxRequests([]);
+    inboxImportedRef.current = false;
     if (folder === null) return;
     let stale = false;
     void enqueue(async () => {
@@ -282,6 +303,28 @@ export function useNotebook({ folder, writable, changes }: Options) {
       stale = true;
     };
   }, [folder, enqueue, reload]);
+
+  // Imports the inbox once this window can write to the project (ADR-0044
+  // point 6): on open if it is already writable, or the first time it
+  // becomes writable, for example after taking over a stale lock.
+  useEffect(() => {
+    if (folder === null || !writable || inboxImportedRef.current) return;
+    inboxImportedRef.current = true;
+    let stale = false;
+    void enqueue(async () => {
+      if (stale) return;
+      const invalid = await importInboxOnOpen(
+        commands,
+        folder,
+        () => loadedRef.current?.state ?? null,
+        editArtefacts,
+      );
+      if (!stale) setInvalidInboxRequests(invalid);
+    }).catch(() => undefined);
+    return () => {
+      stale = true;
+    };
+  }, [folder, writable, enqueue, editArtefacts]);
 
   // A file the notebook holds was changed by someone else: read everything again.
   useEffect(() => {
@@ -309,18 +352,7 @@ export function useNotebook({ folder, writable, changes }: Options) {
         run((s, e) => editQuestion(s, id, { title }, e)).then(isDone),
       editExperiment: (id, changed) =>
         run((s, e) => editExperiment(s, id, changed, e)).then(isDone),
-      editArtefacts: (experimentFolder, change) =>
-        run(
-          (s, e) =>
-            editArtefactsFile(s, experimentFolder, (f) => change(f, e), e),
-          { silent: true },
-        ).then((done): ArtefactsOutcome => {
-          if (done.kind === "done") return { ok: true };
-          if (done.kind === "refused") return { ok: false, error: done.error };
-          // Not the change itself: the save failed. Shown like any other.
-          setNotice(outcomeMessage(done) ?? messages.unexpected);
-          return { ok: false, error: null };
-        }),
+      editArtefacts,
       moveExperiment: (id, questionId) =>
         run((s, e) => moveExperiment(s, id, questionId, e)).then(isDone),
       removeExperiment: (id) =>
@@ -361,7 +393,7 @@ export function useNotebook({ folder, writable, changes }: Options) {
       },
       setUnassignedCollapsed,
     }),
-    [run, enqueue, reload],
+    [run, enqueue, reload, editArtefacts],
   );
 
   const table = useMemo(
@@ -379,6 +411,8 @@ export function useNotebook({ folder, writable, changes }: Options) {
     writable,
     notice,
     failure: view.status === "failed" ? loadFailureMessage(view.reason) : null,
+    /** Waiting inbox requests that could not be imported on open (ADR-0044 point 6). */
+    invalidInboxRequests,
     actions,
     /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
     projectId: state?.project.id ?? null,

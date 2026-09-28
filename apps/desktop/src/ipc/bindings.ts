@@ -187,6 +187,24 @@ export const commands = {
 	watchDrops: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) => typedError<null, EvidenceFailure>(__TAURI_INVOKE("watch_drops", { folder, projectId, externalRoots })),
 	/**  Stops receiving drops, so a file dropped on the window does nothing. */
 	unwatchDrops: () => __TAURI_INVOKE<void>("unwatch_drops"),
+	/**  The requests waiting in the project's inbox (spec 5.10), by folder name. */
+	listInboxRequests: (folder: FolderHandle) => typedError<string[], EvidenceFailure>(__TAURI_INVOKE("list_inbox_requests", { folder })),
+	/**
+	 *  The text of one waiting request's `request.json`, for the format package
+	 *  to parse (AGENTS.md rule 2).
+	 */
+	readInboxRequest: (folder: FolderHandle, request: InboxName) => typedError<string, EvidenceFailure>(__TAURI_INVOKE("read_inbox_request", { folder, request })),
+	/**
+	 *  Places a request's copy-mode payload in the experiment as a new version
+	 *  (FR-EVD-01), after checking it against the `sha256` and `size` the
+	 *  request declared. The request stays until `remove_inbox_request`.
+	 */
+	importInboxPayload: (folder: FolderHandle, request: InboxName, payload: InboxName, sha256: string, size: number | null, experiment: ExperimentFolder, destination: Destination, naming: CaptureNaming, known: KnownVersionInput[]) => typedError<CaptureOutcomeDto, EvidenceFailure>(__TAURI_INVOKE("import_inbox_payload", { folder, request, payload, sha256, size, experiment, destination, naming, known })),
+	/**
+	 *  Deletes a request's folder once what it asked for is recorded
+	 *  (spec 5.10). A request that could not be imported is never removed.
+	 */
+	removeInboxRequest: (folder: FolderHandle, request: InboxName) => typedError<null, EvidenceFailure>(__TAURI_INVOKE("remove_inbox_request", { folder, request })),
 };
 
 /** Events */
@@ -371,6 +389,13 @@ export type EvidenceFailure =
 { kind: "verificationFailed" } | 
 /**  The version file that would be written already exists. */
 { kind: "versionExists" } | 
+/**  An inbox request or its payload is not there, or cannot be read. */
+{ kind: "requestUnavailable" } | 
+/**
+ *  An inbox payload is not the file its request declared: it is left
+ *  where it is, and the request is listed as invalid (spec 5.10).
+ */
+{ kind: "payloadMismatch" } | 
 /**  Writing inside `_notebook/` failed. */
 { kind: "writeFailed" } | 
 /**  The file picker could not be shown, or something else went wrong. */
@@ -427,6 +452,12 @@ export type HygieneReport = {
 export type HygieneStatus = "added" | "unchanged" | 
 /**  Not updated. The project exists; the entries can be added by hand. */
 "failed";
+
+/**
+ *  One path segment naming an inbox request folder or the payload file in
+ *  it (spec 5.10): never a separator, so it cannot leave that folder.
+ */
+export type InboxName = string;
 
 /**
  *  A version already recorded in the experiment's `artefacts.yaml`, which

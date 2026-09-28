@@ -3,7 +3,7 @@
 //! command never receives free text where a folder, file name or hash
 //! belongs, and no absolute path ever crosses to the webview.
 
-use nb_fs::{CaptureError, LinkError};
+use nb_fs::{CaptureError, InboxError, LinkError};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
@@ -79,6 +79,41 @@ impl TryFrom<String> for ExperimentFolder {
 // Written by hand, as `SourceRoot` is: `#[serde(try_from)]` makes the
 // generated bindings split the type in two.
 impl<'de> Deserialize<'de> for ExperimentFolder {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Self::try_from(String::deserialize(deserializer)?).map_err(serde::de::Error::custom)
+    }
+}
+
+/// One path segment naming an inbox request folder or the payload file in
+/// it (spec 5.10): never a separator, so it cannot leave that folder.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct InboxName(String);
+
+impl InboxName {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for InboxName {
+    type Error = String;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        let single = !text.is_empty()
+            && text != "."
+            && text != ".."
+            && !text.starts_with('.')
+            && !text.contains(['/', '\\', ':']);
+        if single {
+            Ok(Self(text))
+        } else {
+            Err("expected one plain name".to_owned())
+        }
+    }
+}
+
+// Written by hand for the same reason as `ExperimentFolder`.
+impl<'de> Deserialize<'de> for InboxName {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::try_from(String::deserialize(deserializer)?).map_err(serde::de::Error::custom)
     }
@@ -228,6 +263,11 @@ pub enum EvidenceFailure {
     VerificationFailed,
     /// The version file that would be written already exists.
     VersionExists,
+    /// An inbox request or its payload is not there, or cannot be read.
+    RequestUnavailable,
+    /// An inbox payload is not the file its request declared: it is left
+    /// where it is, and the request is listed as invalid (spec 5.10).
+    PayloadMismatch,
     /// Writing inside `_notebook/` failed.
     WriteFailed,
     /// The file picker could not be shown, or something else went wrong.
@@ -241,6 +281,18 @@ impl From<CaptureError> for EvidenceFailure {
             CaptureError::VerificationFailed { .. } => Self::VerificationFailed,
             CaptureError::VersionExists { .. } => Self::VersionExists,
             CaptureError::Write(_) => Self::WriteFailed,
+        }
+    }
+}
+
+impl From<InboxError> for EvidenceFailure {
+    fn from(error: InboxError) -> Self {
+        match error {
+            InboxError::InvalidRequestId { .. } => Self::InvalidRequest,
+            InboxError::PayloadMismatch { .. } => Self::PayloadMismatch,
+            InboxError::Read(_) | InboxError::Link(_) => Self::RequestUnavailable,
+            InboxError::Capture(error) => Self::from(error),
+            InboxError::Write(_) => Self::WriteFailed,
         }
     }
 }
@@ -270,6 +322,16 @@ mod tests {
                 ExperimentFolder::try_from(bad.to_owned()).is_err(),
                 "{bad:?}"
             );
+        }
+    }
+
+    #[test]
+    fn an_inbox_name_is_one_plain_segment() {
+        for good in ["01JAX9Q2B7N4M8T6V3W5Y1Z0KC", "pca plot.png"] {
+            assert_eq!(InboxName::try_from(good.to_owned()).unwrap().as_str(), good);
+        }
+        for bad in ["", ".", "..", ".hidden", "a/b", "..\\x", "C:x"] {
+            assert!(InboxName::try_from(bad.to_owned()).is_err(), "{bad:?}");
         }
     }
 

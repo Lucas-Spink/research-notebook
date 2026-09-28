@@ -7,6 +7,7 @@
 
 mod capture;
 mod dropped;
+mod inbox;
 mod locate;
 mod types;
 
@@ -23,7 +24,7 @@ use dropped::DropTarget;
 pub use dropped::{on_drag, DropTargets, EvidenceDragged, EvidenceDropped};
 pub use types::{
     CaptureNaming, CaptureOutcomeDto, ChosenFile, Destination, EvidenceFailure, ExperimentFolder,
-    KnownVersionInput, LinkObservationDto,
+    InboxName, KnownVersionInput, LinkObservationDto,
 };
 
 /// Runs blocking work off the async runtime's threads, as the other
@@ -229,4 +230,76 @@ pub fn watch_drops(
 #[specta::specta]
 pub fn unwatch_drops(targets: State<'_, DropTargets>) {
     targets.set(None);
+}
+
+/// The requests waiting in the project's inbox (spec 5.10), by folder name.
+#[tauri::command]
+#[specta::specta]
+pub async fn list_inbox_requests(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+) -> Result<Vec<String>, EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    blocking(move || inbox::list(&project)).await
+}
+
+/// The text of one waiting request's `request.json`, for the format package
+/// to parse (AGENTS.md rule 2).
+#[tauri::command]
+#[specta::specta]
+pub async fn read_inbox_request(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    request: InboxName,
+) -> Result<String, EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    blocking(move || inbox::read(&project, &request)).await
+}
+
+/// Places a request's copy-mode payload in the experiment as a new version
+/// (FR-EVD-01), after checking it against the `sha256` and `size` the
+/// request declared. The request stays until `remove_inbox_request`.
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+#[specta::specta]
+pub async fn import_inbox_payload(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    request: InboxName,
+    payload: InboxName,
+    sha256: String,
+    size: f64,
+    experiment: ExperimentFolder,
+    destination: Destination,
+    naming: CaptureNaming,
+    known: Vec<KnownVersionInput>,
+) -> Result<CaptureOutcomeDto, EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    blocking(move || {
+        inbox::import_payload(
+            &project,
+            &request,
+            &payload,
+            &sha256,
+            size,
+            &experiment,
+            destination,
+            &naming,
+            &known,
+        )
+    })
+    .await
+}
+
+/// Deletes a request's folder once what it asked for is recorded
+/// (spec 5.10). A request that could not be imported is never removed.
+#[tauri::command]
+#[specta::specta]
+pub async fn remove_inbox_request(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    request: InboxName,
+) -> Result<(), EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    blocking(move || inbox::remove(&project, &request)).await
 }
