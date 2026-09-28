@@ -11,7 +11,7 @@ use super::super::open::{SourcePath, SourceRoot};
 
 /// Where a file the person chose sits, in the terms `artefacts.yaml`
 /// records (spec 5.8): a root and a path relative to it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct SourceLocation {
     pub root: SourceRoot,
     pub path: SourcePath,
@@ -19,7 +19,7 @@ pub struct SourceLocation {
 
 /// Why a chosen file cannot be captured. The `kind` is the key of the
 /// user-facing message; no path or system text is sent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Refusal {
     /// Neither under the project folder nor under an external root set on
@@ -35,7 +35,7 @@ pub enum Refusal {
 
 /// One file the person picked or dropped: where it is and how big, or why
 /// it cannot be captured. Its `name` is the file's own name, for display.
-#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum ChosenFile {
     Located {

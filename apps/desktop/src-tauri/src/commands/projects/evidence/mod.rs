@@ -6,6 +6,7 @@
 //! so a location can only ever name a file the person could have chosen.
 
 mod capture;
+mod dropped;
 mod locate;
 mod types;
 
@@ -18,6 +19,8 @@ use tauri_plugin_dialog::DialogExt;
 use super::folders::{FolderHandle, PickedFolders};
 use super::ids::Ulid;
 use super::open::{resolve_root, RootProblem, SourcePath, SourceRoot};
+use dropped::DropTarget;
+pub use dropped::{on_drag, DropTargets, EvidenceDragged, EvidenceDropped};
 pub use types::{
     CaptureNaming, CaptureOutcomeDto, ChosenFile, Destination, EvidenceFailure, ExperimentFolder,
     KnownVersionInput, LinkObservationDto,
@@ -65,6 +68,29 @@ fn display_name(path: &std::path::Path) -> String {
     path.file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+/// Each of `paths` as the person's choice: where it is recorded from, or
+/// why it cannot be (ADR-0044 point 1). Shared by the picker and by drops.
+fn chosen_files(
+    paths: &[PathBuf],
+    project: &std::path::Path,
+    externals: &[(String, PathBuf)],
+) -> Vec<ChosenFile> {
+    paths
+        .iter()
+        .map(|path| {
+            let name = display_name(path);
+            match locate::locate(path, project, externals) {
+                Ok(located) => ChosenFile::Located {
+                    name,
+                    size: capture::bytes(located.size),
+                    location: located.location,
+                },
+                Err(reason) => ChosenFile::Refused { name, reason },
+            }
+        })
+        .collect()
 }
 
 /// Resolves `root`/`path` and checks it the way a chosen file is checked:
@@ -122,21 +148,11 @@ pub async fn pick_evidence_files(
             return Ok(Vec::new());
         };
         let externals = external_folders(&settings, &project_id, &external_roots)?;
-        Ok(picked
+        let paths: Vec<PathBuf> = picked
             .into_iter()
             .filter_map(|chosen| chosen.simplified().into_path().ok())
-            .map(|path| {
-                let name = display_name(&path);
-                match locate::locate(&path, &project, &externals) {
-                    Ok(located) => ChosenFile::Located {
-                        name,
-                        size: capture::bytes(located.size),
-                        location: located.location,
-                    },
-                    Err(reason) => ChosenFile::Refused { name, reason },
-                }
-            })
-            .collect())
+            .collect();
+        Ok(chosen_files(&paths, &project, &externals))
     })
     .await
 }
@@ -186,4 +202,31 @@ pub async fn observe_evidence(
         capture::observe(&source)
     })
     .await
+}
+
+/// Starts receiving files dropped on the window for the open project
+/// (ADR-0044 point 2). Replaces any earlier target.
+#[tauri::command]
+#[specta::specta]
+pub fn watch_drops(
+    targets: State<'_, DropTargets>,
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    project_id: Ulid,
+    external_roots: Vec<Ulid>,
+) -> Result<(), EvidenceFailure> {
+    project_root(&folders, folder)?;
+    targets.set(Some(DropTarget {
+        folder,
+        project_id,
+        external_roots,
+    }));
+    Ok(())
+}
+
+/// Stops receiving drops, so a file dropped on the window does nothing.
+#[tauri::command]
+#[specta::specta]
+pub fn unwatch_drops(targets: State<'_, DropTargets>) {
+    targets.set(None);
 }
