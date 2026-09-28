@@ -55,6 +55,10 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::projects::evidence::read_inbox_request,
             commands::projects::evidence::import_inbox_payload,
             commands::projects::evidence::remove_inbox_request,
+            commands::projects::evidence::default_discovery_excludes,
+            commands::projects::evidence::pick_discovery_folder,
+            commands::projects::evidence::start_discovery,
+            commands::projects::evidence::cancel_discovery,
         ])
         .events(collect_events![
             commands::projects::evidence::EvidenceDragged,
@@ -86,6 +90,7 @@ pub fn run() {
         .manage(commands::projects::PickedFolders::default())
         // Where files dropped on the window go, once the webview asks.
         .manage(commands::projects::evidence::DropTargets::default())
+        .manage(commands::projects::evidence::DiscoveryScans::default())
         // The locks this run holds, released when it exits.
         .manage(LockRegistry::new(Arc::new(SystemEnv::new(env!(
             "CARGO_PKG_VERSION"

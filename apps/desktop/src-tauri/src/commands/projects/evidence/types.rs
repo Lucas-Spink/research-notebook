@@ -3,7 +3,7 @@
 //! command never receives free text where a folder, file name or hash
 //! belongs, and no absolute path ever crosses to the webview.
 
-use nb_fs::{CaptureError, InboxError, LinkError};
+use nb_fs::{CaptureError, DiscoveryError, InboxError, LinkError};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
@@ -29,6 +29,8 @@ pub enum Refusal {
     InsideNotebook,
     /// A folder, or something else that is not a regular file.
     NotAFile,
+    /// A file, or something else that is not a folder.
+    NotAFolder,
     /// It could not be read.
     Unreadable,
 }
@@ -243,6 +245,74 @@ pub struct LinkObservationDto {
     pub observed_mtime: String,
 }
 
+/// A folder chosen for discovery (FR-EVD-09, ADR-0044 point 1): the source
+/// root it sits under, and its path relative to that root, absent when the
+/// root itself was chosen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub struct DiscoveryFolder {
+    pub root: SourceRoot,
+    pub prefix: Option<SourcePath>,
+}
+
+/// A folder the person picked to scan, or why it cannot be (ADR-0044 point
+/// 1). Its `name` is the folder's own name, for display.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ChosenFolder {
+    Located {
+        name: String,
+        folder: DiscoveryFolder,
+    },
+    Refused {
+        name: String,
+        reason: Refusal,
+    },
+}
+
+/// Include and exclude globs for one scan (FR-EVD-09), as the person edits
+/// them. An empty `include` proposes every file not excluded.
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryOptionsDto {
+    pub include: Vec<String>,
+    pub exclude: Vec<String>,
+}
+
+/// One file a scan proposes (FR-EVD-09): where it is, how big, when it was
+/// last modified, and whether its source is already captured.
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredFileDto {
+    pub location: SourceLocation,
+    /// The file's own name, for display.
+    pub name: String,
+    pub size: f64,
+    /// `YYYY-MM-DDTHH:MM:SSZ`.
+    pub modified: String,
+    pub captured: bool,
+}
+
+/// How far a scan has got (ADR-0035 point 8, ADR-0044 point 7), sent over
+/// its progress channel as it runs.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryProgressDto {
+    pub files_seen: f64,
+    pub folders_seen: f64,
+}
+
+/// What a finished (or cancelled) scan found (FR-EVD-09).
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryResultDto {
+    pub files: Vec<DiscoveredFileDto>,
+    pub folders_visited: f64,
+    /// How many entries could not be read or named; never their paths
+    /// (AGENTS.md rule 8).
+    pub skipped: f64,
+    pub cancelled: bool,
+}
+
 /// Why an evidence command could not complete. The `kind` is the key of the
 /// user-facing message; no path or system text is sent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -270,6 +340,10 @@ pub enum EvidenceFailure {
     PayloadMismatch,
     /// Writing inside `_notebook/` failed.
     WriteFailed,
+    /// The chosen folder is gone, is not a folder, or cannot be read.
+    FolderUnavailable,
+    /// An include or exclude glob is not a valid pattern.
+    InvalidPattern,
     /// The file picker could not be shown, or something else went wrong.
     Internal,
 }
@@ -293,6 +367,17 @@ impl From<InboxError> for EvidenceFailure {
             InboxError::Read(_) | InboxError::Link(_) => Self::RequestUnavailable,
             InboxError::Capture(error) => Self::from(error),
             InboxError::Write(_) => Self::WriteFailed,
+        }
+    }
+}
+
+impl From<DiscoveryError> for EvidenceFailure {
+    fn from(error: DiscoveryError) -> Self {
+        match error {
+            DiscoveryError::Io { .. } | DiscoveryError::NotAFolder { .. } => {
+                Self::FolderUnavailable
+            }
+            DiscoveryError::InvalidPattern { .. } => Self::InvalidPattern,
         }
     }
 }
