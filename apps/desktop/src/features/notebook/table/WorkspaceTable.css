@@ -318,3 +318,8 @@
 .notebook__details {
   margin-top: 1rem;
 }
+
+.wtable__add--drop {
+  outline: 2px dashed currentColor;
+  outline-offset: 2px;
+}

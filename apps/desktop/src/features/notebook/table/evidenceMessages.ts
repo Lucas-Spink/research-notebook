@@ -12,7 +12,8 @@ export const evidenceMessages = {
   howBySize: "Copy or link by size",
   howCopy: "Always copy",
   howLink: "Always link",
-  dropHint: "Drop files here to add them",
+  dropHint: "Or drop files here",
+  dropNow: "Release to add these files",
   resultsHeading: "Added",
   dismiss: "Dismiss",
   readOnly:

@@ -6,7 +6,12 @@ import {
 } from "@research-notebook/format";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, type ChosenFile } from "../../../ipc/bindings";
+import {
+  commands,
+  events,
+  type ChosenFile,
+  type EvidenceDropped,
+} from "../../../ipc/bindings";
 import { browseResultsLabel } from "../messages";
 import { sampleNotebook, testEnv } from "../model/fakeApi";
 import { stubActions } from "../model/testModel";
@@ -220,5 +225,119 @@ describe("adding files in the Results cell (FR-EVD-01, FR-EVD-02)", () => {
     await openResults(view);
 
     expect(buttonIn(view, evidenceMessages.addFiles).disabled).toBe(true);
+  });
+});
+
+describe("dropping files on the open Results cell (ADR-0044 point 2)", () => {
+  /** Spies on the window's events, and returns a way to send a drop. */
+  function watchDrops() {
+    let dropped: ((event: EvidenceDropped) => void) | null = null;
+    const stopDropped = vi.fn();
+    vi.spyOn(events.evidenceDragged, "listen").mockResolvedValue(vi.fn());
+    vi.spyOn(events.evidenceDropped, "listen").mockImplementation((handler) => {
+      dropped = (payload) =>
+        handler({ event: "evidence-dropped", id: 1, payload });
+      return Promise.resolve(stopDropped);
+    });
+    const watch = vi
+      .spyOn(commands, "watchDrops")
+      .mockResolvedValue({ status: "ok", data: null });
+    const unwatch = vi.spyOn(commands, "unwatchDrops").mockResolvedValue();
+    return {
+      watch,
+      unwatch,
+      stopDropped,
+      drop: async (event: EvidenceDropped) => {
+        await act(async () => {
+          dropped?.(event);
+          await settle();
+          await settle();
+        });
+      },
+    };
+  }
+
+  /** jsdom has no layout, so the open cell is given a place on the page. */
+  function placeCell(view: HTMLElement) {
+    const cell = rowOf(view, "EXP-001").querySelector(".wtable__results-open");
+    if (cell === null) throw new Error("no open Results cell");
+    vi.spyOn(cell, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(100, 100, 400, 200),
+    );
+  }
+
+  const capturedOnce = () =>
+    vi.spyOn(commands, "captureEvidence").mockResolvedValue({
+      status: "ok",
+      data: {
+        result: {
+          kind: "created",
+          file: "evidence/dropped.png",
+          sha256: "d".repeat(64),
+          size: 10,
+          number: 1,
+        },
+        matchesOtherArtefact: false,
+        provenance: null,
+      },
+    });
+
+  it("tells Rust which project drops are for while the cell is open, and stops when it closes", async () => {
+    const drops = watchDrops();
+    const { view } = mount();
+    await openResults(view);
+    await act(settle);
+
+    expect(drops.watch).toHaveBeenCalledWith(1, expect.any(String), []);
+    await act(async () => {
+      buttonIn(view, "Close").click();
+      await settle();
+    });
+    expect(drops.unwatch).toHaveBeenCalled();
+    expect(drops.stopDropped).toHaveBeenCalled();
+  });
+
+  it("adds files dropped on the cell as a picked file is added", async () => {
+    const drops = watchDrops();
+    const capture = capturedOnce();
+    const { view, edits } = mount();
+    await openResults(view);
+    placeCell(view);
+    await act(settle);
+    await drops.drop({
+      x: 300,
+      y: 200,
+      files: [located("results/dropped.png")],
+    });
+
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(edits).toHaveLength(1);
+    expect(statusIn(view)).toContain("Copied dropped.png");
+  });
+
+  it("ignores files dropped elsewhere on the window", async () => {
+    const drops = watchDrops();
+    const capture = capturedOnce();
+    const { view, edits } = mount();
+    await openResults(view);
+    placeCell(view);
+    await act(settle);
+    await drops.drop({
+      x: 900,
+      y: 900,
+      files: [located("results/dropped.png")],
+    });
+
+    expect(capture).not.toHaveBeenCalled();
+    expect(edits).toHaveLength(0);
+  });
+
+  it("does not receive drops in a read-only project", async () => {
+    const drops = watchDrops();
+    const { view } = mount({ writable: false });
+    await openResults(view);
+    await act(settle);
+
+    expect(drops.watch).not.toHaveBeenCalled();
   });
 });
