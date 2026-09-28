@@ -51,6 +51,10 @@ export const tableMessages = {
   experimentColumn: "Experiment",
   emptyCell: "Empty",
   resultsNone: "None yet",
+  browseAll: "Browse all",
+  closeResults: "Close",
+  unreadableResults:
+    "This experiment's artefacts.yaml could not be read, so its results are left as they are.",
   noMotivation: "No motivation yet",
   noMatches: "No experiments in this question match the filter.",
   filterLabel: "Filter experiments",
@@ -215,6 +219,11 @@ export const resizeLabel = (label: string) => `Resize ${label} column`;
 export const collapseLabel = (ref: string) => `Collapse ${ref}`;
 export const expandLabel = (ref: string) => `Expand ${ref}`;
 export const selectLabel = (ref: string) => `Select ${ref}`;
+export const browseResultsLabel = (ref: string) =>
+  `Browse all results of ${ref}`;
+/** "1 result", "3 results" (FR-TBL-06). */
+export const resultsCountLabel = (count: number) =>
+  `${count} ${count === 1 ? "result" : "results"}`;
 export const titleOfLabel = (ref: string) => `Title of ${ref}`;
 export const statusOfLabel = (ref: string) => `Status of ${ref}`;
 /** How to rename an experiment in the table (FR-TBL-11), shown on its title. */

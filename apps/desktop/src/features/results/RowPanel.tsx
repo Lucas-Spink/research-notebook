@@ -31,7 +31,8 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
 
   function choose(entry: MenuEntry) {
     const { run } = entry;
-    if (run.kind === "action") void tree.run(run.action);
+    if (run.kind === "open") tree.open?.(run.artefactId);
+    else if (run.kind === "action") void tree.run(run.action);
     else if (run.kind === "pick")
       tree.setPanel({
         kind: "pick",
@@ -81,17 +82,20 @@ function PanelBody({
     case "menu":
       return (
         <ul className="results__menu">
-          {rowMenu(file, panel.row).map((entry) => (
-            <li key={entry.label}>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => choose(entry)}
-              >
-                {resultsMessages.menu[entry.label]}
-              </button>
-            </li>
-          ))}
+          {rowMenu(file, panel.row, { canOpen: tree.open !== undefined }).map(
+            (entry) => (
+              <li key={entry.label}>
+                <button
+                  type="button"
+                  // Opening only looks, so it stays available read-only.
+                  disabled={disabled && entry.run.kind !== "open"}
+                  onClick={() => choose(entry)}
+                >
+                  {resultsMessages.menu[entry.label]}
+                </button>
+              </li>
+            ),
+          )}
         </ul>
       );
     case "pick":

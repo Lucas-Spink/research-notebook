@@ -25,6 +25,7 @@ export const resultsMessages = {
       ? plural(items, "artefact", "artefacts")
       : `${plural(items, "artefact", "artefacts")}, ${plural(groups, "group", "groups")}`,
   menu: {
+    preview: "Preview",
     moveTo: "Move to group…",
     addTo: "Add to group…",
     moveUp: "Move up",

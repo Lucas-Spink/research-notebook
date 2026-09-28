@@ -13,6 +13,27 @@ const row = (index: number): TreeRow => {
 const labels = (r: TreeRow) => rowMenu(file, r).map((entry) => entry.label);
 
 describe("rowMenu", () => {
+  it("offers Preview first for an artefact when previews can be opened (ADR-0044)", () => {
+    const item = row(3);
+    if (item.kind !== "item") throw new Error("sample");
+    const menu = rowMenu(file, item, { canOpen: true });
+    expect(menu.map((entry) => entry.label)).toEqual([
+      "preview",
+      "moveTo",
+      "addTo",
+      "moveDown",
+      "remove",
+    ]);
+    expect(menu[0]?.run).toEqual({ kind: "open", artefactId: item.artefactId });
+  });
+
+  it("offers no Preview for a group, or when previews cannot be opened", () => {
+    expect(labels(row(3))).not.toContain("preview");
+    expect(
+      rowMenu(file, row(0), { canOpen: true }).map((entry) => entry.label),
+    ).not.toContain("preview");
+  });
+
   it("offers Move to and Add to as separate actions for an item (FR-GRP-02)", () => {
     expect(labels(row(3))).toEqual(["moveTo", "addTo", "moveDown", "remove"]);
     expect(labels(row(4))).toEqual(["moveTo", "addTo", "moveUp", "remove"]);

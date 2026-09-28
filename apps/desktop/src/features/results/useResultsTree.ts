@@ -38,6 +38,8 @@ type Options = {
   file: ArtefactsFileModel;
   disabled: boolean;
   onAction: (action: GroupAction) => Promise<ActionOutcome>;
+  /** Opens an artefact's preview (ADR-0044); leave out where there is none to open. */
+  onOpen?: (artefactId: string) => void;
 };
 
 /** Copy rather than move: Ctrl on Windows, Option on macOS. */
@@ -47,7 +49,7 @@ const copyKey = (event: DragEvent) => event.ctrlKey || event.altKey;
  * The state of the Results tree: which rows are open (in memory only, not
  * saved), which row has focus, the open panel and the last refusal.
  */
-export function useResultsTree({ file, disabled, onAction }: Options) {
+export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
   const [expansion, setExpansion] = useState<Expansion>({});
   const [focus, setFocus] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -101,7 +103,14 @@ export function useResultsTree({ file, disabled, onAction }: Options) {
       else toggle(next.expand, next.expanded);
       return;
     }
-    if (disabled) return;
+    if (disabled) {
+      // Read-only: nothing can change, but a file can still be looked at.
+      if (row.kind === "item" && event.key === "Enter" && onOpen) {
+        event.preventDefault();
+        onOpen(row.artefactId);
+      }
+      return;
+    }
     const command = rowCommand(row, event);
     if (command === null) return;
     event.preventDefault();
@@ -153,6 +162,8 @@ export function useResultsTree({ file, disabled, onAction }: Options) {
     closePanel,
     onKeyDown,
     drag,
+    /** Opens an artefact's preview, or `undefined` when the tree has none to open. */
+    open: onOpen,
   };
 }
 

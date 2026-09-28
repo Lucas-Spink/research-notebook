@@ -18,9 +18,12 @@ export type MenuRun =
   | { kind: "pick"; mode: PickMode; targets: GroupTarget[] }
   | { kind: "rename" }
   | { kind: "newSubgroup" }
-  | { kind: "confirmDelete" };
+  | { kind: "confirmDelete" }
+  /** Opens the artefact's preview; changes nothing, so it is offered read-only too. */
+  | { kind: "open"; artefactId: string };
 
 export type MenuLabel =
+  | "preview"
   | PickMode
   | "moveUp"
   | "moveDown"
@@ -55,7 +58,11 @@ function pick(mode: PickMode, targets: GroupTarget[]): MenuEntry[] {
  * groups the operation can use, so an artefact is never offered a group
  * that already holds it (FR-GRP-03).
  */
-export function rowMenu(file: ArtefactsFileModel, row: TreeRow): MenuEntry[] {
+export function rowMenu(
+  file: ArtefactsFileModel,
+  row: TreeRow,
+  { canOpen = false }: { canOpen?: boolean } = {},
+): MenuEntry[] {
   const all = groupTargets(file);
   if (row.kind === "ungrouped") return [];
   if (row.kind === "item") {
@@ -81,7 +88,16 @@ export function rowMenu(file: ArtefactsFileModel, row: TreeRow): MenuEntry[] {
               },
             },
           ];
+    const preview: MenuEntry[] = canOpen
+      ? [
+          {
+            label: "preview",
+            run: { kind: "open", artefactId: row.artefactId },
+          },
+        ]
+      : [];
     return [
+      ...preview,
       ...pick("moveTo", free),
       ...pick("addTo", free),
       ...step(row, -1),

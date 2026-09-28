@@ -13,6 +13,7 @@ import type { LiveEditor } from "../editing/useLiveEditor";
 import { ReferencePreviewOverlay } from "../expanded/ReferencePreviewOverlay";
 import { RichSectionEditor } from "../expanded/RichSectionEditor";
 import { columnLabel, editLabel } from "../messages";
+import type { NotebookActions } from "../useNotebook";
 import type { ExperimentRow } from "./model/rows";
 import { SummaryCell } from "./SummaryCell";
 
@@ -33,6 +34,13 @@ export type TableEditing = {
     id: string,
     changes: ExperimentChanges,
   ) => Promise<boolean>;
+  /** The experiment folder whose Results cell is open, or `null` (ADR-0044 point 4). */
+  openResults: string | null;
+  /** Opens this row's Results cell, after any live section editor has saved and closed. */
+  onOpenResults: (row: ExperimentRow) => void;
+  onCloseResults: () => void;
+  /** Changes one experiment's artefacts.yaml, as `useNotebook` does. */
+  editArtefacts: NotebookActions["editArtefacts"];
 };
 
 type Props = {

@@ -60,6 +60,9 @@ export function TreeRowView({
       onClick={() => {
         if (expandable) tree.toggle(row.key, !row.expanded);
       }}
+      onDoubleClick={() => {
+        if (row.kind === "item") tree.open?.(row.artefactId);
+      }}
       onContextMenu={(event) => {
         if (disabled || row.kind === "ungrouped") return;
         event.preventDefault();

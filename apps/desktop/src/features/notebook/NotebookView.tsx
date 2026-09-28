@@ -20,11 +20,11 @@ import {
   UNASSIGNED_KEY,
   buildRows,
   type FilterState,
-  type ExperimentRow,
   type HeaderRow,
   type SortState,
 } from "./table/model/rows";
 import { TableToolbar } from "./table/TableToolbar";
+import { useTableEditing } from "./table/useTableEditing";
 import { WorkspaceTable } from "./table/WorkspaceTable";
 import type { NotebookModel } from "./useNotebook";
 import "./NotebookPanel.css";
@@ -133,22 +133,6 @@ export function NotebookView({
     openSelection(key, null);
   }
 
-  // Editing in a cell selects its row only once the cell is live, so a
-  // section whose save failed is never left open where it is not shown.
-  function editInTable(row: ExperimentRow, section: RecognisedSectionKey) {
-    void live
-      .activate({
-        folder: row.item.experiment.folder,
-        section,
-        surface: "table",
-      })
-      .then((opened) => {
-        if (!opened) return;
-        setSelectedKey(row.key);
-        setFocusSection(null);
-      });
-  }
-
   const layout = useMemo(
     () => (table === null ? [] : columnLayout(table)),
     [table],
@@ -175,6 +159,17 @@ export function NotebookView({
       arranged === null ? EMPTY_REFERENCES : buildReferenceIndex(arranged),
     [arranged],
   );
+  const editing = useTableEditing({
+    live,
+    writable,
+    projectId,
+    references,
+    actions,
+    onSelectRow: (row) => {
+      setSelectedKey(row.key);
+      setFocusSection(null);
+    },
+  });
   const questions = useMemo<QuestionChoice[]>(
     () =>
       (arranged?.questions ?? [])
@@ -267,15 +262,7 @@ export function NotebookView({
               onSelectQuestion={(row) => select(row.key)}
               onToggle={toggle}
               onResize={resize}
-              editing={{
-                live,
-                writable,
-                projectId,
-                references,
-                onEdit: editInTable,
-                onEditExperiment: (id, changes) =>
-                  actions.editExperiment(id, changes),
-              }}
+              editing={editing}
               {...(viewportHeight === undefined ? {} : { viewportHeight })}
             />
           )}

@@ -19,6 +19,11 @@ type Props = {
    * refusal it is given and otherwise waits for a new `file`.
    */
   onAction: (action: GroupAction) => Promise<ActionOutcome>;
+  /**
+   * Opens an artefact's preview (ADR-0044): by double-click, from its
+   * actions, or by Enter when read-only. Left out, no file can be opened.
+   */
+  onOpen?: (artefactId: string) => void;
 };
 
 /**
@@ -27,8 +32,13 @@ type Props = {
  * reordered and deleted, and artefacts moved or added, by drag, keyboard
  * or each row's actions (FR-GRP-01 to FR-GRP-06).
  */
-export function ResultsTree({ file, disabled, onAction }: Props) {
-  const tree = useResultsTree({ file, disabled, onAction });
+export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
+  const tree = useResultsTree({
+    file,
+    disabled,
+    onAction,
+    ...(onOpen === undefined ? {} : { onOpen }),
+  });
   const helpId = useId();
   const places = useMemo(() => positions(tree.rows), [tree.rows]);
 
