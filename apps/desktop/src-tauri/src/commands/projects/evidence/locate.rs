@@ -13,7 +13,7 @@ use std::path::{Component, Path, PathBuf};
 use nb_fs::NOTEBOOK_DIR;
 
 use super::super::open::{SourcePath, SourceRoot};
-use super::types::{Refusal, SourceLocation};
+use super::types::{DiscoveryFolder, Refusal, SourceLocation};
 
 /// A file that can be captured: where it is, and its size in bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,6 +63,15 @@ pub(super) fn locate(
 /// `relative` as a forward-slash `SourcePath` under `root`, or `None` when
 /// it has no file name or a segment the format cannot hold.
 fn location(root: &str, relative: &Path) -> Option<SourceLocation> {
+    Some(SourceLocation {
+        root: SourceRoot::try_from(root.to_owned()).ok()?,
+        path: SourcePath::try_from(path_segments(relative)?).ok()?,
+    })
+}
+
+/// `relative`'s components joined with `/`, or `None` when one is not a
+/// plain name the format can hold.
+fn path_segments(relative: &Path) -> Option<String> {
     let segments: Option<Vec<String>> = relative
         .components()
         .map(|component| match component {
@@ -70,11 +79,50 @@ fn location(root: &str, relative: &Path) -> Option<SourceLocation> {
             _ => None,
         })
         .collect();
-    let joined = segments?.join("/");
-    Some(SourceLocation {
-        root: SourceRoot::try_from(root.to_owned()).ok()?,
-        path: SourcePath::try_from(joined).ok()?,
-    })
+    Some(segments?.join("/"))
+}
+
+/// Where `folder` sits, for a discovery scan (ADR-0035 §1, ADR-0044 point 1):
+/// under `project_root` (preferred) or one of `externals`, exactly as
+/// [`locate`] decides for a file, but for the folder itself, whose relative
+/// path may be empty when the root itself was chosen.
+pub(super) fn locate_folder(
+    folder: &Path,
+    project_root: &Path,
+    externals: &[(String, PathBuf)],
+) -> Result<DiscoveryFolder, Refusal> {
+    let metadata = fs::metadata(folder).map_err(|_| Refusal::Unreadable)?;
+    if !metadata.is_dir() {
+        return Err(Refusal::NotAFolder);
+    }
+    let resolved = folder.canonicalize().map_err(|_| Refusal::Unreadable)?;
+    let project = project_root
+        .canonicalize()
+        .map_err(|_| Refusal::Unreadable)?;
+    if resolved.starts_with(project.join(NOTEBOOK_DIR)) {
+        return Err(Refusal::InsideNotebook);
+    }
+    let within = |root: &Path, id: &str| -> Option<DiscoveryFolder> {
+        let relative = resolved.strip_prefix(root).ok()?;
+        if relative.as_os_str().is_empty() {
+            return Some(DiscoveryFolder {
+                root: SourceRoot::try_from(id.to_owned()).ok()?,
+                prefix: None,
+            });
+        }
+        Some(DiscoveryFolder {
+            root: SourceRoot::try_from(id.to_owned()).ok()?,
+            prefix: Some(SourcePath::try_from(path_segments(relative)?).ok()?),
+        })
+    };
+    within(&project, "project")
+        .or_else(|| {
+            externals.iter().find_map(|(id, folder)| {
+                let folder = folder.canonicalize().ok()?;
+                within(&folder, id)
+            })
+        })
+        .ok_or(Refusal::OutsideRoots)
 }
 
 #[cfg(test)]
@@ -215,6 +263,72 @@ mod tests {
         assert_eq!(
             locate(&chosen, project.path(), &externals),
             Ok(located("01JAX9Q2B7N4M8T6V3W5Y1Z0KD", "a.csv", 1))
+        );
+    }
+
+    fn discovery_folder(root: &str, prefix: Option<&str>) -> DiscoveryFolder {
+        DiscoveryFolder {
+            root: SourceRoot::try_from(root.to_owned()).unwrap(),
+            prefix: prefix.map(|p| SourcePath::try_from(p.to_owned()).unwrap()),
+        }
+    }
+
+    #[test]
+    fn the_project_root_itself_locates_with_no_prefix() {
+        let project = folder("nb-proj-");
+        assert_eq!(
+            locate_folder(project.path(), project.path(), &[]),
+            Ok(discovery_folder("project", None))
+        );
+    }
+
+    #[test]
+    fn a_subfolder_of_the_project_locates_with_a_prefix() {
+        let project = folder("nb-proj-");
+        fs::create_dir_all(project.path().join("results/pca")).unwrap();
+        assert_eq!(
+            locate_folder(&project.path().join("results/pca"), project.path(), &[]),
+            Ok(discovery_folder("project", Some("results/pca")))
+        );
+    }
+
+    #[test]
+    fn an_external_root_folder_locates_under_that_root() {
+        let project = folder("nb-proj-");
+        let external = folder("nb-ext-");
+        let externals = [(ROOT_ID.to_owned(), external.path().to_path_buf())];
+        assert_eq!(
+            locate_folder(external.path(), project.path(), &externals),
+            Ok(discovery_folder(ROOT_ID, None))
+        );
+    }
+
+    #[test]
+    fn a_file_a_missing_folder_or_the_notebook_folder_is_refused_for_discovery() {
+        let project = folder("nb-proj-");
+        let chosen = file(project.path(), "results/pca.csv", b"x");
+        assert_eq!(
+            locate_folder(&chosen, project.path(), &[]),
+            Err(Refusal::NotAFolder)
+        );
+        assert_eq!(
+            locate_folder(&project.path().join("gone"), project.path(), &[]),
+            Err(Refusal::Unreadable)
+        );
+        fs::create_dir_all(project.path().join("_notebook/inbox")).unwrap();
+        assert_eq!(
+            locate_folder(&project.path().join("_notebook/inbox"), project.path(), &[]),
+            Err(Refusal::InsideNotebook)
+        );
+    }
+
+    #[test]
+    fn a_folder_outside_the_project_and_every_root_is_refused_for_discovery() {
+        let project = folder("nb-proj-");
+        let elsewhere = folder("nb-else-");
+        assert_eq!(
+            locate_folder(elsewhere.path(), project.path(), &[]),
+            Err(Refusal::OutsideRoots)
         );
     }
 }

@@ -1,14 +1,22 @@
 import {
   addHowOptions,
+  discoveryMessages,
   evidenceMessages,
   type AddHow,
 } from "./evidenceMessages";
 import type { RefObject } from "react";
+import { DiscoveryDialog } from "./DiscoveryDialog";
 import type { DropsApi } from "./dropsApi";
-import { useAddFiles, type AddFilesOptions } from "./useAddFiles";
+import {
+  useAddFiles,
+  type AddFilesApi,
+  type AddFilesOptions,
+} from "./useAddFiles";
+import { useDiscovery, type DiscoveryApi } from "./useDiscovery";
 import { useDropFiles } from "./useDropFiles";
 
-type Props = AddFilesOptions & {
+type Props = Omit<AddFilesOptions, "api"> & {
+  api: AddFilesApi & DiscoveryApi;
   /** The project or this experiment cannot be changed. */
   readOnly: boolean;
   /** The element files may be dropped on: the whole open Results cell. */
@@ -26,6 +34,7 @@ const isAddHow = (value: string): value is AddHow =>
  */
 export function AddFilesBar({ readOnly, zone, drops, ...options }: Props) {
   const add = useAddFiles(options);
+  const discovery = useDiscovery(options);
   const { dragging } = useDropFiles({
     api: drops,
     zone,
@@ -44,6 +53,14 @@ export function AddFilesBar({ readOnly, zone, drops, ...options }: Props) {
       >
         {add.busy ? evidenceMessages.adding : evidenceMessages.addFiles}
       </button>
+      <button
+        type="button"
+        onClick={() => void discovery.pickFolder()}
+        disabled={readOnly}
+      >
+        {discoveryMessages.findFiles}
+      </button>
+      <DiscoveryDialog discovery={discovery} />
       <label className="wtable__add-how">
         {evidenceMessages.howLabel}
         <select

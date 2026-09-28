@@ -6,6 +6,7 @@
 //! so a location can only ever name a file the person could have chosen.
 
 mod capture;
+mod discovery;
 mod dropped;
 mod inbox;
 mod locate;
@@ -14,17 +15,20 @@ mod types;
 use std::path::PathBuf;
 
 use nb_fs::settings::SettingsStore;
+use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 use super::folders::{FolderHandle, PickedFolders};
 use super::ids::Ulid;
 use super::open::{resolve_root, RootProblem, SourcePath, SourceRoot};
+pub use discovery::DiscoveryScans;
 use dropped::DropTarget;
 pub use dropped::{on_drag, DropTargets, EvidenceDragged, EvidenceDropped};
 pub use types::{
-    CaptureNaming, CaptureOutcomeDto, ChosenFile, Destination, EvidenceFailure, ExperimentFolder,
-    InboxName, KnownVersionInput, LinkObservationDto,
+    CaptureNaming, CaptureOutcomeDto, ChosenFile, ChosenFolder, Destination, DiscoveryFolder,
+    DiscoveryOptionsDto, DiscoveryProgressDto, DiscoveryResultDto, EvidenceFailure,
+    ExperimentFolder, InboxName, KnownVersionInput, LinkObservationDto,
 };
 
 /// Runs blocking work off the async runtime's threads, as the other
@@ -302,4 +306,93 @@ pub async fn remove_inbox_request(
 ) -> Result<(), EvidenceFailure> {
     let project = project_root(&folders, folder)?;
     blocking(move || inbox::remove(&project, &request)).await
+}
+
+/// The clutter a scan excludes unless told otherwise (ADR-0035 point 4), for
+/// the discovery dialog to show and let the person edit.
+#[tauri::command]
+#[specta::specta]
+pub fn default_discovery_excludes() -> Vec<String> {
+    discovery::default_excludes()
+}
+
+/// Asks the person for a folder to scan (FR-EVD-09), starting in the project
+/// folder. Resolved as a location under the project or one of
+/// `external_roots`, or refused with the reason (ADR-0044 point 1). `None`
+/// when the person cancels.
+#[tauri::command]
+#[specta::specta]
+pub async fn pick_discovery_folder(
+    app: AppHandle,
+    folders: State<'_, PickedFolders>,
+    settings: State<'_, SettingsStore>,
+    folder: FolderHandle,
+    project_id: Ulid,
+    external_roots: Vec<Ulid>,
+) -> Result<Option<ChosenFolder>, EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    let settings = settings.inner().clone();
+    blocking(move || {
+        let picked = app
+            .dialog()
+            .file()
+            .set_title("Choose a folder to scan")
+            .set_directory(&project)
+            .blocking_pick_folder();
+        let Some(picked) = picked else {
+            return Ok(None);
+        };
+        let Ok(path) = picked.simplified().into_path() else {
+            return Ok(None);
+        };
+        let name = display_name(&path);
+        let externals = external_folders(&settings, &project_id, &external_roots)?;
+        Ok(Some(
+            match locate::locate_folder(&path, &project, &externals) {
+                Ok(folder) => ChosenFolder::Located { name, folder },
+                Err(reason) => ChosenFolder::Refused { name, reason },
+            },
+        ))
+    })
+    .await
+}
+
+/// Scans `chosen` for files to capture (FR-EVD-09), reporting progress over
+/// `progress` and stopping early if `cancel_discovery` is called before it
+/// finishes. `captured` are the source paths already recorded, relative to
+/// `chosen`, usually from `capturedSourcePaths`.
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+#[specta::specta]
+pub async fn start_discovery(
+    folders: State<'_, PickedFolders>,
+    settings: State<'_, SettingsStore>,
+    scans: State<'_, DiscoveryScans>,
+    folder: FolderHandle,
+    project_id: Ulid,
+    chosen: DiscoveryFolder,
+    options: DiscoveryOptionsDto,
+    captured: Vec<String>,
+    progress: Channel<DiscoveryProgressDto>,
+) -> Result<DiscoveryResultDto, EvidenceFailure> {
+    let project = project_root(&folders, folder)?;
+    let settings_store = settings.inner().clone();
+    let absolute = discovery::checked_folder(&settings_store, &project, &project_id, &chosen)?;
+    let cancel = scans.start();
+    let result = blocking(move || {
+        discovery::run_scan(&absolute, &chosen, options, &captured, &cancel, &mut |p| {
+            let _ = progress.send(p);
+        })
+    })
+    .await;
+    scans.finish();
+    result
+}
+
+/// Sets the running scan's cancel flag, if one is running. It returns what
+/// it had found so far, with `cancelled` set (ADR-0035 point 8).
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_discovery(scans: State<'_, DiscoveryScans>) {
+    scans.cancel();
 }
