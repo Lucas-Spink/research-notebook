@@ -1,11 +1,24 @@
 :root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --color-text: #0f0f0f;
+  --color-bg: #f6f6f6;
+  --color-surface: #ffffff;
+  --color-border: color-mix(in srgb, currentColor 20%, transparent);
+  --color-accent: #396cd8;
+
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
+  color: var(--color-text);
+  background-color: var(--color-bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,22 +27,72 @@
   -webkit-text-size-adjust: 100%;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #f6f6f6;
+    --color-bg: #2f2f2f;
+    --color-surface: #262626;
+  }
+}
+
 .container {
   margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
+  min-height: 100vh;
+  padding: var(--space-5) var(--space-6);
 }
 
 h1 {
-  text-align: center;
+  margin: 0 0 var(--space-5);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+button,
+input,
+select {
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-2) var(--space-3);
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+button:disabled {
+  opacity: 0.6;
+}
+
+/* A small rotating indicator for a busy action, paired with text for screen readers. */
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  margin-right: var(--space-2);
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
+}
+
+.notice {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.notice__dismiss {
+  padding: 0 var(--space-2);
+  border: none;
+  background: none;
+  line-height: 1;
+  font-size: 1.1em;
 }

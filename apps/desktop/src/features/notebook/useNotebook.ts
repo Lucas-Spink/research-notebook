@@ -108,6 +108,8 @@ export type NotebookActions = {
   resetColumns(): void;
   /** Collapses or expands the Unassigned group, which has no ID to store, for this session. */
   setUnassignedCollapsed(collapsed: boolean): void;
+  /** Clears the current notice, without changing anything it reported on. */
+  dismissNotice(): void;
 };
 
 type Operation = (
@@ -392,6 +394,7 @@ export function useNotebook({ folder, writable, changes }: Options) {
         }
       },
       setUnassignedCollapsed,
+      dismissNotice: () => setNotice(null),
     }),
     [run, enqueue, reload, editArtefacts],
   );

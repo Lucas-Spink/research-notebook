@@ -1,8 +1,14 @@
 .projects {
+  text-align: left;
+}
+
+/* The create/open form, notices and recent list stay a comfortable reading
+   width; the notebook table (a sibling outside this wrapper) uses the rest
+   of the window. */
+.projects__narrow {
   max-width: 44rem;
   margin: 0 auto 2rem;
   padding: 0 1rem;
-  text-align: left;
 }
 
 .projects__create {

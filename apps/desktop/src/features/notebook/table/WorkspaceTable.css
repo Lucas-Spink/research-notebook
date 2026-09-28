@@ -1,5 +1,6 @@
 .wtable {
-  height: min(70vh, 720px);
+  height: min(75vh, 1400px);
+  min-height: 320px;
   overflow: auto;
   border: 1px solid currentColor;
   border-radius: 6px;
