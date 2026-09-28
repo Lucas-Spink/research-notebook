@@ -20,6 +20,32 @@ export const evidenceMessages = {
     "This project or experiment is read-only, so files cannot be added.",
 } as const;
 
+/** Text of discovery (FR-EVD-09, ADR-0035, ADR-0044 point 7). */
+export const discoveryMessages = {
+  findFiles: "Find files…",
+  heading: "Find files",
+  chooseFolder: "Choose a folder…",
+  includeLabel: "Include (one glob per line, blank means everything)",
+  excludeLabel: "Exclude (one glob per line)",
+  scan: "Scan",
+  scanning: "Scanning…",
+  cancel: "Cancel",
+  cancelled: "Cancelled: showing what was found before then.",
+  close: "Close",
+  selectAll: "Select all",
+  selectNone: "Select none",
+  addSelected: "Add selected",
+  alreadyCaptured: "Already added",
+  noFiles: "No files matched.",
+} as const;
+
+/** "3 folders scanned, 2 skipped" (FR-EVD-09). */
+export function scanSummary(foldersVisited: number, skipped: number): string {
+  const folders = foldersVisited === 1 ? "folder" : "folders";
+  const scanned = `${foldersVisited} ${folders} scanned`;
+  return skipped === 0 ? scanned : `${scanned}, ${skipped} skipped`;
+}
+
 /** The value of the "Add as" choice: no override, or copy or link for this addition. */
 export type AddHow = "size" | CaptureMode;
 
@@ -38,6 +64,8 @@ export function refusalText(reason: Refusal): string {
       return "it is inside the notebook's own folder";
     case "notAFile":
       return "it is not a file";
+    case "notAFolder":
+      return "it is not a folder";
     case "unreadable":
       return "it could not be read";
     default:
@@ -70,6 +98,10 @@ export function failureText(
       return "what was received does not match what was declared";
     case "writeFailed":
       return "it could not be written into the notebook";
+    case "folderUnavailable":
+      return "the chosen folder is gone, is not a folder, or could not be read";
+    case "invalidPattern":
+      return "one of the include or exclude patterns is not valid";
     case "internal":
       return "something unexpected happened";
     case "notRecorded":
