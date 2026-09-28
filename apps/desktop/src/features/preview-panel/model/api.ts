@@ -11,4 +11,6 @@ export type PanelApi = PreviewApi &
     | "openLinkedFileAction"
     | "openProjectFolder"
     | "linkedArtefactAvailability"
+    | "pickDiscoveryFolder"
+    | "listRelinkCandidates"
   >;
