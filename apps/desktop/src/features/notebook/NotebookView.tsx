@@ -164,6 +164,7 @@ export function NotebookView({
     writable,
     projectId,
     references,
+    evidence: notebook.evidence,
     actions,
     onSelectRow: (row) => {
       setSelectedKey(row.key);

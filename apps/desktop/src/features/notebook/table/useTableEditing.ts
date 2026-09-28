@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { LiveEditor } from "../editing/useLiveEditor";
 import type { NotebookActions } from "../useNotebook";
 import type { TableEditing } from "./EditableSectionCell";
+import type { EvidenceProject } from "./model/addEvidence";
 import type { ExperimentRow } from "./model/rows";
 
 type Options = {
@@ -13,6 +14,7 @@ type Options = {
   writable: boolean;
   projectId: string | null;
   references: ReferenceIndex;
+  evidence: EvidenceProject | null;
   actions: NotebookActions;
   /** Selects a row, as clicking its title does. */
   onSelectRow: (row: ExperimentRow) => void;
@@ -29,6 +31,7 @@ export function useTableEditing({
   writable,
   projectId,
   references,
+  evidence,
   actions,
   onSelectRow,
 }: Options): TableEditing {
@@ -61,6 +64,7 @@ export function useTableEditing({
     openResults,
     onOpenResults,
     onCloseResults: () => setOpenResults(null),
+    evidence,
     editArtefacts: (folder, change) => actions.editArtefacts(folder, change),
   };
 }

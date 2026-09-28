@@ -14,6 +14,7 @@ import { ReferencePreviewOverlay } from "../expanded/ReferencePreviewOverlay";
 import { RichSectionEditor } from "../expanded/RichSectionEditor";
 import { columnLabel, editLabel } from "../messages";
 import type { NotebookActions } from "../useNotebook";
+import type { EvidenceProject } from "./model/addEvidence";
 import type { ExperimentRow } from "./model/rows";
 import { SummaryCell } from "./SummaryCell";
 
@@ -39,6 +40,8 @@ export type TableEditing = {
   /** Opens this row's Results cell, after any live section editor has saved and closed. */
   onOpenResults: (row: ExperimentRow) => void;
   onCloseResults: () => void;
+  /** What adding a file needs from `project.yaml`, or `null` before it has loaded. */
+  evidence: EvidenceProject | null;
   /** Changes one experiment's artefacts.yaml, as `useNotebook` does. */
   editArtefacts: NotebookActions["editArtefacts"];
 };

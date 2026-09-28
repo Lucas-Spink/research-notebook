@@ -41,6 +41,7 @@ function model(
     failure: null,
     actions,
     projectId: state.project.id,
+    evidence: null,
     ...overrides,
   };
 }

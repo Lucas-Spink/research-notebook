@@ -382,6 +382,14 @@ export function useNotebook({ folder, writable, changes }: Options) {
     actions,
     /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
     projectId: state?.project.id ?? null,
+    /** What adding a file needs from `project.yaml` (FR-EVD-02); `null` before it has loaded. */
+    evidence:
+      state === null
+        ? null
+        : {
+            copyThresholdMb: state.project.capture.copy_threshold_mb,
+            externalRoots: state.project.external_roots.map((root) => root.id),
+          },
   };
 }
 

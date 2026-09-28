@@ -20,6 +20,7 @@ import {
   resultsCountLabel,
   tableMessages,
 } from "../messages";
+import { AddFilesBar } from "./AddFilesBar";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
 import { resultsSummary, type ResultsThumbnail } from "./model/resultsSummary";
@@ -150,6 +151,20 @@ export function ResultsCell({
         <button type="button" className="wtable__results-close" onClick={close}>
           {tableMessages.closeResults}
         </button>
+        {artefacts !== null &&
+        editing.evidence !== null &&
+        editing.projectId !== null ? (
+          <AddFilesBar
+            api={commands}
+            folder={folder}
+            projectId={editing.projectId}
+            experimentFolder={experiment.folder}
+            evidence={editing.evidence}
+            artefacts={artefacts}
+            editArtefacts={editing.editArtefacts}
+            readOnly={readOnly}
+          />
+        ) : null}
         {artefacts === null ? (
           <p>{tableMessages.unreadableResults}</p>
         ) : (
