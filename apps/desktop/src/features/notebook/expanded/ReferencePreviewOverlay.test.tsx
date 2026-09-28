@@ -72,6 +72,8 @@ function fakeApi(): PanelApi {
     openLinkedFileAction: () => ok(null),
     openProjectFolder: () => ok(null),
     linkedArtefactAvailability: () => ok({ kind: "available", size: 10 }),
+    pickDiscoveryFolder: () => ok(null),
+    listRelinkCandidates: () => ok([]),
   };
 }
 

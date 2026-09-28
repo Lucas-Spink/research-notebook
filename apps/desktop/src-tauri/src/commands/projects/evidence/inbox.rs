@@ -36,7 +36,7 @@ pub(super) fn read(project_root: &Path, request: &InboxName) -> Result<String, E
 
 /// A whole number of bytes from the number the bindings carry.
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-fn byte_count(size: f64) -> Option<u64> {
+pub(super) fn byte_count(size: f64) -> Option<u64> {
     // 2^53: the largest range in which an f64 counts every integer.
     let exact =
         size.is_finite() && size >= 0.0 && size.fract() == 0.0 && size < 9_007_199_254_740_992.0;

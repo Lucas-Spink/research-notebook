@@ -132,6 +132,14 @@ export function ResultsCell({
         artefactId={preview}
         version={previewVersion(artefacts, preview)}
         references={editing.references}
+        {...(editing.evidence === null || readOnly
+          ? {}
+          : {
+              relink: {
+                editArtefacts: editing.editArtefacts,
+                externalRoots: editing.evidence.externalRoots,
+              },
+            })}
         onClose={() => setPreview(null)}
       />
     ) : null;
