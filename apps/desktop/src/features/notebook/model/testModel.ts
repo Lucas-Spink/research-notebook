@@ -34,6 +34,10 @@ export function testModel(
     failure: null,
     actions: stubActions,
     projectId: state.project.id,
+    evidence: {
+      copyThresholdMb: state.project.capture.copy_threshold_mb,
+      externalRoots: state.project.external_roots.map((root) => root.id),
+    },
     ...overrides,
   };
 }

@@ -20,6 +20,8 @@ import {
   resultsCountLabel,
   tableMessages,
 } from "../messages";
+import { AddFilesBar } from "./AddFilesBar";
+import { evidenceDrops } from "./dropsApi";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
 import { resultsSummary, type ResultsThumbnail } from "./model/resultsSummary";
@@ -93,6 +95,7 @@ export function ResultsCell({
   const readOnly = !editing.writable || row.item.readOnly || artefacts === null;
   const [preview, setPreview] = useState<string | null>(null);
   const control = useRef<HTMLDivElement>(null);
+  const openCell = useRef<HTMLDivElement>(null);
   const returnFocus = useRef(false);
 
   useEffect(() => {
@@ -136,6 +139,7 @@ export function ResultsCell({
   if (open) {
     return (
       <div
+        ref={openCell}
         className="wtable__results-open"
         onKeyDown={(event) => {
           const inPanel =
@@ -150,6 +154,22 @@ export function ResultsCell({
         <button type="button" className="wtable__results-close" onClick={close}>
           {tableMessages.closeResults}
         </button>
+        {artefacts !== null &&
+        editing.evidence !== null &&
+        editing.projectId !== null ? (
+          <AddFilesBar
+            api={commands}
+            folder={folder}
+            projectId={editing.projectId}
+            experimentFolder={experiment.folder}
+            evidence={editing.evidence}
+            artefacts={artefacts}
+            editArtefacts={editing.editArtefacts}
+            readOnly={readOnly}
+            zone={openCell}
+            drops={evidenceDrops}
+          />
+        ) : null}
         {artefacts === null ? (
           <p>{tableMessages.unreadableResults}</p>
         ) : (

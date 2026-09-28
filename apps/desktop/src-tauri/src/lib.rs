@@ -6,7 +6,7 @@ use nb_fs::lock::{LockRegistry, SystemEnv};
 use nb_fs::settings::SettingsStore;
 use nb_fs::watch::WatchRegistry;
 use tauri::Manager;
-use tauri_specta::{collect_commands, Builder};
+use tauri_specta::{collect_commands, collect_events, Builder};
 
 /// Builds the typed-command registry used by [`run`] to export
 /// `apps/desktop/src/ipc/bindings.ts` and to wire up `invoke_handler`.
@@ -14,41 +14,48 @@ use tauri_specta::{collect_commands, Builder};
 /// `pub` only so it can be exercised from outside this crate if needed
 /// later — this crate is the application binary, not a published library.
 pub fn specta_builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new().commands(collect_commands![
-        commands::app::app_version,
-        commands::preview::preview_thumbnail_png,
-        commands::projects::create_project,
-        commands::projects::open_project,
-        commands::projects::open_recent_project,
-        commands::projects::locate_project,
-        commands::projects::remember_project,
-        commands::projects::list_recent_projects,
-        commands::projects::set_external_root,
-        commands::projects::external_root_status,
-        commands::projects::lock::acquire_project_lock,
-        commands::projects::lock::project_lock_state,
-        commands::projects::lock::release_project_lock,
-        commands::projects::files::list_notebook_files,
-        commands::projects::files::read_notebook_file,
-        commands::projects::history::write_notebook_file,
-        commands::projects::history::move_to_trash,
-        commands::projects::history::backup_for_version_change,
-        commands::projects::watch::start_project_watch,
-        commands::projects::watch::poll_project_changes,
-        commands::projects::watch::stop_project_watch,
-        commands::projects::preview::preview_thumbnail,
-        commands::projects::preview::preview_asset,
-        commands::projects::preview::preview_table,
-        commands::projects::preview::preview_text,
-        commands::projects::preview::preview_notebook,
-        commands::projects::open::open_captured_file_action,
-        commands::projects::open::open_linked_file_action,
-        commands::projects::open::open_project_folder,
-        commands::projects::open::linked_artefact_availability,
-        commands::projects::evidence::pick_evidence_files,
-        commands::projects::evidence::capture_evidence,
-        commands::projects::evidence::observe_evidence,
-    ])
+    Builder::<tauri::Wry>::new()
+        .commands(collect_commands![
+            commands::app::app_version,
+            commands::preview::preview_thumbnail_png,
+            commands::projects::create_project,
+            commands::projects::open_project,
+            commands::projects::open_recent_project,
+            commands::projects::locate_project,
+            commands::projects::remember_project,
+            commands::projects::list_recent_projects,
+            commands::projects::set_external_root,
+            commands::projects::external_root_status,
+            commands::projects::lock::acquire_project_lock,
+            commands::projects::lock::project_lock_state,
+            commands::projects::lock::release_project_lock,
+            commands::projects::files::list_notebook_files,
+            commands::projects::files::read_notebook_file,
+            commands::projects::history::write_notebook_file,
+            commands::projects::history::move_to_trash,
+            commands::projects::history::backup_for_version_change,
+            commands::projects::watch::start_project_watch,
+            commands::projects::watch::poll_project_changes,
+            commands::projects::watch::stop_project_watch,
+            commands::projects::preview::preview_thumbnail,
+            commands::projects::preview::preview_asset,
+            commands::projects::preview::preview_table,
+            commands::projects::preview::preview_text,
+            commands::projects::preview::preview_notebook,
+            commands::projects::open::open_captured_file_action,
+            commands::projects::open::open_linked_file_action,
+            commands::projects::open::open_project_folder,
+            commands::projects::open::linked_artefact_availability,
+            commands::projects::evidence::pick_evidence_files,
+            commands::projects::evidence::capture_evidence,
+            commands::projects::evidence::observe_evidence,
+            commands::projects::evidence::watch_drops,
+            commands::projects::evidence::unwatch_drops,
+        ])
+        .events(collect_events![
+            commands::projects::evidence::EvidenceDragged,
+            commands::projects::evidence::EvidenceDropped,
+        ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -67,18 +74,28 @@ pub fn run() {
         eprintln!("failed to export typescript bindings: {error}");
     }
 
+    let handler = builder.invoke_handler();
     let built = tauri::Builder::default()
         // Only the Rust API is used, to open folder dialogs from commands. No
         // capability grants the webview the plugin's own commands.
         .plugin(tauri_plugin_dialog::init())
         .manage(commands::projects::PickedFolders::default())
+        // Where files dropped on the window go, once the webview asks.
+        .manage(commands::projects::evidence::DropTargets::default())
         // The locks this run holds, released when it exits.
         .manage(LockRegistry::new(Arc::new(SystemEnv::new(env!(
             "CARGO_PKG_VERSION"
         )))))
         // The watchers this run holds, stopped when it exits.
         .manage(WatchRegistry::new())
-        .setup(|app| {
+        .on_window_event(|window, event| {
+            // Dropped paths are resolved here; the webview only sees locations.
+            if let tauri::WindowEvent::DragDrop(drag) = event {
+                commands::projects::evidence::on_drag(window, drag);
+            }
+        })
+        .setup(move |app| {
+            builder.mount_events(app);
             // Recent projects and external root paths belong to this machine
             // (spec 9.4: %APPDATA%\<app id> or ~/Library/Application Support/<app id>).
             app.manage(SettingsStore::new(app.path().app_config_dir()?));
@@ -87,7 +104,7 @@ pub fn run() {
             app.manage(previews);
             Ok(())
         })
-        .invoke_handler(builder.invoke_handler())
+        .invoke_handler(handler)
         .build(tauri::generate_context!());
     let app = match built {
         Ok(app) => app,

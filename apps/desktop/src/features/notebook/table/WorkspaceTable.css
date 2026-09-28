@@ -162,6 +162,24 @@
   float: right;
 }
 
+.wtable__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.wtable__add-how {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.wtable__add-notes {
+  flex-basis: 100%;
+}
+
 /* Four lines of a summary, however long the section is (FR-TBL-05). */
 .wtable__clamp {
   display: -webkit-box;
@@ -299,4 +317,9 @@
 
 .notebook__details {
   margin-top: 1rem;
+}
+
+.wtable__add--drop {
+  outline: 2px dashed currentColor;
+  outline-offset: 2px;
 }
