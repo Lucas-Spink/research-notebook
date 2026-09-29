@@ -160,6 +160,7 @@ export function ExperimentRowView({
             role="gridcell"
             data-grid-row={row.key}
             data-grid-col={col}
+            data-column={column.key}
             tabIndex={ownControl ? undefined : tabbable ? 0 : -1}
             className={`wtable__cell${isEditing ? " wtable__cell--editing" : ""}`}
             style={{ width: column.width }}

@@ -192,6 +192,15 @@
   overflow-wrap: anywhere;
 }
 
+/* Interpretation and literature often run to several paragraphs; a smaller
+   size and a much taller clamp show more before truncating. */
+.wtable__cell[data-column="interpretation"] .wtable__clamp,
+.wtable__cell[data-column="literature"] .wtable__clamp {
+  font-size: 0.9em;
+  -webkit-line-clamp: 12;
+  line-clamp: 12;
+}
+
 /* An artefact reference inside a summary cell (FR-EDT-06): a small, static
  * chip, never focusable or clickable — the table holds no live editor and
  * shows a read-only overview (FR-TBL-05). */
@@ -218,7 +227,7 @@
 .wtable__question {
   display: flex;
   align-items: center;
-  background: rgba(128, 128, 128, 0.16);
+  background: var(--color-accent-soft, rgba(128, 128, 128, 0.16));
   border-bottom: 1px solid currentColor;
 }
 

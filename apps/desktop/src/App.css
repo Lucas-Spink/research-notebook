@@ -11,6 +11,14 @@
   --color-surface: #ffffff;
   --color-border: color-mix(in srgb, currentColor 20%, transparent);
   --color-accent: #396cd8;
+  --color-accent-dark: #2851ad;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --color-highlight: #b8660f;
+  --color-highlight-soft: color-mix(
+    in srgb,
+    var(--color-highlight) 14%,
+    transparent
+  );
 
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -32,6 +40,8 @@
     --color-text: #f6f6f6;
     --color-bg: #2f2f2f;
     --color-surface: #262626;
+    --color-accent-dark: #86a9ec;
+    --color-highlight: #d88a39;
   }
 }
 
@@ -43,6 +53,11 @@
 
 h1 {
   margin: 0 0 var(--space-5);
+}
+
+h2,
+h3 {
+  color: var(--color-accent-dark);
 }
 
 button,
