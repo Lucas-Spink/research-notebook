@@ -2,13 +2,17 @@ import type { ColumnKey } from "@research-notebook/format";
 import { useId, useState, type FormEvent } from "react";
 import {
   columnLabel,
+  fontSizeLabel,
   showColumnLabel,
   tableMessages,
   widthLabel,
 } from "../messages";
 import {
+  MAX_FONT_SIZE,
   MAX_WIDTH,
+  MIN_FONT_SIZE,
   MIN_WIDTH,
+  clampFontSize,
   clampWidth,
   type ColumnLayout,
 } from "./model/columns";
@@ -61,12 +65,63 @@ function WidthField({ label, width, onCommit }: WidthProps) {
   );
 }
 
+/** A text size typed in pixels; left empty, the column keeps the application's default. */
+function FontSizeField({
+  label,
+  fontSize,
+  onCommit,
+}: {
+  label: string;
+  fontSize: number | null;
+  onCommit: (fontSize: number) => void;
+}) {
+  const id = useId();
+  const [text, setText] = useState(fontSize === null ? "" : String(fontSize));
+  const [seen, setSeen] = useState(fontSize);
+  if (seen !== fontSize) {
+    setSeen(fontSize);
+    setText(fontSize === null ? "" : String(fontSize));
+  }
+
+  function apply(event?: FormEvent) {
+    event?.preventDefault();
+    const typed = Number(text);
+    if (text.trim() === "" || !Number.isFinite(typed)) {
+      setText(fontSize === null ? "" : String(fontSize));
+      return;
+    }
+    const next = clampFontSize(typed);
+    setText(String(next));
+    if (next !== fontSize) onCommit(next);
+  }
+
+  return (
+    <form onSubmit={apply}>
+      <label htmlFor={id} className="wtable__sr">
+        {label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min={MIN_FONT_SIZE}
+        max={MAX_FONT_SIZE}
+        step={1}
+        placeholder={tableMessages.defaultFontSize}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={() => apply()}
+      />
+    </form>
+  );
+}
+
 type Props = {
   layout: readonly ColumnLayout[];
   /** Read-only projects keep column changes for the session only. */
   writable: boolean;
   onHide: (key: ColumnKey, hidden: boolean) => void;
   onWidth: (key: ColumnKey, width: number) => void;
+  onFontSize: (key: ColumnKey, fontSize: number) => void;
   onReset: () => void;
 };
 
@@ -80,6 +135,7 @@ export function ColumnsMenu({
   writable,
   onHide,
   onWidth,
+  onFontSize,
   onReset,
 }: Props) {
   const headingId = useId();
@@ -104,6 +160,11 @@ export function ColumnsMenu({
                 label={widthLabel(label)}
                 width={column.width}
                 onCommit={(width) => onWidth(column.key, width)}
+              />
+              <FontSizeField
+                label={fontSizeLabel(label)}
+                fontSize={column.fontSize}
+                onCommit={(fontSize) => onFontSize(column.key, fontSize)}
               />
             </li>
           );

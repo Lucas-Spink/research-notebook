@@ -74,6 +74,33 @@ describe("changeTableSettings", () => {
     expect(column(shown.next, "results")?.hidden).toBe(false);
   });
 
+  it("changes a column's font size, leaving the others as they are", () => {
+    const { env, state } = sample();
+    const plan = must(
+      changeTableSettings(state, { fontSize: { interpretation: 12 } }, env),
+    );
+    expect(column(plan.next, "interpretation")?.fontSize).toBe(12);
+    expect(column(plan.next, "methods")?.fontSize).toBeUndefined();
+  });
+
+  it("refuses a font size that is not a whole number of at least 1, and changes nothing", () => {
+    const { env, state } = sample();
+    for (const fontSize of [0, -5, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const result = changeTableSettings(
+        state,
+        { fontSize: { methods: fontSize } },
+        env,
+      );
+      expect(result.ok, String(fontSize)).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toMatchObject({
+          kind: "invalid",
+          field: "fontSize",
+        });
+      }
+    }
+  });
+
   it("collapses and expands a question, listing it once", () => {
     const { env, state, first, second } = sample();
     const one = must(
@@ -229,5 +256,14 @@ describe("resetTableColumns", () => {
   it("writes nothing when the columns are already the defaults", () => {
     const { env, state } = sample();
     expect(must(resetTableColumns(state, env)).steps).toEqual([]);
+  });
+
+  it("clears a chosen font size back to the application's default", () => {
+    const { env, state } = sample();
+    const changed = must(
+      changeTableSettings(state, { fontSize: { interpretation: 12 } }, env),
+    ).next;
+    const plan = must(resetTableColumns(changed, env));
+    expect(column(plan.next, "interpretation")?.fontSize).toBeUndefined();
   });
 });

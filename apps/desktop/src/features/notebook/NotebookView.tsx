@@ -259,6 +259,12 @@ export function NotebookView({
                 { immediate: true },
               )
             }
+            onFontSize={(key, fontSize) =>
+              actions.changeSettings(
+                { fontSize: { [key]: fontSize } },
+                { immediate: true },
+              )
+            }
             onReset={() => actions.resetColumns()}
           />
           <TopActions

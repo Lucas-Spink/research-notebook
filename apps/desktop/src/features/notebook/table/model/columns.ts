@@ -13,8 +13,24 @@ export const MAX_WIDTH = 1200;
 /** The leading column (ref, title, status, dates) is not one of the six and cannot be hidden. */
 export const EXPERIMENT_COLUMN_WIDTH = 260;
 
+/** The narrowest and widest a column's text can be made, in CSS pixels. */
+export const MIN_FONT_SIZE = 8;
+export const MAX_FONT_SIZE = 48;
+
+/** A font size kept whole and inside the limits, whatever was asked for. */
+export function clampFontSize(fontSize: number): number {
+  if (!Number.isFinite(fontSize)) return MIN_FONT_SIZE;
+  return Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(fontSize)));
+}
+
 /** A column as the table shows it. */
-export type ColumnLayout = { key: ColumnKey; width: number; hidden: boolean };
+export type ColumnLayout = {
+  key: ColumnKey;
+  width: number;
+  hidden: boolean;
+  /** `null` when the column has no size of its own, and takes the application's default. */
+  fontSize: number | null;
+};
 
 /** A width kept whole and inside the limits, whatever was asked for. */
 export function clampWidth(width: number): number {
@@ -57,6 +73,7 @@ export function columnLayout(table: Table): ColumnLayout[] {
     key: column.key,
     width: clampWidth(column.width),
     hidden: column.hidden,
+    fontSize: column.fontSize ?? null,
   }));
 }
 
@@ -128,11 +145,15 @@ export function withOverlay(table: Table, overlay: TableSettingsChange): Table {
   }
   return {
     ...table,
-    columns: table.columns.map((column) => ({
-      ...column,
-      width: overlay.widths?.[column.key] ?? column.width,
-      hidden: overlay.hidden?.[column.key] ?? column.hidden,
-    })),
+    columns: table.columns.map((column) => {
+      const fontSize = overlay.fontSize?.[column.key] ?? column.fontSize;
+      return {
+        ...column,
+        width: overlay.widths?.[column.key] ?? column.width,
+        hidden: overlay.hidden?.[column.key] ?? column.hidden,
+        ...(fontSize === undefined ? {} : { fontSize }),
+      };
+    }),
     collapsed_questions: collapsed,
   };
 }
@@ -145,9 +166,11 @@ export function mergeOverlay(
   const merged: TableSettingsChange = {};
   const widths = { ...earlier.widths, ...later.widths };
   const hidden = { ...earlier.hidden, ...later.hidden };
+  const fontSize = { ...earlier.fontSize, ...later.fontSize };
   const collapsed = { ...earlier.collapsed, ...later.collapsed };
   if (Object.keys(widths).length > 0) merged.widths = widths;
   if (Object.keys(hidden).length > 0) merged.hidden = hidden;
+  if (Object.keys(fontSize).length > 0) merged.fontSize = fontSize;
   if (Object.keys(collapsed).length > 0) merged.collapsed = collapsed;
   return merged;
 }

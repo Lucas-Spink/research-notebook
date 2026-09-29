@@ -135,13 +135,19 @@ export function projectModel(): fc.Arbitrary<
         maxLength: 6,
       }),
       fc.array(fc.boolean(), { minLength: 6, maxLength: 6 }),
+      // Absent as often as present, to exercise both states of the field.
+      fc.array(fc.option(fc.integer({ min: 8, max: 32 }), { nil: undefined }), {
+        minLength: 6,
+        maxLength: 6,
+      }),
       fc.array(unknownFields(), { minLength: 6, maxLength: 6 }),
     )
-    .map(([keys, widths, hidden, extra]) =>
+    .map(([keys, widths, hidden, fontSizes, extra]) =>
       keys.map((key, i) => ({
         key,
         width: widths[i],
         hidden: hidden[i],
+        ...(fontSizes[i] === undefined ? {} : { fontSize: fontSizes[i] }),
         ...extra[i],
       })),
     );
