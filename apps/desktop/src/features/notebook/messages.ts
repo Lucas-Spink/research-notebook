@@ -91,6 +91,7 @@ export const tableMessages = {
   changeDirection: "Change sort direction",
   columnsButton: "Columns",
   columnsHeading: "Columns",
+  defaultFontSize: "Default",
   resetColumns: "Reset columns",
   sessionOnly:
     "This project is read-only, so column changes are kept only until it is closed.",
@@ -233,6 +234,8 @@ export function columnLabel(key: ColumnKey): string {
 
 export const showColumnLabel = (label: string) => `Show ${label}`;
 export const widthLabel = (label: string) => `Width of ${label} (pixels)`;
+export const fontSizeLabel = (label: string) =>
+  `Text size of ${label} (pixels)`;
 export const resizeLabel = (label: string) => `Resize ${label} column`;
 export const collapseLabel = (ref: string) => `Collapse ${ref}`;
 export const expandLabel = (ref: string) => `Expand ${ref}`;

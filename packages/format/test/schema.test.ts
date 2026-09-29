@@ -205,6 +205,16 @@ describe("project.yaml", () => {
     expect(accepts(ProjectYaml, value)).toBe(true);
   });
 
+  it("accepts a column font size, and a project without one at all", () => {
+    expect(
+      accepts(
+        ProjectYaml,
+        setIn(projectSample, ["table", "columns", 0, "fontSize"], 16),
+      ),
+    ).toBe(true);
+    expect(accepts(ProjectYaml, projectSample)).toBe(true);
+  });
+
   it("keeps unknown keys at the top level and in nested objects", () => {
     const value = setIn(
       setIn(projectSample, ["x_top"], "kept"),
@@ -255,6 +265,8 @@ describe("project.yaml", () => {
     ["fractional next_experiment", ["numbering", "next_experiment"], 2.5],
     ["zero column width", ["table", "columns", 0, "width"], 0],
     ["fractional column width", ["table", "columns", 0, "width"], 10.5],
+    ["zero column font size", ["table", "columns", 0, "fontSize"], 0],
+    ["fractional column font size", ["table", "columns", 0, "fontSize"], 10.5],
     ["unknown column key", ["table", "columns", 0, "key"], "owner"],
     [
       "non-ULID collapsed question",

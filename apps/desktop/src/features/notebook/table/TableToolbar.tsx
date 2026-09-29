@@ -22,6 +22,7 @@ type Props = {
   writable: boolean;
   onHide: (key: ColumnKey, hidden: boolean) => void;
   onWidth: (key: ColumnKey, width: number) => void;
+  onFontSize: (key: ColumnKey, fontSize: number) => void;
   onReset: () => void;
 };
 
@@ -35,6 +36,7 @@ export function TableToolbar({
   writable,
   onHide,
   onWidth,
+  onFontSize,
   onReset,
 }: Props) {
   const ids = useId();
@@ -129,6 +131,7 @@ export function TableToolbar({
           writable={writable}
           onHide={onHide}
           onWidth={onWidth}
+          onFontSize={onFontSize}
           onReset={onReset}
         />
       )}
