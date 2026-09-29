@@ -143,4 +143,27 @@ describe("StaticSectionContent", () => {
     });
     expect(onActivateReference).toHaveBeenCalledWith(ULID, 1);
   });
+
+  it("renders a citation cluster plainly by its citekeys (spec 5.7, S5-T03)", () => {
+    const view = render(
+      "[see @z:u:9HJ3LM2N, fig. 2; @z:g4521:ABCD2345, pp. 10-12]",
+    );
+    expect(view.querySelector(".expanded__citation")?.textContent).toBe(
+      "[@z:u:9HJ3LM2N; @z:g4521:ABCD2345]",
+    );
+  });
+
+  it("renders a hand-written author-in-text citation with its locator (spec 5.7, S5-T03)", () => {
+    const view = render("@z:u:7XK2PQ9M [p. 4] showed this.");
+    expect(view.querySelector(".expanded__citation-in-text")?.textContent).toBe(
+      "@z:u:7XK2PQ9M [p. 4]",
+    );
+  });
+
+  it("renders a hand-written author-in-text citation with no locator", () => {
+    const view = render("As @z:u:7XK2PQ9M showed, the effect held.");
+    expect(view.querySelector(".expanded__citation-in-text")?.textContent).toBe(
+      "@z:u:7XK2PQ9M",
+    );
+  });
 });
