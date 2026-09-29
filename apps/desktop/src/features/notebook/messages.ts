@@ -23,6 +23,7 @@ export const messages = {
   newQuestionLabel: "New question",
   newQuestionPlaceholder: "For example, Do batch effects explain the signal?",
   addQuestion: "Add question",
+  newExperimentCaption: "New experiment",
   addExperiment: "Add experiment",
   chooseQuestionLabel: "Question",
   newExperimentPlaceholder: "For example, Baseline correction of raw counts",

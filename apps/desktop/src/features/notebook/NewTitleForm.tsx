@@ -29,7 +29,10 @@ export function NewTitleForm({
 
   return (
     <form className="notebook__new" onSubmit={submit}>
-      <label htmlFor={inputId}>{label}</label>
+      <p className="notebook__new-caption">{label}</p>
+      <label htmlFor={inputId} className="notebook__sr">
+        {label}
+      </label>
       <input
         id={inputId}
         value={title}
