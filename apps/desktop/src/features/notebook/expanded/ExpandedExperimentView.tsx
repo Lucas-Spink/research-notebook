@@ -3,6 +3,7 @@ import type {
   RecognisedSectionKey,
   ReferenceIndex,
 } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import { useEffect, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { commands } from "../../../ipc/bindings";
@@ -43,6 +44,8 @@ type Props = {
   focusSection: RecognisedSectionKey | null;
   /** The application's one live section editor and its autosave (FR-EDT-03, ADR-0043). */
   live: LiveEditor;
+  /** Reports the live editor instance for the formatting ribbon; `null` when none is live here. */
+  onEditorReady?: (editor: Editor | null) => void;
 };
 
 /** A reference chip's activation (FR-EDT-06), waiting to open its preview. */
@@ -65,6 +68,7 @@ export function ExpandedExperimentView({
   references,
   focusSection,
   live,
+  onEditorReady = () => undefined,
 }: Props) {
   const { experiment, readOnly } = item;
   const experimentId = experiment.file.frontmatter.id;
@@ -126,6 +130,7 @@ export function ExpandedExperimentView({
       containerRef: (element: HTMLDivElement | null) => {
         sectionElements.current[key] = element;
       },
+      onEditorReady,
     };
   };
 

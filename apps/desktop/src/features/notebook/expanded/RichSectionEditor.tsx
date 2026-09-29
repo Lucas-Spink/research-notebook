@@ -3,6 +3,7 @@ import {
   parseSectionMarkdown,
   serialiseSectionMarkdown,
 } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { useCallback, useEffect, useId, useMemo, useRef } from "react";
 import { autosaveStatusText, editLabel, expandedMessages } from "../messages";
@@ -35,6 +36,12 @@ type Props = {
   containerRef?: (element: HTMLDivElement | null) => void;
   /** Puts the caret at the end of the live editor once it mounts, as a table cell opened for editing does (ADR-0043). */
   autoFocus?: boolean;
+  /**
+   * Reports the live editor instance while this is the one live section
+   * (S4-G08), so a shared ribbon outside this component can drive it; `null`
+   * once it stops being live. Omitted where nothing needs it.
+   */
+  onEditorReady?: (editor: Editor | null) => void;
 };
 
 /**
@@ -56,6 +63,7 @@ export function RichSectionEditor({
   onActivateReference,
   containerRef,
   autoFocus = false,
+  onEditorReady = () => undefined,
 }: Props) {
   const id = useId();
   return (
@@ -80,6 +88,7 @@ export function RichSectionEditor({
           artefacts={artefacts}
           onActivateReference={onActivateReference}
           autoFocus={autoFocus}
+          onEditorReady={onEditorReady}
         />
       ) : (
         <StaticSection
@@ -105,6 +114,7 @@ function LiveEditor({
   artefacts,
   onActivateReference,
   autoFocus,
+  onEditorReady,
 }: {
   id: string;
   label: string;
@@ -114,6 +124,7 @@ function LiveEditor({
   artefacts: ArtefactsFileModel | null;
   onActivateReference: (ulid: string, version: number | null) => void;
   autoFocus: boolean;
+  onEditorReady: (editor: Editor | null) => void;
 }) {
   // Stable functions, read at call time: the suggestion plugin and the
   // chip's NodeView are built once per editor instance (below), but the
@@ -175,6 +186,11 @@ function LiveEditor({
   useEffect(() => {
     editor.setEditable(!disabled);
   }, [editor, disabled]);
+
+  useEffect(() => {
+    onEditorReady(editor);
+    return () => onEditorReady(null);
+  }, [editor, onEditorReady]);
 
   // Re-evaluated on every transaction (a reference's own Update, typing, an
   // undo) via `useEditorState`'s subscription, and on every render this
