@@ -4,6 +4,7 @@ import type {
   RecognisedSectionKey,
   ReferenceIndex,
 } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import type { FolderHandle } from "../../ipc/bindings";
 import type { LiveEditor } from "./editing/useLiveEditor";
 import { ExpandedExperimentView } from "./expanded/ExpandedExperimentView";
@@ -41,6 +42,8 @@ type Props = {
   focusSection: RecognisedSectionKey | null;
   /** The application's one live section editor (FR-EDT-03, ADR-0043). */
   live: LiveEditor;
+  /** Reports the live editor instance for the formatting ribbon; `null` when none is live here. */
+  onEditorReady?: (editor: Editor | null) => void;
 };
 
 /**
@@ -60,6 +63,7 @@ export function DetailsPanel({
   references,
   focusSection,
   live,
+  onEditorReady = () => undefined,
 }: Props) {
   return (
     <section className="notebook__details" aria-labelledby="notebook-details">
@@ -86,6 +90,7 @@ export function DetailsPanel({
             references={references}
             focusSection={focusSection}
             live={live}
+            onEditorReady={onEditorReady}
           />
         </>
       )}

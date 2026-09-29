@@ -2,6 +2,7 @@ import type {
   RecognisedSectionKey,
   ReferenceIndex,
 } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import { useState } from "react";
 import type { LiveEditor } from "../editing/useLiveEditor";
 import type { NotebookActions } from "../useNotebook";
@@ -18,6 +19,8 @@ type Options = {
   actions: NotebookActions;
   /** Selects a row, as clicking its title does. */
   onSelectRow: (row: ExperimentRow) => void;
+  /** Reports the live editor instance for the formatting ribbon; `null` when none is live here. */
+  onEditorReady?: (editor: Editor | null) => void;
 };
 
 /**
@@ -34,6 +37,7 @@ export function useTableEditing({
   evidence,
   actions,
   onSelectRow,
+  onEditorReady = () => undefined,
 }: Options): TableEditing {
   const [openResults, setOpenResults] = useState<string | null>(null);
 
@@ -66,5 +70,6 @@ export function useTableEditing({
     onCloseResults: () => setOpenResults(null),
     evidence,
     editArtefacts: (folder, change) => actions.editArtefacts(folder, change),
+    onEditorReady,
   };
 }

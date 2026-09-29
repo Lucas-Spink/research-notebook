@@ -1,0 +1,40 @@
+.ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.ribbon__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ribbon__group button[aria-pressed="true"] {
+  background: var(--color-accent-soft, transparent);
+  border-color: var(--color-accent, currentColor);
+}
+
+.ribbon__divider {
+  align-self: stretch;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.ribbon__hint {
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+.ribbon__link-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex-basis: 100%;
+}
