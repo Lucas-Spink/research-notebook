@@ -5,6 +5,7 @@ import { useExternalChanges, type Reload } from "../conflicts";
 import type { ChangesPort } from "../notebook";
 import { failureMessage, messages, warningMessage } from "./messages";
 import {
+  addExternalRootFlow,
   checkLockFlow,
   chooseExternalRootFlow,
   createFlow,
@@ -227,6 +228,48 @@ export function useProjects() {
     [opened],
   );
 
+  /**
+   * Adds a new external root, then immediately asks where its folder is on
+   * this machine, so one action leaves it ready to capture evidence with
+   * (FR-PRJ-07).
+   */
+  const addExternalRoot = useCallback(
+    async (label: string) => {
+      if (opened === null) return;
+      setBusy(true);
+      setNotices([]);
+      try {
+        const added = await addExternalRootFlow(commands, opened, label, env);
+        if (added.kind === "failed") {
+          setNotices([failureMessage(added.reason)]);
+          return;
+        }
+        setOpened((current) =>
+          current === opened ? { ...current, summary: added.summary } : current,
+        );
+        setRoots((previous) => [
+          ...previous.filter((root) => root.id !== added.root.id),
+          added.root,
+        ]);
+        const chosen = await chooseExternalRootFlow(
+          commands,
+          added.summary,
+          added.root.id,
+        );
+        if (chosen !== null && "failure" in chosen) {
+          setNotices([failureMessage(chosen.failure)]);
+        } else if (chosen !== null) {
+          setRoots(chosen.roots);
+        }
+      } catch {
+        setNotices([messages.unexpected]);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [opened, env],
+  );
+
   return {
     recent,
     opened,
@@ -243,6 +286,8 @@ export function useProjects() {
     openRecent: (id: string) => run(() => openRecentFlow(commands, id)),
     locate: (id: string) => run(() => locateFlow(commands, id)),
     chooseExternalRoot,
+    addExternalRoot,
+    dismissNotices: () => setNotices([]),
     takeOver: () => changeMode((project) => takeOverFlow(commands, project)),
     retryLock: () => changeMode((project) => retryLockFlow(commands, project)),
   };

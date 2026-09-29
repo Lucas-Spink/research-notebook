@@ -21,6 +21,7 @@ export function fakeApi(replies: Partial<Record<string, unknown>> = {}) {
     projectLockState: ok("held"),
     releaseProjectLock: ok(null),
     readNotebookFile: ok({ kind: "missing" }),
+    writeNotebookFile: ok({ kind: "saved", snapshot: null }),
   };
   const api: Record<string, (...args: unknown[]) => Promise<unknown>> = {};
   for (const command of Object.keys(defaults)) {

@@ -209,8 +209,25 @@ export function NotebookView({
       <h3 id="notebook-heading">{messages.heading}</h3>
       {!writable && <p className="notebook__note">{messages.readOnly}</p>}
       <div role="status" aria-live="polite">
-        {busy && <p>{messages.working}</p>}
-        {notice !== null && <p className="notebook__notice">{notice}</p>}
+        {busy && (
+          <p>
+            <span className="spinner" aria-hidden="true" />
+            {messages.working}
+          </p>
+        )}
+        {notice !== null && (
+          <p className="notebook__notice notice">
+            <span>{notice}</span>
+            <button
+              type="button"
+              className="notice__dismiss"
+              aria-label={messages.dismiss}
+              onClick={() => actions.dismissNotice()}
+            >
+              ×
+            </button>
+          </p>
+        )}
         {failure !== null && <p className="notebook__notice">{failure}</p>}
         {view.status === "loading" && <p>{messages.loading}</p>}
       </div>

@@ -19,52 +19,73 @@ export function ProjectsStart() {
 
   return (
     <section className="projects" aria-labelledby="projects-heading">
-      <h2 id="projects-heading">{messages.heading}</h2>
+      <div className="projects__narrow">
+        <h2 id="projects-heading">{messages.heading}</h2>
 
-      <form className="projects__create" onSubmit={submit}>
-        <label htmlFor="project-name">{messages.nameLabel}</label>
-        <input
-          id="project-name"
-          value={name}
-          placeholder={messages.namePlaceholder}
-          onChange={(event) => setName(event.target.value)}
+        <form className="projects__create" onSubmit={submit}>
+          <label htmlFor="project-name">{messages.nameLabel}</label>
+          <input
+            id="project-name"
+            value={name}
+            placeholder={messages.namePlaceholder}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <button type="submit" disabled={projects.busy}>
+            {messages.createButton}
+          </button>
+          <button
+            type="button"
+            disabled={projects.busy}
+            onClick={() => void projects.open()}
+          >
+            {messages.openButton}
+          </button>
+        </form>
+
+        <div role="status" aria-live="polite">
+          {projects.busy && (
+            <p>
+              <span className="spinner" aria-hidden="true" />
+              {messages.working}
+            </p>
+          )}
+          {projects.notices.map((notice) => (
+            <p key={notice} className="projects__notice notice">
+              <span>{notice}</span>
+              <button
+                type="button"
+                className="notice__dismiss"
+                aria-label={messages.dismiss}
+                onClick={() => projects.dismissNotices()}
+              >
+                ×
+              </button>
+            </p>
+          ))}
+        </div>
+
+        <ConflictPanel
+          files={projects.changed}
+          onResolve={projects.resolveConflict}
         />
-        <button type="submit" disabled={projects.busy}>
-          {messages.createButton}
-        </button>
-        <button
-          type="button"
-          disabled={projects.busy}
-          onClick={() => void projects.open()}
-        >
-          {messages.openButton}
-        </button>
-      </form>
 
-      <div role="status" aria-live="polite">
-        {projects.busy && <p>{messages.working}</p>}
-        {projects.notices.map((notice) => (
-          <p key={notice} className="projects__notice">
-            {notice}
-          </p>
-        ))}
+        {projects.opened !== null && (
+          <OpenedPanel
+            project={projects.opened}
+            roots={projects.roots}
+            busy={projects.busy}
+            onChooseRoot={(rootId) => void projects.chooseExternalRoot(rootId)}
+            onTakeOver={() => void projects.takeOver()}
+            onRetry={() => void projects.retryLock()}
+            {...(projects.opened.mode.kind === "writable"
+              ? {
+                  onAddRoot: (label: string) =>
+                    void projects.addExternalRoot(label),
+                }
+              : {})}
+          />
+        )}
       </div>
-
-      <ConflictPanel
-        files={projects.changed}
-        onResolve={projects.resolveConflict}
-      />
-
-      {projects.opened !== null && (
-        <OpenedPanel
-          project={projects.opened}
-          roots={projects.roots}
-          busy={projects.busy}
-          onChooseRoot={(rootId) => void projects.chooseExternalRoot(rootId)}
-          onTakeOver={() => void projects.takeOver()}
-          onRetry={() => void projects.retryLock()}
-        />
-      )}
 
       {projects.opened !== null && projects.opened.summary !== null && (
         <NotebookPanel
@@ -74,13 +95,15 @@ export function ProjectsStart() {
         />
       )}
 
-      <h3>{messages.recentHeading}</h3>
-      <RecentList
-        recent={projects.recent}
-        busy={projects.busy}
-        onOpen={(id) => void projects.openRecent(id)}
-        onLocate={(id) => void projects.locate(id)}
-      />
+      <div className="projects__narrow">
+        <h3>{messages.recentHeading}</h3>
+        <RecentList
+          recent={projects.recent}
+          busy={projects.busy}
+          onOpen={(id) => void projects.openRecent(id)}
+          onLocate={(id) => void projects.locate(id)}
+        />
+      </div>
     </section>
   );
 }

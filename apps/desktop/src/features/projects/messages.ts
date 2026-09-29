@@ -21,7 +21,11 @@ export const messages = {
   externalRootUnresolved: "Not set on this computer",
   externalRootMissing: "Folder not found",
   chooseExternalRoot: "Choose folder…",
+  addExternalRootLabel: "New external root",
+  addExternalRootPlaceholder: "For example, Lab shared drive",
+  addExternalRootButton: "Add root",
   working: "Working…",
+  dismiss: "Dismiss",
   takeOver: "Take over the lock",
   tryAgain: "Try again",
   readOnlyLabel: "Read-only",
@@ -63,6 +67,11 @@ const failureMessages: Record<FailureReason, string> = {
     "The project file is not valid, so the project cannot be opened. Nothing was changed.",
   invalidName: "Enter a project name on a single line.",
   differentProject: "That folder holds a different project.",
+  emptyLabel: "Give the external root a name.",
+  duplicateLabel: "An external root with this name already exists.",
+  invalidLabel:
+    "That name cannot be used. Avoid line breaks and other control characters.",
+  changed: "The project file changed while this was being saved. Try again.",
 };
 
 export function failureMessage(reason: FailureReason): string {

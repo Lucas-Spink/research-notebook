@@ -1,6 +1,11 @@
-import { newProject } from "@research-notebook/format";
+import {
+  newProject,
+  parseProject,
+  serialiseProject,
+} from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
 import {
+  addExternalRootFlow,
   chooseExternalRootFlow,
   createFlow,
   externalRootsFlow,
@@ -437,5 +442,99 @@ describe("chooseExternalRootFlow", () => {
     expect(await chooseExternalRootFlow(api, summary, ROOT_ID)).toEqual({
       failure: "settingsNewer",
     });
+  });
+});
+
+describe("addExternalRootFlow", () => {
+  const project = {
+    folder: 7,
+    path: "C:/work/project",
+    summary: {
+      id: ID,
+      name: "Batch effects",
+      evidenceInGit: false,
+      externalRoots: [],
+      archived: null,
+    },
+    mode: { kind: "writable" as const },
+  };
+  const text = yamlFor(ID);
+  const rootEnv = { newId: () => ROOT_ID };
+
+  it("reads project.yaml fresh, adds the root, and writes it back", async () => {
+    const { api, calls } = fakeApi({
+      readNotebookFile: ok({ kind: "text", text, sha256: "abc123" }),
+    });
+    const result = await addExternalRootFlow(
+      api,
+      project,
+      "Lab share",
+      rootEnv,
+    );
+    expect(result).toEqual({
+      kind: "added",
+      root: { id: ROOT_ID, label: "Lab share", path: null, available: false },
+      summary: {
+        id: ID,
+        name: "Batch effects",
+        evidenceInGit: false,
+        externalRoots: [{ id: ROOT_ID, label: "Lab share" }],
+        archived: null,
+      },
+    });
+    const write = calls.find((c) => c.command === "writeNotebookFile");
+    expect(write?.args[3]).toEqual({ kind: "sha256", sha256: "abc123" });
+  });
+
+  it("reports changed, and writes nothing else, when project.yaml was written in between", async () => {
+    const { api } = fakeApi({
+      readNotebookFile: ok({ kind: "text", text, sha256: "abc123" }),
+      writeNotebookFile: ok({ kind: "changed", current: "def456" }),
+    });
+    expect(
+      await addExternalRootFlow(api, project, "Lab share", rootEnv),
+    ).toEqual({
+      kind: "failed",
+      reason: "changed",
+    });
+  });
+
+  it("refuses an empty label without reading or writing project.yaml", async () => {
+    const { api, names } = fakeApi();
+    expect(await addExternalRootFlow(api, project, "   ", rootEnv)).toEqual({
+      kind: "failed",
+      reason: "emptyLabel",
+    });
+    expect(names()).toEqual([]);
+  });
+
+  it("refuses a label already used by another of the project's roots", async () => {
+    const base = parseProject(text);
+    if (!base.ok) throw new Error("fixture is invalid");
+    const textWithRoot = serialiseProject({
+      ...base.value,
+      external_roots: [{ id: OTHER_ID, label: "Lab share" }],
+    });
+    const withRoot = {
+      ...project,
+      summary: {
+        ...project.summary,
+        externalRoots: [{ id: OTHER_ID, label: "Lab share" }],
+      },
+    };
+    const { api, names } = fakeApi({
+      readNotebookFile: ok({
+        kind: "text",
+        text: textWithRoot,
+        sha256: "abc123",
+      }),
+    });
+    expect(
+      await addExternalRootFlow(api, withRoot, "Lab share", rootEnv),
+    ).toEqual({
+      kind: "failed",
+      reason: "duplicateLabel",
+    });
+    expect(names()).toEqual(["readNotebookFile", "appVersion"]);
   });
 });

@@ -17,6 +17,7 @@ export const messages = {
   loading: "Loading questions and experiments…",
   refresh: "Refresh",
   working: "Working…",
+  dismiss: "Dismiss",
   readOnly: "This project is read-only, so nothing here can be changed.",
   empty: "There are no questions yet. Add one to start.",
   newQuestionLabel: "New question",

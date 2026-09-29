@@ -1,4 +1,10 @@
-import { newProject, type ProjectEnv } from "@research-notebook/format";
+import {
+  addExternalRoot,
+  newProject,
+  parseProject,
+  serialiseProject,
+  type ProjectEnv,
+} from "@research-notebook/format";
 import type {
   commands,
   FolderHandle,
@@ -23,6 +29,9 @@ import {
   type ProjectSummary,
 } from "./summary";
 
+/** The project-relative path of `project.yaml`, which the watcher reports. */
+export const PROJECT_YAML = "_notebook/project.yaml";
+
 /** The commands the flows call, so tests can supply a fake with the same shape. */
 export type Api = Pick<
   typeof commands,
@@ -38,11 +47,23 @@ export type Api = Pick<
   | "projectLockState"
   | "releaseProjectLock"
   | "readNotebookFile"
+  | "writeNotebookFile"
 >;
 
 /** Keys of the messages shown when a flow fails (`messages.ts`). */
 export type FailureReason =
-  ProjectError["kind"] | OpenFailure | "invalidName" | "differentProject";
+  | ProjectError["kind"]
+  | OpenFailure
+  | "invalidName"
+  | "differentProject"
+  /** The external root's label was empty once trimmed. */
+  | "emptyLabel"
+  /** Another of the project's external roots already has this label. */
+  | "duplicateLabel"
+  /** The label does not fit `project.yaml`'s schema, for example a line break. */
+  | "invalidLabel"
+  /** `project.yaml` was written by something else between reading it and writing it back. */
+  | "changed";
 
 /** Something that went wrong after the project was already created or opened. */
 export type Warning =
@@ -294,4 +315,70 @@ export async function chooseExternalRootFlow(
   if (chosen.status === "error") return { failure: chosen.error.kind };
   if (chosen.data === null) return null;
   return { roots: await externalRootsFlow(api, summary) };
+}
+
+/**
+ * Adds a new external root, labelled by the person, to the project (FR-PRJ-07)
+ * so a file outside the project folder can be captured once its folder is set
+ * on this machine. `project.yaml` is read fresh right before it is written
+ * back, so the write is never based on a stale copy; if something else wrote
+ * it in between, `changed` is reported and nothing here is written, exactly
+ * as any other outside change would be (ADR-0025 point 3).
+ */
+export async function addExternalRootFlow(
+  api: Api,
+  project: OpenedProject,
+  label: string,
+  env: Pick<ProjectEnv, "newId">,
+): Promise<
+  | { kind: "added"; root: ExternalRoot; summary: ProjectSummary }
+  | { kind: "failed"; reason: FailureReason }
+> {
+  if (label.trim().length === 0) {
+    return { kind: "failed", reason: "emptyLabel" };
+  }
+  const read = await api.readNotebookFile(project.folder, PROJECT_YAML);
+  if (read.status === "error") {
+    return { kind: "failed", reason: read.error.kind };
+  }
+  if (read.data.kind === "missing") {
+    return { kind: "failed", reason: "fileUnavailable" };
+  }
+  const parsed = parseProject(read.data.text);
+  if (!parsed.ok) return { kind: "failed", reason: "invalidProject" };
+  const appVersion = await api.appVersion();
+  const added = addExternalRoot(parsed.value, label, { ...env, appVersion });
+  if (!added.ok) return { kind: "failed", reason: added.error.kind };
+  const written = await api.writeNotebookFile(
+    project.folder,
+    PROJECT_YAML,
+    serialiseProject(added.value.project),
+    { kind: "sha256", sha256: read.data.sha256 },
+  );
+  if (written.status === "error") {
+    return { kind: "failed", reason: written.error.kind };
+  }
+  if (written.data.kind === "changed") {
+    return { kind: "failed", reason: "changed" };
+  }
+  const summary: ProjectSummary = {
+    id: parsed.value.id,
+    name: parsed.value.name,
+    evidenceInGit: parsed.value.capture.evidence_in_git,
+    externalRoots: added.value.project.external_roots.map((root) => ({
+      id: root.id,
+      label: root.label,
+    })),
+    archived: parsed.value.archived,
+  };
+  return {
+    kind: "added",
+    root: {
+      id: added.value.root.id,
+      label: added.value.root.label,
+      path: null,
+      available: false,
+    },
+    summary,
+  };
 }

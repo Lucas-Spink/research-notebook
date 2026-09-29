@@ -16,6 +16,7 @@ export const stubActions: NotebookActions = {
   changeSettings: () => undefined,
   resetColumns: () => undefined,
   setUnassignedCollapsed: () => undefined,
+  dismissNotice: () => undefined,
 };
 
 /** For tests: what `useNotebook` holds once `state` has loaded into a writable project. */
