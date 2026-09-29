@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { CitationSearchState } from "./model/citationSearch";
+import type { LocatorTerm } from "./model/citationSelection";
 import type { ZoteroState } from "./model/status";
-import { zoteroStatusText } from "./messages";
+import {
+  citationSearchStatusText,
+  locatorTermLabel,
+  zoteroStatusText,
+} from "./messages";
 
 describe("zoteroStatusText", () => {
   // One of every state: a new state without text fails to compile.
@@ -36,5 +42,60 @@ describe("zoteroStatusText", () => {
     const { guidance } = zoteroStatusText({ kind: "disabled" });
     expect(guidance).toMatch(/Settings.*Advanced/);
     expect(guidance).toMatch(/local API|communicate with Zotero/);
+  });
+});
+
+describe("citationSearchStatusText", () => {
+  // Every non-"ok" state: a new one without text fails to compile.
+  const states: Exclude<CitationSearchState, { kind: "ok" }>[] = [
+    { kind: "idle" },
+    { kind: "loading" },
+    { kind: "notRunning" },
+    { kind: "disabled" },
+    { kind: "error" },
+  ];
+
+  it("gives every non-result state some text", () => {
+    for (const state of states) {
+      expect(
+        citationSearchStatusText(state).length,
+        state.kind,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("matches the status indicator's wording for notRunning and disabled", () => {
+    expect(citationSearchStatusText({ kind: "notRunning" })).toBe(
+      zoteroStatusText({ kind: "notRunning" }).label,
+    );
+    expect(citationSearchStatusText({ kind: "disabled" })).toBe(
+      zoteroStatusText({ kind: "disabled" }).label,
+    );
+  });
+});
+
+describe("locatorTermLabel", () => {
+  const terms: LocatorTerm[] = [
+    "page",
+    "chapter",
+    "figure",
+    "section",
+    "table",
+    "supplement",
+  ];
+
+  it("capitalises every locator term", () => {
+    expect(terms.map(locatorTermLabel)).toEqual([
+      "Page",
+      "Chapter",
+      "Figure",
+      "Section",
+      "Table",
+      "Supplement",
+    ]);
+  });
+
+  it("labels no locator as None", () => {
+    expect(locatorTermLabel(null)).toBe("None");
   });
 });
