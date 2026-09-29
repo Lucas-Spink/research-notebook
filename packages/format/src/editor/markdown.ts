@@ -1,5 +1,6 @@
 import type { JSONContent, MarkdownToken } from "@tiptap/core";
 import { MarkdownManager } from "@tiptap/markdown";
+import { CITATION_NODE_NAME } from "./citation";
 import { sectionEditorExtensions } from "./extensions";
 import { isRepresentable, passthroughNode } from "./passthrough";
 
@@ -53,4 +54,21 @@ export function parseSectionMarkdown(markdown: string): JSONContent {
  */
 export function serialiseSectionMarkdown(doc: JSONContent): string {
   return manager.serialize(doc);
+}
+
+/**
+ * Parses one bracketed citation cluster's Markdown text (spec 5.7), such as
+ * the citation picker's composed result (FR-CIT-03), into its `citation`
+ * node's JSON — the same parser `parseSectionMarkdown` uses, so there is no
+ * second place that decides what the syntax means (AGENTS.md 2, one
+ * parser). Throws if `markdown` is not exactly one bracketed citation
+ * cluster, which the picker never produces.
+ */
+export function parseCitationMarkdown(markdown: string): JSONContent {
+  const doc = parseSectionMarkdown(markdown);
+  const node = doc.content?.[0]?.content?.[0];
+  if (node === undefined || node.type !== CITATION_NODE_NAME) {
+    throw new Error(`expected one citation cluster, got: ${markdown}`);
+  }
+  return node;
 }

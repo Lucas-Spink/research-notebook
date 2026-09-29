@@ -1,14 +1,15 @@
 import StarterKit from "@tiptap/starter-kit";
 import { ArtefactRef } from "./artefactRef";
+import { Citation, CitationInText } from "./citation";
 import { Passthrough } from "./passthrough";
 
 /**
  * The schema for a section editor (Methods, Results Notes, Interpretation):
  * FR-EDT-01's supported nodes and marks, plus the passthrough block
- * (FR-EDT-02) and artefact references (spec 5.6, FR-EDT-04). Shared by
- * `packages/format`'s parse/serialise functions and `apps/desktop`'s live
- * editor, so both always agree on what the syntax means (AGENTS.md 2.2, one
- * parser).
+ * (FR-EDT-02), artefact references (spec 5.6, FR-EDT-04) and citations
+ * (spec 5.7, FR-CIT-03). Shared by `packages/format`'s parse/serialise
+ * functions and `apps/desktop`'s live editor, so both always agree on what
+ * the syntax means (AGENTS.md 2.2, one parser).
  *
  * `apps/desktop` may extend the result (for example to attach a NodeView to
  * `Passthrough`) but must not redefine or reorder the nodes themselves.
@@ -28,5 +29,7 @@ export function sectionEditorExtensions() {
     }),
     Passthrough,
     ArtefactRef,
+    Citation,
+    CitationInText,
   ];
 }

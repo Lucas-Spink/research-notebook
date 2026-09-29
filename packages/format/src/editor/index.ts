@@ -5,6 +5,18 @@ export {
   buildArtefactRefNode,
   parseArtefactRefTitle,
 } from "./artefactRef";
+export {
+  CITATION_IN_TEXT_NODE_NAME,
+  CITATION_NODE_NAME,
+  Citation,
+  CitationInText,
+  buildCitationNode,
+  type CitationItem,
+} from "./citation";
 export { sectionEditorExtensions } from "./extensions";
-export { parseSectionMarkdown, serialiseSectionMarkdown } from "./markdown";
+export {
+  parseCitationMarkdown,
+  parseSectionMarkdown,
+  serialiseSectionMarkdown,
+} from "./markdown";
 export { PASSTHROUGH_NODE_NAME, Passthrough } from "./passthrough";
