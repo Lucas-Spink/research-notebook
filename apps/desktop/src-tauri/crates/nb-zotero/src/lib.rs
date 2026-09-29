@@ -38,6 +38,39 @@ pub enum ZoteroError {
     InvalidJson(#[from] serde_json::Error),
 }
 
+/// A search request that could not reach Zotero at all, classified the same
+/// way as [`ZoteroStatus`] so the citation picker (FR-CIT-03) can show a
+/// not-running or disabled state instead of a generic error.
+#[derive(Debug, thiserror::Error)]
+pub enum ZoteroSearchError {
+    #[error("zotero's local API is disabled")]
+    Disabled,
+    #[error("zotero is not running")]
+    NotRunning,
+    #[error("zotero search request failed: {0}")]
+    Other(#[from] ZoteroError),
+}
+
+/// Whether a failed request means Zotero is disabled or not running, versus
+/// some other failure that should be reported as an ordinary error.
+enum ConnectionFailure {
+    Disabled,
+    NotRunning,
+}
+
+/// Shared by [`ZoteroClient::check_status`] and [`ZoteroClient::search_items`]:
+/// a 403 means the local API is switched off, a refused connection means
+/// Zotero is not running, and anything else is an ordinary request error.
+fn classify_connection_error(error: ureq::Error) -> Result<ConnectionFailure, ZoteroError> {
+    match error {
+        ureq::Error::StatusCode(403) => Ok(ConnectionFailure::Disabled),
+        ureq::Error::Io(io_error) if io_error.kind() == ErrorKind::ConnectionRefused => {
+            Ok(ConnectionFailure::NotRunning)
+        }
+        other => Err(ZoteroError::Request(other)),
+    }
+}
+
 /// A search result item, in Zotero's native (non-CSL) item envelope shape.
 /// Models only the fields needed to display a search result; the full
 /// schema is Stage 5 territory.
@@ -96,25 +129,37 @@ impl ZoteroClient {
             Ok(response) => Ok(ZoteroStatus::Connected {
                 server_id: server_id_header(&response),
             }),
-            Err(ureq::Error::StatusCode(403)) => Ok(ZoteroStatus::Disabled),
-            Err(ureq::Error::Io(io_error)) if io_error.kind() == ErrorKind::ConnectionRefused => {
-                Ok(ZoteroStatus::NotRunning)
-            }
-            Err(other) => Err(ZoteroError::Request(other)),
+            Err(error) => match classify_connection_error(error) {
+                Ok(ConnectionFailure::Disabled) => Ok(ZoteroStatus::Disabled),
+                Ok(ConnectionFailure::NotRunning) => Ok(ZoteroStatus::NotRunning),
+                Err(zotero_error) => Err(zotero_error),
+            },
         }
     }
 
-    /// Searches the local user library (library id `0`).
-    pub fn search_items(&self, query: &str) -> Result<Vec<ZoteroItem>, ZoteroError> {
+    /// Searches the local user library (library id `0`) for the citation
+    /// picker (FR-CIT-03), reporting a not-running or disabled Zotero the
+    /// same way [`check_status`](Self::check_status) does rather than as a
+    /// generic error.
+    pub fn search_items(&self, query: &str) -> Result<Vec<ZoteroItem>, ZoteroSearchError> {
         let url = format!("{}/users/0/items", self.base_url);
         let mut response = self
             .agent
             .get(&url)
             .header("Zotero-API-Version", API_VERSION)
             .query("q", query)
-            .call()?;
-        let body = response.body_mut().read_to_string()?;
-        Ok(serde_json::from_str(&body)?)
+            .call()
+            .map_err(|error| match classify_connection_error(error) {
+                Ok(ConnectionFailure::Disabled) => ZoteroSearchError::Disabled,
+                Ok(ConnectionFailure::NotRunning) => ZoteroSearchError::NotRunning,
+                Err(zotero_error) => ZoteroSearchError::Other(zotero_error),
+            })?;
+        let body = response
+            .body_mut()
+            .read_to_string()
+            .map_err(|error| ZoteroSearchError::Other(ZoteroError::Request(error)))?;
+        let items = serde_json::from_str(&body).map_err(ZoteroError::from)?;
+        Ok(items)
     }
 
     /// Fetches one item as CSL-JSON.

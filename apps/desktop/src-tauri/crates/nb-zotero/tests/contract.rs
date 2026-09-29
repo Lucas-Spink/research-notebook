@@ -162,6 +162,30 @@ fn search_items_parses_results_and_sends_query() {
 }
 
 #[test]
+fn search_items_reports_not_running_when_nothing_listens() {
+    let client = ZoteroClient::new(unused_port_url());
+
+    let error = client
+        .search_items("widget")
+        .expect_err("search_items should fail when nothing listens");
+
+    assert!(matches!(error, nb_zotero::ZoteroSearchError::NotRunning));
+}
+
+#[test]
+fn search_items_reports_disabled_on_403() {
+    let mock =
+        spawn_mock("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+    let client = ZoteroClient::new(mock.base_url());
+
+    let error = client
+        .search_items("widget")
+        .expect_err("search_items should fail on 403");
+
+    assert!(matches!(error, nb_zotero::ZoteroSearchError::Disabled));
+}
+
+#[test]
 fn fetch_csl_json_returns_item_and_requests_csljson_format() {
     let body = r#"{
         "id": "ABCD1234",
