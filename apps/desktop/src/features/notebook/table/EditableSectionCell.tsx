@@ -109,6 +109,8 @@ export function EditableSectionCell({
       onActivateReference={(ulid, version) =>
         setOpenReference({ ulid, version })
       }
+      // FR-CIT-09: Methods, then Interpretation; never Results Notes.
+      allowCitations={section !== "results_notes"}
       autoFocus
     />
   ) : !editing.writable || row.item.readOnly ? (

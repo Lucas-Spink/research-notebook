@@ -8,6 +8,7 @@ import {
 } from "@research-notebook/format";
 import { artefactRefChip, type ChipOptions } from "./ArtefactRefChipExtension";
 import { artefactSuggestion } from "./ArtefactSuggestion";
+import { citeSuggestion } from "./CiteSuggestion";
 import type { ArtefactSearchRow } from "./model/artefactSearch";
 import { PassthroughBlock } from "./PassthroughBlock";
 
@@ -17,10 +18,14 @@ import { PassthroughBlock } from "./PassthroughBlock";
  * passthrough node (FR-EDT-02), the reference chip (FR-EDT-06, S4-T03) and
  * the @ autocomplete (FR-EDT-04, S4-T02) added on top. Parsing and
  * serialising stay entirely in packages/format.
+ *
+ * `cite`, when given, adds the `/` slash menu's Cite trigger (FR-CIT-03,
+ * S5-T02); `null` for Results Notes, which never offers it (FR-CIT-09).
  */
 export function liveEditorExtensions(
   search: (query: string) => ArtefactSearchRow[],
   chip: ChipOptions,
+  cite: { onOpenPicker: (position: number) => void } | null,
 ): AnyExtension[] {
   return [
     ...sectionEditorExtensions().map((extension) => {
@@ -35,5 +40,6 @@ export function liveEditorExtensions(
       return extension;
     }),
     artefactSuggestion({ search }),
+    ...(cite === null ? [] : [citeSuggestion(cite)]),
   ];
 }

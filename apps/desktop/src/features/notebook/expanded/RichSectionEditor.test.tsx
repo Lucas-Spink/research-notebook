@@ -141,6 +141,7 @@ function mount(
         onActivate={() => undefined}
         artefacts={null}
         onActivateReference={() => undefined}
+        allowCitations={false}
         {...props}
       />,
     ),

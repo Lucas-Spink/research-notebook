@@ -3,7 +3,7 @@
 //! its result into a webview-safe shape and keeps the blocking HTTP request
 //! off the async runtime thread.
 
-use nb_zotero::{ZoteroClient, ZoteroStatus};
+use nb_zotero::{ZoteroClient, ZoteroItem, ZoteroSearchError, ZoteroStatus};
 use serde::Serialize;
 use specta::Type;
 
@@ -58,4 +58,68 @@ pub async fn zotero_status() -> Result<ZoteroConnection, ZoteroStatusError> {
     })
     .await
     .map_err(|_| ZoteroStatusError::RequestFailed)?
+}
+
+/// One Zotero search result, as the citation picker shows it (FR-CIT-03).
+/// `citekey` is spec 5.7's grammar for the user library: this client only
+/// searches the signed-in user's own library, so the library segment is
+/// always `u`.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ZoteroSearchRow {
+    pub citekey: String,
+    pub title: String,
+    pub creator_summary: Option<String>,
+    pub item_type: String,
+}
+
+impl From<ZoteroItem> for ZoteroSearchRow {
+    fn from(item: ZoteroItem) -> Self {
+        Self {
+            citekey: format!("z:u:{}", item.key),
+            title: item.data.title.unwrap_or_default(),
+            creator_summary: item.meta.creator_summary,
+            item_type: item.data.item_type,
+        }
+    }
+}
+
+/// Why a search could not be completed. `Disabled` and `NotRunning` are the
+/// same offline states the status indicator shows (FR-CIT-01); the picker
+/// uses them to explain why search is unavailable rather than showing a
+/// generic error.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ZoteroSearchCommandError {
+    Disabled,
+    NotRunning,
+    RequestFailed,
+}
+
+impl From<ZoteroSearchError> for ZoteroSearchCommandError {
+    fn from(error: ZoteroSearchError) -> Self {
+        match error {
+            ZoteroSearchError::Disabled => Self::Disabled,
+            ZoteroSearchError::NotRunning => Self::NotRunning,
+            ZoteroSearchError::Other(_) => Self::RequestFailed,
+        }
+    }
+}
+
+/// Searches the connected Zotero library for the citation picker
+/// (FR-CIT-03). Runs in `spawn_blocking`, as `zotero_status` does, because
+/// it is a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
+#[tauri::command]
+#[specta::specta]
+pub async fn zotero_search_items(
+    query: String,
+) -> Result<Vec<ZoteroSearchRow>, ZoteroSearchCommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        ZoteroClient::default()
+            .search_items(&query)
+            .map(|items| items.into_iter().map(ZoteroSearchRow::from).collect())
+            .map_err(ZoteroSearchCommandError::from)
+    })
+    .await
+    .map_err(|_| ZoteroSearchCommandError::RequestFailed)?
 }

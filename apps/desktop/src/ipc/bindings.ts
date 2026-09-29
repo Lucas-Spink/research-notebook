@@ -242,6 +242,12 @@ export const commands = {
 	 *  blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
 	 */
 	zoteroStatus: () => typedError<ZoteroConnection, ZoteroStatusError>(__TAURI_INVOKE("zotero_status")),
+	/**
+	 *  Searches the connected Zotero library for the citation picker
+	 *  (FR-CIT-03). Runs in `spawn_blocking`, as `zotero_status` does, because
+	 *  it is a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
+	 */
+	zoteroSearchItems: (query: string) => typedError<ZoteroSearchRow[], ZoteroSearchCommandError>(__TAURI_INVOKE("zotero_search_items", { query })),
 };
 
 /** Events */
@@ -866,6 +872,27 @@ export type ZoteroConnection = { kind: "connected";
 serverId: string | null } | 
 /**  Zotero is running but its local API is off in preferences. */
 { kind: "disabled" } | { kind: "notRunning" };
+
+/**
+ *  Why a search could not be completed. `Disabled` and `NotRunning` are the
+ *  same offline states the status indicator shows (FR-CIT-01); the picker
+ *  uses them to explain why search is unavailable rather than showing a
+ *  generic error.
+ */
+export type ZoteroSearchCommandError = { kind: "disabled" } | { kind: "notRunning" } | { kind: "requestFailed" };
+
+/**
+ *  One Zotero search result, as the citation picker shows it (FR-CIT-03).
+ *  `citekey` is spec 5.7's grammar for the user library: this client only
+ *  searches the signed-in user's own library, so the library segment is
+ *  always `u`.
+ */
+export type ZoteroSearchRow = {
+	citekey: string,
+	title: string,
+	creatorSummary: string | null,
+	itemType: string,
+};
 
 /**
  *  Why a status check failed. Not-running and disabled are ordinary

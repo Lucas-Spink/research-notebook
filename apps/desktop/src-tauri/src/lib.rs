@@ -61,6 +61,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::projects::evidence::cancel_discovery,
             commands::projects::evidence::list_relink_candidates,
             commands::zotero::zotero_status,
+            commands::zotero::zotero_search_items,
         ])
         .events(collect_events![
             commands::projects::evidence::EvidenceDragged,
