@@ -4,8 +4,16 @@ import {
   serialiseSectionMarkdown,
 } from "@research-notebook/format";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
-import { useCallback, useEffect, useId, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { autosaveStatusText, editLabel, expandedMessages } from "../messages";
+import { CitationPickerOverlay } from "./CitationPickerOverlay";
 import { liveEditorExtensions } from "./liveEditorExtensions";
 import { searchArtefacts } from "./model/artefactSearch";
 import {
@@ -31,6 +39,8 @@ type Props = {
   artefacts: ArtefactsFileModel | null;
   /** Opens a reference's pinned version's preview (FR-EDT-06). */
   onActivateReference: (ulid: string, version: number | null) => void;
+  /** Whether the `/` slash menu offers Cite (FR-CIT-03); `false` for Results Notes (FR-CIT-09). */
+  allowCitations: boolean;
   /** The section's own container, so opening it from a search result can scroll to it (FR-SRC-02). */
   containerRef?: (element: HTMLDivElement | null) => void;
   /** Puts the caret at the end of the live editor once it mounts, as a table cell opened for editing does (ADR-0043). */
@@ -54,6 +64,7 @@ export function RichSectionEditor({
   onActivate,
   artefacts,
   onActivateReference,
+  allowCitations,
   containerRef,
   autoFocus = false,
 }: Props) {
@@ -79,6 +90,7 @@ export function RichSectionEditor({
           disabled={disabled}
           artefacts={artefacts}
           onActivateReference={onActivateReference}
+          allowCitations={allowCitations}
           autoFocus={autoFocus}
         />
       ) : (
@@ -104,6 +116,7 @@ function LiveEditor({
   disabled,
   artefacts,
   onActivateReference,
+  allowCitations,
   autoFocus,
 }: {
   id: string;
@@ -113,6 +126,7 @@ function LiveEditor({
   disabled: boolean;
   artefacts: ArtefactsFileModel | null;
   onActivateReference: (ulid: string, version: number | null) => void;
+  allowCitations: boolean;
   autoFocus: boolean;
 }) {
   // Stable functions, read at call time: the suggestion plugin and the
@@ -138,14 +152,32 @@ function LiveEditor({
   );
   const canUpdate = useCallback(() => !disabledRef.current, []);
 
+  // The position to insert a citation at, once the picker confirms; `null`
+  // while no picker is open (FR-CIT-03).
+  const [citationInsertPos, setCitationInsertPos] = useState<number | null>(
+    null,
+  );
+  const onOpenPicker = useCallback(
+    (position: number) => setCitationInsertPos(position),
+    [],
+  );
+  const cite = useMemo(
+    () => (allowCitations ? { onOpenPicker } : null),
+    [allowCitations, onOpenPicker],
+  );
+
   const extensions = useMemo(
     () =>
-      liveEditorExtensions(search, {
-        resolve,
-        onActivate: activate,
-        canUpdate,
-      }),
-    [search, resolve, activate, canUpdate],
+      liveEditorExtensions(
+        search,
+        {
+          resolve,
+          onActivate: activate,
+          canUpdate,
+        },
+        cite,
+      ),
+    [search, resolve, activate, canUpdate, cite],
   );
   const editor = useEditor({
     extensions,
@@ -198,6 +230,22 @@ function LiveEditor({
         >
           {expandedMessages.updateAllInSection}
         </button>
+      )}
+      {citationInsertPos !== null && (
+        <CitationPickerOverlay
+          onInsert={(markdown) => {
+            editor
+              .chain()
+              .focus()
+              .insertContentAt(citationInsertPos, {
+                type: "text",
+                text: markdown,
+              })
+              .run();
+            setCitationInsertPos(null);
+          }}
+          onCancel={() => setCitationInsertPos(null)}
+        />
       )}
     </>
   );

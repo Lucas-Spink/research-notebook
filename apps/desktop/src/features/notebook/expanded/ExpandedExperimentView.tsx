@@ -123,6 +123,8 @@ export function ExpandedExperimentView({
       artefacts,
       onActivateReference: (ulid: string, version: number | null) =>
         setOpenReference({ ulid, version }),
+      // FR-CIT-09: Methods, then Interpretation; never Results Notes.
+      allowCitations: key !== "results_notes",
       containerRef: (element: HTMLDivElement | null) => {
         sectionElements.current[key] = element;
       },

@@ -1,4 +1,4 @@
-import { citationPickerMessages } from "../../citations/messages";
+import { citationPickerMessages } from "../../citations";
 import "./SlashMenu.css";
 
 /** One slash-menu item. Only "cite" exists today (FR-CIT-03); more can be added later. */
