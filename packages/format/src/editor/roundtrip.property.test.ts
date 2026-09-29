@@ -218,6 +218,81 @@ function artefactRefNode(): fc.Arbitrary<JSONContent> {
     }));
 }
 
+// Spec 5.7: Zotero item key, 8 characters from 2-9 and A-Z.
+const ITEM_KEY_CHARS = [..."23456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+
+function itemKey(): fc.Arbitrary<string> {
+  return fc
+    .array(fc.constantFrom(...ITEM_KEY_CHARS), { minLength: 8, maxLength: 8 })
+    .map((chars) => chars.join(""));
+}
+
+// Spec 5.7: citekey = "z:" library ":" item-key.
+function citekey(): fc.Arbitrary<string> {
+  return fc.oneof(
+    itemKey().map((key) => `z:u:${key}`),
+    fc
+      .tuple(fc.integer({ min: 0, max: 9999 }), itemKey())
+      .map(([group, key]) => `z:g${group}:${key}`),
+  );
+}
+
+// Excludes "@" (would be read as a second citekey start), ";" (the item
+// separator) and "[" / "]" (the cluster's own or a locator's delimiters),
+// on top of the characters already excluded elsewhere in this file.
+const CITATION_TEXT_CHARS = [
+  ..."abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,'?-",
+];
+
+function citationSafeText(
+  minLength: number,
+  maxLength: number,
+): fc.Arbitrary<string> {
+  return fc
+    .array(fc.constantFrom(...CITATION_TEXT_CHARS), { minLength, maxLength })
+    .map((chars) => chars.join(""))
+    .filter((text) => text === text.trim());
+}
+
+interface CitationItemArb {
+  prefix: string;
+  suppressAuthor: boolean;
+  citekey: string;
+  suffix: string;
+}
+
+function citationItem(): fc.Arbitrary<CitationItemArb> {
+  return fc.record({
+    prefix: fc.oneof(
+      fc.constant(""),
+      citationSafeText(1, 8).map((text) => `${text} `),
+    ),
+    suppressAuthor: fc.boolean(),
+    citekey: citekey(),
+    suffix: fc.oneof(fc.constant(""), citationSafeText(1, 12)),
+  });
+}
+
+/** Spec 5.7: a bracketed citation cluster, standing alone in its own paragraph. */
+function citationNode(): fc.Arbitrary<JSONContent> {
+  return fc
+    .array(citationItem(), { minLength: 1, maxLength: 3 })
+    .map((items) => ({
+      type: "paragraph",
+      content: [{ type: "citation", attrs: { items } }],
+    }));
+}
+
+/** Spec 5.7: a hand-written author-in-text citation, standing alone in its own paragraph. */
+function citationInTextNode(): fc.Arbitrary<JSONContent> {
+  return fc
+    .tuple(citekey(), fc.option(citationSafeText(1, 10), { nil: null }))
+    .map(([key, locator]) => ({
+      type: "paragraph",
+      content: [{ type: "citationInText", attrs: { citekey: key, locator } }],
+    }));
+}
+
 function blockquoteNode(): fc.Arbitrary<JSONContent> {
   return paragraphNode().map((paragraph) => ({
     type: "blockquote",
@@ -257,6 +332,8 @@ function blockNode(): fc.Arbitrary<JSONContent> {
     headingNode(),
     linkNode(),
     artefactRefNode(),
+    citationNode(),
+    citationInTextNode(),
     blockquoteNode(),
     codeBlockNode(),
     listNode(),
