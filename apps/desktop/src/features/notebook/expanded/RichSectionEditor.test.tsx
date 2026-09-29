@@ -2,6 +2,7 @@ import type { ArtefactsFileModel } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { autosaveStatusText } from "../messages";
 import type { AutosaveField } from "./model/useAutosave";
 import { RichSectionEditor } from "./RichSectionEditor";
 
@@ -156,6 +157,22 @@ describe("RichSectionEditor — live", () => {
       "Methods",
     );
     expect(view.querySelector('[role="status"]')?.textContent).toBe("Saved");
+  });
+
+  it("shows the status as a coloured dot, with the full text kept for assistive tech", () => {
+    for (const status of ["saved", "saving", "unsaved", "error"] as const) {
+      const view = mount({ field: field({ status }) });
+      const el = view.querySelector('[role="status"]');
+      expect(el?.className).toContain(`expanded__status--${status}`);
+      expect(el?.querySelector(".expanded__status-dot")).not.toBeNull();
+      expect(el?.querySelector(".expanded__status-text")?.textContent).toBe(
+        autosaveStatusText(status, null),
+      );
+      act(() => root?.unmount());
+      container?.remove();
+      container = null;
+      root = null;
+    }
   });
 
   it("loads the stored Markdown, formatted, into the live editor", () => {

@@ -30,28 +30,33 @@ export function NewExperimentForm({ questions, disabled, onSubmit }: Props) {
 
   return (
     <form className="notebook__new" onSubmit={submit}>
-      <label htmlFor={questionId}>{messages.chooseQuestionLabel}</label>
-      <select
-        id={questionId}
-        value={question}
-        disabled={disabled || questions.length === 0}
-        onChange={(event) => setQuestion(event.target.value)}
-      >
-        <option value="" />
-        {questions.map((q) => (
-          <option key={q.id} value={q.id}>
-            {q.label}
-          </option>
-        ))}
-      </select>
-      <label htmlFor={titleId}>{messages.titleLabel}</label>
-      <input
-        id={titleId}
-        value={title}
-        placeholder={messages.newExperimentPlaceholder}
-        disabled={disabled || questions.length === 0}
-        onChange={(event) => setTitle(event.target.value)}
-      />
+      <p className="notebook__new-caption">{messages.newExperimentCaption}</p>
+      <div className="notebook__new-field">
+        <label htmlFor={questionId}>{messages.chooseQuestionLabel}</label>
+        <select
+          id={questionId}
+          value={question}
+          disabled={disabled || questions.length === 0}
+          onChange={(event) => setQuestion(event.target.value)}
+        >
+          <option value="" />
+          {questions.map((q) => (
+            <option key={q.id} value={q.id}>
+              {q.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="notebook__new-field">
+        <label htmlFor={titleId}>{messages.titleLabel}</label>
+        <input
+          id={titleId}
+          value={title}
+          placeholder={messages.newExperimentPlaceholder}
+          disabled={disabled || questions.length === 0}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+      </div>
       <button type="submit" disabled={disabled || !canSubmit}>
         {messages.addExperiment}
       </button>

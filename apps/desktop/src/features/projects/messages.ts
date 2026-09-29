@@ -5,6 +5,9 @@ import type { ReadOnlyReason } from "./model/mode";
 /** User-facing text for the projects feature, in British English (AGENTS.md section 5). */
 export const messages = {
   heading: "Projects",
+  projectTab: "Project",
+  collapseRibbon: "Collapse the ribbon",
+  expandRibbon: "Expand the ribbon",
   createHeading: "New project",
   nameLabel: "Project name",
   namePlaceholder: "For example, Batch effects in treated organoids",
@@ -15,8 +18,6 @@ export const messages = {
   openRecent: "Open",
   missing: "Folder not found",
   locate: "Locate project…",
-  openedHeading: "Open project",
-  openedAt: "Location",
   externalRootsHeading: "External roots",
   externalRootUnresolved: "Not set on this computer",
   externalRootMissing: "Folder not found",

@@ -127,12 +127,41 @@
   cursor: pointer;
 }
 
+/* Saved, Saving, Unsaved or Error (FR-EDT-03), shown as a coloured dot: a
+ * hover title and the visually-hidden text carry the same words for anyone
+ * who cannot see colour. */
 .expanded__status {
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.expanded__status-dot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.expanded__status-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.expanded__status--saved {
+  color: var(--color-success, #2f9e44);
+}
+
+.expanded__status--saving,
+.expanded__status--unsaved {
+  color: var(--color-highlight, #b8660f);
 }
 
 .expanded__status--error {
-  text-decoration: underline;
+  color: var(--color-danger, #c92a2a);
 }
 
 /* Stacked below 1280 px (FR-TBL-07); side by side at that width or more. */

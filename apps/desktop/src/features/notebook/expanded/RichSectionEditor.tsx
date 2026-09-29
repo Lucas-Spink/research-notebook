@@ -73,8 +73,12 @@ export function RichSectionEditor({
         <span
           role="status"
           className={`expanded__status expanded__status--${field.status}`}
+          title={autosaveStatusText(field.status, field.message)}
         >
-          {autosaveStatusText(field.status, field.message)}
+          <span className="expanded__status-dot" aria-hidden="true" />
+          <span className="expanded__status-text">
+            {autosaveStatusText(field.status, field.message)}
+          </span>
         </span>
       </div>
       {live ? (

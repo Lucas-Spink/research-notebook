@@ -30,18 +30,55 @@
   margin: 0.25rem 0;
 }
 
+/* Adding a question and adding an experiment sit as two clearly separate
+ * cards, so each reads as its own self-contained action instead of one row
+ * of unlabelled controls (FR-EXP-01, FR-EXP-02). */
 .notebook__top-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-  padding: 0.5rem 0.75rem;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 0.75rem;
   margin: 0.5rem 0;
   background: var(--color-accent-soft, transparent);
   border-radius: 6px;
 }
 
 .notebook__top-actions .notebook__new {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
   margin: 0;
+  padding: 0.75rem;
+  min-width: 16rem;
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
+  border-radius: 6px;
+  background: var(--color-surface, transparent);
+}
+
+.notebook__new-caption {
+  margin: 0;
+  font-weight: 600;
+}
+
+.notebook__new-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.notebook__top-actions .notebook__new button[type="submit"] {
+  align-self: flex-start;
+}
+
+/* Text that only a screen reader needs, kept out of sight. */
+.notebook__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .notebook__status {

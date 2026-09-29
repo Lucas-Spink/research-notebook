@@ -2,7 +2,7 @@
   height: min(75vh, 1400px);
   min-height: 320px;
   overflow: auto;
-  border: 1px solid currentColor;
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
   border-radius: 6px;
   text-align: left;
 }
@@ -23,7 +23,7 @@
   z-index: 2;
   display: flex;
   background: Canvas;
-  border-bottom: 1px solid currentColor;
+  border-bottom: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
 }
 
 .wtable__heading {
@@ -31,8 +31,13 @@
   box-sizing: border-box;
   flex: none;
   padding: 0.5rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 24px;
+  border-right: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
+}
+
+.wtable__heading:last-child {
+  border-right: none;
 }
 
 /* A wide, easy target for the pointer, with a thin line showing where the edge is. */
@@ -73,7 +78,7 @@
 
 .wtable__row {
   display: flex;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.16);
 }
 
 .wtable__row--selected {
@@ -85,12 +90,28 @@
   flex: none;
   overflow: hidden;
   padding: 0.5rem;
+  border-right: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
 }
 
-/* A section's summary, which opens for editing in place (FR-TBL-11). */
+.wtable__cell:last-child {
+  border-right: none;
+}
+
+/* A section's summary, which opens for editing in place (FR-TBL-11). Hover
+ * and active states give an immediate response to a click, since opening
+ * the live editor itself waits on the previous one saving. */
 .wtable__edit {
   height: 100%;
   cursor: text;
+  transition: background-color 100ms ease;
+}
+
+.wtable__edit:hover {
+  background: color-mix(in srgb, var(--color-accent, #396cd8) 8%, transparent);
+}
+
+.wtable__edit:active {
+  background: color-mix(in srgb, var(--color-accent, #396cd8) 18%, transparent);
 }
 
 .wtable__edit:focus-visible {
@@ -103,10 +124,16 @@
   overflow: visible;
 }
 
-/* Long sections scroll inside the editor instead of growing the row without end. */
+/* Long sections scroll inside the editor instead of growing the row without
+ * end. The editor's own box (border, radius, padding) is dropped here so
+ * the text fills almost the whole cell, instead of a smaller boxed area
+ * nested inside it; the cell's own padding is the only inset. */
 .wtable__cell--editing .expanded__editor {
   max-height: 60vh;
   overflow: auto;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 /* The column heading already names the section; the label stays for screen readers. */
@@ -117,6 +144,21 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* The status dot moves to a small badge in the cell's own top-left padding
+ * corner, out of the flow, so the editor's text starts at the very top of
+ * the cell instead of being pushed down by a reserved head row. */
+.wtable__cell--editing .expanded__field {
+  position: relative;
+}
+
+.wtable__cell--editing .expanded__field-head {
+  position: absolute;
+  top: -0.3rem;
+  left: -0.3rem;
+  z-index: 1;
+  margin: 0;
 }
 
 /* A closed Results cell: counts by group, up to four thumbnails, Browse all (FR-TBL-06). */
@@ -153,8 +195,12 @@
   text-decoration: underline;
 }
 
-/* An open Results cell: the folder tree, scrolling inside after a point (ADR-0044). */
+/* An open Results cell: the folder tree, scrolling inside after a point
+ * (ADR-0044). A minimum height clear of the row's own estimate keeps a
+ * near-empty tree (no result files yet) from sitting right at that
+ * boundary, where the virtualiser's row measurement visibly jitters. */
 .wtable__results-open {
+  min-height: 9rem;
   max-height: 60vh;
   overflow: auto;
 }
@@ -228,7 +274,7 @@
   display: flex;
   align-items: center;
   background: var(--color-accent-soft, rgba(128, 128, 128, 0.16));
-  border-bottom: 1px solid currentColor;
+  border-bottom: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
 }
 
 /* The header's content stays at the left edge when the table is scrolled sideways. */

@@ -2,6 +2,93 @@
   text-align: left;
 }
 
+/* Text that only a screen reader needs, kept out of sight. */
+.projects__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The ribbon (FR-PRJ-01 to 03, FR-PRJ-07): a tab strip, in the way a word
+ * processor's has one, standing in for what used to be a permanently open
+ * create/open form and external-roots panel above the table. Its own panel
+ * expands on demand instead of taking space all the time. */
+.ribbon {
+  border-bottom: 1px solid var(--color-border, rgba(128, 128, 128, 0.3));
+  margin-bottom: 0.75rem;
+}
+
+.ribbon__tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 1rem 0;
+}
+
+.ribbon__tab {
+  border: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  padding: 0.4rem 0.9rem;
+  font-weight: 500;
+}
+
+.ribbon__tab:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--color-accent-soft, rgba(128, 128, 128, 0.1));
+}
+
+.ribbon__tab[aria-selected="true"] {
+  background: var(--color-accent-soft, rgba(128, 128, 128, 0.16));
+  font-weight: 600;
+}
+
+.ribbon__toggle {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.6rem;
+}
+
+.ribbon__panel {
+  padding: 0.75rem 1rem 1rem;
+}
+
+.ribbon__project {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.ribbon__project .projects__create {
+  flex: 1 1 20rem;
+}
+
+.ribbon__recent {
+  flex: 1 1 18rem;
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.ribbon__recent h3 {
+  margin-top: 0;
+}
+
+.ribbon__roots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* The open project's name and location, in the space the ribbon no longer
+ * takes up, so it stays visible without a tab click. */
+.projects__status-line {
+  margin: 0.5rem 0;
+}
+
 /* The create/open form, notices and recent list stay a comfortable reading
    width; the notebook table (a sibling outside this wrapper) uses the rest
    of the window. */
