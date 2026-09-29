@@ -956,6 +956,7 @@ dependencies = [
  "nb-git",
  "nb-opener",
  "nb-preview",
+ "nb-zotero",
  "proptest",
  "serde",
  "serde_json",

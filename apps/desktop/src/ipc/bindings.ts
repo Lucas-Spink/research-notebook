@@ -236,6 +236,12 @@ export const commands = {
 	 *  applied; the caller confirms a candidate itself, through `editArtefacts`.
 	 */
 	listRelinkCandidates: (folder: FolderHandle, projectId: Ulid, chosen: DiscoveryFolder, fileName: string, size: number | null, sha256: string) => typedError<RelinkCandidateDto[], EvidenceFailure>(__TAURI_INVOKE("list_relink_candidates", { folder, projectId, chosen, fileName, size, sha256 })),
+	/**
+	 *  Reports whether Zotero's local API is connected, disabled or not running
+	 *  (FR-CIT-01). The request runs in `spawn_blocking`, because it is a
+	 *  blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
+	 */
+	zoteroStatus: () => typedError<ZoteroConnection, ZoteroStatusError>(__TAURI_INVOKE("zotero_status")),
 };
 
 /** Events */
@@ -850,6 +856,23 @@ export type Ulid = string;
  *  accepted and stored as `/`. Where it resolves is checked again by `nb-fs`.
  */
 export type VersionPath = string;
+
+/**  Zotero's local API connectivity, as reported to the webview (FR-CIT-01). */
+export type ZoteroConnection = { kind: "connected"; 
+/**
+ *  Present when Zotero's response carried a `Zotero-Server-ID`
+ *  header (FR-CIT-02); used to detect a different library later.
+ */
+serverId: string | null } | 
+/**  Zotero is running but its local API is off in preferences. */
+{ kind: "disabled" } | { kind: "notRunning" };
+
+/**
+ *  Why a status check failed. Not-running and disabled are ordinary
+ *  statuses, not errors; this covers only a request that could not be
+ *  completed at all.
+ */
+export type ZoteroStatusError = { kind: "requestFailed" };
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
