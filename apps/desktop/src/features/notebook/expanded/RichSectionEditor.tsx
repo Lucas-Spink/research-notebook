@@ -14,6 +14,7 @@ import {
 } from "react";
 import { autosaveStatusText, editLabel, expandedMessages } from "../messages";
 import { CitationPickerOverlay } from "./CitationPickerOverlay";
+import { insertCitation } from "./CiteSuggestion";
 import { liveEditorExtensions } from "./liveEditorExtensions";
 import { searchArtefacts } from "./model/artefactSearch";
 import {
@@ -234,14 +235,7 @@ function LiveEditor({
       {citationInsertPos !== null && (
         <CitationPickerOverlay
           onInsert={(markdown) => {
-            editor
-              .chain()
-              .focus()
-              .insertContentAt(citationInsertPos, {
-                type: "text",
-                text: markdown,
-              })
-              .run();
+            insertCitation(editor, citationInsertPos, markdown);
             setCitationInsertPos(null);
           }}
           onCancel={() => setCitationInsertPos(null)}

@@ -1,8 +1,10 @@
+import { parseCitationMarkdown } from "@research-notebook/format";
 import { PluginKey } from "@tiptap/pm/state";
 import {
   Extension,
   ReactRenderer,
   type AnyExtension,
+  type JSONContent,
   type Range,
 } from "@tiptap/react";
 import { Suggestion, type SuggestionProps } from "@tiptap/suggestion";
@@ -49,6 +51,36 @@ export function openCitationPicker(
 ): void {
   editor.chain().focus().deleteRange(range).run();
   onOpenPicker(range.from);
+}
+
+/** Just enough of Tiptap's chainable commands to insert one node at a
+ * position (kept narrow so a test can supply a plain fake, matching
+ * `ArtefactSuggestion.ts`'s `InsertableEditor`). */
+type InsertChainable = {
+  focus: () => InsertChainable;
+  insertContentAt: (position: number, content: JSONContent) => InsertChainable;
+  run: () => boolean;
+};
+export type CitationInsertableEditor = { chain: () => InsertChainable };
+
+/**
+ * Inserts the citation picker's composed Markdown (FR-CIT-03) as a real
+ * `citation` node, not literal text: a plain text node would have its own
+ * `[`/`]` backslash-escaped by the generic Markdown serialiser on the very
+ * next save, corrupting the citation (spec 5.7). Parsing it back through
+ * `packages/format`'s own citation parser, the same one `parseSectionMarkdown`
+ * uses, keeps this one parser deciding what the syntax means (AGENTS.md 2).
+ */
+export function insertCitation(
+  editor: CitationInsertableEditor,
+  position: number,
+  markdown: string,
+): void {
+  editor
+    .chain()
+    .focus()
+    .insertContentAt(position, parseCitationMarkdown(markdown))
+    .run();
 }
 
 /** What `citeSuggestionRenderer()` returns: `@tiptap/suggestion`'s `render` shape. */

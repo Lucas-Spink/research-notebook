@@ -4,7 +4,10 @@ import type {
 } from "@research-notebook/format";
 import {
   ARTEFACT_REF_NODE_NAME,
+  CITATION_IN_TEXT_NODE_NAME,
+  CITATION_NODE_NAME,
   PASSTHROUGH_NODE_NAME,
+  type CitationItem,
 } from "@research-notebook/format";
 import { Fragment } from "react";
 import { expandedMessages } from "../messages";
@@ -91,6 +94,28 @@ function renderNode(node: JSONContent, ctx: Context) {
           // live editor (ArtefactRefChipExtension.tsx).
           onUpdate={undefined}
         />
+      );
+    }
+    case CITATION_NODE_NAME: {
+      const items = Array.isArray(node.attrs?.items)
+        ? (node.attrs.items as CitationItem[])
+        : [];
+      return (
+        <span className="expanded__citation">
+          [{items.map((item) => `@${item.citekey}`).join("; ")}]
+        </span>
+      );
+    }
+    case CITATION_IN_TEXT_NODE_NAME: {
+      const citekey =
+        typeof node.attrs?.citekey === "string" ? node.attrs.citekey : "";
+      const locator =
+        typeof node.attrs?.locator === "string" ? node.attrs.locator : null;
+      return (
+        <span className="expanded__citation-in-text">
+          @{citekey}
+          {locator === null ? "" : ` [${locator}]`}
+        </span>
       );
     }
     case PASSTHROUGH_NODE_NAME:

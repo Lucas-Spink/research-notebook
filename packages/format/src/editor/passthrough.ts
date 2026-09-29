@@ -58,6 +58,12 @@ const REPRESENTABLE_TYPES: ReadonlySet<string> = new Set([
   // ./artefactRef.ts); anything else with an art:-prefixed title stays a
   // plain "link", already representable above.
   "artefactRef",
+  // A citation (spec 5.7, FR-CIT-03): a bracketed cluster of valid citekeys
+  // tokenizes as "citation", a hand-written author-in-text citekey as
+  // "citationInText" (see ./citation.ts); anything else with an "@" stays
+  // plain text, already representable above.
+  "citation",
+  "citationInText",
 ]);
 
 /**
