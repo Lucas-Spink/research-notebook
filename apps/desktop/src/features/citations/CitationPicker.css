@@ -1,0 +1,79 @@
+.citation-picker {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  min-width: 22rem;
+  max-width: 28rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.citation-picker__heading {
+  margin: 0;
+  font-size: 0.9em;
+}
+
+.citation-picker__label {
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.citation-picker__status {
+  margin: 0;
+  font-style: italic;
+}
+
+.citation-picker__results {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 8rem;
+  overflow-y: auto;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+.citation-picker__result {
+  padding: 0.25rem 0.5rem;
+}
+
+.citation-picker__result-title {
+  font-weight: 600;
+  margin-inline-start: 0.35rem;
+}
+
+.citation-picker__result-meta {
+  font-size: 0.85em;
+  margin-inline-start: 0.35rem;
+}
+
+.citation-picker__selected {
+  border-top: 1px solid currentColor;
+  padding-top: 0.5rem;
+}
+
+.citation-picker__selected-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid currentColor;
+}
+
+.citation-picker__selected-title {
+  grid-column: 1 / -1;
+  font-weight: 600;
+}
+
+.citation-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

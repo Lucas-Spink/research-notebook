@@ -1,0 +1,238 @@
+import { useId, useState } from "react";
+import { commands } from "../../ipc/bindings";
+import {
+  citationPickerMessages,
+  citationSearchStatusText,
+  locatorTermLabel,
+} from "./messages";
+import {
+  buildCitationMarkdown,
+  LOCATOR_TERMS,
+  newSelectionItem,
+  toggleSelection,
+  updateSelection,
+  type CitationSelectionItem,
+  type LocatorTerm,
+} from "./model/citationSelection";
+import type { CitationSearchApi } from "./model/citationSearchApi";
+import { useCitationSearch } from "./useCitationSearch";
+import "./CitationPicker.css";
+
+export type CitationPickerProps = {
+  /** Called with spec 5.7's bracketed citation text once the person confirms. */
+  onInsert: (markdown: string) => void;
+  /** Called on Cancel or Escape; nothing is inserted. */
+  onCancel: () => void;
+  /** Overridable for tests; defaults to the real IPC commands. */
+  api?: CitationSearchApi;
+};
+
+/**
+ * The citation picker (FR-CIT-03): debounced Zotero search, multi-select,
+ * and per-item locator, prefix and suffix, composed into spec 5.7's
+ * bracketed Pandoc citation text on Insert. Fully keyboard-operable: every
+ * control is a native, labelled form element, reachable by Tab and
+ * operable by Space/Enter, and Escape cancels from anywhere in the dialog.
+ */
+export function CitationPicker({
+  onInsert,
+  onCancel,
+  api = commands,
+}: CitationPickerProps) {
+  const id = useId();
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<CitationSelectionItem[]>([]);
+  const state = useCitationSearch(query, api);
+
+  const isSelected = (citekey: string) =>
+    selected.some((item) => item.citekey === citekey);
+
+  const toggle = (citekey: string, title: string) => {
+    setSelected((current) =>
+      toggleSelection(current, newSelectionItem(citekey, title)),
+    );
+  };
+
+  const update = (
+    citekey: string,
+    changes: Partial<
+      Pick<
+        CitationSelectionItem,
+        "locatorTerm" | "locatorValue" | "prefix" | "suffix"
+      >
+    >,
+  ) => {
+    setSelected((current) => updateSelection(current, citekey, changes));
+  };
+
+  const insert = () => {
+    if (selected.length === 0) return;
+    onInsert(buildCitationMarkdown(selected));
+  };
+
+  const statusText =
+    state.kind === "ok"
+      ? state.rows.length === 0
+        ? citationPickerMessages.empty
+        : null
+      : citationSearchStatusText(state);
+
+  return (
+    <div
+      role="dialog"
+      aria-label={citationPickerMessages.dialogLabel}
+      className="citation-picker"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          onCancel();
+        }
+      }}
+    >
+      <h6 className="citation-picker__heading">
+        {citationPickerMessages.dialogLabel}
+      </h6>
+
+      <label className="citation-picker__label" htmlFor={`${id}-search`}>
+        {citationPickerMessages.searchLabel}
+      </label>
+      <input
+        id={`${id}-search`}
+        type="text"
+        autoFocus
+        placeholder={citationPickerMessages.searchPlaceholder}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+
+      {statusText !== null && (
+        <p role="status" className="citation-picker__status">
+          {statusText}
+        </p>
+      )}
+
+      {state.kind === "ok" && state.rows.length > 0 && (
+        <ul
+          aria-label={citationPickerMessages.resultsLabel}
+          className="citation-picker__results"
+        >
+          {state.rows.map((row) => (
+            <li key={row.citekey} className="citation-picker__result">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={isSelected(row.citekey)}
+                  onChange={() => toggle(row.citekey, row.title)}
+                />
+                <span className="citation-picker__result-title">
+                  {row.title}
+                </span>
+                {row.creatorSummary !== null && (
+                  <span className="citation-picker__result-meta">
+                    {row.creatorSummary}
+                  </span>
+                )}
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {selected.length > 0 && (
+        <div className="citation-picker__selected">
+          <h6 className="citation-picker__heading">
+            {citationPickerMessages.selectedHeading}
+          </h6>
+          <ul>
+            {selected.map((item, index) => (
+              <li key={item.citekey} className="citation-picker__selected-item">
+                <span className="citation-picker__selected-title">
+                  {item.title}
+                </span>
+
+                <label htmlFor={`${id}-locator-term-${index}`}>
+                  {citationPickerMessages.locatorTermLabel}
+                </label>
+                <select
+                  id={`${id}-locator-term-${index}`}
+                  value={item.locatorTerm ?? ""}
+                  onChange={(event) =>
+                    update(item.citekey, {
+                      locatorTerm:
+                        event.target.value === ""
+                          ? null
+                          : (event.target.value as LocatorTerm),
+                    })
+                  }
+                >
+                  <option value="">{locatorTermLabel(null)}</option>
+                  {LOCATOR_TERMS.map((term) => (
+                    <option key={term} value={term}>
+                      {locatorTermLabel(term)}
+                    </option>
+                  ))}
+                </select>
+
+                <label htmlFor={`${id}-locator-value-${index}`}>
+                  {citationPickerMessages.locatorValueLabel}
+                </label>
+                <input
+                  id={`${id}-locator-value-${index}`}
+                  type="text"
+                  placeholder={citationPickerMessages.locatorValuePlaceholder}
+                  value={item.locatorValue}
+                  onChange={(event) =>
+                    update(item.citekey, { locatorValue: event.target.value })
+                  }
+                />
+
+                <label htmlFor={`${id}-prefix-${index}`}>
+                  {citationPickerMessages.prefixLabel}
+                </label>
+                <input
+                  id={`${id}-prefix-${index}`}
+                  type="text"
+                  placeholder={citationPickerMessages.prefixPlaceholder}
+                  value={item.prefix}
+                  onChange={(event) =>
+                    update(item.citekey, { prefix: event.target.value })
+                  }
+                />
+
+                <label htmlFor={`${id}-suffix-${index}`}>
+                  {citationPickerMessages.suffixLabel}
+                </label>
+                <input
+                  id={`${id}-suffix-${index}`}
+                  type="text"
+                  placeholder={citationPickerMessages.suffixPlaceholder}
+                  value={item.suffix}
+                  onChange={(event) =>
+                    update(item.citekey, { suffix: event.target.value })
+                  }
+                />
+
+                <button
+                  type="button"
+                  aria-label={citationPickerMessages.removeSelected}
+                  onClick={() => toggle(item.citekey, item.title)}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="citation-picker__actions">
+        <button type="button" onClick={onCancel}>
+          {citationPickerMessages.cancel}
+        </button>
+        <button type="button" disabled={selected.length === 0} onClick={insert}>
+          {citationPickerMessages.insert}
+        </button>
+      </div>
+    </div>
+  );
+}
