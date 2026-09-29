@@ -99,7 +99,9 @@ export const PROJECT_SHAPE: Shape = {
     order: { keys: ["question", "experiments"] },
     table: {
       keys: ["columns", "collapsed_questions"],
-      children: { columns: { keys: ["key", "width", "hidden"] } },
+      children: {
+        columns: { keys: ["key", "width", "hidden", "fontSize"] },
+      },
     },
     external_roots: { keys: ["id", "label"] },
   },

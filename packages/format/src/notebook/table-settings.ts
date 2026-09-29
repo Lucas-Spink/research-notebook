@@ -22,6 +22,12 @@ export interface TableSettingsChange {
   /** New width in CSS pixels, a whole number of at least 1. */
   widths?: Partial<Record<ColumnKey, number>>;
   hidden?: Partial<Record<ColumnKey, boolean>>;
+  /**
+   * New font size in CSS pixels, a whole number of at least 1. A column left
+   * out keeps its stored size, or the application's own default if it never
+   * had one (ADR-0045).
+   */
+  fontSize?: Partial<Record<ColumnKey, number>>;
   /** Question ID to whether the question is collapsed. */
   collapsed?: Record<string, boolean>;
 }
@@ -34,7 +40,8 @@ const sameColumns = (a: Table["columns"], b: Table["columns"]): boolean =>
     (column, i) =>
       column.key === b[i]?.key &&
       column.width === b[i]?.width &&
-      column.hidden === b[i]?.hidden,
+      column.hidden === b[i]?.hidden &&
+      column.fontSize === b[i]?.fontSize,
   );
 
 const sameList = (a: readonly string[], b: readonly string[]): boolean =>
@@ -86,6 +93,16 @@ export function changeTableSettings(
       );
     }
   }
+  for (const fontSize of Object.values(change.fontSize ?? {})) {
+    if (!Number.isInteger(fontSize) || fontSize < 1) {
+      return fail(
+        invalid(
+          "a column font size is a whole number of at least 1",
+          "fontSize",
+        ),
+      );
+    }
+  }
   const before = state.project.table;
   let collapsed = [...before.collapsed_questions];
   for (const [id, isCollapsed] of Object.entries(change.collapsed ?? {})) {
@@ -95,11 +112,15 @@ export function changeTableSettings(
     if (!isCollapsed) collapsed = collapsed.filter((other) => other !== id);
     else if (!collapsed.includes(id)) collapsed.push(id);
   }
-  const columns = before.columns.map((column) => ({
-    ...column,
-    width: change.widths?.[column.key] ?? column.width,
-    hidden: change.hidden?.[column.key] ?? column.hidden,
-  }));
+  const columns = before.columns.map((column) => {
+    const fontSize = change.fontSize?.[column.key] ?? column.fontSize;
+    return {
+      ...column,
+      width: change.widths?.[column.key] ?? column.width,
+      hidden: change.hidden?.[column.key] ?? column.hidden,
+      ...(fontSize === undefined ? {} : { fontSize }),
+    };
+  });
   return withTable(
     state,
     { ...before, columns, collapsed_questions: collapsed },
@@ -107,9 +128,19 @@ export function changeTableSettings(
   );
 }
 
+/** `column` with `fontSize` dropped, so a reset clears a chosen size back to the application's default. */
+function withoutFontSize(
+  column: Table["columns"][number] | undefined,
+): Record<string, unknown> {
+  if (column === undefined) return {};
+  const copy: Record<string, unknown> = { ...column };
+  delete copy.fontSize;
+  return copy;
+}
+
 /**
- * Puts every column back to its default width, order and visibility. Which
- * questions are collapsed is left alone.
+ * Puts every column back to its default width, visibility and font size,
+ * and order. Which questions are collapsed is left alone.
  */
 export function resetTableColumns(
   state: NotebookState,
@@ -117,7 +148,7 @@ export function resetTableColumns(
 ): Result<Plan, NotebookError> {
   const before = state.project.table;
   const columns = COLUMN_KEYS.map((key) => ({
-    ...before.columns.find((column) => column.key === key),
+    ...withoutFontSize(before.columns.find((column) => column.key === key)),
     key,
     width: DEFAULT_COLUMN_WIDTHS[key],
     hidden: false,

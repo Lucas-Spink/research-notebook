@@ -89,7 +89,11 @@ function cellFor(
 type ExperimentProps = {
   row: ExperimentRow;
   place: RowPlace;
-  columns: readonly { key: ColumnKey; width: number }[];
+  columns: readonly {
+    key: ColumnKey;
+    width: number;
+    fontSize: number | null;
+  }[];
   experimentWidth: number;
   selected: boolean;
   sharesRef: boolean;
@@ -163,7 +167,12 @@ export function ExperimentRowView({
             data-column={column.key}
             tabIndex={ownControl ? undefined : tabbable ? 0 : -1}
             className={`wtable__cell${isEditing ? " wtable__cell--editing" : ""}`}
-            style={{ width: column.width }}
+            style={{
+              width: column.width,
+              ...(column.fontSize === null
+                ? {}
+                : { fontSize: column.fontSize }),
+            }}
           >
             {cellFor(column.key, row, artefacts, folder, editing, tabbable)}
           </div>

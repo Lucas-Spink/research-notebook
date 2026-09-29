@@ -24,12 +24,12 @@ const table = state.project.table;
 describe("columnLayout", () => {
   it("lists every column in the order project.yaml stores them, with its width and visibility", () => {
     expect(columnLayout(table)).toEqual([
-      { key: "motivation", width: 220, hidden: false },
-      { key: "methods", width: 260, hidden: false },
-      { key: "results", width: 280, hidden: false },
-      { key: "results_notes", width: 300, hidden: false },
-      { key: "interpretation", width: 320, hidden: false },
-      { key: "literature", width: 240, hidden: false },
+      { key: "motivation", width: 220, hidden: false, fontSize: null },
+      { key: "methods", width: 260, hidden: false, fontSize: null },
+      { key: "results", width: 280, hidden: false, fontSize: null },
+      { key: "results_notes", width: 300, hidden: false, fontSize: null },
+      { key: "interpretation", width: 320, hidden: false, fontSize: null },
+      { key: "literature", width: 240, hidden: false, fontSize: null },
     ]);
   });
 
@@ -175,6 +175,7 @@ describe("spareShares", () => {
     key,
     width,
     hidden: false,
+    fontSize: null,
   });
   const shown: ColumnLayout[] = [
     col("methods", 200),

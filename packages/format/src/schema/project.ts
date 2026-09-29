@@ -39,6 +39,10 @@ const Column = z.looseObject({
   // CSS pixels. The spec gives no bound, so none is imposed (S2-T01).
   width: z.number().int().positive(),
   hidden: z.boolean(),
+  // CSS pixels. Optional and additive, like width and hidden before it
+  // (ADR-0027): a project written before this field existed simply has no
+  // per-column size, and reads with the application's default.
+  fontSize: z.number().int().positive().optional(),
 });
 
 // Each column appears exactly once; array order is display order.

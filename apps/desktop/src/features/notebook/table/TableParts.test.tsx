@@ -109,9 +109,11 @@ describe("ColumnsMenu", () => {
   const { state } = sampleNotebook();
   const layout = columnLayout({
     ...state.project.table,
-    columns: state.project.table.columns.map((c) =>
-      c.key === "literature" ? { ...c, hidden: true } : c,
-    ),
+    columns: state.project.table.columns.map((c) => {
+      if (c.key === "literature") return { ...c, hidden: true };
+      if (c.key === "interpretation") return { ...c, fontSize: 12 };
+      return c;
+    }),
   });
 
   function menu(writable: boolean) {
@@ -121,6 +123,7 @@ describe("ColumnsMenu", () => {
         writable={writable}
         onHide={() => undefined}
         onWidth={() => undefined}
+        onFontSize={() => undefined}
         onReset={() => undefined}
       />,
     );
@@ -139,6 +142,26 @@ describe("ColumnsMenu", () => {
     const width = view.querySelector<HTMLInputElement>('input[type="number"]');
     expect(width?.value).toBe("220");
     expect(view.textContent).toContain("Width of Motivation (pixels)");
+  });
+
+  it("shows a chosen font size, and a default placeholder for a column with none", () => {
+    const view = menu(true);
+    const interpretationLi = [...view.querySelectorAll("li")].find((li) =>
+      li.textContent?.includes("Show Interpretation"),
+    );
+    const methodsLi = [...view.querySelectorAll("li")].find((li) =>
+      li.textContent?.includes("Show Methods"),
+    );
+    const fontSizeInputs = (li: Element | undefined) =>
+      [
+        ...(li?.querySelectorAll('input[type="number"]') ?? []),
+      ] as HTMLInputElement[];
+    expect(fontSizeInputs(interpretationLi)[1]?.value).toBe("12");
+    expect(fontSizeInputs(methodsLi)[1]?.value).toBe("");
+    expect(fontSizeInputs(methodsLi)[1]?.getAttribute("placeholder")).toBe(
+      "Default",
+    );
+    expect(view.textContent).toContain("Text size of Methods (pixels)");
   });
 
   it("gives every field a label", () => {
