@@ -6,9 +6,11 @@ import {
   type RecognisedSectionKey,
   type ReferenceIndex,
 } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
+import { FormattingRibbon } from "./editing/FormattingRibbon";
 import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
 import type { QuestionChoice } from "./ExperimentItem";
@@ -113,6 +115,8 @@ export function NotebookView({
   const [focusSection, setFocusSection] = useState<RecognisedSectionKey | null>(
     null,
   );
+  /** Whichever section editor is currently live, for the formatting ribbon (ADR-0043: there is only ever one). */
+  const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
 
   const live = useLiveEditor({
     arranged,
@@ -171,6 +175,7 @@ export function NotebookView({
       setSelectedKey(row.key);
       setFocusSection(null);
     },
+    onEditorReady: setActiveEditor,
   });
   const questions = useMemo<QuestionChoice[]>(
     () =>
@@ -261,6 +266,7 @@ export function NotebookView({
             disabled={disabled}
             actions={actions}
           />
+          <FormattingRibbon editor={activeEditor} />
           {arranged.problems.length > 0 && (
             <section aria-labelledby="notebook-problems">
               <h4 id="notebook-problems">{messages.problemsHeading}</h4>
@@ -312,6 +318,7 @@ export function NotebookView({
             references={references}
             focusSection={focusSection}
             live={live}
+            onEditorReady={setActiveEditor}
           />
         </>
       )}

@@ -5,6 +5,7 @@ import type {
   ReferenceIndex,
   SummaryPart,
 } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import { useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { commands } from "../../../ipc/bindings";
@@ -44,6 +45,8 @@ export type TableEditing = {
   evidence: EvidenceProject | null;
   /** Changes one experiment's artefacts.yaml, as `useNotebook` does. */
   editArtefacts: NotebookActions["editArtefacts"];
+  /** Reports the live editor instance for the formatting ribbon; `null` when none is live here. */
+  onEditorReady: (editor: Editor | null) => void;
 };
 
 type Props = {
@@ -110,6 +113,7 @@ export function EditableSectionCell({
         setOpenReference({ ulid, version })
       }
       autoFocus
+      onEditorReady={editing.onEditorReady}
     />
   ) : !editing.writable || row.item.readOnly ? (
     <SummaryCell parts={parts} artefacts={artefacts} />

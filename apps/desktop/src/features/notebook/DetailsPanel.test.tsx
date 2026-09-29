@@ -1,4 +1,5 @@
 import type { ReferenceIndex } from "@research-notebook/format";
+import type { Editor } from "@tiptap/react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
@@ -49,7 +50,11 @@ afterEach(() => {
 
 function render(
   selected: Selected | null,
-  overrides: { disabled?: boolean; writable?: boolean } = {},
+  overrides: {
+    disabled?: boolean;
+    writable?: boolean;
+    onEditorReady?: (editor: Editor | null) => void;
+  } = {},
 ): HTMLElement {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
@@ -84,6 +89,9 @@ function render(
             references={NO_REFERENCES}
             focusSection={null}
             live={live}
+            {...(overrides.onEditorReady === undefined
+              ? {}
+              : { onEditorReady: overrides.onEditorReady })}
           />
         )}
       </LiveEditorHarness>,
@@ -147,5 +155,19 @@ describe("DetailsPanel: the expanded view (S2-T12, S4-T01)", () => {
     )) {
       expect(button.getAttribute("tabindex")).toBe("-1");
     }
+  });
+
+  it("reports the live editor instance for the formatting ribbon, and null once nothing is selected", () => {
+    const reported: (Editor | null)[] = [];
+    render(selectedExperiment, {
+      onEditorReady: (editor) => reported.push(editor),
+    });
+    expect(reported).toHaveLength(1);
+    expect(reported[0]).not.toBeNull();
+    expect(reported[0]?.isActive("bold")).toBe(false);
+
+    act(() => root?.unmount());
+    root = null;
+    expect(reported.at(-1)).toBeNull();
   });
 });
