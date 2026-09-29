@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useZoteroStatus, ZoteroStatusIndicator } from "../citations";
 import { messages } from "./messages";
 import type { ExternalRoot, OpenedProject } from "./model/flows";
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
@@ -28,6 +29,7 @@ export function OpenedPanel({
   onRetry,
 }: Props) {
   const [label, setLabel] = useState("");
+  const zoteroStatus = useZoteroStatus();
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -55,6 +57,7 @@ export function OpenedPanel({
         {messages.openedAt}:{" "}
         <span className="projects__path">{project.path}</span>
       </p>
+      <ZoteroStatusIndicator state={zoteroStatus} />
       {(roots.length > 0 || onAddRoot !== undefined) && (
         <>
           <h3>{messages.externalRootsHeading}</h3>

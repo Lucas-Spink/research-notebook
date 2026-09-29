@@ -1,0 +1,34 @@
+.citations__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.citations__dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  align-self: center;
+}
+
+.citations__dot--connected {
+  background: #2e8b57;
+}
+
+.citations__dot--disabled,
+.citations__dot--notRunning {
+  background: #b8860b;
+}
+
+.citations__dot--unknown {
+  background: #999;
+}
+
+.citations__guidance {
+  flex-basis: 100%;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
