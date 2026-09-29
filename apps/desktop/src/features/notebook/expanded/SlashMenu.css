@@ -1,0 +1,39 @@
+.slash-menu {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 16rem;
+  min-width: 16rem;
+  overflow-y: auto;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.slash-menu__empty {
+  padding: 0.25rem 0.5rem;
+  font-style: italic;
+}
+
+.slash-menu__option {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.slash-menu__option--active {
+  background: Highlight;
+  color: HighlightText;
+}
+
+.slash-menu__label {
+  font-weight: 600;
+}
+
+.slash-menu__description {
+  font-size: 0.85em;
+}
