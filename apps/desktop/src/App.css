@@ -19,6 +19,8 @@
     var(--color-highlight) 14%,
     transparent
   );
+  --color-success: #2f9e44;
+  --color-danger: #c92a2a;
 
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -42,6 +44,8 @@
     --color-surface: #262626;
     --color-accent-dark: #86a9ec;
     --color-highlight: #d88a39;
+    --color-success: #4fce5d;
+    --color-danger: #ff6b6b;
   }
 }
 
