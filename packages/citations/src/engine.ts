@@ -1,3 +1,8 @@
+// citeproc ships no types, so its hand-written declaration must be in every
+// program that compiles this file, including apps/desktop's, whose tsconfig is
+// protected. An `import` cannot pull in an ambient module declaration.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./citeproc.d.ts" />
 import type {
   Citation,
   CiteprocSys,
@@ -15,12 +20,12 @@ import CSL from "citeproc";
  * `literature.ts` drives it for the Literature block (S5-T05).
  */
 
-export interface CslItem extends CslItemLike {
-  type: string;
-  title?: string;
-  author?: Array<{ family?: string; given?: string }>;
-  issued?: { "date-parts": number[][] };
-}
+/**
+ * A CSL-JSON item as `bibliography.json` holds it: only `id` is required
+ * here, and every other field (type, title, author, `_zotero`, ...) passes
+ * through to citeproc-js, which ignores what it does not know.
+ */
+export type CslItem = CslItemLike;
 
 export interface CiteprocInitRequest {
   type: "init";

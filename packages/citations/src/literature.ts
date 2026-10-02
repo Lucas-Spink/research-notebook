@@ -1,3 +1,8 @@
+// citeproc ships no types, so its hand-written declaration must be in every
+// program that compiles this file, including apps/desktop's, whose tsconfig is
+// protected. An `import` cannot pull in an ambient module declaration.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./citeproc.d.ts" />
 import type { Citation } from "citeproc";
 import { createState, handleMessage, type CslItem } from "./engine";
 
