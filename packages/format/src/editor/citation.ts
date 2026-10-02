@@ -238,3 +238,45 @@ export const CitationInText = Node.create({
     return `@${citekey}${locatorPart}`;
   },
 });
+
+/**
+ * Every citation written in `text`, in order, found without a document: for
+ * the raw Markdown of a passthrough block (a table, say), which the editor
+ * keeps verbatim but whose citations still belong in the citation context
+ * (FR-CIT-09). Uses the same anchored patterns and `Citekey` check as the
+ * node tokenizers above, so both agree on what a citation is.
+ */
+export function scanCitations(text: string): CitationItem[][] {
+  const found: CitationItem[][] = [];
+  let at = 0;
+  while (at < text.length) {
+    const rest = text.slice(at);
+    const bracketed = text[at] === "[" ? CITATION_ANCHORED.exec(rest) : null;
+    const items =
+      bracketed === null ? null : parseCitationBody(bracketed[1] ?? "");
+    if (bracketed !== null && items !== null) {
+      found.push(items);
+      at += bracketed[0].length;
+      continue;
+    }
+    const inText =
+      text[at] === "@" ? CITATION_IN_TEXT_ANCHORED.exec(rest) : null;
+    const citekey = inText?.[1];
+    if (inText !== null && citekey !== undefined) {
+      if (Citekey.safeParse(citekey).success) {
+        found.push([
+          {
+            prefix: "",
+            suppressAuthor: false,
+            citekey,
+            suffix: inText[2] ?? "",
+          },
+        ]);
+        at += inText[0].length;
+        continue;
+      }
+    }
+    at += 1;
+  }
+  return found;
+}
