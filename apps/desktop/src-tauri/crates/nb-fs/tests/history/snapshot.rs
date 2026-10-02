@@ -64,6 +64,26 @@ fn a_new_file_is_written_and_has_nothing_to_snapshot() {
 }
 
 #[test]
+fn a_style_is_created_once_and_a_second_create_never_overwrites_it() {
+    // S5-T06: the app copies the active style into styles/ and must never
+    // replace a different file of the same name.
+    const STYLE: &str = "_notebook/styles/numeric.csl";
+    let project = TestProject::new();
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+    let outside = snapshot_outside_notebook(project.root());
+
+    let first = save(&root, STYLE, b"<style/>", &Expected::Absent, &clock).unwrap();
+    assert_eq!(first, SaveOutcome::Saved { snapshot: None });
+    assert_eq!(project.read(STYLE), b"<style/>");
+
+    let again = save(&root, STYLE, b"<other/>", &Expected::Absent, &clock).unwrap();
+    assert!(matches!(again, SaveOutcome::Changed { .. }));
+    assert_eq!(project.read(STYLE), b"<style/>");
+    assert_eq!(snapshot_outside_notebook(project.root()), outside);
+}
+
+#[test]
 fn overwriting_keeps_the_previous_content_under_history() {
     let (project, root) = project_with(b"first draft");
     let clock = FakeClock::at("2026-09-21T10:15:00Z");
