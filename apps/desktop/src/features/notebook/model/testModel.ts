@@ -36,6 +36,7 @@ export function testModel(
     invalidInboxRequests: [],
     actions: stubActions,
     projectId: state.project.id,
+    citationStyle: state.project.citation_style,
     evidence: {
       copyThresholdMb: state.project.capture.copy_threshold_mb,
       externalRoots: state.project.external_roots.map((root) => root.id),
