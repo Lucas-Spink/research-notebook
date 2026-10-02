@@ -45,6 +45,16 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Install Pandoc (golden test S5-G03)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            choco install pandoc --no-progress -y
+          else
+            brew install pandoc
+          fi
+          pandoc --version | head -n 1
+
       - name: Static checks (lint, types, format, boundaries)
         run: pnpm check:static
 
