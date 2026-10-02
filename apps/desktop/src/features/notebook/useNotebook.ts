@@ -26,6 +26,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commands, type FolderHandle } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
+import type { LiteraturePlanner } from "../citations";
 import { createFirstWriteGuard, type FirstWriteGuard } from "../history";
 import type { AutosaveOutcome } from "./expanded/model/autosave";
 import { loadFailureMessage, messages, outcomeMessage } from "./messages";
@@ -36,6 +37,7 @@ import type {
   Loaded,
 } from "./model/api";
 import { holdFiles } from "./model/held";
+import { chooseBlock, literatureOptions } from "./model/sectionLiterature";
 import {
   importInboxOnOpen,
   type InvalidInboxRequest,
@@ -93,11 +95,14 @@ export type NotebookActions = {
   /**
    * Saves one recognised section's text (FR-EDT-03), the expanded view's
    * autosave. Resolves whether it was saved, and a message when it was not.
+   * With a `literature` planner, the Literature block is regenerated and
+   * saved in the same write (FR-CIT-10).
    */
   editExperimentSection(
     id: string,
     key: RecognisedSectionKey,
     text: string,
+    literature?: LiteraturePlanner,
   ): Promise<AutosaveOutcome>;
   /** Changes the table's layout. Saved after a short wait, or at once with `immediate`; only kept for the session in a read-only project. */
   changeSettings(
@@ -363,15 +368,30 @@ export function useNotebook({ folder, writable, changes }: Options) {
         run((s, e) => removeQuestion(s, id, e)).then(isDone),
       refresh: () =>
         enqueue(reload).catch(() => setNotice(messages.unexpected)),
-      editExperimentSection: (id, key, text) =>
-        run((s, e) => editSectionText(s, id, key, text, e), {
-          quiet: true,
-          silent: true,
-        }).then((done): AutosaveOutcome => {
-          if (done.kind === "done") return { ok: true };
-          const message = outcomeMessage(done);
-          return { ok: false, message: message ?? messages.unexpected };
-        }),
+      editExperimentSection: async (id, key, text, literature) => {
+        const block = await chooseBlock(
+          loadedRef.current?.state ?? null,
+          id,
+          key,
+          text,
+          literature,
+        );
+        const done = await run(
+          (s, e) =>
+            editSectionText(
+              s,
+              id,
+              key,
+              text,
+              e,
+              literatureOptions(s, id, key, text, block),
+            ),
+          { quiet: true, silent: true },
+        );
+        if (done.kind === "done") return { ok: true };
+        const message = outcomeMessage(done);
+        return { ok: false, message: message ?? messages.unexpected };
+      },
       changeSettings: (change, { immediate = false } = {}) =>
         committerRef.current?.change(change, {
           persist: latest.current.writable,
@@ -419,6 +439,8 @@ export function useNotebook({ folder, writable, changes }: Options) {
     actions,
     /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
     projectId: state?.project.id ?? null,
+    /** `project.yaml`'s `citation_style`, the file in `styles/` that Literature is rendered with; `null` before the project has loaded. */
+    citationStyle: state?.project.citation_style ?? null,
     /** What adding a file needs from `project.yaml` (FR-EVD-02); `null` before it has loaded. */
     evidence:
       state === null

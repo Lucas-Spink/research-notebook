@@ -1,4 +1,5 @@
 export { CitationPicker, type CitationPickerProps } from "./CitationPicker";
+export { LiteraturePrompt } from "./LiteraturePrompt";
 export { citationPickerMessages, sourceStatusText } from "./messages";
 export type { SourcesApi } from "./model/syncSources";
 export {
@@ -10,3 +11,9 @@ export {
 export { SourcesPanel } from "./SourcesPanel";
 export { useZoteroStatus } from "./useZoteroStatus";
 export { ZoteroStatusIndicator } from "./ZoteroStatusIndicator";
+export {
+  useLiteraturePlanner,
+  type LiteratureChoice,
+  type LiteratureModel,
+  type LiteraturePlanner,
+} from "./useLiteraturePlanner";

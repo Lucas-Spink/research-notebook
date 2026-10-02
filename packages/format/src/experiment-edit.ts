@@ -1,4 +1,7 @@
-import { parseExperimentBody } from "./experiment-body";
+import {
+  parseExperimentBody,
+  serialiseExperimentBody,
+} from "./experiment-body";
 import { fail, ok, type FormatError, type Result } from "./result";
 import { RECOGNISED_SECTIONS, type ExperimentBodyModel } from "./schema";
 import { normaliseText, trimBlankLines } from "./text";
@@ -109,4 +112,23 @@ export function setExperimentSection(
       ...body.sections.slice(at),
     ],
   });
+}
+
+/**
+ * Returns `body` with the literature block's content replaced (FR-CIT-10);
+ * everything else is carried over untouched. The content is normalised like
+ * any read, and refused, changing nothing, if it would not read back as the
+ * same block (a marker line, an unclosed fence). `body` is not mutated.
+ */
+export function setExperimentLiterature(
+  body: ExperimentBodyModel,
+  content: string,
+): Result<ExperimentBodyModel, FormatError> {
+  const normalised = trimBlankLines(normaliseText(content));
+  const next = { ...body, literature: normalised };
+  const reread = parseExperimentBody(serialiseExperimentBody(next));
+  if (!reread.ok || reread.value.literature !== normalised) {
+    return fail(bodyProblem("literature content is not valid for the block"));
+  }
+  return ok(next);
 }

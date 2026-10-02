@@ -1,3 +1,8 @@
+// citeproc ships no types, so its hand-written declaration must be in every
+// program that compiles this file, including apps/desktop's, whose tsconfig is
+// protected. An `import` cannot pull in an ambient module declaration.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="./citeproc.d.ts" />
 import type {
   Citation,
   CiteprocSys,
@@ -8,22 +13,19 @@ import type {
 import CSL from "citeproc";
 
 /**
- * Spike for S1-T03: a pure, testable reducer over citeproc-js, wrapping the
- * exact calls a Web Worker message handler would make. Deliberately
- * separated from postMessage/onmessage (see citeproc-worker-entry.ts) so
- * the citeproc-js interaction itself — numbering, clusters, bibliography —
- * can be tested without a real Worker, which this environment cannot
- * instantiate (jsdom has no Worker; Node's worker_threads.Worker uses a
- * different message API). This is spike evidence, not the production
- * worker protocol — that is built in Stage 5 (S5-T05).
+ * A pure, testable reducer over citeproc-js (spec 6.1), wrapping the exact
+ * calls a Web Worker message handler makes. It is separate from
+ * postMessage/onmessage (see worker-entry.ts) so the citeproc-js interaction
+ * itself can be tested without a Worker. ADR-0012 chose this design in S1-T03;
+ * `literature.ts` drives it for the Literature block (S5-T05).
  */
 
-export interface CslItem extends CslItemLike {
-  type: string;
-  title?: string;
-  author?: Array<{ family?: string; given?: string }>;
-  issued?: { "date-parts": number[][] };
-}
+/**
+ * A CSL-JSON item as `bibliography.json` holds it: only `id` is required
+ * here, and every other field (type, title, author, `_zotero`, ...) passes
+ * through to citeproc-js, which ignores what it does not know.
+ */
+export type CslItem = CslItemLike;
 
 export interface CiteprocInitRequest {
   type: "init";

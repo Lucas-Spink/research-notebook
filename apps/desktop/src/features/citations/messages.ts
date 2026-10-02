@@ -156,3 +156,11 @@ export function zoteroStatusText(state: ZoteroState): StatusText {
       return assertNever(state);
   }
 }
+
+/** User-facing text for replacing an edited Literature block (spec 5.5 rule 6), in British English. */
+export const literatureMessages = {
+  heading: "Literature has been edited",
+  text: "The Literature block of this experiment is not what the notebook generated, so it was probably edited by hand. Replacing it will discard those edits.",
+  replace: "Replace with generated Literature",
+  keep: "Keep my edits",
+} as const;

@@ -8,7 +8,12 @@ import {
 } from "@research-notebook/format";
 import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
-import { SourcesPanel, SourcesProvider } from "../citations";
+import {
+  LiteraturePrompt,
+  SourcesPanel,
+  SourcesProvider,
+  useLiteraturePlanner,
+} from "../citations";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
@@ -82,17 +87,28 @@ function openedSection(
  * and the selection are only what the person is looking at, so they are not
  * saved anywhere.
  */
-export function NotebookView({
-  notebook,
-  folder,
-  viewportHeight,
-}: {
+export function NotebookView(props: NotebookViewProps) {
+  return (
+    <SourcesProvider folder={props.folder} writable={props.notebook.writable}>
+      <NotebookViewBody {...props} />
+    </SourcesProvider>
+  );
+}
+
+type NotebookViewProps = {
   notebook: NotebookModel;
   /** The open project, so the expanded view can read an experiment's artefacts.yaml (FR-EDT-04). */
   folder: FolderHandle;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
-}) {
+};
+
+/** Inside the sources provider, so a save can render Literature from `bibliography.json`. */
+function NotebookViewBody({
+  notebook,
+  folder,
+  viewportHeight,
+}: NotebookViewProps) {
   const {
     view,
     arranged,
@@ -115,10 +131,14 @@ export function NotebookView({
     null,
   );
 
+  const literature = useLiteraturePlanner({
+    folder,
+    styleFile: notebook.citationStyle,
+  });
   const live = useLiveEditor({
     arranged,
     save: (id, section, text) =>
-      actions.editExperimentSection(id, section, text),
+      actions.editExperimentSection(id, section, text, literature.plan),
   });
 
   // A new selection always moves on: its section opens once the old one's
@@ -206,7 +226,7 @@ export function NotebookView({
   ) => actions.changeSettings({ widths: { [key]: width } }, options);
 
   return (
-    <SourcesProvider folder={folder} writable={writable}>
+    <>
       <section className="notebook" aria-labelledby="notebook-heading">
         <h3 id="notebook-heading">{messages.heading}</h3>
         {!writable && <p className="notebook__note">{messages.readOnly}</p>}
@@ -241,6 +261,7 @@ export function NotebookView({
               onOpenResult={openSelection}
             />
             <SourcesPanel />
+            <LiteraturePrompt literature={literature} />
             <TableToolbar
               filter={filter}
               onFilter={setFilter}
@@ -323,6 +344,6 @@ export function NotebookView({
           </>
         )}
       </section>
-    </SourcesProvider>
+    </>
   );
 }

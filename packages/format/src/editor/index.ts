@@ -13,6 +13,11 @@ export {
   buildCitationNode,
   type CitationItem,
 } from "./citation";
+export {
+  citationClusters,
+  citationContext,
+  type CitationCluster,
+} from "./citationContext";
 export { sectionEditorExtensions } from "./extensions";
 export {
   parseCitationMarkdown,

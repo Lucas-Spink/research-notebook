@@ -211,6 +211,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@research-notebook/citations':
+        specifier: workspace:*
+        version: link:../../packages/citations
       '@research-notebook/format':
         specifier: workspace:*
         version: link:../../packages/format

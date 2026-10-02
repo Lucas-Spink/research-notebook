@@ -48,7 +48,11 @@ export {
   reorderItem,
   ungroupedArtefacts,
 } from "./groups";
-export { editExperimentSection } from "./sections";
+export {
+  editExperimentLiterature,
+  editExperimentSection,
+  type SectionEditOptions,
+} from "./sections";
 export {
   buildReferenceIndex,
   referencedIn,

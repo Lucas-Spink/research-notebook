@@ -43,6 +43,7 @@ function model(
     invalidInboxRequests: [],
     actions,
     projectId: state.project.id,
+    citationStyle: state.project.citation_style,
     evidence: null,
     ...overrides,
   };
