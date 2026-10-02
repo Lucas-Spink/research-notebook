@@ -10,6 +10,7 @@ import {
   type CitationItem,
 } from "@research-notebook/format";
 import { Fragment } from "react";
+import { sourceStatusText, useSources } from "../../citations";
 import { expandedMessages } from "../messages";
 import { ArtefactRefChip } from "./ArtefactRefChip";
 import {
@@ -100,23 +101,14 @@ function renderNode(node: JSONContent, ctx: Context) {
       const items = Array.isArray(node.attrs?.items)
         ? (node.attrs.items as CitationItem[])
         : [];
-      return (
-        <span className="expanded__citation">
-          [{items.map((item) => `@${item.citekey}`).join("; ")}]
-        </span>
-      );
+      return <StaticCitation citekeys={items.map((item) => item.citekey)} />;
     }
     case CITATION_IN_TEXT_NODE_NAME: {
       const citekey =
         typeof node.attrs?.citekey === "string" ? node.attrs.citekey : "";
       const locator =
         typeof node.attrs?.locator === "string" ? node.attrs.locator : null;
-      return (
-        <span className="expanded__citation-in-text">
-          @{citekey}
-          {locator === null ? "" : ` [${locator}]`}
-        </span>
-      );
+      return <StaticInTextCitation citekey={citekey} locator={locator} />;
     }
     case PASSTHROUGH_NODE_NAME:
       return (
@@ -160,4 +152,61 @@ function renderText(node: JSONContent) {
         return content;
     }
   }, text);
+}
+
+/** What a citation shows for one source: its cached label, else the citekey. */
+function useSourceText(citekey: string): {
+  text: string;
+  state: string | null;
+} {
+  const view = useSources().lookup(citekey);
+  if (view === null) return { text: `@${citekey}`, state: null };
+  return {
+    text: view.label,
+    state: view.status === "ok" ? null : sourceStatusText(view.status),
+  };
+}
+
+function StaticCitation({ citekeys }: { citekeys: string[] }) {
+  const { lookup } = useSources();
+  const texts = citekeys.map((citekey) => {
+    const view = lookup(citekey);
+    return view === null
+      ? { text: `@${citekey}`, state: null }
+      : {
+          text: view.label,
+          state: view.status === "ok" ? null : sourceStatusText(view.status),
+        };
+  });
+  const states = texts.flatMap(({ state }) => (state === null ? [] : [state]));
+  return (
+    <span className="expanded__citation">
+      [{texts.map(({ text }) => text).join("; ")}]
+      {states.length > 0 && (
+        <span className="expanded__citation-state">
+          {" "}
+          ({[...new Set(states)].join("; ")})
+        </span>
+      )}
+    </span>
+  );
+}
+
+function StaticInTextCitation({
+  citekey,
+  locator,
+}: {
+  citekey: string;
+  locator: string | null;
+}) {
+  const { text, state } = useSourceText(citekey);
+  return (
+    <span className="expanded__citation-in-text">
+      {text}
+      {locator === null ? "" : ` [${locator}]`}
+      {state !== null && (
+        <span className="expanded__citation-state"> ({state})</span>
+      )}
+    </span>
+  );
 }

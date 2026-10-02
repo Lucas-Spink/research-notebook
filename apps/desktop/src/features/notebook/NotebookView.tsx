@@ -8,6 +8,7 @@ import {
 } from "@research-notebook/format";
 import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
+import { SourcesPanel, SourcesProvider } from "../citations";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
@@ -205,118 +206,123 @@ export function NotebookView({
   ) => actions.changeSettings({ widths: { [key]: width } }, options);
 
   return (
-    <section className="notebook" aria-labelledby="notebook-heading">
-      <h3 id="notebook-heading">{messages.heading}</h3>
-      {!writable && <p className="notebook__note">{messages.readOnly}</p>}
-      <div role="status" aria-live="polite">
-        {busy && (
-          <p>
-            <span className="spinner" aria-hidden="true" />
-            {messages.working}
-          </p>
-        )}
-        {notice !== null && (
-          <p className="notebook__notice notice">
-            <span>{notice}</span>
-            <button
-              type="button"
-              className="notice__dismiss"
-              aria-label={messages.dismiss}
-              onClick={() => actions.dismissNotice()}
-            >
-              ×
-            </button>
-          </p>
-        )}
-        {failure !== null && <p className="notebook__notice">{failure}</p>}
-        {view.status === "loading" && <p>{messages.loading}</p>}
-      </div>
-      {arranged !== null && (
-        <>
-          <SearchPanel
-            arranged={arranged}
-            folder={folder}
-            onOpenResult={openSelection}
-          />
-          <TableToolbar
-            filter={filter}
-            onFilter={setFilter}
-            sort={sort}
-            onSort={setSort}
-            layout={layout}
-            writable={writable}
-            onHide={(key, hidden) =>
-              actions.changeSettings({ hidden: { [key]: hidden } })
-            }
-            onWidth={(key, width) =>
-              actions.changeSettings(
-                { widths: { [key]: width } },
-                { immediate: true },
-              )
-            }
-            onReset={() => actions.resetColumns()}
-          />
-          {arranged.problems.length > 0 && (
-            <section aria-labelledby="notebook-problems">
-              <h4 id="notebook-problems">{messages.problemsHeading}</h4>
-              <ul className="notebook__problems">
-                {arranged.problems.map((problem, index) => (
-                  <li key={`${problem.kind}-${index}`}>
-                    {problemMessage(problem)}
-                  </li>
-                ))}
-              </ul>
-            </section>
+    <SourcesProvider folder={folder} writable={writable}>
+      <section className="notebook" aria-labelledby="notebook-heading">
+        <h3 id="notebook-heading">{messages.heading}</h3>
+        {!writable && <p className="notebook__note">{messages.readOnly}</p>}
+        <div role="status" aria-live="polite">
+          {busy && (
+            <p>
+              <span className="spinner" aria-hidden="true" />
+              {messages.working}
+            </p>
           )}
-          {invalidInboxRequests.length > 0 && (
-            <section aria-labelledby="notebook-inbox">
-              <h4 id="notebook-inbox">{messages.inboxHeading}</h4>
-              <ul className="notebook__problems">
-                {invalidInboxRequests.map((item) => (
-                  <li key={item.request}>{inboxRequestMessage(item.reason)}</li>
-                ))}
-              </ul>
-            </section>
+          {notice !== null && (
+            <p className="notebook__notice notice">
+              <span>{notice}</span>
+              <button
+                type="button"
+                className="notice__dismiss"
+                aria-label={messages.dismiss}
+                onClick={() => actions.dismissNotice()}
+              >
+                ×
+              </button>
+            </p>
           )}
-          {rows.length === 0 ? (
-            <p>{messages.empty}</p>
-          ) : (
-            <WorkspaceTable
-              rows={rows}
-              layout={layout}
-              selectedKey={selectedKey}
-              sharedRefs={shared}
+          {failure !== null && <p className="notebook__notice">{failure}</p>}
+          {view.status === "loading" && <p>{messages.loading}</p>}
+        </div>
+        {arranged !== null && (
+          <>
+            <SearchPanel
+              arranged={arranged}
               folder={folder}
-              onSelectExperiment={(row) => select(row.key)}
-              onSelectQuestion={(row) => select(row.key)}
-              onToggle={toggle}
-              onResize={resize}
-              editing={editing}
-              {...(viewportHeight === undefined ? {} : { viewportHeight })}
+              onOpenResult={openSelection}
             />
-          )}
-          <DetailsPanel
-            selected={selected}
-            questions={questions}
-            sharedRefs={shared}
-            actions={actions}
-            disabled={disabled}
-            writable={writable}
-            folder={folder}
-            projectId={projectId}
-            references={references}
-            focusSection={focusSection}
-            live={live}
-          />
-          <NewTitleForm
-            label={messages.newQuestionLabel}
-            placeholder={messages.newQuestionPlaceholder}
-            submitLabel={messages.addQuestion}
-            disabled={disabled}
-            onSubmit={(title) => actions.createQuestion(title)}
-          />
-        </>
-      )}
-    </section>
+            <SourcesPanel />
+            <TableToolbar
+              filter={filter}
+              onFilter={setFilter}
+              sort={sort}
+              onSort={setSort}
+              layout={layout}
+              writable={writable}
+              onHide={(key, hidden) =>
+                actions.changeSettings({ hidden: { [key]: hidden } })
+              }
+              onWidth={(key, width) =>
+                actions.changeSettings(
+                  { widths: { [key]: width } },
+                  { immediate: true },
+                )
+              }
+              onReset={() => actions.resetColumns()}
+            />
+            {arranged.problems.length > 0 && (
+              <section aria-labelledby="notebook-problems">
+                <h4 id="notebook-problems">{messages.problemsHeading}</h4>
+                <ul className="notebook__problems">
+                  {arranged.problems.map((problem, index) => (
+                    <li key={`${problem.kind}-${index}`}>
+                      {problemMessage(problem)}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {invalidInboxRequests.length > 0 && (
+              <section aria-labelledby="notebook-inbox">
+                <h4 id="notebook-inbox">{messages.inboxHeading}</h4>
+                <ul className="notebook__problems">
+                  {invalidInboxRequests.map((item) => (
+                    <li key={item.request}>
+                      {inboxRequestMessage(item.reason)}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {rows.length === 0 ? (
+              <p>{messages.empty}</p>
+            ) : (
+              <WorkspaceTable
+                rows={rows}
+                layout={layout}
+                selectedKey={selectedKey}
+                sharedRefs={shared}
+                folder={folder}
+                onSelectExperiment={(row) => select(row.key)}
+                onSelectQuestion={(row) => select(row.key)}
+                onToggle={toggle}
+                onResize={resize}
+                editing={editing}
+                {...(viewportHeight === undefined ? {} : { viewportHeight })}
+              />
+            )}
+            <DetailsPanel
+              selected={selected}
+              questions={questions}
+              sharedRefs={shared}
+              actions={actions}
+              disabled={disabled}
+              writable={writable}
+              folder={folder}
+              projectId={projectId}
+              references={references}
+              focusSection={focusSection}
+              live={live}
+            />
+            <NewTitleForm
+              label={messages.newQuestionLabel}
+              placeholder={messages.newQuestionPlaceholder}
+              submitLabel={messages.addQuestion}
+              disabled={disabled}
+              onSubmit={(title) => actions.createQuestion(title)}
+            />
+          </>
+        )}
+      </section>
+    </SourcesProvider>
   );
 }
