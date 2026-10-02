@@ -9,6 +9,8 @@ export {
   type SourcesModel,
 } from "./SourcesContext";
 export { SourcesPanel } from "./SourcesPanel";
+export { StylePicker } from "./StylePicker";
+export { useStyleManagement, type StyleModel } from "./useStyleManagement";
 export { useZoteroStatus } from "./useZoteroStatus";
 export { ZoteroStatusIndicator } from "./ZoteroStatusIndicator";
 export {

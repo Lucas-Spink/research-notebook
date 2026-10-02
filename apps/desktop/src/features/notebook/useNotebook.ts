@@ -2,6 +2,7 @@ import {
   COLUMN_KEYS,
   DEFAULT_COLUMN_WIDTHS,
   arrangeNotebook,
+  changeCitationStyle,
   changeTableSettings,
   createExperiment,
   createQuestion,
@@ -14,6 +15,7 @@ import {
   removeQuestion,
   resetTableColumns,
   type Arranged,
+  type CitationStyleChange,
   type ExperimentChanges,
   type NotebookEnv,
   type NotebookError,
@@ -104,6 +106,12 @@ export type NotebookActions = {
     text: string,
     literature?: LiteraturePlanner,
   ): Promise<AutosaveOutcome>;
+  /**
+   * Makes a citation style the project's: copies it into `styles/` when asked,
+   * regenerates the Literature blocks given and names it in `project.yaml`,
+   * in one plan (FR-CIT-10, FR-CIT-11). Resolves whether it was saved.
+   */
+  changeCitationStyle(change: CitationStyleChange): Promise<boolean>;
   /** Changes the table's layout. Saved after a short wait, or at once with `immediate`; only kept for the session in a read-only project. */
   changeSettings(
     change: TableSettingsChange,
@@ -392,6 +400,10 @@ export function useNotebook({ folder, writable, changes }: Options) {
         const message = outcomeMessage(done);
         return { ok: false, message: message ?? messages.unexpected };
       },
+      changeCitationStyle: (change) =>
+        run((s, e) => changeCitationStyle(s, change, e), { silent: true }).then(
+          isDone,
+        ),
       changeSettings: (change, { immediate = false } = {}) =>
         committerRef.current?.change(change, {
           persist: latest.current.writable,
@@ -437,6 +449,8 @@ export function useNotebook({ folder, writable, changes }: Options) {
     /** Waiting inbox requests that could not be imported on open (ADR-0044 point 6). */
     invalidInboxRequests,
     actions,
+    /** The project as loaded, for the citation style picker; `null` before it has loaded. */
+    loadedState: state,
     /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
     projectId: state?.project.id ?? null,
     /** `project.yaml`'s `citation_style`, the file in `styles/` that Literature is rendered with; `null` before the project has loaded. */

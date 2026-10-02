@@ -16,6 +16,7 @@ export const stubActions: NotebookActions = {
   changeSettings: () => undefined,
   resetColumns: () => undefined,
   setUnassignedCollapsed: () => undefined,
+  changeCitationStyle: () => Promise.resolve(true),
   dismissNotice: () => undefined,
 };
 
@@ -35,6 +36,7 @@ export function testModel(
     failure: null,
     invalidInboxRequests: [],
     actions: stubActions,
+    loadedState: state,
     projectId: state.project.id,
     citationStyle: state.project.citation_style,
     evidence: {

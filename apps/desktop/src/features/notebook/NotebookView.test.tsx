@@ -24,6 +24,7 @@ const actions: NotebookActions = {
   changeSettings: () => undefined,
   resetColumns: () => undefined,
   setUnassignedCollapsed: () => undefined,
+  changeCitationStyle: () => Promise.resolve(true),
   dismissNotice: () => undefined,
 };
 
@@ -42,6 +43,7 @@ function model(
     failure: null,
     invalidInboxRequests: [],
     actions,
+    loadedState: state,
     projectId: state.project.id,
     citationStyle: state.project.citation_style,
     evidence: null,

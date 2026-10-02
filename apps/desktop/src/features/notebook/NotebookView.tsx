@@ -11,8 +11,10 @@ import type { FolderHandle } from "../../ipc/bindings";
 import {
   LiteraturePrompt,
   SourcesPanel,
+  StylePicker,
   SourcesProvider,
   useLiteraturePlanner,
+  useStyleManagement,
 } from "../citations";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { LiveTarget } from "./editing/model/liveEditor";
@@ -134,6 +136,12 @@ function NotebookViewBody({
   const literature = useLiteraturePlanner({
     folder,
     styleFile: notebook.citationStyle,
+  });
+  const styles = useStyleManagement({
+    folder,
+    state: notebook.loadedState,
+    writable,
+    apply: (change) => actions.changeCitationStyle(change),
   });
   const live = useLiveEditor({
     arranged,
@@ -261,6 +269,7 @@ function NotebookViewBody({
               onOpenResult={openSelection}
             />
             <SourcesPanel />
+            <StylePicker model={styles} />
             <LiteraturePrompt literature={literature} />
             <TableToolbar
               filter={filter}
