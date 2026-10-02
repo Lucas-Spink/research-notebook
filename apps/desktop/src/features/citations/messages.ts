@@ -55,6 +55,70 @@ export function citationSearchStatusText(
   }
 }
 
+/** User-facing text for the sources list and refresh (FR-CIT-07), in British English. */
+export const sourcesMessages = {
+  heading: "Sources",
+  refresh: "Refresh sources",
+  refreshing: "Refreshing…",
+  empty: "No sources are cited yet.",
+  statusOk: "In Zotero",
+  statusTrashed: "In the Zotero trash",
+  statusMissing: "Missing from Zotero",
+  mismatchHeading: "Replace data from a different Zotero?",
+  replace: "Replace",
+  keep: "Keep existing data",
+  offlineNotRunning: "Zotero was not detected, so nothing was changed.",
+  offlineDisabled:
+    "Zotero's local API is switched off, so nothing was changed.",
+  unreadable:
+    "bibliography.json could not be read, so it was left untouched and sources were not changed.",
+  notWritable: "This project is read-only, so sources were not changed.",
+  changed:
+    "bibliography.json changed on disk, so nothing was written. Try again.",
+  failed: "Sources could not be updated. Nothing was lost; try again.",
+} as const;
+
+/** A source's state, as the list and the citations in text say it. */
+export function sourceStatusText(status: "ok" | "trashed" | "missing"): string {
+  switch (status) {
+    case "ok":
+      return sourcesMessages.statusOk;
+    case "trashed":
+      return sourcesMessages.statusTrashed;
+    case "missing":
+      return sourcesMessages.statusMissing;
+    default:
+      return assertNever(status);
+  }
+}
+
+/** Why the person is being asked before a source's data is replaced (FR-CIT-07). */
+export function mismatchText(label: string): string {
+  return `"${label}" was saved from a different Zotero than the one that is open now. Replace it with the data from this Zotero?`;
+}
+
+/** A one-line summary of a finished refresh or insert. */
+export function syncSummary(counts: {
+  added: number;
+  updated: number;
+  missing: number;
+  unconfirmed: number;
+  failed: number;
+}): string {
+  const parts = [
+    counts.added > 0 ? `${counts.added} added` : null,
+    counts.updated > 0 ? `${counts.updated} updated` : null,
+    counts.missing > 0 ? `${counts.missing} now missing from Zotero` : null,
+    counts.unconfirmed > 0
+      ? `${counts.unconfirmed} could not be confirmed by Zotero; try again`
+      : null,
+    counts.failed > 0 ? `${counts.failed} could not be fetched` : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length === 0
+    ? "Sources are up to date."
+    : `Sources: ${parts.join(", ")}.`;
+}
+
 /** The locator term option's display label; capitalised, spec 5.7's own term word otherwise. */
 export function locatorTermLabel(term: LocatorTerm | null): string {
   if (term === null) return citationPickerMessages.locatorNone;

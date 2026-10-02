@@ -32,3 +32,22 @@
   font-size: 0.9rem;
   opacity: 0.85;
 }
+
+.citations__sources {
+  margin: 0.75rem 0;
+}
+
+.citations__source-list {
+  list-style: none;
+  padding: 0;
+}
+
+.citations__source-status {
+  opacity: 0.7;
+}
+
+li[data-status="trashed"] .citations__source-status,
+li[data-status="missing"] .citations__source-status {
+  color: #b8860b;
+  opacity: 1;
+}
