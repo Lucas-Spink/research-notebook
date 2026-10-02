@@ -248,6 +248,12 @@ export const commands = {
 	 *  it is a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
 	 */
 	zoteroSearchItems: (query: string) => typedError<ZoteroSearchRow[], ZoteroSearchCommandError>(__TAURI_INVOKE("zotero_search_items", { query })),
+	/**
+	 *  Fetches one source for `bibliography.json` by its Zotero item key.
+	 *  Runs in `spawn_blocking`, as the other Zotero commands do, because it is
+	 *  a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02). Writes nothing.
+	 */
+	zoteroFetchSource: (itemKey: string) => typedError<ZoteroSourceResult, ZoteroSourceError>(__TAURI_INVOKE("zotero_fetch_source", { itemKey })),
 };
 
 /** Events */
@@ -893,6 +899,23 @@ export type ZoteroSearchRow = {
 	creatorSummary: string | null,
 	itemType: string,
 };
+
+/**
+ *  Why a source could not be fetched. `PreconditionFailed` is Zotero's 412:
+ *  the webview treats the stored data as unconfirmed and asks before
+ *  overwriting it (FR-CIT-07).
+ */
+export type ZoteroSourceError = { kind: "disabled" } | { kind: "notRunning" } | { kind: "preconditionFailed" } | { kind: "requestFailed" };
+
+/**
+ *  One source as Zotero holds it now (FR-CIT-05, FR-CIT-07). `csl_json` is
+ *  the item's CSL-JSON as text for the webview to validate with Zod at the
+ *  boundary; `packages/format` is the only code that merges it into
+ *  `bibliography.json`.
+ */
+export type ZoteroSourceResult = { kind: "found"; cslJson: string; serverId: string | null; trashed: boolean } | 
+/**  Zotero no longer has the item. */
+{ kind: "missing" };
 
 /**
  *  Why a status check failed. Not-running and disabled are ordinary
