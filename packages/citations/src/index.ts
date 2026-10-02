@@ -1,5 +1,6 @@
 export {
   AUTHOR_DATE_STYLE,
+  BUNDLED_STYLES,
   DEFAULT_STYLE_XML,
   EN_US_LOCALE,
   NUMERIC_STYLE,
@@ -25,3 +26,11 @@ export {
   type LiteratureRequest,
   type WorkerScopeLike,
 } from "./worker-protocol";
+export {
+  MAX_STYLE_BYTES,
+  styleFileName,
+  validateStyle,
+  type CheckedStyle,
+  type StyleCheck,
+  type StyleProblem,
+} from "./style";

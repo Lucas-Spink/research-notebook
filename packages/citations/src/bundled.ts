@@ -106,3 +106,17 @@ export const EN_US_LOCALE = `<?xml version="1.0" encoding="utf-8"?>
 
 /** What a project falls back to when its `citation_style` file is not in `styles/`. */
 export const DEFAULT_STYLE_XML = NUMERIC_STYLE;
+
+/** The styles a project can adopt without importing one, with the file each is copied to in `styles/`. */
+export const BUNDLED_STYLES: readonly {
+  file: string;
+  title: string;
+  xml: string;
+}[] = [
+  { file: "numeric.csl", title: "Notebook numeric", xml: NUMERIC_STYLE },
+  {
+    file: "author-date.csl",
+    title: "Notebook author-date",
+    xml: AUTHOR_DATE_STYLE,
+  },
+];
