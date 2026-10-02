@@ -8,14 +8,11 @@ import type {
 import CSL from "citeproc";
 
 /**
- * Spike for S1-T03: a pure, testable reducer over citeproc-js, wrapping the
- * exact calls a Web Worker message handler would make. Deliberately
- * separated from postMessage/onmessage (see citeproc-worker-entry.ts) so
- * the citeproc-js interaction itself — numbering, clusters, bibliography —
- * can be tested without a real Worker, which this environment cannot
- * instantiate (jsdom has no Worker; Node's worker_threads.Worker uses a
- * different message API). This is spike evidence, not the production
- * worker protocol — that is built in Stage 5 (S5-T05).
+ * A pure, testable reducer over citeproc-js (spec 6.1), wrapping the exact
+ * calls a Web Worker message handler makes. It is separate from
+ * postMessage/onmessage (see worker-entry.ts) so the citeproc-js interaction
+ * itself can be tested without a Worker. ADR-0012 chose this design in S1-T03;
+ * `literature.ts` drives it for the Literature block (S5-T05).
  */
 
 export interface CslItem extends CslItemLike {

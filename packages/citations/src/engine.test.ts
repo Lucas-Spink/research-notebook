@@ -4,8 +4,8 @@
 // jsdom (an existing devDependency, used for the "ui" project) provides
 // one; this avoids adding a new dependency just for tests.
 import { describe, expect, it } from "vitest";
-import type { CslItem } from "./citeproc-engine";
-import { createState, handleMessage } from "./citeproc-engine";
+import type { CslItem } from "./engine";
+import { createState, handleMessage } from "./engine";
 
 const LOCALE_XML = `<?xml version="1.0" encoding="utf-8"?>
 <locale xmlns="http://purl.org/net/xbiblio/csl" xml:lang="en-US">
