@@ -27,6 +27,8 @@ import {
 export type SourcesModel = {
   /** Cached sources, in file order; empty until read. */
   views: readonly SourceView[];
+  /** The same sources as `bibliography.json` holds them, for rendering the Literature block (FR-CIT-06). */
+  items: BibliographyFileModel;
   lookup: (citekey: string) => SourceView | null;
   busy: boolean;
   writable: boolean;
@@ -46,6 +48,7 @@ export type SourcesModel = {
 /** What a component outside any provider sees: nothing cached and nothing to do. */
 const INERT: SourcesModel = {
   views: [],
+  items: [],
   lookup: () => null,
   busy: false,
   writable: false,
@@ -188,6 +191,7 @@ export function SourcesProvider({
   const model = useMemo<SourcesModel>(
     () => ({
       views: (file ?? []).map(sourceView),
+      items: file ?? [],
       lookup: sourceLookup(file),
       busy,
       writable,

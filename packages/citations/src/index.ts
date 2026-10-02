@@ -21,6 +21,7 @@ export {
 export {
   attachLiteratureWorker,
   type LiteratureReply,
+  type MessageHandler,
   type LiteratureRequest,
   type WorkerScopeLike,
 } from "./worker-protocol";

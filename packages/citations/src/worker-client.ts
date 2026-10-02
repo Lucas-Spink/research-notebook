@@ -1,10 +1,17 @@
 import type { LiteratureInput, LiteratureResult } from "./literature";
-import type { LiteratureReply, LiteratureRequest } from "./worker-protocol";
+import {
+  isLiteratureReply,
+  type LiteratureRequest,
+  type MessageHandler,
+} from "./worker-protocol";
+
+/** An error handler typed as a method, for the same reason as `MessageHandler`. */
+type ErrorHandler = { handle(event: unknown): void }["handle"];
 
 /** The caller's side of the channel: a `Worker`, or any port with the same members. */
 export interface WorkerHandleLike {
-  onmessage: ((event: { data: LiteratureReply }) => void) | null;
-  onerror?: ((event: unknown) => void) | null;
+  onmessage: MessageHandler | null;
+  onerror?: ErrorHandler | null;
   postMessage(request: LiteratureRequest): void;
   terminate?: () => void;
 }
@@ -34,6 +41,7 @@ export function createLiteratureClient(
   }
 
   worker.onmessage = (event) => {
+    if (!isLiteratureReply(event.data)) return;
     const waiting = pending.get(event.data.id);
     if (waiting === undefined) return;
     pending.delete(event.data.id);
