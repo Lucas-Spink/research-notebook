@@ -5,6 +5,7 @@ export {
   serialiseExperimentBody,
 } from "./experiment-body";
 export {
+  setExperimentLiterature,
   setExperimentSection,
   type RecognisedSectionKey,
 } from "./experiment-edit";
