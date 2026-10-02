@@ -382,6 +382,10 @@ fn history_scenario(project: &TestProject, root: &ProjectRoot) {
     let fresh = path("_notebook/questions/Q-002.md");
     root.write_data_file(&fresh, b"new", &Expected::Absent, &clock)
         .unwrap();
+    // A citation style is copied into styles/ (S5-T06), and only there.
+    let style = path("_notebook/styles/numeric.csl");
+    root.write_data_file(&style, b"<style/>", &Expected::Absent, &clock)
+        .unwrap();
 
     // Refused: a stale hash, and every file outside the scope or the notebook.
     assert!(matches!(

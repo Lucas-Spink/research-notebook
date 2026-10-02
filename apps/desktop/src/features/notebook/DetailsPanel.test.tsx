@@ -29,6 +29,7 @@ const actions: NotebookActions = {
   changeSettings: () => undefined,
   resetColumns: () => undefined,
   setUnassignedCollapsed: () => undefined,
+  changeCitationStyle: () => Promise.resolve(true),
   dismissNotice: () => undefined,
 };
 

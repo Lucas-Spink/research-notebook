@@ -1,3 +1,4 @@
+import type { StyleProblem } from "@research-notebook/citations";
 import { assertNever } from "../../shared/assertNever";
 import type { LocatorTerm } from "./model/citationSelection";
 import type { CitationSearchState } from "./model/citationSearch";
@@ -164,3 +165,59 @@ export const literatureMessages = {
   replace: "Replace with generated Literature",
   keep: "Keep my edits",
 } as const;
+
+/** User-facing text for choosing and importing a citation style (FR-CIT-11), in British English. */
+export const styleMessages = {
+  heading: "Citation style",
+  selectLabel: "Style",
+  currentSuffix: "(current)",
+  defaultNote:
+    "This project's style file is not in styles/ yet, so the numeric style is used until one is chosen.",
+  importLabel: "Import a .csl file",
+  working: "Changing style…",
+  failed: "The style could not be changed. Nothing was lost; try again.",
+  notCsl: "That file is not a CSL citation style, so it was not imported.",
+  tooLarge: "That file is too large to be a citation style (over 1 MB).",
+  noteStyle:
+    "That is a note style, which cites in footnotes. This notebook supports only in-text styles (numbered or author-date), so it was not imported.",
+  dependent:
+    "That is a dependent style, which needs a parent style from the CSL repository that cannot be fetched offline. Import the parent style instead.",
+  noCitation:
+    "That style has no citation layout, so it cannot format citations.",
+  unusable: "That style could not format a test citation, so it was not used.",
+  nameTaken:
+    "A different style with that file name is already in this project. Rename the file and import it again.",
+} as const;
+
+/** Why a style was refused, in words the person can act on. */
+export function styleProblemText(
+  problem: StyleProblem | { kind: "nameTaken" },
+): string {
+  switch (problem.kind) {
+    case "notCsl":
+      return styleMessages.notCsl;
+    case "tooLarge":
+      return styleMessages.tooLarge;
+    case "noteStyle":
+      return styleMessages.noteStyle;
+    case "dependent":
+      return styleMessages.dependent;
+    case "noCitation":
+      return styleMessages.noCitation;
+    case "unusable":
+      return styleMessages.unusable;
+    case "nameTaken":
+      return styleMessages.nameTaken;
+    default:
+      return assertNever(problem);
+  }
+}
+
+/** The result of a successful style change, with how many hand-edited blocks were left as they were. */
+export function styleChangedText(keptEdited: number): string {
+  if (keptEdited === 0) {
+    return "Citation style changed. Literature was regenerated.";
+  }
+  const blocks = keptEdited === 1 ? "block was" : "blocks were";
+  return `Citation style changed. ${keptEdited} Literature ${blocks} left as edited by hand.`;
+}
