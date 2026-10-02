@@ -94,3 +94,7 @@ export {
   type ServerMismatch,
   type SourceChange,
 } from "./sources";
+export {
+  changeCitationStyle,
+  type CitationStyleChange,
+} from "./citation-style";
