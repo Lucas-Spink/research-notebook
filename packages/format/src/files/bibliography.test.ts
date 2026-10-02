@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseBibliography, serialiseBibliography } from "./bibliography";
+import {
+  parseBibliography,
+  parseCslJsonItem,
+  serialiseBibliography,
+} from "./bibliography";
 
 const ITEM = {
   id: "z:u:ABCD2345",
@@ -104,5 +108,18 @@ describe("parseBibliography", () => {
     const parsed = parseBibliography("not json");
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) expect(parsed.error.kind).toBe("syntax");
+  });
+});
+
+describe("parseCslJsonItem", () => {
+  it("returns the object Zotero sent", () => {
+    const parsed = parseCslJsonItem('{"type":"book","title":"T"}');
+    expect(parsed).toEqual({ ok: true, value: { type: "book", title: "T" } });
+  });
+
+  it("rejects an array, a scalar and text that is not JSON", () => {
+    for (const text of ["[]", "3", "null", "{oops"]) {
+      expect(parseCslJsonItem(text).ok).toBe(false);
+    }
   });
 });
