@@ -96,6 +96,84 @@ pub struct ZoteroItemMeta {
     pub creator_summary: Option<String>,
 }
 
+/// One source as Zotero holds it now, ready to merge into `bibliography.json`
+/// (FR-CIT-05).
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceSnapshot {
+    /// The item as a single CSL-JSON object.
+    pub csl_json: serde_json::Value,
+    /// The `Zotero-Server-ID` header, when Zotero sent one (FR-CIT-02).
+    pub server_id: Option<String>,
+    /// Whether the item is in Zotero's trash.
+    pub trashed: bool,
+}
+
+/// What asking Zotero for one item found (FR-CIT-07).
+#[derive(Debug, Clone, PartialEq)]
+pub enum SourceFetch {
+    Found(SourceSnapshot),
+    /// Zotero answered 404: the item no longer exists.
+    Missing,
+}
+
+/// Why one item could not be fetched. `PreconditionFailed` (412) is kept
+/// apart from other failures so the caller treats the stored data as
+/// unconfirmed and asks before overwriting it (FR-CIT-07).
+#[derive(Debug, thiserror::Error)]
+pub enum ZoteroFetchError {
+    #[error("zotero's local API is disabled")]
+    Disabled,
+    #[error("zotero is not running")]
+    NotRunning,
+    #[error("zotero reported a failed precondition (412)")]
+    PreconditionFailed,
+    #[error("not a zotero item key: {0:?}")]
+    InvalidItemKey(String),
+    #[error("zotero source request failed: {0}")]
+    Other(#[from] ZoteroError),
+}
+
+fn classify_fetch_error(error: ureq::Error) -> Result<SourceFetch, ZoteroFetchError> {
+    match error {
+        ureq::Error::StatusCode(404) => Ok(SourceFetch::Missing),
+        ureq::Error::StatusCode(412) => Err(ZoteroFetchError::PreconditionFailed),
+        other => Err(match classify_connection_error(other) {
+            Ok(ConnectionFailure::Disabled) => ZoteroFetchError::Disabled,
+            Ok(ConnectionFailure::NotRunning) => ZoteroFetchError::NotRunning,
+            Err(zotero_error) => ZoteroFetchError::Other(zotero_error),
+        }),
+    }
+}
+
+/// Spec 5.7: an item key is 8 characters from `2-9` and `A-Z`. Checked
+/// before the key goes into a URL path.
+fn is_item_key(key: &str) -> bool {
+    key.len() == 8 && key.bytes().all(|b| matches!(b, b'2'..=b'9' | b'A'..=b'Z'))
+}
+
+/// Zotero's CSL-JSON export wraps items as `{"items": [...]}`; accept that,
+/// a bare array, or a bare object, and return the one item.
+fn single_csl_item(body: serde_json::Value) -> Option<serde_json::Value> {
+    let list = match body {
+        serde_json::Value::Object(mut map) if map.contains_key("items") => map.remove("items")?,
+        other => other,
+    };
+    match list {
+        serde_json::Value::Array(mut items) if !items.is_empty() => Some(items.swap_remove(0)),
+        object @ serde_json::Value::Object(_) => Some(object),
+        _ => None,
+    }
+}
+
+/// Zotero marks a trashed item with `data.deleted` set to 1 (or true).
+fn is_trashed(item: &serde_json::Value) -> bool {
+    match item.pointer("/data/deleted") {
+        Some(serde_json::Value::Bool(flag)) => *flag,
+        Some(serde_json::Value::Number(number)) => number.as_i64().is_some_and(|n| n != 0),
+        _ => false,
+    }
+}
+
 pub struct ZoteroClient {
     base_url: String,
     agent: ureq::Agent,
@@ -160,6 +238,59 @@ impl ZoteroClient {
             .map_err(|error| ZoteroSearchError::Other(ZoteroError::Request(error)))?;
         let items = serde_json::from_str(&body).map_err(ZoteroError::from)?;
         Ok(items)
+    }
+
+    /// Fetches one source for `bibliography.json` (FR-CIT-05, FR-CIT-07):
+    /// the item's trashed state and server id from its JSON, then its
+    /// CSL-JSON. A 404 is `Missing`, not an error; a 412 is reported as
+    /// `PreconditionFailed` so nothing is overwritten on its strength.
+    pub fn fetch_source(&self, item_key: &str) -> Result<SourceFetch, ZoteroFetchError> {
+        if !is_item_key(item_key) {
+            return Err(ZoteroFetchError::InvalidItemKey(item_key.to_string()));
+        }
+        let url = format!("{}/users/0/items/{item_key}", self.base_url);
+        let mut item_response = match self
+            .agent
+            .get(&url)
+            .header("Zotero-API-Version", API_VERSION)
+            .call()
+        {
+            Ok(response) => response,
+            Err(error) => return classify_fetch_error(error),
+        };
+        let server_id = server_id_header(&item_response);
+        let item: serde_json::Value = serde_json::from_str(
+            &item_response
+                .body_mut()
+                .read_to_string()
+                .map_err(ZoteroError::from)?,
+        )
+        .map_err(ZoteroError::from)?;
+        let mut csl_response = match self
+            .agent
+            .get(&url)
+            .header("Zotero-API-Version", API_VERSION)
+            .query("format", "csljson")
+            .call()
+        {
+            Ok(response) => response,
+            Err(error) => return classify_fetch_error(error),
+        };
+        let body: serde_json::Value = serde_json::from_str(
+            &csl_response
+                .body_mut()
+                .read_to_string()
+                .map_err(ZoteroError::from)?,
+        )
+        .map_err(ZoteroError::from)?;
+        let csl_json = single_csl_item(body).ok_or_else(|| {
+            ZoteroError::InvalidJson(serde::de::Error::custom("no CSL-JSON item in response"))
+        })?;
+        Ok(SourceFetch::Found(SourceSnapshot {
+            csl_json,
+            server_id,
+            trashed: is_trashed(&item),
+        }))
     }
 
     /// Fetches one item as CSL-JSON.

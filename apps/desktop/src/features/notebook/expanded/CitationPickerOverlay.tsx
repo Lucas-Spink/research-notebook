@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { CitationPicker } from "../../citations";
+import { CitationPicker, useSourceSync } from "../../citations";
 import "./CitationPickerOverlay.css";
 
 type Props = {
@@ -14,9 +14,15 @@ type Props = {
  * `transform` (ADR-0043).
  */
 export function CitationPickerOverlay({ onInsert, onCancel }: Props) {
+  // The overlay is portalled but still inside the provider's React tree.
+  const syncInserted = useSourceSync();
   return createPortal(
     <div className="expanded__citation-picker-overlay">
-      <CitationPicker onInsert={onInsert} onCancel={onCancel} />
+      <CitationPicker
+        onInsert={onInsert}
+        onInsertCitekeys={syncInserted}
+        onCancel={onCancel}
+      />
     </div>,
     document.body,
   );

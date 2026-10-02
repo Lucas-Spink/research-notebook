@@ -3,7 +3,9 @@
 //! its result into a webview-safe shape and keeps the blocking HTTP request
 //! off the async runtime thread.
 
-use nb_zotero::{ZoteroClient, ZoteroItem, ZoteroSearchError, ZoteroStatus};
+use nb_zotero::{
+    SourceFetch, ZoteroClient, ZoteroFetchError, ZoteroItem, ZoteroSearchError, ZoteroStatus,
+};
 use serde::Serialize;
 use specta::Type;
 
@@ -122,4 +124,78 @@ pub async fn zotero_search_items(
     })
     .await
     .map_err(|_| ZoteroSearchCommandError::RequestFailed)?
+}
+
+/// One source as Zotero holds it now (FR-CIT-05, FR-CIT-07). `csl_json` is
+/// the item's CSL-JSON as text for the webview to validate with Zod at the
+/// boundary; `packages/format` is the only code that merges it into
+/// `bibliography.json`.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum ZoteroSourceResult {
+    Found {
+        csl_json: String,
+        server_id: Option<String>,
+        trashed: bool,
+    },
+    /// Zotero no longer has the item.
+    Missing,
+}
+
+/// Why a source could not be fetched. `PreconditionFailed` is Zotero's 412:
+/// the webview treats the stored data as unconfirmed and asks before
+/// overwriting it (FR-CIT-07).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ZoteroSourceError {
+    Disabled,
+    NotRunning,
+    PreconditionFailed,
+    RequestFailed,
+}
+
+impl From<ZoteroFetchError> for ZoteroSourceError {
+    fn from(error: ZoteroFetchError) -> Self {
+        match error {
+            ZoteroFetchError::Disabled => Self::Disabled,
+            ZoteroFetchError::NotRunning => Self::NotRunning,
+            ZoteroFetchError::PreconditionFailed => Self::PreconditionFailed,
+            ZoteroFetchError::InvalidItemKey(_) | ZoteroFetchError::Other(_) => Self::RequestFailed,
+        }
+    }
+}
+
+impl From<SourceFetch> for ZoteroSourceResult {
+    fn from(fetch: SourceFetch) -> Self {
+        match fetch {
+            SourceFetch::Found(snapshot) => Self::Found {
+                csl_json: snapshot.csl_json.to_string(),
+                server_id: snapshot.server_id,
+                trashed: snapshot.trashed,
+            },
+            SourceFetch::Missing => Self::Missing,
+        }
+    }
+}
+
+/// Fetches one source for `bibliography.json` by its Zotero item key.
+/// Runs in `spawn_blocking`, as the other Zotero commands do, because it is
+/// a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02). Writes nothing.
+#[tauri::command]
+#[specta::specta]
+pub async fn zotero_fetch_source(
+    item_key: String,
+) -> Result<ZoteroSourceResult, ZoteroSourceError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        ZoteroClient::default()
+            .fetch_source(&item_key)
+            .map(ZoteroSourceResult::from)
+            .map_err(ZoteroSourceError::from)
+    })
+    .await
+    .map_err(|_| ZoteroSourceError::RequestFailed)?
 }

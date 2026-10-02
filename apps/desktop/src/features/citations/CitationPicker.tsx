@@ -21,6 +21,8 @@ import "./CitationPicker.css";
 export type CitationPickerProps = {
   /** Called with spec 5.7's bracketed citation text once the person confirms. */
   onInsert: (markdown: string) => void;
+  /** Called with the inserted sources' citekeys, so they can be cached in `bibliography.json` (FR-CIT-05). */
+  onInsertCitekeys?: (citekeys: readonly string[]) => void;
   /** Called on Cancel or Escape; nothing is inserted. */
   onCancel: () => void;
   /** Overridable for tests; defaults to the real IPC commands. */
@@ -36,6 +38,7 @@ export type CitationPickerProps = {
  */
 export function CitationPicker({
   onInsert,
+  onInsertCitekeys,
   onCancel,
   api = commands,
 }: CitationPickerProps) {
@@ -68,6 +71,7 @@ export function CitationPicker({
   const insert = () => {
     if (selected.length === 0) return;
     onInsert(buildCitationMarkdown(selected));
+    onInsertCitekeys?.(selected.map((item) => item.citekey));
   };
 
   const statusText =

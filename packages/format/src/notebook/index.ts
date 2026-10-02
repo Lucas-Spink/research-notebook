@@ -82,3 +82,11 @@ export {
   type ColumnKey,
   type TableSettingsChange,
 } from "./table-settings";
+export {
+  citekeyOf,
+  markSourceMissing,
+  upsertSource,
+  type FetchedSource,
+  type ServerMismatch,
+  type SourceChange,
+} from "./sources";

@@ -73,6 +73,7 @@ function mount(
   api: CitationSearchApi,
   onInsert: (markdown: string) => void = () => undefined,
   onCancel: () => void = () => undefined,
+  onInsertCitekeys?: (citekeys: readonly string[]) => void,
 ) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
@@ -80,7 +81,12 @@ function mount(
   root = createRoot(container);
   act(() =>
     root?.render(
-      <CitationPicker api={api} onInsert={onInsert} onCancel={onCancel} />,
+      <CitationPicker
+        api={api}
+        onInsert={onInsert}
+        onCancel={onCancel}
+        {...(onInsertCitekeys === undefined ? {} : { onInsertCitekeys })}
+      />,
     ),
   );
   return container;
@@ -193,6 +199,24 @@ describe("CitationPicker (FR-CIT-03)", () => {
     );
     click(insert);
     expect(onInsert).toHaveBeenCalledWith("[@z:u:7XK2PQ9M]");
+  });
+
+  it("also reports the citekeys inserted, so their sources can be cached (FR-CIT-05)", async () => {
+    const onInsertCitekeys = vi.fn();
+    const view = mount(
+      fakeApi({ status: "ok", data: [ROW] }),
+      () => undefined,
+      () => undefined,
+      onInsertCitekeys,
+    );
+    await search(view, "widget");
+    click(view.querySelector('input[type="checkbox"]'));
+    click(
+      [...view.querySelectorAll("button")].find(
+        (button) => button.textContent === "Insert citation",
+      ),
+    );
+    expect(onInsertCitekeys).toHaveBeenCalledWith(["z:u:7XK2PQ9M"]);
   });
 
   it("composes the locator, prefix and suffix into the inserted text", async () => {
