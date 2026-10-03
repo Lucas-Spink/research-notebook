@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  cellMarkdownParts,
+  type CellPart,
   summariseMarkdown,
   summariseMarkdownParts,
   type SummaryPart,
@@ -268,5 +270,104 @@ describe("summariseMarkdownParts", () => {
     ]) {
       expect(() => summariseMarkdownParts(value)).not.toThrow();
     }
+  });
+});
+
+/** S6-T01: a table cell shows its whole section, wrapped, never cut at the summary's 240 characters. */
+describe("cellMarkdownParts", () => {
+  const flat = (parts: readonly CellPart[]) =>
+    parts
+      .map((p) =>
+        p.kind === "ref" ? p.label : p.kind === "cite" ? p.raw : p.text,
+      )
+      .join("");
+
+  it("keeps a section far longer than a summary whole", () => {
+    const input = "word ".repeat(2000).trim();
+    expect(flat(cellMarkdownParts(input))).toBe(input);
+    expect(flat(summariseMarkdownParts(input)).endsWith("…")).toBe(true);
+  });
+
+  it("removes markup and keeps references as parts, as a summary does", () => {
+    const input =
+      'See [PCA](evidence/pca.png "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2") for **all** groups.';
+    expect(cellMarkdownParts(input)).toEqual(summariseMarkdownParts(input));
+  });
+
+  it("still bounds a pathological section, ending in an ellipsis", () => {
+    const text = flat(cellMarkdownParts("word ".repeat(100_000)));
+    expect([...text].length).toBeLessThanOrEqual(20_000);
+    expect(text.endsWith("…")).toBe(true);
+  });
+});
+
+/** S6-T01: a cell shows a citation as an interactive reference, so the cell's parts carry it whole. */
+describe("cellMarkdownParts: citations", () => {
+  const text = (value: string): CellPart => ({ kind: "text", text: value });
+
+  it("finds a bracketed cluster, with its items, between the text around it", () => {
+    expect(
+      cellMarkdownParts(
+        "Counts [see @z:u:AAAA2222, p. 3; @z:u:BBBB3333] held.",
+      ),
+    ).toEqual([
+      text("Counts "),
+      {
+        kind: "cite",
+        raw: "[see @z:u:AAAA2222, p. 3; @z:u:BBBB3333]",
+        inText: false,
+        items: [
+          {
+            prefix: "see ",
+            suppressAuthor: false,
+            citekey: "z:u:AAAA2222",
+            suffix: "p. 3",
+          },
+          {
+            prefix: "",
+            suppressAuthor: false,
+            citekey: "z:u:BBBB3333",
+            suffix: "",
+          },
+        ],
+      },
+      text(" held."),
+    ]);
+  });
+
+  it("finds an author-in-text citation and its locator", () => {
+    expect(cellMarkdownParts("As @z:u:AAAA2222 [p. 4] showed.")).toEqual([
+      text("As "),
+      {
+        kind: "cite",
+        raw: "@z:u:AAAA2222 [p. 4]",
+        inText: true,
+        items: [
+          {
+            prefix: "",
+            suppressAuthor: false,
+            citekey: "z:u:AAAA2222",
+            suffix: "p. 4",
+          },
+        ],
+      },
+      text(" showed."),
+    ]);
+  });
+
+  it("leaves brackets and mentions that are not citations as text", () => {
+    expect(
+      cellMarkdownParts("A [note] and an email a@b.c and @ alone."),
+    ).toEqual([text("A [note] and an email a@b.c and @ alone.")]);
+  });
+
+  it("gives back exactly the text it was given when the parts are joined", () => {
+    const input = "One [@z:u:AAAA2222]. Two @z:u:BBBB3333 [p. 1]. Three.";
+    const joined = cellMarkdownParts(input)
+      .map((p) =>
+        p.kind === "cite" ? p.raw : p.kind === "text" ? p.text : p.label,
+      )
+      .join("");
+    expect(joined).toBe(input);
   });
 });

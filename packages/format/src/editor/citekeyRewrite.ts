@@ -27,7 +27,7 @@ function rewriteCluster(body: string, from: string, to: string): string | null {
 }
 
 /** The index just after the inline code span opening at `at`, or `at` plus its backticks when it never closes. */
-function skipCodeSpan(line: string, at: number): number {
+export function skipCodeSpan(line: string, at: number): number {
   let run = 0;
   while (line[at + run] === "`") run += 1;
   let search = at + run;
@@ -79,15 +79,14 @@ function rewriteLine(line: string, from: string, to: string): string {
 }
 
 /**
- * `text` with every citation of `from` pointing at `to` instead (FR-CIT-08),
- * and nothing else changed: prefix, locator, suffix, the suppress-author form,
- * hand-written author-in-text forms and every other byte are kept. Citations
- * inside code fences and inline code are left alone, as the editor does not
- * treat them as citations. Uses the same patterns and `Citekey` check as the
- * section editor, so both agree on what a citation is.
+ * `text` with `rewriteLine` applied to every line of prose, leaving lines
+ * inside code fences as they are, as the editor does not treat them as
+ * citations.
  */
-export function replaceCitekey(text: string, from: string, to: string): string {
-  if (from === to || text === "") return text;
+export function mapProseLines(
+  text: string,
+  rewriteProse: (line: string) => string,
+): string {
   let fence: string | null = null;
   return text
     .split("\n")
@@ -106,7 +105,20 @@ export function replaceCitekey(text: string, from: string, to: string): string {
         fence = marker;
         return line;
       }
-      return rewriteLine(line, from, to);
+      return rewriteProse(line);
     })
     .join("\n");
+}
+
+/**
+ * `text` with every citation of `from` pointing at `to` instead (FR-CIT-08),
+ * and nothing else changed: prefix, locator, suffix, the suppress-author form,
+ * hand-written author-in-text forms and every other byte are kept. Citations
+ * inside code fences and inline code are left alone, as the editor does not
+ * treat them as citations. Uses the same patterns and `Citekey` check as the
+ * section editor, so both agree on what a citation is.
+ */
+export function replaceCitekey(text: string, from: string, to: string): string {
+  if (from === to || text === "") return text;
+  return mapProseLines(text, (line) => rewriteLine(line, from, to));
 }
