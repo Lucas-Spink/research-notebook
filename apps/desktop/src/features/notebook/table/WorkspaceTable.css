@@ -206,27 +206,37 @@
   gap: 0.25rem;
 }
 
+/* A result in the cell is a file: its name, then a small icon for its type. */
+.wtable__thumbs {
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
 .wtable__thumb {
-  flex: none;
-  display: inline-block;
-  width: 48px;
-  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  max-width: 100%;
+  padding: 0.125rem 0.375rem;
   cursor: zoom-in;
-  border: 1px solid var(--color-border);
+  border: 1px solid transparent;
   border-radius: 4px;
-  overflow: hidden;
 }
 
 .wtable__thumb:hover {
+  background: var(--color-surface-alt);
   border-color: var(--palette-accent);
 }
 
-.wtable__thumb > img,
-.wtable__thumb > span,
-.wtable__thumb canvas {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.wtable__file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wtable__file-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--palette-secondary);
 }
 
 /* The larger preview while a thumbnail is hovered. */

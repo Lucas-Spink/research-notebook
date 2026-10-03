@@ -71,6 +71,18 @@ export function AddFilesBar({
         {discoveryMessages.findFiles}
       </button>
       <DiscoveryDialog discovery={discovery} />
+      {pane && (
+        <>
+          <button
+            type="button"
+            onClick={() => void add.pickScripts()}
+            disabled={readOnly || add.busy}
+          >
+            {evidenceMessages.linkScripts}
+          </button>
+          <p className="wtable__muted">{evidenceMessages.linkScriptsHint}</p>
+        </>
+      )}
       <label className="wtable__add-how">
         {evidenceMessages.howLabel}
         <select

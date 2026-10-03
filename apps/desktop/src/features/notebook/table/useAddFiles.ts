@@ -34,6 +34,8 @@ export type AddFiles = {
   notes: string[];
   /** Asks for files with the system picker, then adds them. */
   pick: () => Promise<void>;
+  /** Asks for script files and links each, in place, into the Code folder. */
+  pickScripts: () => Promise<void>;
   /** Adds files already chosen, as a drop does. */
   addChosen: (files: ChosenFile[]) => Promise<void>;
   dismiss: () => void;
@@ -61,7 +63,10 @@ export function useAddFiles({
   latest.current = { artefacts, how };
   const running = useRef(false);
 
-  async function addChosen(files: ChosenFile[]) {
+  /** What an addition does apart from the "Add as" choice: scripts are always linked, as methods. */
+  type Kind = "results" | "scripts";
+
+  async function addChosen(files: ChosenFile[], kind: Kind = "results") {
     if (files.length === 0 || running.current) return;
     running.current = true;
     setBusy(true);
@@ -73,7 +78,9 @@ export function useAddFiles({
         projectId,
         experimentFolder,
         copyThresholdMb: evidence.copyThresholdMb,
-        ...(chosenHow !== "size" && { override: chosenHow }),
+        ...(kind === "scripts"
+          ? { override: "link" as const, role: "method" as const }
+          : chosenHow !== "size" && { override: chosenHow }),
         files,
         artefacts: latest.current.artefacts,
         editArtefacts: (change) => editArtefacts(experimentFolder, change),
@@ -85,7 +92,7 @@ export function useAddFiles({
     }
   }
 
-  async function pick() {
+  async function pick(kind: Kind = "results") {
     if (running.current) return;
     running.current = true;
     setBusy(true);
@@ -105,7 +112,7 @@ export function useAddFiles({
       running.current = false;
       setBusy(false);
     }
-    await addChosen(chosen);
+    await addChosen(chosen, kind);
   }
 
   return {
@@ -113,8 +120,9 @@ export function useAddFiles({
     setHow,
     busy,
     notes,
-    pick,
-    addChosen,
+    pick: () => pick(),
+    pickScripts: () => pick("scripts"),
+    addChosen: (files) => addChosen(files),
     dismiss: () => setNotes([]),
   };
 }

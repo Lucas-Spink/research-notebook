@@ -151,15 +151,13 @@ export function ExperimentRowView({
           column.key === "results" ||
           (isSection(column.key) && editing.writable && !row.item.readOnly);
         const isEditing =
-          (column.key === "results" &&
-            editing.openResults === row.item.experiment.folder) ||
-          (isSection(column.key) &&
-            isLiveIn(
-              editing.live.target,
-              row.item.experiment.folder,
-              column.key,
-              "table",
-            ));
+          isSection(column.key) &&
+          isLiveIn(
+            editing.live.target,
+            row.item.experiment.folder,
+            column.key,
+            "table",
+          );
         return (
           <div
             key={column.key}

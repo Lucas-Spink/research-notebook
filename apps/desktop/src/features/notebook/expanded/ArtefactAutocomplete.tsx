@@ -1,10 +1,11 @@
 import {
   artefactAutocompleteMessages,
+  artefactLinkedLabel,
   artefactTypeLabel,
   artefactVersionLabel,
 } from "../messages";
 import type { ArtefactSearchRow } from "./model/artefactSearch";
-import { ArtefactTypeIcon } from "./ArtefactTypeIcon";
+import { ArtefactTypeIcon } from "../../../shared/ArtefactTypeIcon";
 import "./ArtefactAutocomplete.css";
 
 export type ArtefactAutocompleteProps = {
@@ -72,7 +73,9 @@ export function ArtefactAutocomplete({
             <span className="artefact-autocomplete__meta">
               {artefactTypeLabel(row.type)} ·{" "}
               {row.groupPath ?? artefactAutocompleteMessages.ungrouped} ·{" "}
-              {artefactVersionLabel(row.version)}
+              {row.version === null
+                ? artefactLinkedLabel
+                : artefactVersionLabel(row.version)}
             </span>
           </li>
         ))

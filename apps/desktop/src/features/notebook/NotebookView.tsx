@@ -46,6 +46,7 @@ import { evidenceOf } from "./model/evidence";
 import { paneMessages, ribbonMessages } from "./workspace/messages";
 import {
   addResultTabId,
+  resultsTabId,
   initialPanes,
   panesReducer,
   resultTabId,
@@ -59,6 +60,7 @@ import { attachedCitekeys } from "./workspace/model/attach";
 import { AddResultPane } from "./workspace/AddResultPane";
 import { PaneHost } from "./workspace/PaneHost";
 import { ResultPane } from "./workspace/ResultPane";
+import { ResultsPane } from "./workspace/ResultsPane";
 import { Ribbon } from "./workspace/Ribbon";
 import { SourcesPane } from "./workspace/SourcesPane";
 import { useSourceAttach } from "./workspace/useSourceAttach";
@@ -259,6 +261,15 @@ function NotebookViewBody({
       setPickedKey(null);
       setFocusSection(null);
     },
+    onOpenResultsPane: (experimentFolder) =>
+      dispatchPanes({
+        type: "open",
+        tab: {
+          id: resultsTabId(experimentFolder),
+          kind: "results",
+          experimentFolder,
+        },
+      }),
     onOpenAddResult: (experimentFolder) =>
       dispatchPanes({
         type: "open",
@@ -364,6 +375,8 @@ function NotebookViewBody({
         return paneMessages.detailsTab;
       case "addResult":
         return paneMessages.addResultTab;
+      case "results":
+        return paneMessages.resultsTab;
       case "result": {
         const item = (arranged?.questions ?? [])
           .flatMap((group) => group.experiments)
@@ -398,6 +411,25 @@ function NotebookViewBody({
         );
       case "citations":
         return <StylePicker model={styles} />;
+      case "results":
+        return (
+          <ResultsPane
+            tab={tab}
+            arranged={arranged}
+            folder={folder}
+            editing={editing}
+            onAddResults={(experimentFolder) =>
+              dispatchPanes({
+                type: "open",
+                tab: {
+                  id: addResultTabId(experimentFolder),
+                  kind: "addResult",
+                  experimentFolder,
+                },
+              })
+            }
+          />
+        );
       case "addResult":
         return (
           <AddResultPane

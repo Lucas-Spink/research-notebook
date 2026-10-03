@@ -116,6 +116,7 @@ type Setup = {
   start?: ArtefactsFileModel;
   thresholdMb?: number;
   override?: "copy" | "link";
+  role?: "result" | "method";
   failSave?: boolean;
 };
 
@@ -125,6 +126,7 @@ async function add({
   start = EMPTY_ARTEFACTS,
   thresholdMb = 50,
   override,
+  role,
   failSave = false,
 }: Setup) {
   const { api, calls } = fakeApi(captures);
@@ -136,6 +138,7 @@ async function add({
     experimentFolder: "EXP-001",
     copyThresholdMb: thresholdMb,
     ...(override !== undefined && { override }),
+    ...(role !== undefined && { role }),
     files,
     artefacts: start,
     editArtefacts: save.edit,
@@ -491,5 +494,52 @@ describe("adding several files", () => {
 
     expect(outcomes.map((o) => o.kind)).toEqual(["failed", "added"]);
     expect(held.file.artefacts).toHaveLength(1);
+  });
+});
+
+describe("linking a script into the Code folder (S6-T01)", () => {
+  it("records the file in place as a linked method artefact of type script", async () => {
+    const { outcomes, calls, held } = await add({
+      files: [located("code/analysis.py", 1)],
+      override: "link",
+      role: "method",
+    });
+
+    expect(only(outcomes)).toMatchObject({ kind: "added", mode: "link" });
+    expect(calls.captured).toHaveLength(0);
+    expect(held.file.artefacts).toHaveLength(1);
+    expect(held.file.artefacts[0]).toMatchObject({
+      name: "analysis",
+      role: "method",
+      mode: "link",
+      type: "script",
+      source: { root: "project", path: "code/analysis.py" },
+    });
+    // A method artefact is never put in a result group.
+    expect(held.file.groups).toEqual([]);
+  });
+
+  it("leaves a script that is already linked alone when it is linked again", async () => {
+    const first = await add({
+      files: [located("code/analysis.py", 1)],
+      override: "link",
+      role: "method",
+    });
+    const again = await add({
+      files: [located("code/analysis.py", 1)],
+      override: "link",
+      role: "method",
+      start: first.held.file,
+    });
+    expect(only(again.outcomes)).toMatchObject({ kind: "alreadyLinked" });
+    expect(again.held.file.artefacts).toHaveLength(1);
+  });
+
+  it("still records results as results when no role is given", async () => {
+    const { held } = await add({
+      files: [located("results/small.png", 1)],
+      override: "link",
+    });
+    expect(held.file.artefacts[0]).toMatchObject({ role: "result" });
   });
 });

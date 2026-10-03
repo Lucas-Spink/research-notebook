@@ -10,6 +10,7 @@ export const paneMessages = {
   detailsTab: "Details",
   resultTab: "Result",
   addResultTab: "Add result",
+  resultsTab: "Results",
   noSelection: "Select a question or experiment to see its details.",
   resultUnavailable: "This result is no longer in the experiment.",
 };
@@ -87,4 +88,18 @@ export const addResultMessages = {
   intro:
     "Copy keeps a version of each file inside the project. Link records where the file lives and checks it later.",
   unavailable: "This experiment's results cannot be changed.",
+};
+
+/** Text of the Results browser (S6-T01). */
+export const resultsBrowserMessages = {
+  heading: (ref: string) => `Results of ${ref}`,
+  addResults: "Add results…",
+  hint: "Drag a file onto a group to move it, or use its ⋯ button. Double-click a file to open it.",
+  codeFolder: "Code",
+  codeCount: (count: number) => (count === 1 ? "1 script" : `${count} scripts`),
+  codeEmpty:
+    "No scripts yet. Link one here and text can refer to it, as it can to a figure.",
+  linkScript: "Link script…",
+  scriptOpen: (name: string) => `Open ${name}`,
+  linked: "linked",
 };

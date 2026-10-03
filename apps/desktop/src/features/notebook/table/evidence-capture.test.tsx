@@ -180,6 +180,35 @@ describe("adding files in the Results cell (FR-EVD-01, FR-EVD-02)", () => {
     expect(statusIn(view)).toContain("Linked reads.csv");
   });
 
+  it("links a picked script in place as a method, from the Link scripts button", async () => {
+    okPick(located("code/analysis.py", 1));
+    const capture = vi.spyOn(commands, "captureEvidence");
+    vi.spyOn(commands, "observeEvidence").mockResolvedValue({
+      status: "ok",
+      data: {
+        sha256: "e".repeat(64),
+        size: 1,
+        observedMtime: "2026-09-26T09:00:00Z",
+      },
+    });
+    const { view, edits } = mount();
+    await openResults(view);
+    await act(async () => {
+      buttonIn(view, evidenceMessages.linkScripts).click();
+      await settle();
+      await settle();
+    });
+
+    expect(capture).not.toHaveBeenCalled();
+    expect(edits[0]?.artefacts.at(-1)).toMatchObject({
+      role: "method",
+      mode: "link",
+      type: "script",
+      source: { path: "code/analysis.py" },
+    });
+    expect(statusIn(view)).toContain("Linked analysis.py");
+  });
+
   it("says why a file outside the project was not added, and saves nothing", async () => {
     okPick({
       kind: "refused",

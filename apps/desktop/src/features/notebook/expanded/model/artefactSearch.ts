@@ -19,7 +19,8 @@ export type ArtefactSearchRow = {
   type: ArtefactModel["type"];
   /** `null` for an artefact in no group ("Ungrouped"). */
   groupPath: string | null;
-  version: number;
+  /** The pinned version; `null` for a linked script, which has none (spec 5.6). */
+  version: number | null;
 };
 
 function fileNameOf(path: string): string {
@@ -57,16 +58,30 @@ function matches(row: { label: string; fileName: string }, query: string) {
 }
 
 /**
- * Copy-mode artefacts of `file` whose display name or filename matches
- * `query` (case-insensitive substring, matching the workspace table's own
- * filter convention), ranked in capture order.
+ * Copy-mode artefacts of `file`, and linked scripts (method artefacts),
+ * whose display name or filename matches `query` (case-insensitive
+ * substring, matching the workspace table's own filter convention), ranked
+ * in capture order. A linked script is referenced by its recorded path and
+ * has no version; linked results are still left out.
  */
 export function searchArtefacts(
   file: ArtefactsFileModel,
   query: string,
 ): ArtefactSearchRow[] {
   return file.artefacts.flatMap((artefact) => {
-    if (artefact.mode !== "copy") return [];
+    if (artefact.mode === "link") {
+      if (artefact.role !== "method") return [];
+      const script: ArtefactSearchRow = {
+        id: artefact.id,
+        label: artefact.name,
+        fileName: fileNameOf(artefact.source.path),
+        target: artefact.source.path,
+        type: artefact.type,
+        groupPath: null,
+        version: null,
+      };
+      return matches(script, query) ? [script] : [];
+    }
     const version = artefact.versions.at(-1);
     if (version === undefined) return [];
     const row: ArtefactSearchRow = {

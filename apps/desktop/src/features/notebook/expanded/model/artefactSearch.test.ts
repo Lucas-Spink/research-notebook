@@ -115,6 +115,42 @@ describe("searchArtefacts (FR-EDT-04)", () => {
     ]);
   });
 
+  it("includes a linked script by its recorded path, with no version, but not a linked result", () => {
+    const withScript: ArtefactsFileModel = {
+      ...FILE,
+      artefacts: [
+        ...FILE.artefacts,
+        {
+          id: "01SCRIPT000000000000000000",
+          name: "analysis.py",
+          role: "method",
+          type: "script",
+          mode: "link",
+          source: { root: "project", path: "code/analysis.py" },
+          created: "2026-01-01T00:00:00Z",
+          link: {
+            sha256: "d".repeat(64),
+            size: 5,
+            observed_mtime: "2026-01-01T00:00:00Z",
+            checked: "2026-01-01T00:00:00Z",
+          },
+        },
+      ],
+    };
+    const rows = searchArtefacts(withScript, "");
+    expect(rows.find((r) => r.id === "01SCRIPT000000000000000000")).toEqual({
+      id: "01SCRIPT000000000000000000",
+      label: "analysis.py",
+      fileName: "analysis.py",
+      target: "code/analysis.py",
+      type: "script",
+      groupPath: null,
+      version: null,
+    });
+    expect(rows.some((r) => r.id === "01RAW00000000000000000000")).toBe(false);
+    expect(searchArtefacts(withScript, "analysis")).toHaveLength(1);
+  });
+
   it("excludes link-mode artefacts", () => {
     const rows = searchArtefacts(FILE, "");
     expect(rows.some((r) => r.id === "01RAW00000000000000000000")).toBe(false);

@@ -122,12 +122,10 @@ function editedRow(
   rows: readonly TableRow[],
   editing: TableEditing,
 ): number | null {
-  // One thing is open in the table at a time: an open Results cell, or a
-  // section being edited in its cell (ADR-0044 point 4).
+  // The row whose section is being edited in its cell (ADR-0043).
   const target = editing.live.target;
   const folder =
-    editing.openResults ??
-    (target !== null && target.surface === "table" ? target.folder : null);
+    target !== null && target.surface === "table" ? target.folder : null;
   if (folder === null) return null;
   const index = rows.findIndex(
     (row) => row.kind === "experiment" && row.item.experiment.folder === folder,

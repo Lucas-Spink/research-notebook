@@ -35,11 +35,8 @@ export type TableEditing = {
     id: string,
     changes: ExperimentChanges,
   ) => Promise<boolean>;
-  /** The experiment folder whose Results cell is open, or `null` (ADR-0044 point 4). */
-  openResults: string | null;
-  /** Opens this row's Results cell, after any live section editor has saved and closed. */
+  /** Opens this row's Results browser in the side pane, after any live section editor has saved and closed. */
   onOpenResults: (row: ExperimentRow) => void;
-  onCloseResults: () => void;
   /** Opens the Add result pane for this row's experiment, and selects the row. */
   onAddResult: (row: ExperimentRow) => void;
   /** Opens one result in the side pane: its experiment's folder, the artefact and the version to show (`null` for the latest or a linked file). */

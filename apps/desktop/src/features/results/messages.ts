@@ -20,6 +20,7 @@ export const resultsMessages = {
   renameLabel: "Group name",
   subgroupLabel: "New subgroup name",
   actionsFor: (name: string) => `Actions for ${name}`,
+  actionsHint: "Move, add to a group, preview…",
   counts: (items: number, groups: number) =>
     groups === 0
       ? plural(items, "artefact", "artefacts")

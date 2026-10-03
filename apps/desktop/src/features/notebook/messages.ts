@@ -183,6 +183,9 @@ export function artefactTypeLabel(type: ArtefactModel["type"]): string {
 }
 
 /** "v2" for a captured artefact's version. */
+/** A linked file (a script, say) has no versions to pin a reference to. */
+export const artefactLinkedLabel = "linked";
+
 export function artefactVersionLabel(version: number): string {
   return `v${version}`;
 }

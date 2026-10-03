@@ -1,5 +1,5 @@
 import type { ArtefactModel } from "@research-notebook/format";
-import { assertNever } from "../../../shared/assertNever";
+import { assertNever } from "./assertNever";
 
 type Props = { type: ArtefactModel["type"] };
 
@@ -127,4 +127,25 @@ export function ArtefactTypeIcon({ type }: Props) {
     default:
       return assertNever(type);
   }
+}
+
+/** A folder (a result group, or the Code folder): the outline every file icon is paired with in the Results browser. */
+export function FolderIcon() {
+  return (
+    <svg
+      className="artefact-icon artefact-icon--folder"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M1.5 3.5h4l1.5 1.5h7a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-12a.5.5 0 0 1-.5-.5v-8.5a.5.5 0 0 1 .5-.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+      />
+    </svg>
+  );
 }

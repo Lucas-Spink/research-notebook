@@ -1,5 +1,6 @@
 import {
   ungroupedArtefacts,
+  type ArtefactModel,
   type ArtefactsFileModel,
   type GroupModel,
 } from "@research-notebook/format";
@@ -43,6 +44,8 @@ export type ItemRow = Base & {
   kind: "item";
   artefactId: string;
   name: string;
+  /** What kind of file it is, for its icon. */
+  artefactType: ArtefactModel["type"];
   /** The group this row shows the artefact in; `null`: the Ungrouped area. */
   group: string | null;
   index: number;
@@ -71,6 +74,7 @@ export function treeRows(
   expansion: Expansion,
 ): TreeRow[] {
   const names = new Map(file.artefacts.map((a) => [a.id, a.name] as const));
+  const types = new Map(file.artefacts.map((a) => [a.id, a.type] as const));
   const rows: TreeRow[] = [];
   const items = (
     ids: readonly string[],
@@ -86,6 +90,7 @@ export function treeRows(
         parentKey,
         artefactId,
         name: names.get(artefactId) ?? artefactId,
+        artefactType: types.get(artefactId) ?? "other",
         group,
         index,
         siblings: ids.length,
