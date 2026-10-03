@@ -177,17 +177,12 @@ function useSourceText(citekey: string): SourceText {
 
 /**
  * A cited source's label. A source the bibliography holds opens its details
- * (FR-CIT-04); one it does not has nothing to open, so stays plain text.
+ * (FR-CIT-04): a click opens them in the side pane, a double click goes to the
+ * Bibliography; one it does not hold has nothing to open, so stays plain text.
  */
 function SourceLabel({ source }: { source: SourceText }) {
-  const { select } = useSources();
   if (!source.known) return <>{source.text}</>;
-  return (
-    <CitationSource
-      citekey={source.citekey}
-      onActivate={() => select(source.citekey)}
-    />
-  );
+  return <CitationSource citekey={source.citekey} />;
 }
 
 function StaticCitation({ citekeys }: { citekeys: string[] }) {

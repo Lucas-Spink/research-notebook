@@ -16,7 +16,7 @@ import {
 } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import {
-  CitationJumpProvider,
+  CitationActionsProvider,
   LiteraturePrompt,
   StylePicker,
   SourcesProvider,
@@ -334,6 +334,20 @@ function NotebookViewBody({
     sync: syncInserted,
   });
 
+  // A click on a citation shows its source in the side pane; a double click
+  // goes down the page to its Bibliography entry.
+  const citationActions = useMemo(
+    () => ({
+      open: () =>
+        dispatchPanes({
+          type: "open",
+          tab: { id: "sources", kind: "sources" },
+        }),
+      jump: jumpToCitation,
+    }),
+    [jumpToCitation],
+  );
+
   /** Every source cited anywhere in the project, for the Bibliography. */
   const citedSources = useMemo(
     () =>
@@ -469,9 +483,7 @@ function NotebookViewBody({
             actions={actions}
             disabled={disabled}
             writable={writable}
-            folder={folder}
-            projectId={projectId}
-            references={references}
+            onOpenResult={editing.onOpenResult}
             focusSection={focusSection}
             live={live}
           />
@@ -494,7 +506,7 @@ function NotebookViewBody({
   }
 
   return (
-    <CitationJumpProvider value={jumpToCitation}>
+    <CitationActionsProvider value={citationActions}>
       <section className="workspace" aria-labelledby="notebook-heading">
         <Ribbon
           projectControls={projectControls}
@@ -631,6 +643,6 @@ function NotebookViewBody({
           />
         )}
       </section>
-    </CitationJumpProvider>
+    </CitationActionsProvider>
   );
 }

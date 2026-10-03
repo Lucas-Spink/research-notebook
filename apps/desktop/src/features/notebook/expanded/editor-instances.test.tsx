@@ -1,15 +1,10 @@
-import type {
-  ArrangedExperiment,
-  ReferenceIndex,
-} from "@research-notebook/format";
+import type { ArrangedExperiment } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { LiveEditorHarness } from "../editing/liveEditorHarness";
 import { sampleNotebook } from "../model/fakeApi";
 import { ExpandedExperimentView } from "./ExpandedExperimentView";
-
-const NO_REFERENCES: ReferenceIndex = new Map();
 
 /**
  * S4-G08: "At most one editor instance mounted at any time across the
@@ -62,9 +57,7 @@ function mount(shown: ArrangedExperiment = item) {
           <ExpandedExperimentView
             item={shown}
             disabled={false}
-            folder={1}
-            projectId="01JAX9Q2B7N4M8T6V3W5Y1Z0KC"
-            references={NO_REFERENCES}
+            onOpenResult={() => undefined}
             focusSection={null}
             live={live}
           />
@@ -128,9 +121,7 @@ describe("editor-instances (S4-G08)", () => {
     const second: ArrangedExperiment = { ...item, experiment: other };
     const common = {
       disabled: false,
-      folder: 1,
-      projectId: "01JAX9Q2B7N4M8T6V3W5Y1Z0KC",
-      references: NO_REFERENCES,
+      onOpenResult: () => undefined,
       focusSection: null,
     };
     act(() =>

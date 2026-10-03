@@ -84,7 +84,22 @@ describe("citations and the Bibliography (S6-T01)", () => {
     expect(chips).toHaveLength(3);
   });
 
-  it("goes to and marks the source's entry when its citation is clicked, and unmarks it later", () => {
+  it("goes to and marks the source's entry when its citation is double-clicked", () => {
+    const { view } = mountNotebook(cited);
+    const chip = view.querySelector(
+      '.wtable .citation-chip button[data-citekey="z:u:BBBB3333"]',
+    );
+    if (chip === null) throw new Error("no citation");
+    act(() => {
+      chip.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    const marked = view.querySelectorAll(".bibliography__entry--marked");
+    expect(marked).toHaveLength(1);
+    expect(marked[0]?.getAttribute("data-citekey")).toBe("z:u:BBBB3333");
+    expect(document.activeElement).toBe(marked[0]);
+  });
+
+  it("opens the source in the side pane on a single click, and does not scroll to the Bibliography", async () => {
     const { view } = mountNotebook(cited);
     const chip = view.querySelector(
       '.wtable .citation-chip button[data-citekey="z:u:BBBB3333"]',
@@ -93,10 +108,15 @@ describe("citations and the Bibliography (S6-T01)", () => {
     act(() => {
       chip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    const marked = view.querySelectorAll(".bibliography__entry--marked");
-    expect(marked).toHaveLength(1);
-    expect(marked[0]?.getAttribute("data-citekey")).toBe("z:u:BBBB3333");
-    expect(document.activeElement).toBe(marked[0]);
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 300)));
+    expect(
+      [...view.querySelectorAll('aside.pane [role="tab"]')].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["Sources"]);
+    expect(view.querySelectorAll(".bibliography__entry--marked")).toHaveLength(
+      0,
+    );
   });
 
   it("is a plain section of the page: nothing collapses it, and every entry is always listed", () => {
@@ -127,7 +147,7 @@ describe("citations and the Bibliography (S6-T01)", () => {
       );
       if (chip === null) throw new Error("no citation");
       act(() => {
-        chip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        chip.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
       });
       expect(scroll).toHaveBeenCalledTimes(1);
       expect(scroll.mock.instances[0]).toBe(

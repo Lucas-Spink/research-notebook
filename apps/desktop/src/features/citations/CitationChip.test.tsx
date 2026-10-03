@@ -7,13 +7,17 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../shared/sha256";
 import { CitationChip } from "./CitationChip";
-import { CitationJumpProvider } from "./CitationInteraction";
+import {
+  CitationActionsProvider,
+  type CitationActions,
+} from "./CitationInteraction";
 import { SourcesProvider } from "./SourcesContext";
 import type { SourcesApi } from "./model/syncSources";
 
 /**
  * S6-T01: a citation is an interactive reference: its label in brackets,
- * the full reference on hover, and a jump to the Bibliography on a click.
+ * the full reference on hover, the side pane on a click, and the
+ * Bibliography on a double click.
  */
 
 const bibliography: BibliographyFileModel = [
@@ -62,7 +66,7 @@ afterEach(() => {
 
 async function mount(
   chip: React.ReactNode,
-  jump: (citekey: string) => void = () => undefined,
+  actions: CitationActions = { open: () => undefined, jump: () => undefined },
   onOuterClick: () => void = () => undefined,
 ) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -80,9 +84,9 @@ async function mount(
   act(() =>
     root?.render(
       <SourcesProvider api={api} folder={1} writable>
-        <CitationJumpProvider value={jump}>
+        <CitationActionsProvider value={actions}>
           <div onClick={onOuterClick}>{chip}</div>
-        </CitationJumpProvider>
+        </CitationActionsProvider>
       </SourcesProvider>,
     ),
   );
@@ -166,18 +170,52 @@ describe("CitationChip (S6-T01)", () => {
     ).toContain("not in this project's bibliography.json");
   });
 
-  it("goes to the clicked source in the Bibliography, without clicking what encloses it", async () => {
-    const jump = vi.fn();
+  it("opens the clicked source in the side pane, without clicking what encloses it", async () => {
+    const actions = { open: vi.fn(), jump: vi.fn() };
     const outer = vi.fn();
     const view = await mount(
       <CitationChip
         items={[{ citekey: "z:u:AAAA2222" }, { citekey: "z:u:BBBB3333" }]}
       />,
-      jump,
+      actions,
       outer,
     );
-    fire(view.querySelectorAll("button")[1], "click");
-    expect(jump).toHaveBeenCalledWith("z:u:BBBB3333");
-    expect(outer).not.toHaveBeenCalled();
+    vi.useFakeTimers();
+    try {
+      fire(view.querySelectorAll("button")[1], "click");
+      // It waits briefly in case a second click makes it a double click.
+      expect(actions.open).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(actions.open).toHaveBeenCalledWith("z:u:BBBB3333");
+      expect(actions.jump).not.toHaveBeenCalled();
+      expect(outer).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("goes to the source's Bibliography entry on a double click, and does not also open the pane", async () => {
+    const actions = { open: vi.fn(), jump: vi.fn() };
+    const view = await mount(
+      <CitationChip items={[{ citekey: "z:u:AAAA2222" }]} />,
+      actions,
+    );
+    vi.useFakeTimers();
+    try {
+      const chip = view.querySelector("button");
+      fire(chip, "click");
+      fire(chip, "click");
+      fire(chip, "dblclick");
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(actions.jump).toHaveBeenCalledTimes(1);
+      expect(actions.jump).toHaveBeenCalledWith("z:u:AAAA2222");
+      expect(actions.open).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

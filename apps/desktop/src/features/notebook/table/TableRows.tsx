@@ -60,7 +60,6 @@ function cellFor(
           section={column}
           parts={row.summaries[column]}
           artefacts={artefacts}
-          folder={folder}
           editing={editing}
           tabbable={tabbable}
         />

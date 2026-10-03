@@ -9,6 +9,7 @@ import { selectLabel } from "../messages";
 import { sampleNotebook } from "../model/fakeApi";
 import {
   mountNotebook,
+  openCell,
   prepareInteractiveTable,
   rowOf,
 } from "../table/tableTesting";
@@ -330,5 +331,50 @@ describe("the workspace (S6-T01)", () => {
       view.querySelector('button[aria-label="Show the side pane"]') as Element,
     );
     expect(pane(view)).not.toBeNull();
+  });
+
+  it("opens a figure referenced in the text in the side pane, not full size", async () => {
+    const referenced: NotebookState = {
+      ...withFigure,
+      experiments: withFigure.experiments.map((e) =>
+        e.folder === "EXP-001"
+          ? {
+              ...e,
+              file: {
+                ...e.file,
+                body: {
+                  ...e.file.body,
+                  sections: e.file.body.sections.map((section) =>
+                    section.key === "methods"
+                      ? {
+                          ...section,
+                          body: 'See [PCA plot](evidence/pca.png "art:01JB0000000000000000000001 v1").',
+                        }
+                      : section,
+                  ),
+                },
+              },
+            }
+          : e,
+      ),
+    };
+    const { view } = mountNotebook(referenced);
+    await openCell(view, "EXP-001", "methods");
+    const chip = rowOf(view, "EXP-001").querySelector(
+      ".expanded__artefact-ref--chip",
+    );
+    if (chip === null) throw new Error("no figure chip in the editor");
+    act(() => {
+      chip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(
+      [...view.querySelectorAll('aside.pane [role="tab"]')].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["PCA plot"]);
+    // No full-size dialog over the page.
+    expect(
+      document.body.querySelector(".expanded__reference-preview"),
+    ).toBeNull();
   });
 });

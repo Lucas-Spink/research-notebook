@@ -5,12 +5,8 @@ import type {
   ReferenceIndex,
   CellPart,
 } from "@research-notebook/format";
-import { useState } from "react";
-import type { FolderHandle } from "../../../ipc/bindings";
-import { commands } from "../../../ipc/bindings";
 import { isLiveIn, liveKey, sectionText } from "../editing/model/liveEditor";
 import type { LiveEditor } from "../editing/useLiveEditor";
-import { ReferencePreviewOverlay } from "../expanded/ReferencePreviewOverlay";
 import { RichSectionEditor } from "../expanded/RichSectionEditor";
 import { columnLabel, editLabel } from "../messages";
 import type { NotebookActions } from "../useNotebook";
@@ -56,7 +52,6 @@ type Props = {
   section: RecognisedSectionKey;
   parts: readonly CellPart[];
   artefacts: ArtefactsFileModel | null;
-  folder: FolderHandle;
   editing: TableEditing;
   /** Whether this cell holds the grid's one tab stop (ADR-0043 point 5). */
   tabbable: boolean;
@@ -64,9 +59,6 @@ type Props = {
 
 /** Keys that open a focused section for editing (FR-TBL-11). */
 const OPEN_KEYS = new Set(["Enter", " ", "F2"]);
-
-/** A reference chip's activation (FR-EDT-06), waiting to open its preview. */
-type OpenReference = { ulid: string; version: number | null };
 
 /**
  * A Methods, Results Notes or Interpretation cell (FR-TBL-11). While it is
@@ -81,13 +73,9 @@ export function EditableSectionCell({
   section,
   parts,
   artefacts,
-  folder,
   editing,
   tabbable,
 }: Props) {
-  const [openReference, setOpenReference] = useState<OpenReference | null>(
-    null,
-  );
   const { experiment } = row.item;
   const label = columnLabel(section);
   const live = isLiveIn(
@@ -111,8 +99,9 @@ export function EditableSectionCell({
       live
       onActivate={() => undefined}
       artefacts={artefacts}
+      // A figure reference opens that result in the side pane, never full size.
       onActivateReference={(ulid, version) =>
-        setOpenReference({ ulid, version })
+        editing.onOpenResult(experiment.folder, ulid, version)
       }
       // FR-CIT-09: Methods, then Interpretation; never Results Notes.
       allowCitations={section !== "results_notes"}
@@ -139,24 +128,5 @@ export function EditableSectionCell({
     </div>
   );
 
-  return (
-    <>
-      {content}
-      {openReference !== null &&
-        artefacts !== null &&
-        editing.projectId !== null && (
-          <ReferencePreviewOverlay
-            api={commands}
-            folder={folder}
-            projectId={editing.projectId}
-            experimentFolder={experiment.folder}
-            file={artefacts}
-            artefactId={openReference.ulid}
-            version={openReference.version}
-            references={editing.references}
-            onClose={() => setOpenReference(null)}
-          />
-        )}
-    </>
-  );
+  return content;
 }

@@ -1,4 +1,3 @@
-import type { ReferenceIndex } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,8 +5,6 @@ import { DetailsPanel, type Selected } from "./DetailsPanel";
 import { LiveEditorHarness } from "./editing/liveEditorHarness";
 import { sampleNotebook } from "./model/fakeApi";
 import type { NotebookActions } from "./useNotebook";
-
-const NO_REFERENCES: ReferenceIndex = new Map();
 
 const { state } = sampleNotebook();
 const experiment = state.experiments[0];
@@ -81,9 +78,7 @@ function render(
             actions={actions}
             disabled={overrides.disabled ?? false}
             writable={overrides.writable ?? true}
-            folder={1}
-            projectId={state.project.id}
-            references={NO_REFERENCES}
+            onOpenResult={() => undefined}
             focusSection={null}
             live={live}
           />

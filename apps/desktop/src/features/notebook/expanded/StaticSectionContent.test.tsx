@@ -225,16 +225,19 @@ describe("StaticSectionContent: opening a citation (FR-CIT-04, S5-T07)", () => {
     return container;
   }
 
-  const click = (element: Element | null | undefined) =>
+  /** A click, and the short wait before a click is taken as a single one. */
+  const click = async (element: Element | null | undefined) => {
     act(() => {
       element?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 300)));
+  };
 
   it("opens the source of each entry in a citation cluster", async () => {
     const view = await mountWithSources("[@z:u:AAAA2222; @z:u:BBBB3333]");
     const buttons = view.querySelectorAll(".expanded__citation button");
     expect(buttons).toHaveLength(2);
-    click(buttons[1]);
+    await click(buttons[1]);
     expect(view.querySelector("output")?.textContent).toBe("z:u:BBBB3333");
   });
 
@@ -247,7 +250,7 @@ describe("StaticSectionContent: opening a citation (FR-CIT-04, S5-T07)", () => {
 
   it("opens the source of an author-in-text citation", async () => {
     const view = await mountWithSources("As @z:u:AAAA2222 showed, it held.");
-    click(view.querySelector(".expanded__citation-in-text button"));
+    await click(view.querySelector(".expanded__citation-in-text button"));
     expect(view.querySelector("output")?.textContent).toBe("z:u:AAAA2222");
   });
 
@@ -259,7 +262,7 @@ describe("StaticSectionContent: opening a citation (FR-CIT-04, S5-T07)", () => {
   it("does not let the click reach an enclosing cell", async () => {
     const outer = vi.fn();
     const view = await mountWithSources("[@z:u:AAAA2222]", outer);
-    click(view.querySelector(".expanded__citation button"));
+    await click(view.querySelector(".expanded__citation button"));
     expect(outer).not.toHaveBeenCalled();
   });
 });

@@ -303,8 +303,10 @@ export const citationChipMessages = {
   publishedIn: "Published in",
   year: "Year",
   state: "State",
-  clickHint: "Click to go to it in the Bibliography.",
+  clickHint:
+    "Click to open it in the side pane. Double-click to go to it in the Bibliography.",
   notCached: (citekey: string) =>
     `${citekey} is not in this project's bibliography.json yet.`,
-  goTo: (label: string) => `Citation ${label}: go to it in the Bibliography`,
+  citation: (label: string) =>
+    `Citation ${label}: click for details, double-click for the Bibliography`,
 };
