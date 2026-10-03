@@ -14,6 +14,8 @@ type Props = {
   dispatch: (action: PaneAction) => void;
   /** The name a tab shows, and its close button names. */
   titleOf: (tab: PaneTab) => string;
+  /** The small square icon a tab shows on the rail the pane folds into. */
+  iconOf: (tab: PaneTab) => ReactNode;
   /** What the active tab holds. Only the active tab is rendered. */
   children: (tab: PaneTab) => ReactNode;
 };
@@ -28,11 +30,45 @@ const KEY_STEP_LARGE = 80;
  * Its left edge is a separator that is dragged, or moved by arrow keys, to
  * resize it. With no tabs it renders nothing, so the table has the full width.
  */
-export function PaneHost({ state, dispatch, titleOf, children }: Props) {
+export function PaneHost({
+  state,
+  dispatch,
+  titleOf,
+  iconOf,
+  children,
+}: Props) {
   const panelId = useId();
   const start = useRef<{ x: number; width: number } | null>(null);
   const active = state.tabs.find((tab) => tab.id === state.activeId);
   if (active === undefined) return null;
+
+  if (state.minimised) {
+    return (
+      <aside className="pane-rail" aria-label={paneMessages.railLabel}>
+        <button
+          type="button"
+          className="pane-rail__restore"
+          aria-label={paneMessages.restorePane}
+          title={paneMessages.restorePane}
+          onClick={() => dispatch({ type: "restore" })}
+        >
+          <span aria-hidden="true">«</span>
+        </button>
+        {state.tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`pane-rail__tab${tab.id === active.id ? " pane-rail__tab--active" : ""}`}
+            aria-label={titleOf(tab)}
+            title={titleOf(tab)}
+            onClick={() => dispatch({ type: "activate", id: tab.id })}
+          >
+            {iconOf(tab)}
+          </button>
+        ))}
+      </aside>
+    );
+  }
 
   function onKeyDown(event: KeyboardEvent) {
     const step = event.shiftKey ? KEY_STEP_LARGE : KEY_STEP;
@@ -119,6 +155,15 @@ export function PaneHost({ state, dispatch, titleOf, children }: Props) {
             );
           })}
         </div>
+        <button
+          type="button"
+          className="pane__minimise"
+          aria-label={paneMessages.minimisePane}
+          title={paneMessages.minimisePane}
+          onClick={() => dispatch({ type: "minimise" })}
+        >
+          <span aria-hidden="true">»</span>
+        </button>
         <button
           type="button"
           className="pane__close"

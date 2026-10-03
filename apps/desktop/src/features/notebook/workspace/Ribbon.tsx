@@ -77,6 +77,23 @@ export function Ribbon(props: Props) {
   const [peek, setPeek] = useState(false);
   const showing = !collapsed || peek;
 
+  // The pane and the column headings stay just under this sticky ribbon.
+  useEffect(() => {
+    const node = root.current;
+    if (node === null) return;
+    const root_ = document.documentElement;
+    const report = () =>
+      root_.style.setProperty("--ribbon-height", `${node.offsetHeight}px`);
+    report();
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(report);
+    observer?.observe(node);
+    return () => {
+      observer?.disconnect();
+      root_.style.removeProperty("--ribbon-height");
+    };
+  }, []);
+
   useEffect(() => {
     if (!peek) return;
     function onPress(event: PointerEvent) {

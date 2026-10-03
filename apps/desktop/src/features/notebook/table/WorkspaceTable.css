@@ -1,8 +1,9 @@
 /* The table fills its space in the workspace; only its own rows scroll. */
+/* As tall as its rows: the page scrolls, and the Bibliography follows the table.
+   Only its width scrolls, when its columns are wider than the window. */
 .wtable {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--color-surface);
   text-align: left;
 }
@@ -16,11 +17,12 @@
   outline-offset: 2px;
 }
 
-/* The column headings stay in view while the rows scroll under them. */
+/* The column headings stay in view under the ribbon while the page scrolls:
+   WorkspaceTable moves them down by --head-offset. */
 .wtable__columns {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 2;
+  transform: translateY(var(--head-offset, 0px));
   display: flex;
   color: var(--palette-primary-dark);
   background: var(--palette-light);

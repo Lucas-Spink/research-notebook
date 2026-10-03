@@ -1,6 +1,7 @@
 import {
   buildReferenceIndex,
   type Arranged,
+  type ArtefactModel,
   type ColumnKey,
   type Problem,
   type RecognisedSectionKey,
@@ -59,6 +60,7 @@ import {
 import { attachedCitekeys } from "./workspace/model/attach";
 import { AddResultPane } from "./workspace/AddResultPane";
 import { PaneHost } from "./workspace/PaneHost";
+import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
 import { ResultsPane } from "./workspace/ResultsPane";
 import { Ribbon } from "./workspace/Ribbon";
@@ -363,6 +365,25 @@ function NotebookViewBody({
       ? () => editing.onAddResult(selectedRow)
       : null;
 
+  /** The artefact a result tab shows, if it is still there. */
+  function artefactOf(tab: PaneTab): ArtefactModel | undefined {
+    if (tab.kind !== "result") return undefined;
+    const item = (arranged?.questions ?? [])
+      .flatMap((group) => group.experiments)
+      .concat(arranged?.unassigned ?? [])
+      .find(
+        (candidate) => candidate.experiment.folder === tab.experimentFolder,
+      );
+    const artefacts = item === undefined ? null : evidenceOf(item);
+    return artefacts?.artefacts.find((a) => a.id === tab.artefactId);
+  }
+
+  function iconOf(tab: PaneTab): ReactNode {
+    return (
+      <PaneTabIcon tab={tab} artefactType={artefactOf(tab)?.type ?? null} />
+    );
+  }
+
   function titleOf(tab: PaneTab): string {
     switch (tab.kind) {
       case "sources":
@@ -586,7 +607,12 @@ function NotebookViewBody({
                 />
               )}
             </div>
-            <PaneHost state={panes} dispatch={dispatchPanes} titleOf={titleOf}>
+            <PaneHost
+              state={panes}
+              dispatch={dispatchPanes}
+              titleOf={titleOf}
+              iconOf={iconOf}
+            >
               {paneContent}
             </PaneHost>
           </div>

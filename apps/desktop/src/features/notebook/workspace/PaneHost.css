@@ -1,6 +1,9 @@
-/* The side pane sits beside the table in the workspace's flex row, so the table shrinks to make room. */
+/* The pane stays in the window under the sticky ribbon while the table scrolls by. */
 .pane {
-  position: relative;
+  position: sticky;
+  top: var(--ribbon-height, 0px);
+  height: calc(100vh - var(--ribbon-height, 0px));
+  align-self: flex-start;
   flex: none;
   display: flex;
   flex-direction: column;
@@ -115,4 +118,64 @@
   min-height: 0;
   overflow: auto;
   padding: var(--space-3) var(--space-4);
+}
+
+.pane__minimise {
+  flex: none;
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+  color: var(--color-on-dark);
+  background: none;
+  border-color: color-mix(in srgb, var(--color-on-dark) 40%, transparent);
+  font-size: 0.85rem;
+}
+
+/* The pane folded to a narrow rail: a small square icon per open tab, to switch between them. */
+.pane-rail {
+  position: sticky;
+  top: var(--ribbon-height, 0px);
+  align-self: flex-start;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  width: 3rem;
+  min-height: calc(100vh - var(--ribbon-height, 0px));
+  padding: var(--space-2) 0;
+  background: var(--palette-secondary);
+  border-left: 1px solid var(--color-border);
+}
+
+.pane-rail button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  color: var(--color-on-dark);
+  background: var(--palette-primary-dark);
+  border: 1px solid color-mix(in srgb, var(--color-on-dark) 25%, transparent);
+  border-radius: 6px;
+}
+
+.pane-rail button:hover:not(:disabled) {
+  background: var(--palette-accent-hover);
+  border-color: transparent;
+}
+
+.pane-rail__tab .artefact-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.pane-rail__tab--active {
+  background: var(--palette-accent);
+  border-color: transparent;
+}
+
+.pane-rail__restore {
+  margin-bottom: var(--space-2);
 }

@@ -55,17 +55,12 @@ body {
   margin: 0;
 }
 
+/* The page is an ordinary long page: ribbon, table, then Bibliography, and it scrolls. */
 .app {
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  min-height: 100vh;
 }
 
 .container {
-  box-sizing: border-box;
-  height: 100%;
-  overflow: auto;
   margin: 0;
   padding: var(--space-5) var(--space-6);
 }

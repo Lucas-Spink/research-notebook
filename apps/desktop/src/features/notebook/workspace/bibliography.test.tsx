@@ -3,7 +3,7 @@ import type {
   NotebookState,
 } from "@research-notebook/format";
 import { act } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { sampleNotebook } from "../model/fakeApi";
 import { mountNotebook, prepareInteractiveTable } from "../table/tableTesting";
 
@@ -99,24 +99,42 @@ describe("citations and the Bibliography (S6-T01)", () => {
     expect(document.activeElement).toBe(marked[0]);
   });
 
-  it("opens a collapsed Bibliography for a jump", () => {
+  it("is a plain section of the page: nothing collapses it, and every entry is always listed", () => {
     const { view } = mountNotebook(cited);
-    const toggle = view.querySelector(".bibliography__toggle");
-    if (toggle === null) throw new Error("no toggle");
-    act(() => {
-      toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(entries(view)).toHaveLength(0);
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-
-    const chip = view.querySelector(".wtable .citation-chip button");
-    if (chip === null) throw new Error("no citation");
-    act(() => {
-      chip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(view.querySelectorAll(".bibliography__entry--marked")).toHaveLength(
-      1,
+    const section = view.querySelector(".bibliography");
+    expect(section?.querySelector("button[aria-expanded]")).toBeNull();
+    expect(section?.querySelector("h2")?.textContent).toContain("Bibliography");
+    expect(entries(view)).toHaveLength(2);
+    // After the whole table, in the page's flow: a sibling that follows it,
+    // inside nothing that pins or scrolls it.
+    expect(section?.previousElementSibling).toBe(
+      view.querySelector(".workspace__main"),
     );
+    expect(section?.closest(".pane, .wtable, .workspace__main")).toBeNull();
+  });
+
+  it("scrolls the page to the entry of a clicked citation", () => {
+    const scroll = vi.fn();
+    // jsdom has no scrollIntoView, so one is put on the prototype for this test.
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scroll,
+    });
+    try {
+      const { view } = mountNotebook(cited);
+      const chip = view.querySelector(
+        '.wtable .citation-chip button[data-citekey="z:u:AAAA2222"]',
+      );
+      if (chip === null) throw new Error("no citation");
+      act(() => {
+        chip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(scroll).toHaveBeenCalledTimes(1);
+      expect(scroll.mock.instances[0]).toBe(
+        view.querySelector('.bibliography__entry[data-citekey="z:u:AAAA2222"]'),
+      );
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+    }
   });
 });

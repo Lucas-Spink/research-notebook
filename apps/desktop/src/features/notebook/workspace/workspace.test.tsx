@@ -273,4 +273,62 @@ describe("the workspace (S6-T01)", () => {
     click(ribbonButton(view, "Add result"));
     expect(pane(view)?.textContent).toContain("Add results to EXP-002");
   });
+
+  it("folds the pane into a rail of small square icons, one per open tab, to click through", () => {
+    const { view } = mountNotebook(withFigure);
+    const thumb = rowOf(view, "EXP-001").querySelector(".wtable__thumb");
+    if (thumb === null) throw new Error("no result");
+    act(() => {
+      thumb.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    click(ribbonButton(view, "Sources"));
+    expect(pane(view)).not.toBeNull();
+
+    const minimise = view.querySelector(
+      'button[aria-label="Minimise the side pane"]',
+    );
+    if (minimise === null) throw new Error("no minimise button");
+    click(minimise);
+
+    // The pane is gone from beside the table, but its tabs are all still open.
+    expect(pane(view)).toBeNull();
+    const rail = view.querySelector(".pane-rail");
+    expect(rail).not.toBeNull();
+    const tabs = [...(rail?.querySelectorAll(".pane-rail__tab") ?? [])];
+    expect(tabs.map((t) => t.getAttribute("aria-label"))).toEqual([
+      "PCA plot",
+      "Sources",
+    ]);
+    for (const tab of tabs) {
+      expect(tab.querySelector("svg.artefact-icon")).not.toBeNull();
+    }
+    expect(view.querySelector(".wtable")).not.toBeNull();
+
+    // Clicking an icon unfolds the pane on that tab, without losing the others.
+    click(tabs[0] as Element);
+    expect(view.querySelector(".pane-rail")).toBeNull();
+    expect(
+      pane(view)?.querySelector('[role="tab"][aria-selected="true"]')
+        ?.textContent,
+    ).toBe("PCA plot");
+    expect(
+      [...(pane(view)?.querySelectorAll('[role="tab"]') ?? [])].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["PCA plot", "Sources"]);
+  });
+
+  it("unfolds from the rail's own button", () => {
+    const { view } = mountNotebook(state);
+    click(ribbonButton(view, "Sources"));
+    click(
+      view.querySelector(
+        'button[aria-label="Minimise the side pane"]',
+      ) as Element,
+    );
+    click(
+      view.querySelector('button[aria-label="Show the side pane"]') as Element,
+    );
+    expect(pane(view)).not.toBeNull();
+  });
 });

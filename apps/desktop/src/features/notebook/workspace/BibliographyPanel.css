@@ -1,29 +1,15 @@
-/* The Bibliography sits under the table and the side pane, at a modest height of its own. */
+/* The Bibliography is an ordinary section at the bottom of a long page: it
+   follows the table in normal flow and is neither pinned nor scrolled apart. */
 .bibliography {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  max-height: 30vh;
+  padding: var(--space-5) var(--space-4) var(--space-6);
   background: var(--color-surface-alt);
   border-top: 2px solid var(--palette-secondary);
   text-align: left;
 }
 
 .bibliography__heading {
-  flex: none;
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.bibliography__toggle {
-  width: 100%;
-  padding: var(--space-1) var(--space-4);
-  color: var(--palette-primary-dark);
-  background: var(--palette-light);
-  border: 0;
-  border-radius: 0;
-  font-weight: 600;
-  text-align: left;
+  margin: 0 0 var(--space-3);
+  font-size: 1.25rem;
 }
 
 .bibliography__count {
@@ -33,19 +19,16 @@
   background: var(--palette-secondary);
   border-radius: 999px;
   font-size: 0.8rem;
+  vertical-align: middle;
 }
 
 .bibliography__list,
 .bibliography__empty {
-  flex: 1;
-  min-height: 0;
   margin: 0;
-  padding: var(--space-2) var(--space-4);
-  overflow: auto;
 }
 
 .bibliography__list {
-  list-style-position: inside;
+  padding-inline-start: 1.5rem;
 }
 
 .bibliography__entry {

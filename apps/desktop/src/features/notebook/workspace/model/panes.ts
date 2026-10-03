@@ -23,6 +23,8 @@ export type PaneState = {
   activeId: string | null;
   /** The pane's width in CSS pixels. */
   width: number;
+  /** Folded into a narrow rail of icons, one per tab, so the table has the room; the tabs stay open. */
+  minimised: boolean;
 };
 
 export type PaneAction =
@@ -30,6 +32,8 @@ export type PaneAction =
   | { type: "activate"; id: string }
   | { type: "close"; id: string }
   | { type: "closeAll" }
+  | { type: "minimise" }
+  | { type: "restore" }
   | { type: "resize"; width: number };
 
 export const MIN_PANE_WIDTH = 280;
@@ -40,6 +44,7 @@ export const initialPanes: PaneState = {
   tabs: [],
   activeId: null,
   width: DEFAULT_PANE_WIDTH,
+  minimised: false,
 };
 
 /** A width kept whole and inside the limits, and within what the window leaves for the table. */
@@ -83,11 +88,13 @@ export function panesReducer(state: PaneState, action: PaneAction): PaneState {
         ...state,
         tabs: known ? state.tabs : [...state.tabs, action.tab],
         activeId: action.tab.id,
+        // Opening something shows it, so a folded pane unfolds.
+        minimised: false,
       };
     }
     case "activate":
       return state.tabs.some((tab) => tab.id === action.id)
-        ? { ...state, activeId: action.id }
+        ? { ...state, activeId: action.id, minimised: false }
         : state;
     case "close": {
       const at = state.tabs.findIndex((tab) => tab.id === action.id);
@@ -99,10 +106,15 @@ export function panesReducer(state: PaneState, action: PaneAction): PaneState {
         tabs,
         activeId:
           state.activeId === action.id ? (next?.id ?? null) : state.activeId,
+        minimised: tabs.length === 0 ? false : state.minimised,
       };
     }
     case "closeAll":
-      return { ...state, tabs: [], activeId: null };
+      return { ...state, tabs: [], activeId: null, minimised: false };
+    case "minimise":
+      return state.tabs.length === 0 ? state : { ...state, minimised: true };
+    case "restore":
+      return { ...state, minimised: false };
     case "resize":
       return { ...state, width: clampPaneWidth(action.width) };
     default:
