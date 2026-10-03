@@ -9,6 +9,7 @@ import {
   useThumbnail,
   versionPath,
 } from "../../preview";
+import { ArtefactTypeIcon } from "../../../shared/ArtefactTypeIcon";
 import { tableMessages } from "../messages";
 import type { ResultsThumbnail } from "./model/resultsSummary";
 
@@ -100,8 +101,8 @@ function HoverPreview({
 }
 
 /**
- * A result's latest version, drawn small (spec 8). Hovering it shows a larger
- * preview beside it; double-clicking opens the result in the side pane
+ * A result as a file in the cell: its name with a small icon for its type
+ * just after it. Hovering it shows a larger preview beside it; double-clicking opens the result in the side pane
  * (S6-T01). A single click is kept from opening the Results cell, since that
  * would replace the thumbnail before the second click could land.
  */
@@ -111,20 +112,6 @@ export function ResultThumb({
   thumb,
   onOpen,
 }: Props) {
-  const plan = useMemo(
-    () =>
-      planPreview({ fileName: thumb.file, type: thumb.type, captured: true }),
-    [thumb.file, thumb.type],
-  );
-  const thumbnail = useThumbnail({
-    api: commands,
-    target: {
-      folder,
-      file: versionPath(experimentFolder, thumb.file),
-      sha256: thumb.sha256,
-    },
-    plan,
-  });
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const node = useRef<HTMLSpanElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,7 +145,10 @@ export function ResultThumb({
         onOpen();
       }}
     >
-      <PreviewThumbnail name={thumb.name} thumbnail={thumbnail} />
+      <span className="wtable__file-name">{thumb.name}</span>
+      <span className="wtable__file-icon">
+        <ArtefactTypeIcon type={thumb.type} />
+      </span>
       {anchor !== null && (
         <HoverPreview
           folder={folder}

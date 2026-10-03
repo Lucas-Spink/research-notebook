@@ -2,9 +2,7 @@ import type {
   ArrangedExperiment,
   ArrangedQuestion,
   RecognisedSectionKey,
-  ReferenceIndex,
 } from "@research-notebook/format";
-import type { FolderHandle } from "../../ipc/bindings";
 import type { LiveEditor } from "./editing/useLiveEditor";
 import { ExpandedExperimentView } from "./expanded/ExpandedExperimentView";
 import { ExperimentItem, type QuestionChoice } from "./ExperimentItem";
@@ -30,13 +28,12 @@ type Props = {
    * interrupt someone typing (autosave runs quietly, ADR-0028).
    */
   writable: boolean;
-  /** The open project, so the expanded view can read an experiment's artefacts.yaml (FR-EDT-04). */
-  folder: FolderHandle;
-  /** `project.yaml`'s own id, for a reference chip's preview (FR-EDT-06); `null` before the project has loaded. */
-  projectId: string | null;
-  /** Every experiment and section that references an artefact, across the
-   * whole project (FR-SRC-03). */
-  references: ReferenceIndex;
+  /** Opens a result a figure reference points to, in the side pane. */
+  onOpenResult: (
+    experimentFolder: string,
+    artefactId: string,
+    version: number | null,
+  ) => void;
   /** The section to scroll the expanded view to, when the selection came from a search result (FR-SRC-02); `null` otherwise. */
   focusSection: RecognisedSectionKey | null;
   /** The application's one live section editor (FR-EDT-03, ADR-0043). */
@@ -55,9 +52,7 @@ export function DetailsPanel({
   actions,
   disabled,
   writable,
-  folder,
-  projectId,
-  references,
+  onOpenResult,
   focusSection,
   live,
 }: Props) {
@@ -81,9 +76,7 @@ export function DetailsPanel({
           <ExpandedExperimentView
             item={selected.item}
             disabled={!writable}
-            folder={folder}
-            projectId={projectId}
-            references={references}
+            onOpenResult={onOpenResult}
             focusSection={focusSection}
             live={live}
           />

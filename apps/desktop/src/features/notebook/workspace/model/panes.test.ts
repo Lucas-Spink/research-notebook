@@ -106,4 +106,38 @@ describe("panesReducer", () => {
     expect(clampPaneWidth(900, 600)).toBe(600);
     expect(clampPaneWidth(900, 100)).toBe(MIN_PANE_WIDTH);
   });
+
+  it("minimises to a rail without closing any tab, and restores on opening one", () => {
+    const open = run([
+      { type: "open", tab: sources },
+      { type: "open", tab: details },
+      { type: "open", tab: figure("A") },
+    ]);
+    const folded = panesReducer(open, { type: "minimise" });
+    expect(folded.minimised).toBe(true);
+    expect(folded.tabs).toEqual(open.tabs);
+    expect(folded.activeId).toBe(open.activeId);
+
+    // Choosing a tab from the rail shows it, and unfolds the pane.
+    const picked = panesReducer(folded, { type: "activate", id: "sources" });
+    expect(picked.minimised).toBe(false);
+    expect(picked.activeId).toBe("sources");
+
+    // So does opening something, and the restore action.
+    expect(panesReducer(folded, { type: "open", tab: details }).minimised).toBe(
+      false,
+    );
+    expect(panesReducer(folded, { type: "restore" }).minimised).toBe(false);
+  });
+
+  it("has nothing to minimise without tabs, and unfolds when the last tab closes", () => {
+    expect(panesReducer(initialPanes, { type: "minimise" })).toBe(initialPanes);
+    const folded = panesReducer(run([{ type: "open", tab: sources }]), {
+      type: "minimise",
+    });
+    expect(
+      panesReducer(folded, { type: "close", id: "sources" }).minimised,
+    ).toBe(false);
+    expect(panesReducer(folded, { type: "closeAll" }).minimised).toBe(false);
+  });
 });

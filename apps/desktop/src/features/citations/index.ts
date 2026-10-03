@@ -1,5 +1,9 @@
 export { CitationChip, CitationSource, type ChipItem } from "./CitationChip";
-export { CitationJumpProvider, useCitationJump } from "./CitationInteraction";
+export {
+  CitationActionsProvider,
+  useCitationActions,
+  type CitationActions,
+} from "./CitationInteraction";
 export { CitationPicker, type CitationPickerProps } from "./CitationPicker";
 export { LiteraturePrompt } from "./LiteraturePrompt";
 export {

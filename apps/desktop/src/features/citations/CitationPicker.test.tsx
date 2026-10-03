@@ -323,3 +323,79 @@ describe("CitationPicker in replace mode (FR-CIT-08)", () => {
     expect(use?.disabled).toBe(true);
   });
 });
+
+describe("CitationPicker: several citations at once (S6-T01)", () => {
+  const SECOND = {
+    citekey: "z:u:ABCD2345",
+    title: "More Widgets",
+    creatorSummary: "Jones",
+    itemType: "book",
+  };
+
+  async function pickBoth(onInsert: (markdown: string) => void) {
+    const view = mount(
+      fakeApi({ status: "ok", data: [ROW, SECOND] }),
+      onInsert,
+    );
+    await search(view, "widget");
+    for (const box of view.querySelectorAll('input[type="checkbox"]')) {
+      click(box);
+    }
+    return view;
+  }
+
+  const insertButton = (view: HTMLElement) =>
+    [...view.querySelectorAll("button")].find(
+      (button) => button.textContent === "Insert citation",
+    );
+
+  it("keeps the selection while searching again, and counts it", async () => {
+    const view = await pickBoth(() => undefined);
+    expect(view.textContent).toContain("2 sources selected");
+    await search(view, "other");
+    expect(view.textContent).toContain("2 sources selected");
+  });
+
+  it("inserts the sources as one cluster by default", async () => {
+    const onInsert = vi.fn();
+    const view = await pickBoth(onInsert);
+    click(insertButton(view));
+    expect(onInsert).toHaveBeenCalledWith("[@z:u:7XK2PQ9M; @z:u:ABCD2345]");
+  });
+
+  it("can insert a citation for each source instead", async () => {
+    const onInsert = vi.fn();
+    const view = await pickBoth(onInsert);
+    const separate = [...view.querySelectorAll("label")].find((label) =>
+      label.textContent?.includes("Insert as separate citations"),
+    );
+    click(separate?.querySelector("input"));
+    click(insertButton(view));
+    expect(onInsert).toHaveBeenCalledWith("[@z:u:7XK2PQ9M] [@z:u:ABCD2345]");
+  });
+
+  it("clears the whole selection in one press", async () => {
+    const view = await pickBoth(() => undefined);
+    click(
+      [...view.querySelectorAll("button")].find(
+        (button) => button.textContent === "Clear selection",
+      ),
+    );
+    expect(view.textContent).toContain("0 sources selected");
+  });
+
+  it("inserts with Ctrl+Enter once something is selected", async () => {
+    const onInsert = vi.fn();
+    const view = await pickBoth(onInsert);
+    act(() => {
+      view.querySelector('[role="dialog"]')?.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          ctrlKey: true,
+          bubbles: true,
+        }),
+      );
+    });
+    expect(onInsert).toHaveBeenCalledTimes(1);
+  });
+});

@@ -183,6 +183,9 @@ export function artefactTypeLabel(type: ArtefactModel["type"]): string {
 }
 
 /** "v2" for a captured artefact's version. */
+/** A linked file (a script, say) has no versions to pin a reference to. */
+export const artefactLinkedLabel = "linked";
+
 export function artefactVersionLabel(version: number): string {
   return `v${version}`;
 }
@@ -226,6 +229,8 @@ export const expandLabel = (ref: string) => `Expand ${ref}`;
 export const selectLabel = (ref: string) => `Select ${ref}`;
 export const browseResultsLabel = (ref: string) =>
   `Browse all results of ${ref}`;
+/** The plus in a Results cell, which opens the Add result pane. */
+export const addResultLabel = (ref: string) => `Add a result to ${ref}`;
 /** "1 result", "3 results" (FR-TBL-06). */
 export const resultsCountLabel = (count: number) =>
   `${count} ${count === 1 ? "result" : "results"}`;

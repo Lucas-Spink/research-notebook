@@ -1,6 +1,7 @@
 import {
   buildReferenceIndex,
   type Arranged,
+  type ArtefactModel,
   type ColumnKey,
   type Problem,
   type RecognisedSectionKey,
@@ -15,7 +16,7 @@ import {
 } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import {
-  CitationJumpProvider,
+  CitationActionsProvider,
   LiteraturePrompt,
   StylePicker,
   SourcesProvider,
@@ -45,6 +46,8 @@ import { assertNever } from "../../shared/assertNever";
 import { evidenceOf } from "./model/evidence";
 import { paneMessages, ribbonMessages } from "./workspace/messages";
 import {
+  addResultTabId,
+  resultsTabId,
   initialPanes,
   panesReducer,
   resultTabId,
@@ -55,8 +58,11 @@ import {
   type BibliographyTarget,
 } from "./workspace/BibliographyPanel";
 import { attachedCitekeys } from "./workspace/model/attach";
+import { AddResultPane } from "./workspace/AddResultPane";
 import { PaneHost } from "./workspace/PaneHost";
+import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
+import { ResultsPane } from "./workspace/ResultsPane";
 import { Ribbon } from "./workspace/Ribbon";
 import { SourcesPane } from "./workspace/SourcesPane";
 import { useSourceAttach } from "./workspace/useSourceAttach";
@@ -257,6 +263,24 @@ function NotebookViewBody({
       setPickedKey(null);
       setFocusSection(null);
     },
+    onOpenResultsPane: (experimentFolder) =>
+      dispatchPanes({
+        type: "open",
+        tab: {
+          id: resultsTabId(experimentFolder),
+          kind: "results",
+          experimentFolder,
+        },
+      }),
+    onOpenAddResult: (experimentFolder) =>
+      dispatchPanes({
+        type: "open",
+        tab: {
+          id: addResultTabId(experimentFolder),
+          kind: "addResult",
+          experimentFolder,
+        },
+      }),
     onOpenResult: (experimentFolder, artefactId, version) =>
       dispatchPanes({
         type: "open",
@@ -310,6 +334,20 @@ function NotebookViewBody({
     sync: syncInserted,
   });
 
+  // A click on a citation shows its source in the side pane; a double click
+  // goes down the page to its Bibliography entry.
+  const citationActions = useMemo(
+    () => ({
+      open: () =>
+        dispatchPanes({
+          type: "open",
+          tab: { id: "sources", kind: "sources" },
+        }),
+      jump: jumpToCitation,
+    }),
+    [jumpToCitation],
+  );
+
   /** Every source cited anywhere in the project, for the Bibliography. */
   const citedSources = useMemo(
     () =>
@@ -338,8 +376,27 @@ function NotebookViewBody({
   );
   const addResult =
     selectedRow?.kind === "experiment" && writable && !selectedRow.item.readOnly
-      ? () => editing.onOpenResults(selectedRow)
+      ? () => editing.onAddResult(selectedRow)
       : null;
+
+  /** The artefact a result tab shows, if it is still there. */
+  function artefactOf(tab: PaneTab): ArtefactModel | undefined {
+    if (tab.kind !== "result") return undefined;
+    const item = (arranged?.questions ?? [])
+      .flatMap((group) => group.experiments)
+      .concat(arranged?.unassigned ?? [])
+      .find(
+        (candidate) => candidate.experiment.folder === tab.experimentFolder,
+      );
+    const artefacts = item === undefined ? null : evidenceOf(item);
+    return artefacts?.artefacts.find((a) => a.id === tab.artefactId);
+  }
+
+  function iconOf(tab: PaneTab): ReactNode {
+    return (
+      <PaneTabIcon tab={tab} artefactType={artefactOf(tab)?.type ?? null} />
+    );
+  }
 
   function titleOf(tab: PaneTab): string {
     switch (tab.kind) {
@@ -351,6 +408,10 @@ function NotebookViewBody({
         return paneMessages.citationsTab;
       case "details":
         return paneMessages.detailsTab;
+      case "addResult":
+        return paneMessages.addResultTab;
+      case "results":
+        return paneMessages.resultsTab;
       case "result": {
         const item = (arranged?.questions ?? [])
           .flatMap((group) => group.experiments)
@@ -385,6 +446,34 @@ function NotebookViewBody({
         );
       case "citations":
         return <StylePicker model={styles} />;
+      case "results":
+        return (
+          <ResultsPane
+            tab={tab}
+            arranged={arranged}
+            folder={folder}
+            editing={editing}
+            onAddResults={(experimentFolder) =>
+              dispatchPanes({
+                type: "open",
+                tab: {
+                  id: addResultTabId(experimentFolder),
+                  kind: "addResult",
+                  experimentFolder,
+                },
+              })
+            }
+          />
+        );
+      case "addResult":
+        return (
+          <AddResultPane
+            tab={tab}
+            arranged={arranged}
+            folder={folder}
+            editing={editing}
+          />
+        );
       case "details":
         return (
           <DetailsPanel
@@ -394,9 +483,7 @@ function NotebookViewBody({
             actions={actions}
             disabled={disabled}
             writable={writable}
-            folder={folder}
-            projectId={projectId}
-            references={references}
+            onOpenResult={editing.onOpenResult}
             focusSection={focusSection}
             live={live}
           />
@@ -419,7 +506,7 @@ function NotebookViewBody({
   }
 
   return (
-    <CitationJumpProvider value={jumpToCitation}>
+    <CitationActionsProvider value={citationActions}>
       <section className="workspace" aria-labelledby="notebook-heading">
         <Ribbon
           projectControls={projectControls}
@@ -532,7 +619,12 @@ function NotebookViewBody({
                 />
               )}
             </div>
-            <PaneHost state={panes} dispatch={dispatchPanes} titleOf={titleOf}>
+            <PaneHost
+              state={panes}
+              dispatch={dispatchPanes}
+              titleOf={titleOf}
+              iconOf={iconOf}
+            >
               {paneContent}
             </PaneHost>
           </div>
@@ -551,6 +643,6 @@ function NotebookViewBody({
           />
         )}
       </section>
-    </CitationJumpProvider>
+    </CitationActionsProvider>
   );
 }

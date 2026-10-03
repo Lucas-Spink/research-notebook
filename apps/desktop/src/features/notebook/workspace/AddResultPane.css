@@ -1,0 +1,53 @@
+.add-result__heading {
+  margin: 0;
+}
+
+.add-result__title {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+}
+
+.add-result__intro {
+  margin: 0 0 var(--space-3);
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* In the pane the controls are stacked and large; the whole pane takes drops. */
+.wtable__add--pane {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.wtable__add--pane > button {
+  padding: var(--space-2) var(--space-3);
+}
+
+.wtable__add--pane > button:first-of-type {
+  color: var(--color-on-dark);
+  background: var(--palette-accent);
+  border-color: var(--palette-accent);
+}
+
+.wtable__add--pane > button:first-of-type:hover:not(:disabled) {
+  background: var(--palette-accent-hover);
+}
+
+.wtable__add--pane .wtable__add-how {
+  justify-content: space-between;
+}
+
+.wtable__add--pane.wtable__add--drop {
+  border-color: var(--palette-accent);
+  background: color-mix(
+    in srgb,
+    var(--palette-accent) 8%,
+    var(--color-surface)
+  );
+  outline: none;
+}

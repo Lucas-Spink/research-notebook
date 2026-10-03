@@ -2,7 +2,6 @@ import type {
   RecognisedSectionKey,
   ReferenceIndex,
 } from "@research-notebook/format";
-import { useState } from "react";
 import type { LiveEditor } from "../editing/useLiveEditor";
 import type { NotebookActions } from "../useNotebook";
 import type { TableEditing } from "./EditableSectionCell";
@@ -20,6 +19,10 @@ type Options = {
   onSelectRow: (row: ExperimentRow) => void;
   /** Opens a result in the side pane. */
   onOpenResult: TableEditing["onOpenResult"];
+  /** Opens the Add result pane for an experiment's folder. */
+  onOpenAddResult: (experimentFolder: string) => void;
+  /** Opens the Results browser for an experiment's folder. */
+  onOpenResultsPane: (experimentFolder: string) => void;
 };
 
 /**
@@ -37,14 +40,13 @@ export function useTableEditing({
   actions,
   onSelectRow,
   onOpenResult,
+  onOpenAddResult,
+  onOpenResultsPane,
 }: Options): TableEditing {
-  const [openResults, setOpenResults] = useState<string | null>(null);
-
   function onEdit(row: ExperimentRow, section: RecognisedSectionKey) {
     const folder = row.item.experiment.folder;
     void live.activate({ folder, section, surface: "table" }).then((opened) => {
       if (!opened) return;
-      setOpenResults(null);
       onSelectRow(row);
     });
   }
@@ -52,9 +54,14 @@ export function useTableEditing({
   function onOpenResults(row: ExperimentRow) {
     void live.activate(null).then((closed) => {
       if (!closed) return;
-      setOpenResults(row.item.experiment.folder);
       onSelectRow(row);
+      onOpenResultsPane(row.item.experiment.folder);
     });
+  }
+
+  function onAddResult(row: ExperimentRow) {
+    onSelectRow(row);
+    onOpenAddResult(row.item.experiment.folder);
   }
 
   return {
@@ -64,10 +71,9 @@ export function useTableEditing({
     references,
     onEdit,
     onEditExperiment: (id, changes) => actions.editExperiment(id, changes),
-    openResults,
     onOpenResults,
-    onCloseResults: () => setOpenResults(null),
     onOpenResult,
+    onAddResult,
     evidence,
     editArtefacts: (folder, change) => actions.editArtefacts(folder, change),
   };

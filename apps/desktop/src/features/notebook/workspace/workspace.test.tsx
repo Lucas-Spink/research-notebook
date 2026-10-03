@@ -9,6 +9,7 @@ import { selectLabel } from "../messages";
 import { sampleNotebook } from "../model/fakeApi";
 import {
   mountNotebook,
+  openCell,
   prepareInteractiveTable,
   rowOf,
 } from "../table/tableTesting";
@@ -236,5 +237,144 @@ describe("the workspace (S6-T01)", () => {
     click(select);
     click(ribbonButton(view, "Details"));
     expect(pane(view)?.querySelector(".notebook__details")).not.toBeNull();
+  });
+
+  it("adds results from a pane opened by the plus in the Results cell", () => {
+    const { view } = mountNotebook(state);
+    const plus = rowOf(view, "EXP-001").querySelector(
+      'button[aria-label="Add a result to EXP-001"]',
+    );
+    if (plus === null) throw new Error("no plus");
+    click(plus);
+    expect(
+      [...view.querySelectorAll('aside.pane [role="tab"]')].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["Add result"]);
+    expect(pane(view)?.textContent).toContain("Add results to EXP-001");
+    expect(
+      [...(pane(view)?.querySelectorAll("button") ?? [])].some(
+        (b) => b.textContent === "Add files…",
+      ),
+    ).toBe(true);
+    // The cell itself did not open into the folder tree.
+    expect(rowOf(view, "EXP-001").querySelector('[role="tree"]')).toBeNull();
+  });
+
+  it("opens the same pane from the ribbon's Add result for the selected experiment", () => {
+    const { view } = mountNotebook(state);
+    expect(ribbonButton(view, "Add result").hasAttribute("disabled")).toBe(
+      true,
+    );
+    const select = rowOf(view, "EXP-002").querySelector(
+      `button[aria-label="${selectLabel("EXP-002")}"]`,
+    );
+    if (select === null) throw new Error("no title");
+    click(select);
+    click(ribbonButton(view, "Add result"));
+    expect(pane(view)?.textContent).toContain("Add results to EXP-002");
+  });
+
+  it("folds the pane into a rail of small square icons, one per open tab, to click through", () => {
+    const { view } = mountNotebook(withFigure);
+    const thumb = rowOf(view, "EXP-001").querySelector(".wtable__thumb");
+    if (thumb === null) throw new Error("no result");
+    act(() => {
+      thumb.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    click(ribbonButton(view, "Sources"));
+    expect(pane(view)).not.toBeNull();
+
+    const minimise = view.querySelector(
+      'button[aria-label="Minimise the side pane"]',
+    );
+    if (minimise === null) throw new Error("no minimise button");
+    click(minimise);
+
+    // The pane is gone from beside the table, but its tabs are all still open.
+    expect(pane(view)).toBeNull();
+    const rail = view.querySelector(".pane-rail");
+    expect(rail).not.toBeNull();
+    const tabs = [...(rail?.querySelectorAll(".pane-rail__tab") ?? [])];
+    expect(tabs.map((t) => t.getAttribute("aria-label"))).toEqual([
+      "PCA plot",
+      "Sources",
+    ]);
+    for (const tab of tabs) {
+      expect(tab.querySelector("svg.artefact-icon")).not.toBeNull();
+    }
+    expect(view.querySelector(".wtable")).not.toBeNull();
+
+    // Clicking an icon unfolds the pane on that tab, without losing the others.
+    click(tabs[0] as Element);
+    expect(view.querySelector(".pane-rail")).toBeNull();
+    expect(
+      pane(view)?.querySelector('[role="tab"][aria-selected="true"]')
+        ?.textContent,
+    ).toBe("PCA plot");
+    expect(
+      [...(pane(view)?.querySelectorAll('[role="tab"]') ?? [])].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["PCA plot", "Sources"]);
+  });
+
+  it("unfolds from the rail's own button", () => {
+    const { view } = mountNotebook(state);
+    click(ribbonButton(view, "Sources"));
+    click(
+      view.querySelector(
+        'button[aria-label="Minimise the side pane"]',
+      ) as Element,
+    );
+    click(
+      view.querySelector('button[aria-label="Show the side pane"]') as Element,
+    );
+    expect(pane(view)).not.toBeNull();
+  });
+
+  it("opens a figure referenced in the text in the side pane, not full size", async () => {
+    const referenced: NotebookState = {
+      ...withFigure,
+      experiments: withFigure.experiments.map((e) =>
+        e.folder === "EXP-001"
+          ? {
+              ...e,
+              file: {
+                ...e.file,
+                body: {
+                  ...e.file.body,
+                  sections: e.file.body.sections.map((section) =>
+                    section.key === "methods"
+                      ? {
+                          ...section,
+                          body: 'See [PCA plot](evidence/pca.png "art:01JB0000000000000000000001 v1").',
+                        }
+                      : section,
+                  ),
+                },
+              },
+            }
+          : e,
+      ),
+    };
+    const { view } = mountNotebook(referenced);
+    await openCell(view, "EXP-001", "methods");
+    const chip = rowOf(view, "EXP-001").querySelector(
+      ".expanded__artefact-ref--chip",
+    );
+    if (chip === null) throw new Error("no figure chip in the editor");
+    act(() => {
+      chip.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(
+      [...view.querySelectorAll('aside.pane [role="tab"]')].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["PCA plot"]);
+    // No full-size dialog over the page.
+    expect(
+      document.body.querySelector(".expanded__reference-preview"),
+    ).toBeNull();
   });
 });

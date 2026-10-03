@@ -4,7 +4,53 @@
   z-index: 20;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding-top: 15vh;
-  background: rgba(0, 0, 0, 0.25);
+  align-items: center;
+  padding: 4vh 3vw;
+  background: rgb(31 41 55 / 45%);
+}
+
+/* The /cite dialog is large: results beside the chosen sources, so several
+   citations can be searched for, picked and given locators in one sitting. */
+.expanded__citation-picker-overlay .citation-picker {
+  width: min(1100px, 100%);
+  max-width: none;
+  height: min(780px, 100%);
+  max-height: none;
+  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgb(31 41 55 / 40%);
+  border-top: 4px solid var(--palette-accent);
+}
+
+.expanded__citation-picker-overlay .citation-picker__body {
+  flex: 1;
+  flex-direction: row;
+  gap: 1.25rem;
+}
+
+.expanded__citation-picker-overlay .citation-picker__column {
+  flex: 1 1 0;
+}
+
+.expanded__citation-picker-overlay .citation-picker__results,
+.expanded__citation-picker-overlay .citation-picker__selected ul {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.expanded__citation-picker-overlay .citation-picker__selected {
+  padding: 0 0 0 1.25rem;
+  border-top: 0;
+  border-left: 1px solid var(--color-border);
+}
+
+.expanded__citation-picker-overlay .citation-picker__result label {
+  padding: 0.5rem 0.75rem;
+}
+
+.expanded__citation-picker-overlay .citation-picker__result {
+  border-bottom: 1px solid var(--color-border);
 }

@@ -18,86 +18,69 @@ type Props = {
 const MARK_MS = 2000;
 
 /**
- * The project's Bibliography (S6-T01), always below the table: every source
- * cited in the project, once, as the canonical reference list. Activating a
- * citation in the text comes here, opens the list if it was collapsed,
- * scrolls the entry into view and marks it. It reads `bibliography.json`
- * through the sources provider, so it works with Zotero closed (FR-CIT-06).
+ * The project's Bibliography (S6-T01): a section of the page, after the whole
+ * experiment table in normal flow. It does not float over the table or share
+ * the window with it, so a long table pushes it further down and it is seen
+ * by scrolling past the table's end. It lists every source cited in the
+ * project, once, as the canonical reference list. Activating a citation in
+ * the text scrolls the page down to that source's entry and marks it. It
+ * reads `bibliography.json` through the sources provider, so it works with
+ * Zotero closed (FR-CIT-06).
  */
 export function BibliographyPanel({ citekeys, target, onShowDetails }: Props) {
   const { items } = useSources();
-  const [open, setOpen] = useState(true);
   const [marked, setMarked] = useState<string | null>(null);
   const list = useRef<HTMLOListElement>(null);
-  // The jump already carried out, so reopening the list does not repeat it.
-  const handled = useRef(0);
   const rows = useMemo(
     () => bibliographyRows(citekeys, items, m.notCached),
     [citekeys, items],
   );
 
-  // Reopens a collapsed list for a jump; the entry exists only once it is open.
   useEffect(() => {
-    if (target !== null) setOpen(true);
-  }, [target]);
-
-  useEffect(() => {
-    if (target === null || !open || handled.current === target.n) return;
+    if (target === null) return;
     const entry = [...(list.current?.children ?? [])].find(
       (child) => child.getAttribute("data-citekey") === target.citekey,
     );
     if (!(entry instanceof HTMLElement)) return;
-    entry.scrollIntoView?.({ block: "nearest" });
+    // The page scrolls to it; the ribbon above is sticky, so keep it clear.
+    entry.scrollIntoView?.({ block: "center" });
     entry.focus({ preventScroll: true });
-    handled.current = target.n;
     setMarked(target.citekey);
     const timer = setTimeout(() => setMarked(null), MARK_MS);
     return () => clearTimeout(timer);
-  }, [target, open]);
+  }, [target]);
 
   return (
-    <section
-      className={`bibliography${open ? "" : " bibliography--closed"}`}
-      aria-labelledby="bibliography-heading"
-    >
+    <section className="bibliography" aria-labelledby="bibliography-heading">
       <h2 id="bibliography-heading" className="bibliography__heading">
-        <button
-          type="button"
-          aria-expanded={open}
-          className="bibliography__toggle"
-          onClick={() => setOpen(!open)}
-        >
-          <span aria-hidden="true">{open ? "▾" : "▸"}</span> {m.heading}{" "}
-          <span className="bibliography__count">{rows.length}</span>
-        </button>
+        {m.heading} <span className="bibliography__count">{rows.length}</span>
       </h2>
-      {open &&
-        (rows.length === 0 ? (
-          <p className="bibliography__empty">{m.empty}</p>
-        ) : (
-          <ol ref={list} className="bibliography__list">
-            {rows.map((row) => (
-              <li
-                key={row.citekey}
-                data-citekey={row.citekey}
-                tabIndex={-1}
-                className={`bibliography__entry${marked === row.citekey ? " bibliography__entry--marked" : ""}`}
-              >
-                <span className="bibliography__text">{row.text}</span>
-                {row.details !== null && (
-                  <button
-                    type="button"
-                    className="bibliography__details"
-                    aria-label={m.detailsLabel(row.text)}
-                    onClick={() => onShowDetails(row.citekey)}
-                  >
-                    {m.details}
-                  </button>
-                )}
-              </li>
-            ))}
-          </ol>
-        ))}
+      {rows.length === 0 ? (
+        <p className="bibliography__empty">{m.empty}</p>
+      ) : (
+        <ol ref={list} className="bibliography__list">
+          {rows.map((row) => (
+            <li
+              key={row.citekey}
+              data-citekey={row.citekey}
+              tabIndex={-1}
+              className={`bibliography__entry${marked === row.citekey ? " bibliography__entry--marked" : ""}`}
+            >
+              <span className="bibliography__text">{row.text}</span>
+              {row.details !== null && (
+                <button
+                  type="button"
+                  className="bibliography__details"
+                  aria-label={m.detailsLabel(row.text)}
+                  onClick={() => onShowDetails(row.citekey)}
+                >
+                  {m.details}
+                </button>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
     </section>
   );
 }

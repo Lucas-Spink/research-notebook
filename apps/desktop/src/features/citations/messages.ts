@@ -33,6 +33,15 @@ export const citationPickerMessages = {
   suffixPlaceholder: "e.g. emphasis added",
   removeSelected: "Remove from selection",
   insert: "Insert citation",
+  selectedCount: (count: number) =>
+    count === 1 ? "1 source selected" : `${count} sources selected`,
+  noneSelected:
+    "Select one or more sources. Your selection stays while you search again.",
+  clearSelection: "Clear selection",
+  separateLabel: "Insert as separate citations",
+  separateHint: "[@a] [@b] rather than [@a; @b]",
+  resultsHeading: "Search results",
+  hint: "Ctrl+Enter inserts",
   replaceDialogLabel: "Replace source with a Zotero item",
   useSource: "Use this source",
   cancel: "Cancel",
@@ -294,8 +303,10 @@ export const citationChipMessages = {
   publishedIn: "Published in",
   year: "Year",
   state: "State",
-  clickHint: "Click to go to it in the Bibliography.",
+  clickHint:
+    "Click to open it in the side pane. Double-click to go to it in the Bibliography.",
   notCached: (citekey: string) =>
     `${citekey} is not in this project's bibliography.json yet.`,
-  goTo: (label: string) => `Citation ${label}: go to it in the Bibliography`,
+  citation: (label: string) =>
+    `Citation ${label}: click for details, double-click for the Bibliography`,
 };

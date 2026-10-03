@@ -10,10 +10,10 @@ import {
 import {
   defaultRangeExtractor,
   measureElement,
-  useVirtualizer,
+  useWindowVirtualizer,
   type Virtualizer,
 } from "@tanstack/react-virtual";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { tableMessages } from "../messages";
 import { ColumnHeadings } from "./ColumnHeadings";
@@ -62,7 +62,7 @@ const OVERSCAN = 8;
 function measuredSize(
   element: Element,
   entry: ResizeObserverEntry | undefined,
-  instance: Virtualizer<HTMLDivElement, Element>,
+  instance: Virtualizer<Window, Element>,
 ): number {
   const size = measureElement(element, entry, instance);
   if (size > 0) return size;
@@ -111,6 +111,16 @@ type Props = {
   viewportHeight?: number;
 };
 
+/** The height of the sticky ribbon, which the page keeps in view above the table. */
+function ribbonHeight(): number {
+  const value = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "--ribbon-height",
+    ),
+  );
+  return Number.isFinite(value) ? value : 0;
+}
+
 /** The least height of a row of this kind, and the estimate before it is measured. */
 function estimateFor(kind: TableRow["kind"] | undefined): number {
   if (kind === "header") return QUESTION_ROW_HEIGHT;
@@ -122,12 +132,10 @@ function editedRow(
   rows: readonly TableRow[],
   editing: TableEditing,
 ): number | null {
-  // One thing is open in the table at a time: an open Results cell, or a
-  // section being edited in its cell (ADR-0044 point 4).
+  // The row whose section is being edited in its cell (ADR-0043).
   const target = editing.live.target;
   const folder =
-    editing.openResults ??
-    (target !== null && target.surface === "table" ? target.folder : null);
+    target !== null && target.surface === "table" ? target.folder : null;
   if (folder === null) return null;
   const index = rows.findIndex(
     (row) => row.kind === "experiment" && row.item.experiment.folder === folder,
@@ -162,6 +170,17 @@ export function WorkspaceTable({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  // Where the rows begin on the page. The table is as tall as its rows and the
+  // page scrolls, with the Bibliography after it, so rows are placed against
+  // the page's own scroll (S6-T01).
+  const [bodyTop, setBodyTop] = useState(COLUMN_HEADER_HEIGHT);
+  const measureTop = useCallback(() => {
+    const body = bodyRef.current;
+    if (body === null) return;
+    const top = Math.round(body.getBoundingClientRect().top + window.scrollY);
+    setBodyTop((previous) => (previous === top ? previous : top));
+  }, []);
   // The width while a column edge is being dragged; saved only when it ends.
   const [live, setLive] = useState<{ key: ColumnKey; width: number } | null>(
     null,
@@ -221,17 +240,48 @@ export function WorkspaceTable({
   });
   const pinned = [edited, focus.rowIndex].filter((index) => index !== null);
 
-  const virtualizer = useVirtualizer({
+  const virtualizer = useWindowVirtualizer({
     count: rows.length,
-    getScrollElement: () => scrollRef.current,
     estimateSize: (index) => estimateFor(rows[index]?.kind),
     measureElement: measuredSize,
     getItemKey: (index) => rows[index]?.key ?? index,
     rangeExtractor: (range) => withPinned(defaultRangeExtractor(range), pinned),
     overscan: OVERSCAN,
-    scrollMargin: COLUMN_HEADER_HEIGHT,
+    scrollMargin: bodyTop,
+    // A row scrolled to is kept clear of the ribbon and the column headings.
+    scrollPaddingStart: ribbonHeight() + COLUMN_HEADER_HEIGHT,
     initialRect: { width: total, height: viewportHeight },
   });
+
+  // The rows' place on the page changes when anything above the table does,
+  // and the column headings are kept just under the ribbon as the page scrolls.
+  useEffect(() => {
+    measureTop();
+    const grid = gridRef.current;
+    function place() {
+      if (grid === null) return;
+      const gridTop = grid.getBoundingClientRect().top;
+      const room = grid.offsetHeight - COLUMN_HEADER_HEIGHT;
+      const offset = Math.min(Math.max(0, ribbonHeight() - gridTop), room);
+      grid.style.setProperty("--head-offset", `${Math.max(0, offset)}px`);
+    }
+    place();
+    window.addEventListener("scroll", place, { passive: true });
+    window.addEventListener("resize", measureTop);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            measureTop();
+            place();
+          });
+    observer?.observe(document.body);
+    return () => {
+      window.removeEventListener("scroll", place);
+      window.removeEventListener("resize", measureTop);
+      observer?.disconnect();
+    };
+  }, [measureTop]);
 
   return (
     <div
@@ -261,8 +311,9 @@ export function WorkspaceTable({
           onCommit={onResize}
         />
         <div
+          ref={bodyRef}
           className="wtable__body"
-          style={{ height: virtualizer.getTotalSize() - COLUMN_HEADER_HEIGHT }}
+          style={{ height: virtualizer.getTotalSize() }}
         >
           {virtualizer.getVirtualItems().map((item) => {
             const row = rows[item.index];
@@ -271,7 +322,7 @@ export function WorkspaceTable({
               index: item.index + 2,
               style: {
                 minHeight: estimateFor(row.kind),
-                transform: `translateY(${item.start - COLUMN_HEADER_HEIGHT}px)`,
+                transform: `translateY(${item.start - bodyTop}px)`,
               },
               measure: {
                 ref: virtualizer.measureElement,

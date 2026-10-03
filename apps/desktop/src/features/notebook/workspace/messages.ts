@@ -3,12 +3,17 @@ export const paneMessages = {
   paneLabel: "Side pane",
   tabsLabel: "Open panes",
   closePane: "Close pane",
+  minimisePane: "Minimise the side pane",
+  restorePane: "Show the side pane",
+  railLabel: "Minimised panes",
   resizeLabel: "Resize side pane",
   sourcesTab: "Sources",
   searchTab: "Search",
   citationsTab: "Citation style",
   detailsTab: "Details",
   resultTab: "Result",
+  addResultTab: "Add result",
+  resultsTab: "Results",
   noSelection: "Select a question or experiment to see its details.",
   resultUnavailable: "This result is no longer in the experiment.",
 };
@@ -78,4 +83,26 @@ export const bibliographyMessages = {
   details: "Details",
   detailsLabel: (entry: string) => `Show details of ${entry}`,
   notCached: (citekey: string) => `${citekey} (not in bibliography.json)`,
+};
+
+/** Text of the Add result pane (S6-T01). */
+export const addResultMessages = {
+  heading: (ref: string) => `Add results to ${ref}`,
+  intro:
+    "Copy keeps a version of each file inside the project. Link records where the file lives and checks it later.",
+  unavailable: "This experiment's results cannot be changed.",
+};
+
+/** Text of the Results browser (S6-T01). */
+export const resultsBrowserMessages = {
+  heading: (ref: string) => `Results of ${ref}`,
+  addResults: "Add results…",
+  hint: "Drag a file onto a group to move it, or use its ⋯ button. Double-click a file to open it.",
+  codeFolder: "Code",
+  codeCount: (count: number) => (count === 1 ? "1 script" : `${count} scripts`),
+  codeEmpty:
+    "No scripts yet. Link one here and text can refer to it, as it can to a figure.",
+  linkScript: "Link script…",
+  scriptOpen: (name: string) => `Open ${name}`,
+  linked: "linked",
 };

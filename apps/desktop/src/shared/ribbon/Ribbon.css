@@ -1,9 +1,9 @@
 /* The ribbon: a dark row of tabs over the commands of the chosen tab, whose
    groups are named beneath their controls. Commands wrap rather than overflow. */
 .ribbon {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 20;
-  flex: none;
   color: var(--color-on-dark);
   background: var(--palette-primary-dark);
   border-bottom: 3px solid var(--palette-accent);
@@ -217,9 +217,6 @@
 
 /* Notices and warnings kept under the ribbon, where they are seen without covering the table. */
 .workspace__banners {
-  flex: none;
-  max-height: 30vh;
-  overflow: auto;
   padding: 0 var(--space-4);
   background: var(--color-surface-alt);
   border-bottom: 1px solid var(--color-border);

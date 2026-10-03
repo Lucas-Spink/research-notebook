@@ -9,7 +9,7 @@ import {
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, type DiscoveryProgressDto } from "../../../ipc/bindings";
-import { browseResultsLabel } from "../messages";
+import { addResultLabel } from "../messages";
 import { sampleNotebook, testEnv } from "../model/fakeApi";
 import { stubActions } from "../model/testModel";
 import { discoveryMessages } from "./evidenceMessages";
@@ -100,7 +100,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function openResults(view: HTMLElement) {
   const control = rowOf(view, "EXP-001").querySelector(
-    `[aria-label="${browseResultsLabel("EXP-001")}"]`,
+    `[aria-label="${addResultLabel("EXP-001")}"]`,
   );
   if (!(control instanceof HTMLElement)) throw new Error("no Results control");
   await act(async () => {
@@ -109,10 +109,13 @@ async function openResults(view: HTMLElement) {
   });
 }
 
+/** The Add result pane, where adding files now happens. */
+const paneOf = (view: HTMLElement) => view.querySelector("aside.pane");
+
 function buttonIn(view: HTMLElement, name: string): HTMLButtonElement {
-  const found = Array.from(
-    rowOf(view, "EXP-001").querySelectorAll("button"),
-  ).find((button) => button.textContent === name);
+  const found = Array.from(paneOf(view)?.querySelectorAll("button") ?? []).find(
+    (button) => button.textContent === name,
+  );
   if (found === undefined) throw new Error(`no ${name} button`);
   return found;
 }
@@ -126,7 +129,7 @@ async function click(button: HTMLButtonElement) {
 }
 
 const statusIn = (view: HTMLElement) =>
-  rowOf(view, "EXP-001").querySelector('[role="status"]')?.textContent ?? "";
+  paneOf(view)?.querySelector('[role="status"]')?.textContent ?? "";
 
 describe("finding files in the Results cell (FR-EVD-09)", () => {
   it("scans a chosen folder, reports progress, and adds what is selected", async () => {

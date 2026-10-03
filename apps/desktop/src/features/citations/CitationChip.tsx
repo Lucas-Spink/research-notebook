@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useCitationJump } from "./CitationInteraction";
+import { useCitationActions } from "./CitationInteraction";
 import { citationChipMessages as text, sourceStatusText } from "./messages";
 import { bibliographyEntry } from "./model/bibliographyEntry";
 import { sourceDetails } from "./model/sourceDetails";
@@ -22,6 +22,8 @@ type Props = {
 
 /** The pointer may cross the gap between a reference and its preview without the preview closing. */
 const HIDE_DELAY_MS = 150;
+/** A click waits this long for a second one, so a double click does not also act as a single. */
+const DOUBLE_CLICK_MS = 250;
 const PREVIEW_WIDTH = 360;
 const MARGIN = 8;
 
@@ -98,17 +100,15 @@ function Preview({
   );
 }
 
-/** One source's short label as a button: hover or focus shows its full reference, activating it jumps to the Bibliography. */
-export function CitationSource({
-  citekey,
-  onActivate,
-}: {
-  citekey: string;
-  /** Also done when it is activated, before the jump. */
-  onActivate?: () => void;
-}) {
-  const { lookup } = useSources();
-  const jump = useCitationJump();
+/**
+ * One source's short label as a button: hover or focus shows its full
+ * reference, a click opens the source in the side pane, and a double click
+ * goes to its entry in the Bibliography.
+ */
+export function CitationSource({ citekey }: { citekey: string }) {
+  const { lookup, select } = useSources();
+  const actions = useCitationActions();
+  const click = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const node = useRef<HTMLButtonElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,7 +128,17 @@ export function CitationSource({
     cancelHide();
     timer.current = setTimeout(() => setAnchor(null), HIDE_DELAY_MS);
   };
-  useEffect(() => cancelHide, []);
+  const cancelClick = () => {
+    if (click.current !== null) clearTimeout(click.current);
+    click.current = null;
+  };
+  useEffect(
+    () => () => {
+      cancelHide();
+      cancelClick();
+    },
+    [],
+  );
 
   return (
     <>
@@ -137,7 +147,7 @@ export function CitationSource({
         type="button"
         className="citation-chip__source"
         data-citekey={citekey}
-        aria-label={text.goTo(label)}
+        aria-label={text.citation(label)}
         onMouseEnter={show}
         onMouseLeave={hideSoon}
         onFocus={show}
@@ -149,8 +159,18 @@ export function CitationSource({
           // Not the cell's own click, which would open it for editing.
           event.stopPropagation();
           setAnchor(null);
-          onActivate?.();
-          jump(citekey);
+          cancelClick();
+          click.current = setTimeout(() => {
+            click.current = null;
+            select(citekey);
+            actions.open(citekey);
+          }, DOUBLE_CLICK_MS);
+        }}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          setAnchor(null);
+          cancelClick();
+          actions.jump(citekey);
         }}
         // A citation inside the live editor is an atom; the click is for the chip.
         onMouseDown={(event) => event.stopPropagation()}

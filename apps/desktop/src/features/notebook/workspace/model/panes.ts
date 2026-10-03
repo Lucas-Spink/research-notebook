@@ -6,6 +6,8 @@ export type PaneTab =
   | { id: string; kind: "search" }
   | { id: string; kind: "citations" }
   | { id: string; kind: "details" }
+  | { id: string; kind: "addResult"; experimentFolder: string }
+  | { id: string; kind: "results"; experimentFolder: string }
   | {
       id: string;
       kind: "result";
@@ -21,6 +23,8 @@ export type PaneState = {
   activeId: string | null;
   /** The pane's width in CSS pixels. */
   width: number;
+  /** Folded into a narrow rail of icons, one per tab, so the table has the room; the tabs stay open. */
+  minimised: boolean;
 };
 
 export type PaneAction =
@@ -28,6 +32,8 @@ export type PaneAction =
   | { type: "activate"; id: string }
   | { type: "close"; id: string }
   | { type: "closeAll" }
+  | { type: "minimise" }
+  | { type: "restore" }
   | { type: "resize"; width: number };
 
 export const MIN_PANE_WIDTH = 280;
@@ -38,6 +44,7 @@ export const initialPanes: PaneState = {
   tabs: [],
   activeId: null,
   width: DEFAULT_PANE_WIDTH,
+  minimised: false,
 };
 
 /** A width kept whole and inside the limits, and within what the window leaves for the table. */
@@ -48,6 +55,16 @@ export function clampPaneWidth(width: number, available?: number): number {
       ? MAX_PANE_WIDTH
       : Math.max(MIN_PANE_WIDTH, Math.min(MAX_PANE_WIDTH, available));
   return Math.min(most, Math.max(MIN_PANE_WIDTH, Math.round(width)));
+}
+
+/** The id of an experiment's Results browser tab. */
+export function resultsTabId(experimentFolder: string): string {
+  return `results:${experimentFolder}`;
+}
+
+/** The id of an experiment's Add result tab: adding to the same experiment again shows its tab. */
+export function addResultTabId(experimentFolder: string): string {
+  return `add:${experimentFolder}`;
 }
 
 /** The id a result's tab has: opening the same result again shows its tab instead of adding another. */
@@ -71,11 +88,13 @@ export function panesReducer(state: PaneState, action: PaneAction): PaneState {
         ...state,
         tabs: known ? state.tabs : [...state.tabs, action.tab],
         activeId: action.tab.id,
+        // Opening something shows it, so a folded pane unfolds.
+        minimised: false,
       };
     }
     case "activate":
       return state.tabs.some((tab) => tab.id === action.id)
-        ? { ...state, activeId: action.id }
+        ? { ...state, activeId: action.id, minimised: false }
         : state;
     case "close": {
       const at = state.tabs.findIndex((tab) => tab.id === action.id);
@@ -87,10 +106,15 @@ export function panesReducer(state: PaneState, action: PaneAction): PaneState {
         tabs,
         activeId:
           state.activeId === action.id ? (next?.id ?? null) : state.activeId,
+        minimised: tabs.length === 0 ? false : state.minimised,
       };
     }
     case "closeAll":
-      return { ...state, tabs: [], activeId: null };
+      return { ...state, tabs: [], activeId: null, minimised: false };
+    case "minimise":
+      return state.tabs.length === 0 ? state : { ...state, minimised: true };
+    case "restore":
+      return { ...state, minimised: false };
     case "resize":
       return { ...state, width: clampPaneWidth(action.width) };
     default:

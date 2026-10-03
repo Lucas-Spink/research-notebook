@@ -90,6 +90,8 @@ type Request = {
   copyThresholdMb: number;
   /** Decides copy or link for this addition only, without changing the project's default. */
   override?: CaptureMode;
+  /** `method` records each file as a script, not a result (the Code folder). */
+  role?: "result" | "method";
   files: ChosenFile[];
   /** The experiment's `artefacts.yaml` as loaded. */
   artefacts: ArtefactsFileModel;
@@ -173,7 +175,7 @@ async function link(
       file,
       {
         name: defaultDisplayName(chosen.name),
-        role: "result",
+        role: request.role ?? "result",
         type: inferArtefactType(chosen.name),
         source: { root, path },
       },

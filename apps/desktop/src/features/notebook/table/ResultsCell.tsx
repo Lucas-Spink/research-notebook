@@ -1,22 +1,15 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
-import { commands } from "../../../ipc/bindings";
 import {
-  applyGroupAction,
-  ResultsTree,
-  type ActionOutcome,
-  type GroupAction,
-} from "../../results";
-import {
+  addResultLabel,
   browseResultsLabel,
   resultsCountLabel,
   tableMessages,
 } from "../messages";
-import { AddFilesBar } from "./AddFilesBar";
-import { evidenceDrops } from "./dropsApi";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
+import { previewVersion } from "./model/resultVersion";
 import { resultsSummary } from "./model/resultsSummary";
 import { ResultThumb } from "./ResultThumb";
 
@@ -33,21 +26,14 @@ type Props = {
 /** Keys that open a focused Results cell, as they open a section. */
 const OPEN_KEYS = new Set(["Enter", " ", "F2"]);
 
-/** The version a result opens at: a copy's latest, or `null` for a linked file. */
-function previewVersion(file: ArtefactsFileModel, artefactId: string) {
-  const artefact = file.artefacts.find((a) => a.id === artefactId);
-  if (artefact === undefined || artefact.mode !== "copy") return null;
-  return Math.max(...artefact.versions.map((v) => v.v));
-}
-
 /**
- * The Results cell (FR-TBL-06, ADR-0044 point 4). Closed, it shows how
- * many results there are, by group, with up to four thumbnails, and opens
- * on click, Enter, Space or F2. Open, the row grows around the experiment's
- * folder tree: groups as folders to make, nest, rename and delete, and
- * files to move, add to more folders and preview. Escape or Close closes it
- * and returns focus here. A read-only project or experiment can browse it
- * but change nothing.
+ * The Results cell (FR-TBL-06): how many results there are, by group, and the
+ * first few as files, each with its name and a small icon for its type.
+ * Hovering one shows it larger, and double-clicking opens it in the side
+ * pane. Clicking the cell, or Enter, Space or F2, opens the experiment's
+ * Results browser in the pane, where files are organised into folders, and
+ * the plus adds more. A read-only project or experiment can browse its
+ * results but change nothing.
  */
 export function ResultsCell({
   row,
@@ -58,34 +44,8 @@ export function ResultsCell({
 }: Props) {
   const { experiment } = row.item;
   const ref = experiment.file.frontmatter.ref;
-  const open = editing.openResults === experiment.folder;
   const readOnly = !editing.writable || row.item.readOnly || artefacts === null;
   const control = useRef<HTMLDivElement>(null);
-  const openCell = useRef<HTMLDivElement>(null);
-  const returnFocus = useRef(false);
-
-  useEffect(() => {
-    if (!open && returnFocus.current) {
-      returnFocus.current = false;
-      control.current?.focus();
-    }
-  }, [open]);
-
-  function close() {
-    returnFocus.current = true;
-    editing.onCloseResults();
-  }
-
-  async function onAction(action: GroupAction): Promise<ActionOutcome> {
-    const outcome = await editing.editArtefacts(
-      experiment.folder,
-      (file, env) => applyGroupAction(file, action, env),
-    );
-    // A save that failed for another reason is already in the notice.
-    return outcome.ok || outcome.error === null
-      ? { ok: true }
-      : { ok: false, error: outcome.error };
-  }
 
   const openResult = (artefactId: string) =>
     artefacts === null
@@ -96,97 +56,70 @@ export function ResultsCell({
           previewVersion(artefacts, artefactId),
         );
 
-  if (open) {
-    return (
+  const summary = artefacts === null ? null : resultsSummary(artefacts);
+  return (
+    <div className="wtable__results-wrap">
       <div
-        ref={openCell}
-        className="wtable__results-open"
+        ref={control}
+        role="button"
+        tabIndex={tabbable ? 0 : -1}
+        data-grid-focus
+        className="wtable__edit wtable__results"
+        aria-label={browseResultsLabel(ref)}
+        onClick={() => editing.onOpenResults(row)}
         onKeyDown={(event) => {
-          const inPanel =
-            event.target instanceof Element &&
-            event.target.closest(".results__panel") !== null;
-          if (event.key === "Escape" && !event.defaultPrevented && !inPanel) {
+          if (OPEN_KEYS.has(event.key)) {
             event.preventDefault();
-            close();
+            editing.onOpenResults(row);
+          } else if (event.key === "+" && !readOnly) {
+            event.preventDefault();
+            editing.onAddResult(row);
           }
         }}
       >
-        <button type="button" className="wtable__results-close" onClick={close}>
-          {tableMessages.closeResults}
-        </button>
-        {artefacts !== null &&
-        editing.evidence !== null &&
-        editing.projectId !== null ? (
-          <AddFilesBar
-            api={commands}
-            folder={folder}
-            projectId={editing.projectId}
-            experimentFolder={experiment.folder}
-            evidence={editing.evidence}
-            artefacts={artefacts}
-            editArtefacts={editing.editArtefacts}
-            readOnly={readOnly}
-            zone={openCell}
-            drops={evidenceDrops}
-          />
-        ) : null}
-        {artefacts === null ? (
-          <p>{tableMessages.unreadableResults}</p>
+        {summary === null || summary.total === 0 ? (
+          <span className="wtable__muted">{tableMessages.resultsNone}</span>
         ) : (
-          <ResultsTree
-            file={artefacts}
-            disabled={readOnly}
-            onAction={onAction}
-            onOpen={openResult}
-          />
+          <>
+            <div className="wtable__results-counts">
+              {resultsCountLabel(summary.total)}
+              {summary.groups.map((group, index) => (
+                // Two top-level groups may share a name.
+                <span key={index} className="wtable__results-group">
+                  {group.name} {group.count}
+                </span>
+              ))}
+            </div>
+            <div className="wtable__thumbs">
+              {summary.thumbnails.map((thumb) => (
+                <ResultThumb
+                  key={thumb.artefactId}
+                  folder={folder}
+                  experimentFolder={experiment.folder}
+                  thumb={thumb}
+                  onOpen={() => openResult(thumb.artefactId)}
+                />
+              ))}
+            </div>
+            <span className="wtable__browse">{tableMessages.browseAll}</span>
+          </>
         )}
       </div>
-    );
-  }
-
-  const summary = artefacts === null ? null : resultsSummary(artefacts);
-  return (
-    <div
-      ref={control}
-      role="button"
-      tabIndex={tabbable ? 0 : -1}
-      data-grid-focus
-      className="wtable__edit wtable__results"
-      aria-label={browseResultsLabel(ref)}
-      onClick={() => editing.onOpenResults(row)}
-      onKeyDown={(event) => {
-        if (OPEN_KEYS.has(event.key)) {
-          event.preventDefault();
-          editing.onOpenResults(row);
-        }
-      }}
-    >
-      {summary === null || summary.total === 0 ? (
-        <span className="wtable__muted">{tableMessages.resultsNone}</span>
-      ) : (
-        <>
-          <div className="wtable__results-counts">
-            {resultsCountLabel(summary.total)}
-            {summary.groups.map((group, index) => (
-              // Two top-level groups may share a name.
-              <span key={index} className="wtable__results-group">
-                {group.name} {group.count}
-              </span>
-            ))}
-          </div>
-          <div className="wtable__thumbs">
-            {summary.thumbnails.map((thumb) => (
-              <ResultThumb
-                key={thumb.artefactId}
-                folder={folder}
-                experimentFolder={experiment.folder}
-                thumb={thumb}
-                onOpen={() => openResult(thumb.artefactId)}
-              />
-            ))}
-          </div>
-          <span className="wtable__browse">{tableMessages.browseAll}</span>
-        </>
+      {!readOnly && (
+        <button
+          type="button"
+          className="wtable__add-result"
+          // The grid has one tab stop per cell (ADR-0043): by keyboard, press + in the cell.
+          tabIndex={-1}
+          aria-label={addResultLabel(ref)}
+          title={addResultLabel(ref)}
+          onClick={(event) => {
+            event.stopPropagation();
+            editing.onAddResult(row);
+          }}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
       )}
     </div>
   );

@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ArtefactTypeIcon, FolderIcon } from "../../shared/ArtefactTypeIcon";
 import { resultsMessages } from "./messages";
 import { hasChildren, type TreeRow } from "./model/tree";
 import type { ResultsTreeState } from "./useResultsTree";
@@ -40,6 +42,8 @@ export function TreeRowView({
 }: Props) {
   const expandable = row.kind !== "item" && hasChildren(row);
   const count = counts(row);
+  // A group or the Ungrouped area being dragged over, so it shows it will take the drop.
+  const [over, setOver] = useState(false);
   return (
     <li
       ref={(element) => {
@@ -47,7 +51,7 @@ export function TreeRowView({
         else tree.rowRefs.current.set(row.key, element);
       }}
       role="treeitem"
-      className={`results__row results__row--${row.kind}`}
+      className={`results__row results__row--${row.kind}${over ? " results__row--over" : ""}`}
       aria-level={row.depth}
       aria-posinset={position}
       aria-setsize={setSize}
@@ -70,16 +74,55 @@ export function TreeRowView({
       }}
       onDragStart={(event) => tree.drag.start(row, event)}
       onDragOver={(event) => tree.drag.over(row, event)}
-      onDrop={(event) => tree.drag.drop(row, event)}
-      onDragEnd={() => tree.drag.end()}
+      onDragEnter={() => row.kind !== "item" && setOver(true)}
+      onDragLeave={(event) => {
+        // Moving onto a child of the row is still over the row.
+        const to = event.relatedTarget;
+        if (!(to instanceof Node) || !event.currentTarget.contains(to))
+          setOver(false);
+      }}
+      onDrop={(event) => {
+        setOver(false);
+        tree.drag.drop(row, event);
+      }}
+      onDragEnd={() => {
+        setOver(false);
+        tree.drag.end();
+      }}
     >
       {expandable && (
         <span className="results__toggle" aria-hidden="true">
           {row.expanded ? "▾" : "▸"}
         </span>
       )}
+      {row.kind !== "item" && (
+        <span className="results__icon results__icon--folder">
+          <FolderIcon />
+        </span>
+      )}
       <span className="results__name-text">{label(row)}</span>
+      {row.kind === "item" && (
+        <span className="results__icon" title={row.artefactType}>
+          <ArtefactTypeIcon type={row.artefactType} />
+        </span>
+      )}
       {count !== null && <span className="results__count">{count}</span>}
+      {!disabled && row.kind !== "ungrouped" && (
+        <button
+          type="button"
+          className="results__actions"
+          tabIndex={-1}
+          aria-label={resultsMessages.actionsFor(label(row))}
+          title={resultsMessages.actionsHint}
+          onClick={(event) => {
+            event.stopPropagation();
+            tree.setPanel({ kind: "menu", row });
+          }}
+          onDoubleClick={(event) => event.stopPropagation()}
+        >
+          <span className="results__actions-dots" aria-hidden="true" />
+        </button>
+      )}
     </li>
   );
 }
