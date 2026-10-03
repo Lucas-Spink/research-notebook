@@ -20,3 +20,4 @@ export {
   type LiteratureModel,
   type LiteraturePlanner,
 } from "./useLiteraturePlanner";
+export { useSourceRepair, type RepairModel } from "./useSourceRepair";

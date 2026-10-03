@@ -94,6 +94,21 @@ export async function planRegeneration(
   return planBlock(setup, stored, stored, previous);
 }
 
+/**
+ * The block for `next`, an experiment whose text is about to change from
+ * `stored` without being saved through the section editor (a source
+ * replaced, FR-CIT-08). `generatedUnder` is the setup the stored block was
+ * made under, so a changed bibliography alone does not read as a hand edit.
+ */
+export async function planAfterTextChange(
+  setup: LiteratureSetup,
+  stored: ExperimentBodyModel,
+  next: ExperimentBodyModel,
+  generatedUnder: LiteratureSetup,
+): Promise<BlockPlan> {
+  return planBlock(setup, stored, next, generatedUnder);
+}
+
 async function planBlock(
   setup: LiteratureSetup,
   stored: ExperimentBodyModel,

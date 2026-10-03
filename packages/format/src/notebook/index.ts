@@ -53,6 +53,7 @@ export {
   editExperimentSection,
   type SectionEditOptions,
 } from "./sections";
+export { replaceSource, type SourceReplacement } from "./source-repair";
 export {
   buildReferenceIndex,
   referencedIn,

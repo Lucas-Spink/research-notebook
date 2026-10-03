@@ -13,6 +13,7 @@ import {
   moveExperiment,
   removeExperiment,
   removeQuestion,
+  replaceSource as planSourceReplacement,
   resetTableColumns,
   type Arranged,
   type CitationStyleChange,
@@ -23,6 +24,7 @@ import {
   type Plan,
   type RecognisedSectionKey,
   type Result,
+  type SourceReplacement,
   type TableSettingsChange,
 } from "@research-notebook/format";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -112,6 +114,12 @@ export type NotebookActions = {
    * in one plan (FR-CIT-10, FR-CIT-11). Resolves whether it was saved.
    */
   changeCitationStyle(change: CitationStyleChange): Promise<boolean>;
+  /**
+   * Points every citation of a missing or trashed source at its replacement,
+   * with the Literature blocks given, in one plan (FR-CIT-08). Resolves
+   * whether it was saved.
+   */
+  replaceSource(change: SourceReplacement): Promise<boolean>;
   /** Changes the table's layout. Saved after a short wait, or at once with `immediate`; only kept for the session in a read-only project. */
   changeSettings(
     change: TableSettingsChange,
@@ -404,6 +412,10 @@ export function useNotebook({ folder, writable, changes }: Options) {
         run((s, e) => changeCitationStyle(s, change, e), { silent: true }).then(
           isDone,
         ),
+      replaceSource: (change) =>
+        run((s, e) => planSourceReplacement(s, change, e), {
+          silent: true,
+        }).then(isDone),
       changeSettings: (change, { immediate = false } = {}) =>
         committerRef.current?.change(change, {
           persist: latest.current.writable,

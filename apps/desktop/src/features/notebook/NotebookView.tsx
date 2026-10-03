@@ -15,6 +15,7 @@ import {
   StylePicker,
   SourcesProvider,
   useLiteraturePlanner,
+  useSourceRepair,
   useStyleManagement,
 } from "../citations";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
@@ -144,6 +145,12 @@ function NotebookViewBody({
     writable,
     apply: (change) => actions.changeCitationStyle(change),
   });
+  const repair = useSourceRepair({
+    folder,
+    state: notebook.loadedState,
+    writable,
+    apply: (change) => actions.replaceSource(change),
+  });
   const live = useLiveEditor({
     arranged,
     save: (id, section, text) =>
@@ -269,7 +276,7 @@ function NotebookViewBody({
               folder={folder}
               onOpenResult={openSelection}
             />
-            <SourcesPanel />
+            <SourcesPanel repair={repair} />
             <SourceDetailsPanel />
             <StylePicker model={styles} />
             <LiteraturePrompt literature={literature} />
