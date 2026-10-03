@@ -7,7 +7,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../shared/sha256";
 import { SourcesPanel } from "./SourcesPanel";
-import { SourcesProvider, useSourceSync } from "./SourcesContext";
+import { SourcesProvider, useSourceSync, useSources } from "./SourcesContext";
 import type { SourcesApi } from "./model/syncSources";
 
 const NOW = () => new Date("2026-10-02T10:00:00Z");
@@ -225,5 +225,18 @@ describe("useSourceSync: after a citation is inserted (FR-CIT-05)", () => {
     await click(button(view, /^insert$/));
     expect(fake.writeNotebookFile).toHaveBeenCalledTimes(1);
     expect(view.textContent).toMatch(/Cited/);
+  });
+});
+
+describe("SourcesPanel: opening a source (FR-CIT-04)", () => {
+  it("selects the source whose label is activated", async () => {
+    const { api } = fakeApi([held("AAAA2222", "Fine")]);
+    function Probe() {
+      return <output>{useSources().selected ?? "none"}</output>;
+    }
+    const view = await mount(api, { extra: <Probe /> });
+    expect(view.querySelector("output")?.textContent).toBe("none");
+    await click(button(view, /Fine/));
+    expect(view.querySelector("output")?.textContent).toBe("z:u:AAAA2222");
   });
 });

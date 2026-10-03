@@ -44,7 +44,13 @@ export function SourcesPanel() {
         <ul className="citations__source-list">
           {sources.views.map((view) => (
             <li key={view.citekey} data-status={view.status}>
-              <span>{view.label}</span>{" "}
+              <button
+                type="button"
+                className="citations__source-open"
+                onClick={() => sources.select(view.citekey)}
+              >
+                {view.label}
+              </button>{" "}
               <span className="citations__source-status">
                 {sourceStatusText(view.status)}
               </span>
