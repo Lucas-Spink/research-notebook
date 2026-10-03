@@ -1,6 +1,7 @@
 /* The table fills its space in the workspace; only its own rows scroll. */
 .wtable {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   background: var(--color-surface);
   text-align: left;
@@ -460,4 +461,54 @@
 
 .wtable__select {
   white-space: normal;
+}
+
+/* The plus in a Results cell: adding a result opens the Add result pane. */
+.wtable__results-wrap {
+  position: relative;
+  min-height: 100%;
+}
+
+.wtable__results-wrap .wtable__results {
+  padding-inline-end: 2rem;
+}
+
+.wtable__add-result {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  color: var(--color-on-dark);
+  background: var(--palette-accent);
+  border: 0;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.wtable__add-result:hover:not(:disabled) {
+  color: var(--color-on-dark);
+  background: var(--palette-accent-hover);
+}
+
+.wtable__add-result--inline {
+  position: static;
+  flex: none;
+}
+
+.wtable__results-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.wtable__results-tools .wtable__results-close {
+  float: none;
 }

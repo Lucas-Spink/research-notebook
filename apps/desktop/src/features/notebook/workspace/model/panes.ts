@@ -6,6 +6,7 @@ export type PaneTab =
   | { id: string; kind: "search" }
   | { id: string; kind: "citations" }
   | { id: string; kind: "details" }
+  | { id: string; kind: "addResult"; experimentFolder: string }
   | {
       id: string;
       kind: "result";
@@ -48,6 +49,11 @@ export function clampPaneWidth(width: number, available?: number): number {
       ? MAX_PANE_WIDTH
       : Math.max(MIN_PANE_WIDTH, Math.min(MAX_PANE_WIDTH, available));
   return Math.min(most, Math.max(MIN_PANE_WIDTH, Math.round(width)));
+}
+
+/** The id of an experiment's Add result tab: adding to the same experiment again shows its tab. */
+export function addResultTabId(experimentFolder: string): string {
+  return `add:${experimentFolder}`;
 }
 
 /** The id a result's tab has: opening the same result again shows its tab instead of adding another. */

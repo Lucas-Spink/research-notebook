@@ -20,6 +20,8 @@ type Options = {
   onSelectRow: (row: ExperimentRow) => void;
   /** Opens a result in the side pane. */
   onOpenResult: TableEditing["onOpenResult"];
+  /** Opens the Add result pane for an experiment's folder. */
+  onOpenAddResult: (experimentFolder: string) => void;
 };
 
 /**
@@ -37,6 +39,7 @@ export function useTableEditing({
   actions,
   onSelectRow,
   onOpenResult,
+  onOpenAddResult,
 }: Options): TableEditing {
   const [openResults, setOpenResults] = useState<string | null>(null);
 
@@ -57,6 +60,11 @@ export function useTableEditing({
     });
   }
 
+  function onAddResult(row: ExperimentRow) {
+    onSelectRow(row);
+    onOpenAddResult(row.item.experiment.folder);
+  }
+
   return {
     live,
     writable,
@@ -68,6 +76,7 @@ export function useTableEditing({
     onOpenResults,
     onCloseResults: () => setOpenResults(null),
     onOpenResult,
+    onAddResult,
     evidence,
     editArtefacts: (folder, change) => actions.editArtefacts(folder, change),
   };

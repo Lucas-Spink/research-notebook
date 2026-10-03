@@ -9,6 +9,7 @@ export const paneMessages = {
   citationsTab: "Citation style",
   detailsTab: "Details",
   resultTab: "Result",
+  addResultTab: "Add result",
   noSelection: "Select a question or experiment to see its details.",
   resultUnavailable: "This result is no longer in the experiment.",
 };
@@ -78,4 +79,12 @@ export const bibliographyMessages = {
   details: "Details",
   detailsLabel: (entry: string) => `Show details of ${entry}`,
   notCached: (citekey: string) => `${citekey} (not in bibliography.json)`,
+};
+
+/** Text of the Add result pane (S6-T01). */
+export const addResultMessages = {
+  heading: (ref: string) => `Add results to ${ref}`,
+  intro:
+    "Copy keeps a version of each file inside the project. Link records where the file lives and checks it later.",
+  unavailable: "This experiment's results cannot be changed.",
 };

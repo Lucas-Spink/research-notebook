@@ -45,6 +45,7 @@ import { assertNever } from "../../shared/assertNever";
 import { evidenceOf } from "./model/evidence";
 import { paneMessages, ribbonMessages } from "./workspace/messages";
 import {
+  addResultTabId,
   initialPanes,
   panesReducer,
   resultTabId,
@@ -55,6 +56,7 @@ import {
   type BibliographyTarget,
 } from "./workspace/BibliographyPanel";
 import { attachedCitekeys } from "./workspace/model/attach";
+import { AddResultPane } from "./workspace/AddResultPane";
 import { PaneHost } from "./workspace/PaneHost";
 import { ResultPane } from "./workspace/ResultPane";
 import { Ribbon } from "./workspace/Ribbon";
@@ -257,6 +259,15 @@ function NotebookViewBody({
       setPickedKey(null);
       setFocusSection(null);
     },
+    onOpenAddResult: (experimentFolder) =>
+      dispatchPanes({
+        type: "open",
+        tab: {
+          id: addResultTabId(experimentFolder),
+          kind: "addResult",
+          experimentFolder,
+        },
+      }),
     onOpenResult: (experimentFolder, artefactId, version) =>
       dispatchPanes({
         type: "open",
@@ -338,7 +349,7 @@ function NotebookViewBody({
   );
   const addResult =
     selectedRow?.kind === "experiment" && writable && !selectedRow.item.readOnly
-      ? () => editing.onOpenResults(selectedRow)
+      ? () => editing.onAddResult(selectedRow)
       : null;
 
   function titleOf(tab: PaneTab): string {
@@ -351,6 +362,8 @@ function NotebookViewBody({
         return paneMessages.citationsTab;
       case "details":
         return paneMessages.detailsTab;
+      case "addResult":
+        return paneMessages.addResultTab;
       case "result": {
         const item = (arranged?.questions ?? [])
           .flatMap((group) => group.experiments)
@@ -385,6 +398,15 @@ function NotebookViewBody({
         );
       case "citations":
         return <StylePicker model={styles} />;
+      case "addResult":
+        return (
+          <AddResultPane
+            tab={tab}
+            arranged={arranged}
+            folder={folder}
+            editing={editing}
+          />
+        );
       case "details":
         return (
           <DetailsPanel

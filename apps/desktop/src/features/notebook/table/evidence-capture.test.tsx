@@ -12,7 +12,7 @@ import {
   type ChosenFile,
   type EvidenceDropped,
 } from "../../../ipc/bindings";
-import { browseResultsLabel } from "../messages";
+import { addResultLabel } from "../messages";
 import { sampleNotebook, testEnv } from "../model/fakeApi";
 import { stubActions } from "../model/testModel";
 import { evidenceMessages } from "./evidenceMessages";
@@ -91,7 +91,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function openResults(view: HTMLElement) {
   const control = rowOf(view, "EXP-001").querySelector(
-    `[aria-label="${browseResultsLabel("EXP-001")}"]`,
+    `[aria-label="${addResultLabel("EXP-001")}"]`,
   );
   if (!(control instanceof HTMLElement)) throw new Error("no Results control");
   await act(async () => {
@@ -100,10 +100,13 @@ async function openResults(view: HTMLElement) {
   });
 }
 
+/** The Add result pane, where adding files now happens. */
+const paneOf = (view: HTMLElement) => view.querySelector("aside.pane");
+
 function buttonIn(view: HTMLElement, name: string): HTMLButtonElement {
-  const found = Array.from(
-    rowOf(view, "EXP-001").querySelectorAll("button"),
-  ).find((button) => button.textContent === name);
+  const found = Array.from(paneOf(view)?.querySelectorAll("button") ?? []).find(
+    (button) => button.textContent === name,
+  );
   if (found === undefined) throw new Error(`no ${name} button`);
   return found;
 }
@@ -117,7 +120,7 @@ async function pressAddFiles(view: HTMLElement) {
 }
 
 const statusIn = (view: HTMLElement) =>
-  rowOf(view, "EXP-001").querySelector('[role="status"]')?.textContent ?? "";
+  paneOf(view)?.querySelector('[role="status"]')?.textContent ?? "";
 
 const okPick = (...files: ChosenFile[]) =>
   vi
@@ -220,11 +223,16 @@ describe("adding files in the Results cell (FR-EVD-01, FR-EVD-02)", () => {
     expect(statusIn(view)).toBe("");
   });
 
-  it("cannot add in a read-only project", async () => {
+  it("cannot add in a read-only project", () => {
     const { view } = mount({ writable: false });
-    await openResults(view);
 
-    expect(buttonIn(view, evidenceMessages.addFiles).disabled).toBe(true);
+    // No plus in the cell, so the Add result pane cannot be opened.
+    expect(
+      rowOf(view, "EXP-001").querySelector(
+        `[aria-label="${addResultLabel("EXP-001")}"]`,
+      ),
+    ).toBeNull();
+    expect(paneOf(view)).toBeNull();
   });
 });
 
@@ -259,8 +267,9 @@ describe("dropping files on the open Results cell (ADR-0044 point 2)", () => {
 
   /** jsdom has no layout, so the open cell is given a place on the page. */
   function placeCell(view: HTMLElement) {
-    const cell = rowOf(view, "EXP-001").querySelector(".wtable__results-open");
-    if (cell === null) throw new Error("no open Results cell");
+    const cell = paneOf(view)?.querySelector(".add-result");
+    if (cell === null || cell === undefined)
+      throw new Error("no Add result pane");
     vi.spyOn(cell, "getBoundingClientRect").mockReturnValue(
       new DOMRect(100, 100, 400, 200),
     );
@@ -290,7 +299,7 @@ describe("dropping files on the open Results cell (ADR-0044 point 2)", () => {
 
     expect(drops.watch).toHaveBeenCalledWith(1, expect.any(String), []);
     await act(async () => {
-      buttonIn(view, "Close").click();
+      buttonIn(view, "Close pane").click();
       await settle();
     });
     expect(drops.unwatch).toHaveBeenCalled();
@@ -334,8 +343,7 @@ describe("dropping files on the open Results cell (ADR-0044 point 2)", () => {
 
   it("does not receive drops in a read-only project", async () => {
     const drops = watchDrops();
-    const { view } = mount({ writable: false });
-    await openResults(view);
+    mount({ writable: false });
     await act(settle);
 
     expect(drops.watch).not.toHaveBeenCalled();

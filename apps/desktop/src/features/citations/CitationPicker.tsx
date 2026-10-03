@@ -18,6 +18,16 @@ import type { CitationSearchApi } from "./model/citationSearchApi";
 import { useCitationSearch } from "./useCitationSearch";
 import "./CitationPicker.css";
 
+/** The text to insert: one cluster of every source, or a bracketed citation for each. */
+function markdownFor(
+  selected: readonly CitationSelectionItem[],
+  separate: boolean,
+): string {
+  return separate
+    ? selected.map((item) => buildCitationMarkdown([item])).join(" ")
+    : buildCitationMarkdown(selected);
+}
+
 export type CitationPickerProps = {
   /** Called with spec 5.7's bracketed citation text once the person confirms. */
   onInsert: (markdown: string) => void;
@@ -56,6 +66,8 @@ export function CitationPicker({
   const id = useId();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<CitationSelectionItem[]>([]);
+  // Several sources go in as one cluster, `[@a; @b]`, or as a citation each.
+  const [separate, setSeparate] = useState(false);
   const state = useCitationSearch(query, api);
 
   const isSelected = (citekey: string) =>
@@ -83,7 +95,7 @@ export function CitationPicker({
 
   const insert = () => {
     if (selected.length === 0) return;
-    onInsert(replacing ? "" : buildCitationMarkdown(selected));
+    onInsert(replacing ? "" : markdownFor(selected, separate));
     onInsertCitekeys?.(selected.map((item) => item.citekey));
   };
 
@@ -111,10 +123,17 @@ export function CitationPicker({
         if (event.key === "Escape") {
           event.preventDefault();
           onCancel();
+        } else if (
+          event.key === "Enter" &&
+          (event.ctrlKey || event.metaKey) &&
+          selected.length > 0
+        ) {
+          event.preventDefault();
+          insert();
         }
       }}
     >
-      <h6 className="citation-picker__heading">{dialogLabel}</h6>
+      <h6 className="citation-picker__title">{dialogLabel}</h6>
 
       <label className="citation-picker__label" htmlFor={`${id}-search`}>
         {citationPickerMessages.searchLabel}
@@ -128,128 +147,169 @@ export function CitationPicker({
         onChange={(event) => setQuery(event.target.value)}
       />
 
-      {statusText !== null && (
-        <p role="status" className="citation-picker__status">
-          {statusText}
-        </p>
-      )}
-
-      {state.kind === "ok" && rows.length > 0 && (
-        <ul
-          aria-label={citationPickerMessages.resultsLabel}
-          className="citation-picker__results"
-        >
-          {rows.map((row) => (
-            <li key={row.citekey} className="citation-picker__result">
-              <label>
-                <input
-                  type={replacing ? "radio" : "checkbox"}
-                  name={replacing ? `${id}-replacement` : undefined}
-                  checked={isSelected(row.citekey)}
-                  onChange={() => toggle(row.citekey, row.title)}
-                />
-                <span className="citation-picker__result-title">
-                  {row.title}
-                </span>
-                {row.creatorSummary !== null && (
-                  <span className="citation-picker__result-meta">
-                    {row.creatorSummary}
-                  </span>
-                )}
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {!replacing && selected.length > 0 && (
-        <div className="citation-picker__selected">
+      <div className="citation-picker__body">
+        <div className="citation-picker__column">
           <h6 className="citation-picker__heading">
-            {citationPickerMessages.selectedHeading}
+            {citationPickerMessages.resultsHeading}
           </h6>
-          <ul>
-            {selected.map((item, index) => (
-              <li key={item.citekey} className="citation-picker__selected-item">
-                <span className="citation-picker__selected-title">
-                  {item.title}
-                </span>
+          {statusText !== null && (
+            <p role="status" className="citation-picker__status">
+              {statusText}
+            </p>
+          )}
 
-                <label htmlFor={`${id}-locator-term-${index}`}>
-                  {citationPickerMessages.locatorTermLabel}
-                </label>
-                <select
-                  id={`${id}-locator-term-${index}`}
-                  value={item.locatorTerm ?? ""}
-                  onChange={(event) =>
-                    update(item.citekey, {
-                      locatorTerm:
-                        event.target.value === ""
-                          ? null
-                          : (event.target.value as LocatorTerm),
-                    })
-                  }
-                >
-                  <option value="">{locatorTermLabel(null)}</option>
-                  {LOCATOR_TERMS.map((term) => (
-                    <option key={term} value={term}>
-                      {locatorTermLabel(term)}
-                    </option>
-                  ))}
-                </select>
-
-                <label htmlFor={`${id}-locator-value-${index}`}>
-                  {citationPickerMessages.locatorValueLabel}
-                </label>
-                <input
-                  id={`${id}-locator-value-${index}`}
-                  type="text"
-                  placeholder={citationPickerMessages.locatorValuePlaceholder}
-                  value={item.locatorValue}
-                  onChange={(event) =>
-                    update(item.citekey, { locatorValue: event.target.value })
-                  }
-                />
-
-                <label htmlFor={`${id}-prefix-${index}`}>
-                  {citationPickerMessages.prefixLabel}
-                </label>
-                <input
-                  id={`${id}-prefix-${index}`}
-                  type="text"
-                  placeholder={citationPickerMessages.prefixPlaceholder}
-                  value={item.prefix}
-                  onChange={(event) =>
-                    update(item.citekey, { prefix: event.target.value })
-                  }
-                />
-
-                <label htmlFor={`${id}-suffix-${index}`}>
-                  {citationPickerMessages.suffixLabel}
-                </label>
-                <input
-                  id={`${id}-suffix-${index}`}
-                  type="text"
-                  placeholder={citationPickerMessages.suffixPlaceholder}
-                  value={item.suffix}
-                  onChange={(event) =>
-                    update(item.citekey, { suffix: event.target.value })
-                  }
-                />
-
-                <button
-                  type="button"
-                  aria-label={citationPickerMessages.removeSelected}
-                  onClick={() => toggle(item.citekey, item.title)}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
+          {state.kind === "ok" && rows.length > 0 && (
+            <ul
+              aria-label={citationPickerMessages.resultsLabel}
+              className="citation-picker__results"
+            >
+              {rows.map((row) => (
+                <li key={row.citekey} className="citation-picker__result">
+                  <label>
+                    <input
+                      type={replacing ? "radio" : "checkbox"}
+                      name={replacing ? `${id}-replacement` : undefined}
+                      checked={isSelected(row.citekey)}
+                      onChange={() => toggle(row.citekey, row.title)}
+                    />
+                    <span className="citation-picker__result-title">
+                      {row.title}
+                    </span>
+                    {row.creatorSummary !== null && (
+                      <span className="citation-picker__result-meta">
+                        {row.creatorSummary}
+                      </span>
+                    )}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
+        {!replacing && (
+          <div className="citation-picker__column citation-picker__selected">
+            {selected.length > 0 && (
+              <h6 className="citation-picker__heading">
+                {citationPickerMessages.selectedHeading}
+              </h6>
+            )}
+            {selected.length === 0 && (
+              <p className="citation-picker__status">
+                {citationPickerMessages.noneSelected}
+              </p>
+            )}
+            <ul>
+              {selected.map((item, index) => (
+                <li
+                  key={item.citekey}
+                  className="citation-picker__selected-item"
+                >
+                  <span className="citation-picker__selected-title">
+                    {item.title}
+                  </span>
+
+                  <label htmlFor={`${id}-locator-term-${index}`}>
+                    {citationPickerMessages.locatorTermLabel}
+                  </label>
+                  <select
+                    id={`${id}-locator-term-${index}`}
+                    value={item.locatorTerm ?? ""}
+                    onChange={(event) =>
+                      update(item.citekey, {
+                        locatorTerm:
+                          event.target.value === ""
+                            ? null
+                            : (event.target.value as LocatorTerm),
+                      })
+                    }
+                  >
+                    <option value="">{locatorTermLabel(null)}</option>
+                    {LOCATOR_TERMS.map((term) => (
+                      <option key={term} value={term}>
+                        {locatorTermLabel(term)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label htmlFor={`${id}-locator-value-${index}`}>
+                    {citationPickerMessages.locatorValueLabel}
+                  </label>
+                  <input
+                    id={`${id}-locator-value-${index}`}
+                    type="text"
+                    placeholder={citationPickerMessages.locatorValuePlaceholder}
+                    value={item.locatorValue}
+                    onChange={(event) =>
+                      update(item.citekey, { locatorValue: event.target.value })
+                    }
+                  />
+
+                  <label htmlFor={`${id}-prefix-${index}`}>
+                    {citationPickerMessages.prefixLabel}
+                  </label>
+                  <input
+                    id={`${id}-prefix-${index}`}
+                    type="text"
+                    placeholder={citationPickerMessages.prefixPlaceholder}
+                    value={item.prefix}
+                    onChange={(event) =>
+                      update(item.citekey, { prefix: event.target.value })
+                    }
+                  />
+
+                  <label htmlFor={`${id}-suffix-${index}`}>
+                    {citationPickerMessages.suffixLabel}
+                  </label>
+                  <input
+                    id={`${id}-suffix-${index}`}
+                    type="text"
+                    placeholder={citationPickerMessages.suffixPlaceholder}
+                    value={item.suffix}
+                    onChange={(event) =>
+                      update(item.citekey, { suffix: event.target.value })
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    aria-label={citationPickerMessages.removeSelected}
+                    onClick={() => toggle(item.citekey, item.title)}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       <div className="citation-picker__actions">
+        {!replacing && (
+          <>
+            <span className="citation-picker__count" role="status">
+              {citationPickerMessages.selectedCount(selected.length)}
+            </span>
+            {selected.length > 1 && (
+              <label
+                className="citation-picker__separate"
+                title={citationPickerMessages.separateHint}
+              >
+                <input
+                  type="checkbox"
+                  checked={separate}
+                  onChange={(event) => setSeparate(event.target.checked)}
+                />{" "}
+                {citationPickerMessages.separateLabel}
+              </label>
+            )}
+            {selected.length > 0 && (
+              <button type="button" onClick={() => setSelected([])}>
+                {citationPickerMessages.clearSelection}
+              </button>
+            )}
+          </>
+        )}
         <button type="button" onClick={onCancel}>
           {citationPickerMessages.cancel}
         </button>

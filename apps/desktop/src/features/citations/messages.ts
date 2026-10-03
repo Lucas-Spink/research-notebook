@@ -33,6 +33,15 @@ export const citationPickerMessages = {
   suffixPlaceholder: "e.g. emphasis added",
   removeSelected: "Remove from selection",
   insert: "Insert citation",
+  selectedCount: (count: number) =>
+    count === 1 ? "1 source selected" : `${count} sources selected`,
+  noneSelected:
+    "Select one or more sources. Your selection stays while you search again.",
+  clearSelection: "Clear selection",
+  separateLabel: "Insert as separate citations",
+  separateHint: "[@a] [@b] rather than [@a; @b]",
+  resultsHeading: "Search results",
+  hint: "Ctrl+Enter inserts",
   replaceDialogLabel: "Replace source with a Zotero item",
   useSource: "Use this source",
   cancel: "Cancel",

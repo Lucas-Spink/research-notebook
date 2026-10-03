@@ -237,4 +237,40 @@ describe("the workspace (S6-T01)", () => {
     click(ribbonButton(view, "Details"));
     expect(pane(view)?.querySelector(".notebook__details")).not.toBeNull();
   });
+
+  it("adds results from a pane opened by the plus in the Results cell", () => {
+    const { view } = mountNotebook(state);
+    const plus = rowOf(view, "EXP-001").querySelector(
+      'button[aria-label="Add a result to EXP-001"]',
+    );
+    if (plus === null) throw new Error("no plus");
+    click(plus);
+    expect(
+      [...view.querySelectorAll('aside.pane [role="tab"]')].map(
+        (t) => t.textContent,
+      ),
+    ).toEqual(["Add result"]);
+    expect(pane(view)?.textContent).toContain("Add results to EXP-001");
+    expect(
+      [...(pane(view)?.querySelectorAll("button") ?? [])].some(
+        (b) => b.textContent === "Add files…",
+      ),
+    ).toBe(true);
+    // The cell itself did not open into the folder tree.
+    expect(rowOf(view, "EXP-001").querySelector('[role="tree"]')).toBeNull();
+  });
+
+  it("opens the same pane from the ribbon's Add result for the selected experiment", () => {
+    const { view } = mountNotebook(state);
+    expect(ribbonButton(view, "Add result").hasAttribute("disabled")).toBe(
+      true,
+    );
+    const select = rowOf(view, "EXP-002").querySelector(
+      `button[aria-label="${selectLabel("EXP-002")}"]`,
+    );
+    if (select === null) throw new Error("no title");
+    click(select);
+    click(ribbonButton(view, "Add result"));
+    expect(pane(view)?.textContent).toContain("Add results to EXP-002");
+  });
 });

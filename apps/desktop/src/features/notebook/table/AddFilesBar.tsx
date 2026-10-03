@@ -22,6 +22,8 @@ type Props = Omit<AddFilesOptions, "api"> & {
   /** The element files may be dropped on: the whole open Results cell. */
   zone: RefObject<HTMLElement | null>;
   drops: DropsApi;
+  /** Laid out for the side pane: stacked, with a large area to drop files on. */
+  pane?: boolean;
 };
 
 const isAddHow = (value: string): value is AddHow =>
@@ -32,7 +34,13 @@ const isAddHow = (value: string): value is AddHow =>
  * FR-EVD-02): the picker, whether this addition copies or links whatever its
  * size, and what happened to each file, announced politely.
  */
-export function AddFilesBar({ readOnly, zone, drops, ...options }: Props) {
+export function AddFilesBar({
+  readOnly,
+  zone,
+  drops,
+  pane = false,
+  ...options
+}: Props) {
   const add = useAddFiles(options);
   const discovery = useDiscovery(options);
   const { dragging } = useDropFiles({
@@ -45,7 +53,9 @@ export function AddFilesBar({ readOnly, zone, drops, ...options }: Props) {
     onDrop: (files) => void add.addChosen(files),
   });
   return (
-    <div className={dragging ? "wtable__add wtable__add--drop" : "wtable__add"}>
+    <div
+      className={`wtable__add${pane ? " wtable__add--pane" : ""}${dragging ? " wtable__add--drop" : ""}`}
+    >
       <button
         type="button"
         onClick={() => void add.pick()}

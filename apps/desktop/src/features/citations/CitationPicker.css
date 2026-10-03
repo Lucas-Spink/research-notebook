@@ -1,3 +1,6 @@
+/* The citation picker: compact when it sits inline, and a large two-column
+   dialog (results on the left, the chosen sources on the right) when it is
+   the modal the /cite command opens (see CitationPickerOverlay.css). */
 .citation-picker {
   box-sizing: border-box;
   display: flex;
@@ -8,10 +11,15 @@
   max-width: 28rem;
   max-height: 24rem;
   overflow-y: auto;
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  background: Canvas;
-  color: CanvasText;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.citation-picker__title {
+  margin: 0;
+  font-size: 1.1em;
 }
 
 .citation-picker__heading {
@@ -29,6 +37,21 @@
   font-style: italic;
 }
 
+.citation-picker__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.citation-picker__column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+}
+
 .citation-picker__results {
   box-sizing: border-box;
   margin: 0;
@@ -36,27 +59,50 @@
   list-style: none;
   max-height: 8rem;
   overflow-y: auto;
-  border: 1px solid currentColor;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
-.citation-picker__result {
+.citation-picker__result label {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
   padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.citation-picker__result label:hover {
+  background: var(--color-surface-alt);
+}
+
+.citation-picker__result input {
+  padding: 0;
+}
+
+.citation-picker__result:has(input:checked) {
+  background: color-mix(in srgb, var(--palette-accent) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--palette-accent);
 }
 
 .citation-picker__result-title {
   font-weight: 600;
-  margin-inline-start: 0.35rem;
 }
 
 .citation-picker__result-meta {
   font-size: 0.85em;
-  margin-inline-start: 0.35rem;
+  opacity: 0.8;
 }
 
 .citation-picker__selected {
-  border-top: 1px solid currentColor;
+  border-top: 1px solid var(--color-border);
   padding-top: 0.5rem;
+}
+
+.citation-picker__selected ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .citation-picker__selected-item {
@@ -64,7 +110,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.25rem 0.5rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid currentColor;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .citation-picker__selected-title {
@@ -74,6 +120,17 @@
 
 .citation-picker__actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.citation-picker__count {
+  margin-inline-end: auto;
+  font-weight: 600;
+}
+
+.citation-picker__separate {
+  font-size: 0.9em;
 }

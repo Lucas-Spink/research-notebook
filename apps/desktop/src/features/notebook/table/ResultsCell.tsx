@@ -1,7 +1,6 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
 import { useEffect, useRef } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
-import { commands } from "../../../ipc/bindings";
 import {
   applyGroupAction,
   ResultsTree,
@@ -9,12 +8,11 @@ import {
   type GroupAction,
 } from "../../results";
 import {
+  addResultLabel,
   browseResultsLabel,
   resultsCountLabel,
   tableMessages,
 } from "../messages";
-import { AddFilesBar } from "./AddFilesBar";
-import { evidenceDrops } from "./dropsApi";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
 import { resultsSummary } from "./model/resultsSummary";
@@ -61,7 +59,6 @@ export function ResultsCell({
   const open = editing.openResults === experiment.folder;
   const readOnly = !editing.writable || row.item.readOnly || artefacts === null;
   const control = useRef<HTMLDivElement>(null);
-  const openCell = useRef<HTMLDivElement>(null);
   const returnFocus = useRef(false);
 
   useEffect(() => {
@@ -99,7 +96,6 @@ export function ResultsCell({
   if (open) {
     return (
       <div
-        ref={openCell}
         className="wtable__results-open"
         onKeyDown={(event) => {
           const inPanel =
@@ -111,25 +107,26 @@ export function ResultsCell({
           }
         }}
       >
-        <button type="button" className="wtable__results-close" onClick={close}>
-          {tableMessages.closeResults}
-        </button>
-        {artefacts !== null &&
-        editing.evidence !== null &&
-        editing.projectId !== null ? (
-          <AddFilesBar
-            api={commands}
-            folder={folder}
-            projectId={editing.projectId}
-            experimentFolder={experiment.folder}
-            evidence={editing.evidence}
-            artefacts={artefacts}
-            editArtefacts={editing.editArtefacts}
-            readOnly={readOnly}
-            zone={openCell}
-            drops={evidenceDrops}
-          />
-        ) : null}
+        <div className="wtable__results-tools">
+          {!readOnly && (
+            <button
+              type="button"
+              className="wtable__add-result wtable__add-result--inline"
+              aria-label={addResultLabel(ref)}
+              title={addResultLabel(ref)}
+              onClick={() => editing.onAddResult(row)}
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="wtable__results-close"
+            onClick={close}
+          >
+            {tableMessages.closeResults}
+          </button>
+        </div>
         {artefacts === null ? (
           <p>{tableMessages.unreadableResults}</p>
         ) : (
@@ -146,47 +143,68 @@ export function ResultsCell({
 
   const summary = artefacts === null ? null : resultsSummary(artefacts);
   return (
-    <div
-      ref={control}
-      role="button"
-      tabIndex={tabbable ? 0 : -1}
-      data-grid-focus
-      className="wtable__edit wtable__results"
-      aria-label={browseResultsLabel(ref)}
-      onClick={() => editing.onOpenResults(row)}
-      onKeyDown={(event) => {
-        if (OPEN_KEYS.has(event.key)) {
-          event.preventDefault();
-          editing.onOpenResults(row);
-        }
-      }}
-    >
-      {summary === null || summary.total === 0 ? (
-        <span className="wtable__muted">{tableMessages.resultsNone}</span>
-      ) : (
-        <>
-          <div className="wtable__results-counts">
-            {resultsCountLabel(summary.total)}
-            {summary.groups.map((group, index) => (
-              // Two top-level groups may share a name.
-              <span key={index} className="wtable__results-group">
-                {group.name} {group.count}
-              </span>
-            ))}
-          </div>
-          <div className="wtable__thumbs">
-            {summary.thumbnails.map((thumb) => (
-              <ResultThumb
-                key={thumb.artefactId}
-                folder={folder}
-                experimentFolder={experiment.folder}
-                thumb={thumb}
-                onOpen={() => openResult(thumb.artefactId)}
-              />
-            ))}
-          </div>
-          <span className="wtable__browse">{tableMessages.browseAll}</span>
-        </>
+    <div className="wtable__results-wrap">
+      <div
+        ref={control}
+        role="button"
+        tabIndex={tabbable ? 0 : -1}
+        data-grid-focus
+        className="wtable__edit wtable__results"
+        aria-label={browseResultsLabel(ref)}
+        onClick={() => editing.onOpenResults(row)}
+        onKeyDown={(event) => {
+          if (OPEN_KEYS.has(event.key)) {
+            event.preventDefault();
+            editing.onOpenResults(row);
+          } else if (event.key === "+" && !readOnly) {
+            event.preventDefault();
+            editing.onAddResult(row);
+          }
+        }}
+      >
+        {summary === null || summary.total === 0 ? (
+          <span className="wtable__muted">{tableMessages.resultsNone}</span>
+        ) : (
+          <>
+            <div className="wtable__results-counts">
+              {resultsCountLabel(summary.total)}
+              {summary.groups.map((group, index) => (
+                // Two top-level groups may share a name.
+                <span key={index} className="wtable__results-group">
+                  {group.name} {group.count}
+                </span>
+              ))}
+            </div>
+            <div className="wtable__thumbs">
+              {summary.thumbnails.map((thumb) => (
+                <ResultThumb
+                  key={thumb.artefactId}
+                  folder={folder}
+                  experimentFolder={experiment.folder}
+                  thumb={thumb}
+                  onOpen={() => openResult(thumb.artefactId)}
+                />
+              ))}
+            </div>
+            <span className="wtable__browse">{tableMessages.browseAll}</span>
+          </>
+        )}
+      </div>
+      {!readOnly && (
+        <button
+          type="button"
+          className="wtable__add-result"
+          // The grid has one tab stop per cell (ADR-0043): by keyboard, press + in the cell.
+          tabIndex={-1}
+          aria-label={addResultLabel(ref)}
+          title={addResultLabel(ref)}
+          onClick={(event) => {
+            event.stopPropagation();
+            editing.onAddResult(row);
+          }}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
       )}
     </div>
   );
