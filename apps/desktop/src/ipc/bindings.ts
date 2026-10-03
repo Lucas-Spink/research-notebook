@@ -254,6 +254,17 @@ export const commands = {
 	 *  a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02). Writes nothing.
 	 */
 	zoteroFetchSource: (itemKey: string) => typedError<ZoteroSourceResult, ZoteroSourceError>(__TAURI_INVOKE("zotero_fetch_source", { itemKey })),
+	/**
+	 *  The key of a source's PDF attachment, when Zotero has one. Blocking HTTP
+	 *  to 127.0.0.1:23119 (FR-CIT-02), so it runs in `spawn_blocking`. Writes
+	 *  nothing.
+	 */
+	zoteroPdfAttachment: (library: string, itemKey: string) => typedError<string | null, ZoteroSourceError>(__TAURI_INVOKE("zotero_pdf_attachment", { library, itemKey })),
+	/**
+	 *  Opens one of the three source links. Launches a process, so it runs in
+	 *  `spawn_blocking`.
+	 */
+	openSourceLink: (link: SourceLink) => typedError<null, OpenSourceLinkError>(__TAURI_INVOKE("open_source_link", { link })),
 };
 
 /** Events */
@@ -665,6 +676,13 @@ export type OpenFailure =
 /**  The action itself failed to start. */
 { kind: "actionFailed" };
 
+/**  Why a link did not open. */
+export type OpenSourceLinkError = 
+/**  The parts were not a valid library, key or DOI; nothing was launched. */
+{ kind: "invalid" } | 
+/**  The operating system could not launch the handler. */
+{ kind: "launchFailed" };
+
 /**
  *  A project folder that was opened. The text is `project.yaml` exactly as it
  *  is on disk; the frontend parses it with `packages/format`, the only parser.
@@ -803,6 +821,15 @@ export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "c
  *  hexadecimal characters.
  */
 export type Sha256Hex = string;
+
+/**  What the person asked to open. */
+export type SourceLink = 
+/**  Show the item in Zotero. */
+{ kind: "zoteroItem"; library: string; key: string } | 
+/**  Open a PDF attachment in Zotero's reader. */
+{ kind: "zoteroPdf"; library: string; attachmentKey: string } | 
+/**  Open the DOI in the system browser. */
+{ kind: "doi"; doi: string };
 
 /**
  *  Where a file the person chose sits, in the terms `artefacts.yaml`

@@ -63,6 +63,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::zotero::zotero_status,
             commands::zotero::zotero_search_items,
             commands::zotero::zotero_fetch_source,
+            commands::zotero_links::zotero_pdf_attachment,
+            commands::zotero_links::open_source_link,
         ])
         .events(collect_events![
             commands::projects::evidence::EvidenceDragged,
