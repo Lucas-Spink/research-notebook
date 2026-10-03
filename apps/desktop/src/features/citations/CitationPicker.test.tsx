@@ -274,3 +274,52 @@ describe("CitationPicker (FR-CIT-03)", () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 });
+
+describe("CitationPicker in replace mode (FR-CIT-08)", () => {
+  const OTHER_ROW = { ...ROW, citekey: "z:u:ABCD2345", title: "Another" };
+
+  function mountReplace(onInsertCitekeys: (keys: readonly string[]) => void) {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <CitationPicker
+          mode="replace"
+          exclude={ROW.citekey}
+          api={fakeApi({ status: "ok", data: [ROW, OTHER_ROW] })}
+          onInsert={() => undefined}
+          onInsertCitekeys={onInsertCitekeys}
+          onCancel={() => undefined}
+        />,
+      ),
+    );
+    return container;
+  }
+
+  it("chooses exactly one source, hides the source being replaced, and offers no locator", async () => {
+    const chosen = vi.fn();
+    const view = mountReplace(chosen);
+    await search(view, "w");
+    expect(view.textContent).not.toContain(ROW.title);
+    expect(view.querySelectorAll('input[type="radio"]')).toHaveLength(1);
+    expect(view.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
+    click(view.querySelector('input[type="radio"]'));
+    expect(fieldByPlaceholder(view, "e.g. 6 or 10-12")).toBeNull();
+    const use = [...view.querySelectorAll("button")].find(
+      (b) => b.textContent === "Use this source",
+    );
+    click(use);
+    expect(chosen).toHaveBeenCalledWith(["z:u:ABCD2345"]);
+  });
+
+  it("keeps Use this source disabled until one is chosen", async () => {
+    const view = mountReplace(() => undefined);
+    await search(view, "w");
+    const use = [...view.querySelectorAll("button")].find(
+      (b) => b.textContent === "Use this source",
+    );
+    expect(use?.disabled).toBe(true);
+  });
+});

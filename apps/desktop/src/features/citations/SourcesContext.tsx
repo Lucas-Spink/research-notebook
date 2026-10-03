@@ -47,6 +47,8 @@ export type SourcesModel = {
   selected: string | null;
   /** Opens a source's details, or closes them with `null` and returns focus to what opened them. */
   select: (citekey: string | null) => void;
+  /** Shows a bibliography another operation has just written (a source repaired, FR-CIT-08). */
+  adopt: (file: BibliographyFileModel) => void;
 };
 
 /** What a component outside any provider sees: nothing cached and nothing to do. */
@@ -64,6 +66,7 @@ const INERT: SourcesModel = {
   decline: () => undefined,
   selected: null,
   select: () => undefined,
+  adopt: () => undefined,
 };
 
 const SourcesContext = createContext<SourcesModel>(INERT);
@@ -224,6 +227,7 @@ export function SourcesProvider({
       decline,
       selected,
       select,
+      adopt: setFile,
     }),
     [
       file,

@@ -25,6 +25,14 @@ export type CitationPickerProps = {
   onInsertCitekeys?: (citekeys: readonly string[]) => void;
   /** Called on Cancel or Escape; nothing is inserted. */
   onCancel: () => void;
+  /**
+   * `replace` chooses exactly one source to stand in for another (FR-CIT-08):
+   * no locator, prefix or suffix, and `onInsertCitekeys` is called with that one
+   * citekey. Defaults to `cite`.
+   */
+  mode?: "cite" | "replace";
+  /** A citekey to leave out of the results, such as the source being replaced. */
+  exclude?: string;
   /** Overridable for tests; defaults to the real IPC commands. */
   api?: CitationSearchApi;
 };
@@ -40,8 +48,11 @@ export function CitationPicker({
   onInsert,
   onInsertCitekeys,
   onCancel,
+  mode = "cite",
+  exclude,
   api = commands,
 }: CitationPickerProps) {
+  const replacing = mode === "replace";
   const id = useId();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<CitationSelectionItem[]>([]);
@@ -52,7 +63,9 @@ export function CitationPicker({
 
   const toggle = (citekey: string, title: string) => {
     setSelected((current) =>
-      toggleSelection(current, newSelectionItem(citekey, title)),
+      replacing
+        ? [newSelectionItem(citekey, title)]
+        : toggleSelection(current, newSelectionItem(citekey, title)),
     );
   };
 
@@ -70,21 +83,29 @@ export function CitationPicker({
 
   const insert = () => {
     if (selected.length === 0) return;
-    onInsert(buildCitationMarkdown(selected));
+    onInsert(replacing ? "" : buildCitationMarkdown(selected));
     onInsertCitekeys?.(selected.map((item) => item.citekey));
   };
 
+  const rows =
+    state.kind === "ok"
+      ? state.rows.filter((row) => row.citekey !== exclude)
+      : [];
   const statusText =
     state.kind === "ok"
-      ? state.rows.length === 0
+      ? rows.length === 0
         ? citationPickerMessages.empty
         : null
       : citationSearchStatusText(state);
 
+  const dialogLabel = replacing
+    ? citationPickerMessages.replaceDialogLabel
+    : citationPickerMessages.dialogLabel;
+
   return (
     <div
       role="dialog"
-      aria-label={citationPickerMessages.dialogLabel}
+      aria-label={dialogLabel}
       className="citation-picker"
       onKeyDown={(event) => {
         if (event.key === "Escape") {
@@ -93,9 +114,7 @@ export function CitationPicker({
         }
       }}
     >
-      <h6 className="citation-picker__heading">
-        {citationPickerMessages.dialogLabel}
-      </h6>
+      <h6 className="citation-picker__heading">{dialogLabel}</h6>
 
       <label className="citation-picker__label" htmlFor={`${id}-search`}>
         {citationPickerMessages.searchLabel}
@@ -115,16 +134,17 @@ export function CitationPicker({
         </p>
       )}
 
-      {state.kind === "ok" && state.rows.length > 0 && (
+      {state.kind === "ok" && rows.length > 0 && (
         <ul
           aria-label={citationPickerMessages.resultsLabel}
           className="citation-picker__results"
         >
-          {state.rows.map((row) => (
+          {rows.map((row) => (
             <li key={row.citekey} className="citation-picker__result">
               <label>
                 <input
-                  type="checkbox"
+                  type={replacing ? "radio" : "checkbox"}
+                  name={replacing ? `${id}-replacement` : undefined}
                   checked={isSelected(row.citekey)}
                   onChange={() => toggle(row.citekey, row.title)}
                 />
@@ -142,7 +162,7 @@ export function CitationPicker({
         </ul>
       )}
 
-      {selected.length > 0 && (
+      {!replacing && selected.length > 0 && (
         <div className="citation-picker__selected">
           <h6 className="citation-picker__heading">
             {citationPickerMessages.selectedHeading}
@@ -234,7 +254,9 @@ export function CitationPicker({
           {citationPickerMessages.cancel}
         </button>
         <button type="button" disabled={selected.length === 0} onClick={insert}>
-          {citationPickerMessages.insert}
+          {replacing
+            ? citationPickerMessages.useSource
+            : citationPickerMessages.insert}
         </button>
       </div>
     </div>

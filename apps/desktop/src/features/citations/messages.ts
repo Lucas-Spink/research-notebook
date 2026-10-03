@@ -33,6 +33,8 @@ export const citationPickerMessages = {
   suffixPlaceholder: "e.g. emphasis added",
   removeSelected: "Remove from selection",
   insert: "Insert citation",
+  replaceDialogLabel: "Replace source with a Zotero item",
+  useSource: "Use this source",
   cancel: "Cancel",
 } as const;
 
@@ -242,4 +244,29 @@ export function styleChangedText(keptEdited: number): string {
   }
   const blocks = keptEdited === 1 ? "block was" : "blocks were";
   return `Citation style changed. ${keptEdited} Literature ${blocks} left as edited by hand.`;
+}
+
+/** User-facing text for replacing a missing or trashed source (FR-CIT-08), in British English. */
+export const repairMessages = {
+  action: "Replace…",
+  working: "Replacing the source…",
+  notRepairable: "Only a missing or trashed source can be replaced.",
+  notCited: "No experiment cites that source, so nothing was changed.",
+  notUsable:
+    "That item is not available in Zotero (it is missing, in the trash, or differs from the copy held), so nothing was changed.",
+  failed:
+    "The source could not be replaced. Some experiments may have been updated; try again to finish.",
+} as const;
+
+/** What a finished replacement did, as one status line. */
+export function repairedText(experiments: number, keptEdited: number): string {
+  const where =
+    experiments === 1 ? "1 experiment" : `${experiments} experiments`;
+  const kept =
+    keptEdited === 0
+      ? ""
+      : keptEdited === 1
+        ? " One Literature block was edited by hand and was left as it was."
+        : ` ${keptEdited} Literature blocks were edited by hand and were left as they were.`;
+  return `Replaced the source in ${where}.${kept}`;
 }
