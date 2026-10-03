@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import type { TablePreview, TextPreview } from "../../ipc/bindings";
 import { previewMessages as m } from "./messages";
 
@@ -9,7 +10,16 @@ type ImageProps = {
   onRenderFailed: () => void;
 };
 
-/** A raster image fitted to the panel, with a toggle to actual size (spec 8). */
+const ZOOM_STEP = 1.25;
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 8;
+
+/**
+ * A raster image fitted to the panel, with a toggle to actual size (spec 8),
+ * and zoom in and out (S6-T01): a zoomed image is larger than its frame, and
+ * is panned by dragging it or with the scroll bars. Ctrl and the wheel zoom
+ * too.
+ */
 export function ImageView({
   name,
   url,
@@ -17,16 +27,61 @@ export function ImageView({
   onToggleZoom,
   onRenderFailed,
 }: ImageProps) {
+  // 1 is the size the toggle chose; zooming multiplies it.
+  const [scale, setScale] = useState(1);
+  const drag = useRef<{ x: number; y: number } | null>(null);
+  const zoomBy = (factor: number) =>
+    setScale((current) =>
+      Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, current * factor)),
+    );
+  const magnified = scale !== 1;
   return (
     <div className="preview__image-frame">
-      <button type="button" aria-pressed={zoomed} onClick={onToggleZoom}>
-        {zoomed ? m.fitToPanel : m.actualSize}
-      </button>
-      <div className="preview__scroll">
+      <div className="preview__zoom">
+        <button type="button" aria-pressed={zoomed} onClick={onToggleZoom}>
+          {zoomed ? m.fitToPanel : m.actualSize}
+        </button>
+        <button type="button" onClick={() => zoomBy(ZOOM_STEP)}>
+          {m.zoomIn}
+        </button>
+        <button type="button" onClick={() => zoomBy(1 / ZOOM_STEP)}>
+          {m.zoomOut}
+        </button>
+        <button type="button" disabled={!magnified} onClick={() => setScale(1)}>
+          {m.resetZoom}
+        </button>
+      </div>
+      <div
+        className={`preview__scroll${magnified ? " preview__scroll--pan" : ""}`}
+        onWheel={(event) => {
+          if (event.ctrlKey)
+            zoomBy(event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
+        }}
+        onPointerDown={(event) => {
+          if (!magnified) return;
+          drag.current = { x: event.clientX, y: event.clientY };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          const from = drag.current;
+          if (from === null) return;
+          event.currentTarget.scrollLeft -= event.clientX - from.x;
+          event.currentTarget.scrollTop -= event.clientY - from.y;
+          drag.current = { x: event.clientX, y: event.clientY };
+        }}
+        onPointerUp={() => {
+          drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+      >
         <img
-          className={`preview__image preview__image--${zoomed ? "actual" : "fit"}`}
+          className={`preview__image preview__image--${magnified ? "actual" : zoomed ? "actual" : "fit"}`}
+          style={magnified ? { width: `${scale * 100}%` } : undefined}
           src={url}
           alt={m.imageAlt(name)}
+          draggable={false}
           onError={onRenderFailed}
         />
       </div>

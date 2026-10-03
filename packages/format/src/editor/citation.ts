@@ -51,7 +51,7 @@ export const CITATION_ITEM = /^(.*?)(-)?@(\S+?)(?:,\s*(.*))?$/;
  * items, or `null` if any item's citekey is not valid — the whole cluster is
  * then left as ordinary bracketed text, matching `artefactRef.ts`'s "any
  * invalidity falls through" rule. */
-function parseCitationBody(body: string): CitationItem[] | null {
+export function parseCitationBody(body: string): CitationItem[] | null {
   const items: CitationItem[] = [];
   for (const rawPart of body.split(";")) {
     const match = CITATION_ITEM.exec(rawPart.trim());

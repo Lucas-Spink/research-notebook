@@ -19,17 +19,16 @@ import { EditableSectionCell, type TableEditing } from "./EditableSectionCell";
 import { ResultsCell } from "./ResultsCell";
 import { ExperimentCell } from "./ExperimentCell";
 import type { ExperimentRow, HeaderRow } from "./model/rows";
-import { SummaryCell } from "./SummaryCell";
 
 /**
  * Where a virtual row sits: taken out of the flow so only the rows in view
- * exist. The row being edited also carries the virtualiser's measuring ref,
- * since it alone grows to fit its editor (ADR-0043).
+ * exist. Every row carries the virtualiser's measuring ref, since each grows
+ * to fit its wrapped content (S6-T01).
  */
 export type RowPlace = {
   style: CSSProperties;
   index: number;
-  measure?: { ref: (node: HTMLElement | null) => void; dataIndex: number };
+  measure: { ref: (node: HTMLElement | null) => void; dataIndex: number };
 };
 
 const SECTIONS: readonly RecognisedSectionKey[] = [
@@ -67,9 +66,9 @@ function cellFor(
         />
       );
     case "literature":
-      return (
-        <SummaryCell parts={row.summaries.literature} artefacts={artefacts} />
-      );
+      // No column of its own: citations are read in the text, and the
+      // Bibliography below the table lists the sources (S6-T01).
+      return null;
     case "results":
       return (
         <ResultsCell
@@ -92,7 +91,11 @@ type ExperimentProps = {
   columns: readonly { key: ColumnKey; width: number }[];
   experimentWidth: number;
   selected: boolean;
+  /** Picked as a row, so highlighted; `selected` alone (a cell was chosen) is not. */
+  picked: boolean;
   sharesRef: boolean;
+  /** The column of this row whose cell is chosen, so it shows the selection outline; `null` when none is. */
+  selectedCol: number | null;
   /** The open project, so a reference chip can read this experiment's
    * artefacts.yaml (FR-EDT-06), the same as the expanded view. */
   folder: FolderHandle;
@@ -109,7 +112,9 @@ export function ExperimentRowView({
   columns,
   experimentWidth,
   selected,
+  picked,
   sharesRef,
+  selectedCol,
   folder,
   onSelect,
   editing,
@@ -118,17 +123,18 @@ export function ExperimentRowView({
   const artefacts = evidenceOf(row.item);
   return (
     <div
-      ref={place.measure?.ref}
-      data-index={place.measure?.dataIndex}
+      ref={place.measure.ref}
+      data-index={place.measure.dataIndex}
       role="row"
       aria-rowindex={place.index}
-      className={`wtable__row${selected ? " wtable__row--selected" : ""}`}
+      className={`wtable__row${picked ? " wtable__row--selected" : ""}`}
       style={place.style}
     >
       <ExperimentCell
         row={row}
         width={experimentWidth}
         selected={selected}
+        cellSelected={selectedCol === 0}
         sharesRef={sharesRef}
         tabbable={focusCol === 0}
         editing={editing}
@@ -161,7 +167,7 @@ export function ExperimentRowView({
             data-grid-row={row.key}
             data-grid-col={col}
             tabIndex={ownControl ? undefined : tabbable ? 0 : -1}
-            className={`wtable__cell${isEditing ? " wtable__cell--editing" : ""}`}
+            className={`wtable__cell${isEditing ? " wtable__cell--editing" : selectedCol === col ? " wtable__cell--selected" : ""}`}
             style={{ width: column.width }}
           >
             {cellFor(column.key, row, artefacts, folder, editing, tabbable)}
@@ -179,6 +185,7 @@ type HeaderProps = {
   /** The Motivation column's width while it is shown, or `null` when hidden. */
   motivationWidth: number | null;
   selected: boolean;
+  picked: boolean;
   sharesRef: boolean;
   onToggle: (row: HeaderRow) => void;
   onSelect: (row: HeaderRow) => void;
@@ -191,6 +198,7 @@ export function QuestionHeaderRowView({
   columnCount,
   motivationWidth,
   selected,
+  picked,
   sharesRef,
   onToggle,
   onSelect,
@@ -198,9 +206,11 @@ export function QuestionHeaderRowView({
   const name = row.ref ?? messages.unassignedHeading;
   return (
     <div
+      ref={place.measure.ref}
+      data-index={place.measure.dataIndex}
       role="row"
       aria-rowindex={place.index}
-      className={`wtable__question${selected ? " wtable__row--selected" : ""}`}
+      className={`wtable__question${picked ? " wtable__row--selected" : ""}`}
       style={place.style}
     >
       <div
@@ -243,7 +253,6 @@ export function QuestionHeaderRowView({
           <span
             className="wtable__motivation"
             style={{ maxWidth: motivationWidth }}
-            title={row.motivation}
           >
             {row.motivation === ""
               ? tableMessages.noMotivation
@@ -259,6 +268,8 @@ export function QuestionHeaderRowView({
 export function EmptyRowView({ place }: { place: RowPlace }) {
   return (
     <div
+      ref={place.measure.ref}
+      data-index={place.measure.dataIndex}
       role="row"
       aria-rowindex={place.index}
       className="wtable__none"

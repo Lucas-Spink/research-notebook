@@ -13,6 +13,7 @@ import type { SearchHit } from "./search/model/searchIndex";
 
 /** User-facing text for the notebook feature, in British English (AGENTS.md section 5). */
 export const messages = {
+  appTitle: "Strata",
   heading: "Questions and experiments",
   loading: "Loading questions and experiments…",
   refresh: "Refresh",
@@ -54,6 +55,8 @@ export const tableMessages = {
   emptyCell: "Empty",
   resultsNone: "None yet",
   browseAll: "Browse all",
+  thumbHint: "Hover to enlarge, double-click to open in the side pane",
+  largePreviewAlt: (name: string) => `Larger preview of ${name}`,
   closeResults: "Close",
   unreadableResults:
     "This experiment's artefacts.yaml could not be read, so its results are left as they are.",

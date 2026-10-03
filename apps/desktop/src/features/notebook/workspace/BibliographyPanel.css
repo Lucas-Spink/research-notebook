@@ -1,0 +1,71 @@
+/* The Bibliography sits under the table and the side pane, at a modest height of its own. */
+.bibliography {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 30vh;
+  background: var(--color-surface-alt);
+  border-top: 2px solid var(--palette-secondary);
+  text-align: left;
+}
+
+.bibliography__heading {
+  flex: none;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.bibliography__toggle {
+  width: 100%;
+  padding: var(--space-1) var(--space-4);
+  color: var(--palette-primary-dark);
+  background: var(--palette-light);
+  border: 0;
+  border-radius: 0;
+  font-weight: 600;
+  text-align: left;
+}
+
+.bibliography__count {
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  color: var(--color-on-dark);
+  background: var(--palette-secondary);
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.bibliography__list,
+.bibliography__empty {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  overflow: auto;
+}
+
+.bibliography__list {
+  list-style-position: inside;
+}
+
+.bibliography__entry {
+  padding: var(--space-1) var(--space-2);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.bibliography__entry:focus-visible {
+  outline: 2px solid var(--color-focus);
+}
+
+/* The entry a citation was just activated for. */
+.bibliography__entry--marked {
+  background: color-mix(in srgb, var(--palette-accent) 15%, transparent);
+  box-shadow: inset 3px 0 0 var(--palette-accent);
+}
+
+.bibliography__details {
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  font-size: 0.8rem;
+}

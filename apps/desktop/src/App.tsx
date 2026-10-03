@@ -6,8 +6,7 @@ import { ProjectsStart } from "./features/projects";
 // until they are cleaned up.
 function App() {
   return (
-    <main className="container">
-      <h1>Research Notebook</h1>
+    <main className="app">
       <ProjectsStart />
     </main>
   );

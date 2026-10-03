@@ -66,7 +66,9 @@ export function columnLayout(table: Table): ColumnLayout[] {
  * (spec 4.3).
  */
 export function gridColumns(layout: readonly ColumnLayout[]): ColumnLayout[] {
-  return layout.filter((c) => !c.hidden && c.key !== "motivation");
+  return layout.filter(
+    (c) => !c.hidden && c.key !== "motivation" && c.key !== "literature",
+  );
 }
 
 /** The Motivation column while it is shown; its width limits the summary in each question header. */

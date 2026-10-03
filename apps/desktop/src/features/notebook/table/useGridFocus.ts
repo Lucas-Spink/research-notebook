@@ -28,6 +28,8 @@ type Options = {
 export type GridFocus = {
   /** The cell holding the grid's one tab stop, or `null` when no experiment is shown. */
   cell: GridCell | null;
+  /** The cell the person has chosen, by click or key, or `null` before any: the one that shows a selection outline. */
+  selected: GridCell | null;
   /** That cell's row, so it can be kept rendered while scrolled away. */
   rowIndex: number | null;
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
@@ -122,5 +124,11 @@ export function useGridFocus({
     }
   }
 
-  return { cell, rowIndex: index === -1 ? null : index, onKeyDown, onFocus };
+  return {
+    cell,
+    selected: chosen === null ? null : cell,
+    rowIndex: index === -1 ? null : index,
+    onKeyDown,
+    onFocus,
+  };
 }

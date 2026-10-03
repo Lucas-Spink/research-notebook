@@ -1,0 +1,118 @@
+/* The side pane sits beside the table in the workspace's flex row, so the table shrinks to make room. */
+.pane {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-surface-alt);
+  border-left: 1px solid var(--color-border);
+  text-align: left;
+}
+
+/* A wide target on the pane's left edge, with a thin line showing where it is. */
+.pane__resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 9px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.pane__resize::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 1px;
+  background: var(--palette-secondary);
+  opacity: 0.4;
+}
+
+.pane__resize:hover::after,
+.pane__resize:focus-visible::after {
+  width: 3px;
+  left: 3px;
+  background: var(--palette-accent);
+  opacity: 1;
+}
+
+.pane__bar {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) 0;
+  background: var(--palette-secondary);
+}
+
+.pane__tabs {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.pane__tab {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  max-width: 14rem;
+  color: var(--color-on-dark);
+  border-radius: 6px 6px 0 0;
+}
+
+.pane__tab--active {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+.pane__tab button {
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.pane__tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: var(--space-1) var(--space-2);
+}
+
+.pane__tab-close {
+  padding: var(--space-1) var(--space-2);
+  line-height: 1;
+}
+
+.pane__tab button:hover:not(:disabled) {
+  background: none;
+  color: var(--palette-accent-hover);
+}
+
+.pane__tab--active button:hover:not(:disabled) {
+  color: var(--palette-accent);
+}
+
+.pane__close {
+  flex: none;
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+  color: var(--color-on-dark);
+  background: none;
+  border-color: color-mix(in srgb, var(--color-on-dark) 40%, transparent);
+  font-size: 0.85rem;
+}
+
+.pane__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3) var(--space-4);
+}

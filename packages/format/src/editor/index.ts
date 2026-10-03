@@ -26,3 +26,4 @@ export {
   serialiseSectionMarkdown,
 } from "./markdown";
 export { PASSTHROUGH_NODE_NAME, Passthrough } from "./passthrough";
+export { appendCitation, citesCitekey, removeCitekey } from "./citationEdit";

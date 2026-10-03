@@ -1,6 +1,16 @@
+export { CitationChip, CitationSource, type ChipItem } from "./CitationChip";
+export { CitationJumpProvider, useCitationJump } from "./CitationInteraction";
 export { CitationPicker, type CitationPickerProps } from "./CitationPicker";
 export { LiteraturePrompt } from "./LiteraturePrompt";
-export { citationPickerMessages, sourceStatusText } from "./messages";
+export {
+  citationPickerMessages,
+  sourceStatusText,
+  sourcesMessages,
+} from "./messages";
+export {
+  bibliographyRows,
+  type BibliographyRow,
+} from "./model/bibliographyEntry";
 export type { SourcesApi } from "./model/syncSources";
 export {
   SourcesProvider,
@@ -9,7 +19,7 @@ export {
   type SourcesModel,
 } from "./SourcesContext";
 export { SourceDetailsPanel } from "./SourceDetailsPanel";
-export { SourcesPanel } from "./SourcesPanel";
+export { SourcesPanel, type AttachModel } from "./SourcesPanel";
 export { StylePicker } from "./StylePicker";
 export { useStyleManagement, type StyleModel } from "./useStyleManagement";
 export { useZoteroStatus } from "./useZoteroStatus";

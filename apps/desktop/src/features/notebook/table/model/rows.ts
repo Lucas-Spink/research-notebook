@@ -1,14 +1,14 @@
 import {
   refNumber,
   summariseMarkdown,
-  summariseMarkdownParts,
+  cellMarkdownParts,
   type Arranged,
   type ArrangedExperiment,
   type ArrangedQuestion,
   type ExperimentStatus,
   type ExperimentFile,
   type LoadedExperiment,
-  type SummaryPart,
+  type CellPart,
 } from "@research-notebook/format";
 
 /** The collapse key of the Unassigned group, which has no ID to store in project.yaml. */
@@ -22,14 +22,14 @@ export type SortState = {
 } | null;
 export type FilterState = { text: string; status: ExperimentStatus | "all" };
 
-/** Bounded summaries of an experiment's sections, one per cell (FR-TBL-05).
+/** Each section's text as the cell shows it, whole and only bounded far beyond any real section (FR-TBL-05, S6-T01).
  * Each is a sequence of parts rather than a plain string, so an artefact
  * reference (FR-EDT-06) can be shown as a chip instead of flattened text. */
 export type Summaries = {
-  methods: readonly SummaryPart[];
-  results_notes: readonly SummaryPart[];
-  interpretation: readonly SummaryPart[];
-  literature: readonly SummaryPart[];
+  methods: readonly CellPart[];
+  results_notes: readonly CellPart[];
+  interpretation: readonly CellPart[];
+  literature: readonly CellPart[];
 };
 
 /** A question's full-width header row (FR-TBL-02), or the Unassigned one. */
@@ -85,10 +85,10 @@ function summariesOf(file: ExperimentFile): Summaries {
   const cached = summaryCache.get(file);
   if (cached !== undefined) return cached;
   const made: Summaries = {
-    methods: summariseMarkdownParts(section(file, "methods")),
-    results_notes: summariseMarkdownParts(section(file, "results_notes")),
-    interpretation: summariseMarkdownParts(section(file, "interpretation")),
-    literature: summariseMarkdownParts(file.body.literature ?? ""),
+    methods: cellMarkdownParts(section(file, "methods")),
+    results_notes: cellMarkdownParts(section(file, "results_notes")),
+    interpretation: cellMarkdownParts(section(file, "interpretation")),
+    literature: cellMarkdownParts(file.body.literature ?? ""),
   };
   summaryCache.set(file, made);
   return made;

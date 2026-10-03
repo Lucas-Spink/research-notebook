@@ -3,6 +3,8 @@ import { ConflictPanel } from "../conflicts";
 import { NotebookPanel } from "../notebook";
 import { messages } from "./messages";
 import { OpenedPanel } from "./OpenedPanel";
+import { ProjectRibbonControls } from "./ProjectRibbonControls";
+import { ReadOnlyBanner } from "./ReadOnlyBanner";
 import { RecentList } from "./RecentList";
 import { useProjects } from "./useProjects";
 import "./ProjectsStart.css";
@@ -17,8 +19,51 @@ export function ProjectsStart() {
     void projects.create(name);
   }
 
+  const { opened } = projects;
+  if (opened !== null && opened.summary !== null) {
+    // An open project is the whole window: ribbon, table and side pane.
+    return (
+      <NotebookPanel
+        folder={opened.folder}
+        writable={opened.mode.kind === "writable"}
+        changes={projects.fileChanges}
+        projectControls={<ProjectRibbonControls projects={projects} />}
+        projectBanners={
+          <>
+            {opened.mode.kind === "readOnly" && (
+              <ReadOnlyBanner
+                reason={opened.mode.reason}
+                busy={projects.busy}
+                onTakeOver={() => void projects.takeOver()}
+                onRetry={() => void projects.retryLock()}
+              />
+            )}
+            {projects.notices.map((notice) => (
+              <p key={notice} className="projects__notice notice">
+                <span>{notice}</span>
+                <button
+                  type="button"
+                  className="notice__dismiss"
+                  aria-label={messages.dismiss}
+                  onClick={() => projects.dismissNotices()}
+                >
+                  ×
+                </button>
+              </p>
+            ))}
+            <ConflictPanel
+              files={projects.changed}
+              onResolve={projects.resolveConflict}
+            />
+          </>
+        }
+      />
+    );
+  }
+
   return (
-    <section className="projects" aria-labelledby="projects-heading">
+    <section className="projects container" aria-labelledby="projects-heading">
+      <h1>{messages.appTitle}</h1>
       <div className="projects__narrow">
         <h2 id="projects-heading">{messages.heading}</h2>
 
@@ -86,14 +131,6 @@ export function ProjectsStart() {
           />
         )}
       </div>
-
-      {projects.opened !== null && projects.opened.summary !== null && (
-        <NotebookPanel
-          folder={projects.opened.folder}
-          writable={projects.opened.mode.kind === "writable"}
-          changes={projects.fileChanges}
-        />
-      )}
 
       <div className="projects__narrow">
         <h3>{messages.recentHeading}</h3>

@@ -15,6 +15,8 @@ type Props = {
   row: ExperimentRow;
   width: number;
   selected: boolean;
+  /** This cell is the one chosen in the grid, so it shows the selection outline. */
+  cellSelected: boolean;
   sharesRef: boolean;
   /** Whether this cell holds the grid's one tab stop (ADR-0043 point 5). */
   tabbable: boolean;
@@ -35,6 +37,7 @@ export function ExperimentCell({
   row,
   width,
   selected,
+  cellSelected,
   sharesRef,
   tabbable,
   editing,
@@ -108,7 +111,7 @@ export function ExperimentCell({
       role="gridcell"
       data-grid-row={row.key}
       data-grid-col={0}
-      className="wtable__cell"
+      className={`wtable__cell${renaming ? " wtable__cell--editing" : cellSelected ? " wtable__cell--selected" : ""}`}
       style={{ width }}
     >
       {renaming ? (

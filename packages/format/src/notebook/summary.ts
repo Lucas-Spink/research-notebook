@@ -10,10 +10,19 @@ import {
   ARTEFACT_REF_LINK,
   parseArtefactRefTitle,
 } from "../editor/artefactRef";
+import {
+  CITATION_ANCHORED,
+  CITATION_IN_TEXT_ANCHORED,
+  parseCitationBody,
+  type CitationItem,
+} from "../editor/citation";
+import { Citekey } from "../schema";
 
 const DEFAULT_MAX = 240;
 /** Summaries are for cells, not documents: longer requests are cut here. */
 const MAX_LENGTH = 1000;
+/** A table cell shows its section whole: this bound is far above any real section and only guards against a pathological file (S6-T01). */
+const CELL_MAX_LENGTH = 20_000;
 /** How much of the text is read: a multiple of what is shown, so stripping markup still leaves enough. */
 const WINDOW_FACTOR = 8;
 
@@ -195,6 +204,17 @@ export type SummaryPart =
   | { kind: "text"; text: string }
   | { kind: "ref"; label: string; ulid: string | null; version: number | null };
 
+/** A citation as written (`raw`), found by `cellMarkdownParts` so a cell can show it as an interactive reference. */
+export type CitePart = {
+  kind: "cite";
+  raw: string;
+  inText: boolean;
+  items: CitationItem[];
+};
+
+/** One piece of a table cell: a summary part, or a citation. */
+export type CellPart = SummaryPart | CitePart;
+
 const MARKED_REF = /([^]*)/g;
 
 function stripStrayMarks(text: string): string {
@@ -243,7 +263,82 @@ export function summariseMarkdownParts(
   markdown: string,
   maxLength: number = DEFAULT_MAX,
 ): SummaryPart[] {
-  const max = Math.min(Math.max(Math.trunc(maxLength) || 1, 1), MAX_LENGTH);
+  return partsOf(markdown, maxLength, MAX_LENGTH);
+}
+
+/**
+ * A section's text for a table cell: `summariseMarkdownParts` with a bound
+ * (20,000 characters) far above any real section, so the cell shows all of
+ * it and wraps (S6-T01). Only a pathological section is cut, ending in an
+ * ellipsis.
+ */
+export function cellMarkdownParts(markdown: string): CellPart[] {
+  return partsOf(markdown, CELL_MAX_LENGTH, CELL_MAX_LENGTH).flatMap((part) =>
+    part.kind === "text" ? splitCitations(part.text) : [part],
+  );
+}
+
+/**
+ * `text` as text parts and citation parts: every bracketed citation cluster
+ * and hand-written author-in-text form, found with the same patterns and
+ * `Citekey` check the section editor uses, so both agree on what a citation
+ * is. Anything else is kept as text, unchanged.
+ */
+function splitCitations(text: string): CellPart[] {
+  const parts: CellPart[] = [];
+  let plain = "";
+  const flush = () => {
+    if (plain !== "") parts.push({ kind: "text", text: plain });
+    plain = "";
+  };
+  let at = 0;
+  while (at < text.length) {
+    const char = text[at];
+    const rest = char === "[" || char === "@" ? text.slice(at) : "";
+    const bracketed = char === "[" ? CITATION_ANCHORED.exec(rest) : null;
+    const items =
+      bracketed === null ? null : parseCitationBody(bracketed[1] ?? "");
+    if (bracketed !== null && items !== null) {
+      flush();
+      parts.push({ kind: "cite", raw: bracketed[0], inText: false, items });
+      at += bracketed[0].length;
+      continue;
+    }
+    const inText = char === "@" ? CITATION_IN_TEXT_ANCHORED.exec(rest) : null;
+    const citekey = inText?.[1];
+    if (inText !== null && citekey !== undefined) {
+      if (Citekey.safeParse(citekey).success) {
+        flush();
+        parts.push({
+          kind: "cite",
+          raw: inText[0],
+          inText: true,
+          items: [
+            {
+              prefix: "",
+              suppressAuthor: false,
+              citekey,
+              suffix: inText[2] ?? "",
+            },
+          ],
+        });
+        at += inText[0].length;
+        continue;
+      }
+    }
+    plain += char;
+    at += 1;
+  }
+  flush();
+  return parts;
+}
+
+function partsOf(
+  markdown: string,
+  maxLength: number,
+  limit: number,
+): SummaryPart[] {
+  const max = Math.min(Math.max(Math.trunc(maxLength) || 1, 1), limit);
   const window = markdown
     .slice(0, max * WINDOW_FACTOR)
     .replace(UNSAFE, REPLACEMENT)

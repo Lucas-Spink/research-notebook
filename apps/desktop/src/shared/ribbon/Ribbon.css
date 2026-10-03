@@ -1,0 +1,230 @@
+/* The ribbon: a dark row of tabs over the commands of the chosen tab, whose
+   groups are named beneath their controls. Commands wrap rather than overflow. */
+.ribbon {
+  position: relative;
+  z-index: 20;
+  flex: none;
+  color: var(--color-on-dark);
+  background: var(--palette-primary-dark);
+  border-bottom: 3px solid var(--palette-accent);
+}
+
+.ribbon__tabbar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-4) 0;
+}
+
+.ribbon__tabs {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ribbon__tab {
+  padding: var(--space-1) var(--space-4);
+  color: var(--color-on-dark);
+  background: none;
+  border: 0;
+  border-radius: 6px 6px 0 0;
+  opacity: 0.85;
+}
+
+.ribbon__tab:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--palette-secondary) 60%, transparent);
+  opacity: 1;
+}
+
+.ribbon__tab[aria-selected="true"] {
+  background: var(--palette-secondary);
+  box-shadow: inset 0 -3px 0 var(--palette-accent);
+  opacity: 1;
+}
+
+.ribbon__collapse {
+  margin-inline-start: auto;
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+  color: var(--color-on-dark);
+  background: none;
+  border-color: color-mix(in srgb, var(--color-on-dark) 40%, transparent);
+}
+
+.ribbon__commands {
+  padding: var(--space-2) var(--space-4);
+  background: var(--palette-secondary);
+}
+
+/* A collapsed ribbon shows a tab's commands over the table, not above it. */
+.ribbon__commands--peek {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 25;
+  box-shadow: 0 8px 24px rgb(31 41 55 / 25%);
+}
+
+.ribbon__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--space-1) var(--space-4);
+  min-width: 0;
+}
+
+.ribbon__hint {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.ribbon__brand {
+  align-self: center;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-on-dark);
+}
+
+.ribbon__group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2px;
+  padding-inline-end: var(--space-4);
+  border-inline-end: 1px solid
+    color-mix(in srgb, var(--color-on-dark) 25%, transparent);
+}
+
+.ribbon__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ribbon__group-name {
+  font-size: 0.7rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.ribbon__button,
+.ribbon__toolbar select {
+  padding: var(--space-1) var(--space-3);
+  color: var(--color-on-dark);
+  background: var(--palette-primary-dark);
+  border: 1px solid color-mix(in srgb, var(--color-on-dark) 25%, transparent);
+}
+
+.ribbon input {
+  padding: var(--space-1) var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.ribbon__button:hover:not(:disabled),
+.ribbon__toolbar select:hover:not(:disabled) {
+  background: var(--palette-accent-hover);
+  border-color: transparent;
+}
+
+.ribbon__button[aria-expanded="true"],
+.ribbon__button[aria-pressed="true"] {
+  background: var(--palette-accent);
+}
+
+.ribbon label {
+  font-size: 0.85rem;
+}
+
+.ribbon button:focus-visible,
+.ribbon select:focus-visible,
+.ribbon input:focus-visible {
+  outline-color: var(--palette-light);
+}
+
+.ribbon__menu {
+  position: relative;
+}
+
+/* The panel opens over the table, in the page's own light colours so its forms read as usual. */
+.ribbon__panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 30;
+  min-width: 18rem;
+  max-width: min(36rem, 90vw);
+  max-height: 70vh;
+  overflow: auto;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--palette-accent);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(31 41 55 / 25%);
+  text-align: left;
+}
+
+.ribbon__panel button,
+.ribbon__panel select,
+.ribbon__panel input {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.ribbon__panel button:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--palette-accent-hover) 10%,
+    var(--color-surface)
+  );
+  border-color: var(--palette-accent-hover);
+}
+
+.ribbon__panel label {
+  font-size: 0.85rem;
+}
+
+.ribbon__panel h2,
+.ribbon__panel h3,
+.ribbon__panel h4 {
+  margin: var(--space-2) 0;
+}
+
+.ribbon__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ribbon__form label {
+  flex-basis: 100%;
+}
+
+.ribbon__form input,
+.ribbon__form select {
+  flex: 1 1 12rem;
+}
+
+/* Notices and warnings kept under the ribbon, where they are seen without covering the table. */
+.workspace__banners {
+  flex: none;
+  max-height: 30vh;
+  overflow: auto;
+  padding: 0 var(--space-4);
+  background: var(--color-surface-alt);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.workspace__banners:empty {
+  display: none;
+}

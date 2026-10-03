@@ -1,5 +1,6 @@
 import type {
   ArtefactsFileModel,
+  CellPart,
   SummaryPart,
 } from "@research-notebook/format";
 import { Fragment } from "react";
@@ -7,6 +8,7 @@ import {
   newerVersionUpdate,
   resolveReference,
 } from "../expanded/model/artefactReference";
+import { CitationChip } from "../../citations";
 import { expandedMessages, tableMessages } from "../messages";
 
 /** An artefact reference inside a summary cell (FR-EDT-06), resolved against
@@ -50,18 +52,23 @@ function ReferenceChip({
   );
 }
 
-/** A cell's summary, clamped to a few lines by the style sheet. An artefact
- * reference shows as a chip (FR-EDT-06); the tooltip falls back to its
- * label, since a native `title` attribute cannot hold markup. */
+/** A cell's text, whole and wrapped by the style sheet. An artefact
+ * reference shows as a chip (FR-EDT-06). */
 export function SummaryCell({
   parts,
   artefacts,
 }: {
-  parts: readonly SummaryPart[];
+  parts: readonly CellPart[];
   artefacts: ArtefactsFileModel | null;
 }) {
   const flat = parts
-    .map((part) => (part.kind === "ref" ? part.label : part.text))
+    .map((part) =>
+      part.kind === "ref"
+        ? part.label
+        : part.kind === "cite"
+          ? part.raw
+          : part.text,
+    )
     .join("");
   if (flat === "") {
     return (
@@ -72,10 +79,12 @@ export function SummaryCell({
     );
   }
   return (
-    <div className="wtable__clamp" title={flat}>
+    <div className="wtable__text">
       {parts.map((part, index) =>
         part.kind === "ref" ? (
           <ReferenceChip key={index} part={part} artefacts={artefacts} />
+        ) : part.kind === "cite" ? (
+          <CitationChip key={index} items={part.items} inText={part.inText} />
         ) : (
           <Fragment key={index}>{part.text}</Fragment>
         ),

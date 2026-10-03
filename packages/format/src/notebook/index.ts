@@ -77,8 +77,11 @@ export type {
   Step,
 } from "./types";
 export {
+  cellMarkdownParts,
   summariseMarkdown,
   summariseMarkdownParts,
+  type CellPart,
+  type CitePart,
   type SummaryPart,
 } from "./summary";
 export {

@@ -7,6 +7,7 @@ import {
   sectionEditorExtensions,
 } from "@research-notebook/format";
 import { artefactRefChip, type ChipOptions } from "./ArtefactRefChipExtension";
+import { citationChipExtensions } from "./CitationChipExtension";
 import { artefactSuggestion } from "./ArtefactSuggestion";
 import { citeSuggestion } from "./CiteSuggestion";
 import type { ArtefactSearchRow } from "./model/artefactSearch";
@@ -37,7 +38,7 @@ export function liveEditorExtensions(
       if (extension.name === ARTEFACT_REF_NODE_NAME) {
         return artefactRefChip(chip);
       }
-      return extension;
+      return citationChipExtensions[extension.name] ?? extension;
     }),
     artefactSuggestion({ search }),
     ...(cite === null ? [] : [citeSuggestion(cite)]),

@@ -3,7 +3,7 @@ import type {
   ExperimentChanges,
   RecognisedSectionKey,
   ReferenceIndex,
-  SummaryPart,
+  CellPart,
 } from "@research-notebook/format";
 import { useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
@@ -40,6 +40,12 @@ export type TableEditing = {
   /** Opens this row's Results cell, after any live section editor has saved and closed. */
   onOpenResults: (row: ExperimentRow) => void;
   onCloseResults: () => void;
+  /** Opens one result in the side pane: its experiment's folder, the artefact and the version to show (`null` for the latest or a linked file). */
+  onOpenResult: (
+    experimentFolder: string,
+    artefactId: string,
+    version: number | null,
+  ) => void;
   /** What adding a file needs from `project.yaml`, or `null` before it has loaded. */
   evidence: EvidenceProject | null;
   /** Changes one experiment's artefacts.yaml, as `useNotebook` does. */
@@ -49,7 +55,7 @@ export type TableEditing = {
 type Props = {
   row: ExperimentRow;
   section: RecognisedSectionKey;
-  parts: readonly SummaryPart[];
+  parts: readonly CellPart[];
   artefacts: ArtefactsFileModel | null;
   folder: FolderHandle;
   editing: TableEditing;
