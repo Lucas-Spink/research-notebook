@@ -18,6 +18,7 @@ export {
   citationContext,
   type CitationCluster,
 } from "./citationContext";
+export { replaceCitekey } from "./citekeyRewrite";
 export { sectionEditorExtensions } from "./extensions";
 export {
   parseCitationMarkdown,

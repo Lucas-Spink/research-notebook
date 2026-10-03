@@ -39,13 +39,13 @@ export interface CitationItem {
 // possibly drifting pattern to keep in sync with it (the same approach
 // `./artefactRef.ts` takes with `Ulid`).
 const CITATION_SEARCH = /\[[^\]\n]*@[^\]\n]*\]/;
-const CITATION_ANCHORED = /^\[([^\]\n]*@[^\]\n]*)\]/;
+export const CITATION_ANCHORED = /^\[([^\]\n]*@[^\]\n]*)\]/;
 // Splits one semicolon-separated item into prefix, optional suppress-author
 // "-", a citekey candidate (the run of non-whitespace right after "@") and
 // an optional suffix (everything after the first comma). The lazy citekey
 // group backtracks until what follows is either a comma or the end, so it
 // never swallows a trailing ", <suffix>" as part of the citekey.
-const CITATION_ITEM = /^(.*?)(-)?@(\S+?)(?:,\s*(.*))?$/;
+export const CITATION_ITEM = /^(.*?)(-)?@(\S+?)(?:,\s*(.*))?$/;
 
 /** Parses a citation cluster's body (the text between `[` and `]`) into its
  * items, or `null` if any item's citekey is not valid — the whole cluster is
@@ -179,7 +179,7 @@ const CITATION_IN_TEXT_SEARCH = /@[^\s[\]]/;
 // "[" (matching spec 5.7's own example, "@z:u:7XK2PQ9M [p. 4]") and excludes
 // "@" from its content, so it can never absorb the start of a following,
 // independent bracketed citation cluster.
-const CITATION_IN_TEXT_ANCHORED = /^@([^\s[\]]+)(?: \[([^\]@\n]*)\])?/;
+export const CITATION_IN_TEXT_ANCHORED = /^@([^\s[\]]+)(?: \[([^\]@\n]*)\])?/;
 
 const citationInTextAttributes: Attributes = {
   citekey: { default: null },
