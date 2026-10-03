@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import {
   LiteraturePrompt,
+  SourceDetailsPanel,
   SourcesPanel,
   StylePicker,
   SourcesProvider,
@@ -269,6 +270,7 @@ function NotebookViewBody({
               onOpenResult={openSelection}
             />
             <SourcesPanel />
+            <SourceDetailsPanel />
             <StylePicker model={styles} />
             <LiteraturePrompt literature={literature} />
             <TableToolbar

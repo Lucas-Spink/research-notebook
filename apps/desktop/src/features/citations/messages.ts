@@ -79,6 +79,28 @@ export const sourcesMessages = {
   failed: "Sources could not be updated. Nothing was lost; try again.",
 } as const;
 
+/** User-facing text for the source details panel (FR-CIT-04), in British English. */
+export const sourceDetailsMessages = {
+  heading: "Source details",
+  close: "Close source details",
+  titleLabel: "Title",
+  authorsLabel: "Authors",
+  yearLabel: "Year",
+  containerLabel: "Published in",
+  doiLabel: "DOI",
+  statusLabel: "State",
+  openInZotero: "Open in Zotero",
+  openDoi: "Open DOI",
+  openPdf: "Open PDF",
+  checkingPdf: "Checking Zotero for a PDF…",
+  noPdf: "Zotero has no PDF for this source.",
+  pdfOfflineNotRunning: "Open PDF needs Zotero, which was not detected.",
+  pdfOfflineDisabled:
+    "Open PDF needs Zotero's local API, which is switched off.",
+  pdfFailed: "Zotero could not be asked about a PDF.",
+  openFailed: "That link could not be opened.",
+} as const;
+
 /** A source's state, as the list and the citations in text say it. */
 export function sourceStatusText(status: "ok" | "trashed" | "missing"): string {
   switch (status) {

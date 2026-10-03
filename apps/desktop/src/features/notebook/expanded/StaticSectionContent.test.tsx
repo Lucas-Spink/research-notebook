@@ -1,9 +1,14 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { parseSectionMarkdown } from "@research-notebook/format";
+import {
+  parseSectionMarkdown,
+  serialiseBibliography,
+} from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { sha256Hex } from "../../../shared/sha256";
+import { SourcesProvider, useSources, type SourcesApi } from "../../citations";
 import { StaticSectionContent } from "./StaticSectionContent";
 
 function render(
@@ -165,5 +170,96 @@ describe("StaticSectionContent", () => {
     expect(view.querySelector(".expanded__citation-in-text")?.textContent).toBe(
       "@z:u:7XK2PQ9M",
     );
+  });
+});
+
+describe("StaticSectionContent: opening a citation (FR-CIT-04, S5-T07)", () => {
+  const bibliography = ["AAAA2222", "BBBB3333"].map((key) => ({
+    id: `z:u:${key}`,
+    type: "book",
+    title: `Title ${key}`,
+    _zotero: {
+      server_id: null,
+      library: "u",
+      key,
+      fetched: "2026-10-01T09:00:00Z",
+      status: "ok" as const,
+    },
+  }));
+
+  function Probe() {
+    return <output>{useSources().selected ?? "none"}</output>;
+  }
+
+  async function mountWithSources(
+    markdown: string,
+    onOuterClick: () => void = () => undefined,
+  ) {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    const text = serialiseBibliography(bibliography);
+    const api = {
+      readNotebookFile: () =>
+        Promise.resolve({
+          status: "ok",
+          data: { kind: "text", text, sha256: sha256Hex(text) },
+        }),
+    } as unknown as SourcesApi;
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <SourcesProvider api={api} folder={1} writable>
+          <div onClick={onOuterClick}>
+            <StaticSectionContent
+              doc={parseSectionMarkdown(markdown)}
+              artefacts={null}
+              onActivateReference={() => undefined}
+            />
+          </div>
+          <Probe />
+        </SourcesProvider>,
+      ),
+    );
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+    return container;
+  }
+
+  const click = (element: Element | null | undefined) =>
+    act(() => {
+      element?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+  it("opens the source of each entry in a citation cluster", async () => {
+    const view = await mountWithSources("[@z:u:AAAA2222; @z:u:BBBB3333]");
+    const buttons = view.querySelectorAll(".expanded__citation button");
+    expect(buttons).toHaveLength(2);
+    click(buttons[1]);
+    expect(view.querySelector("output")?.textContent).toBe("z:u:BBBB3333");
+  });
+
+  it("keeps the cluster's text as it was", async () => {
+    const view = await mountWithSources("[@z:u:AAAA2222; @z:u:BBBB3333]");
+    expect(view.querySelector(".expanded__citation")?.textContent).toBe(
+      "[Title AAAA2222; Title BBBB3333]",
+    );
+  });
+
+  it("opens the source of an author-in-text citation", async () => {
+    const view = await mountWithSources("As @z:u:AAAA2222 showed, it held.");
+    click(view.querySelector(".expanded__citation-in-text button"));
+    expect(view.querySelector("output")?.textContent).toBe("z:u:AAAA2222");
+  });
+
+  it("does not offer a button for a source the bibliography does not hold", async () => {
+    const view = await mountWithSources("[@z:u:ZZZZ9999]");
+    expect(view.querySelector(".expanded__citation button")).toBeNull();
+  });
+
+  it("does not let the click reach an enclosing cell", async () => {
+    const outer = vi.fn();
+    const view = await mountWithSources("[@z:u:AAAA2222]", outer);
+    click(view.querySelector(".expanded__citation button"));
+    expect(outer).not.toHaveBeenCalled();
   });
 });

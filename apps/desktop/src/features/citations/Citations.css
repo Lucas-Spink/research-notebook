@@ -51,3 +51,41 @@ li[data-status="missing"] .citations__source-status {
   color: #b8860b;
   opacity: 1;
 }
+
+.citations__details {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+.citations__details dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+}
+
+.citations__details dt {
+  opacity: 0.7;
+}
+
+.citations__details dd {
+  margin: 0;
+}
+
+.citations__details-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.citations__source-open,
+.expanded__citation-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}

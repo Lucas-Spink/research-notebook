@@ -43,6 +43,10 @@ export type SourcesModel = {
   confirm: () => void;
   /** The person kept the existing data for the first pending source. */
   decline: () => void;
+  /** The citekey whose details are open (FR-CIT-04); `null` when none. */
+  selected: string | null;
+  /** Opens a source's details, or closes them with `null` and returns focus to what opened them. */
+  select: (citekey: string | null) => void;
 };
 
 /** What a component outside any provider sees: nothing cached and nothing to do. */
@@ -58,6 +62,8 @@ const INERT: SourcesModel = {
   syncInserted: () => undefined,
   confirm: () => undefined,
   decline: () => undefined,
+  selected: null,
+  select: () => undefined,
 };
 
 const SourcesContext = createContext<SourcesModel>(INERT);
@@ -136,7 +142,9 @@ export function SourcesProvider({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<readonly ServerMismatch[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
   const alive = useRef(true);
+  const returnFocusTo = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     alive.current = true;
@@ -188,6 +196,19 @@ export function SourcesProvider({
 
   const decline = useCallback(() => setPending((list) => list.slice(1)), []);
 
+  const select = useCallback((citekey: string | null) => {
+    if (citekey === null) {
+      setSelected(null);
+      returnFocusTo.current?.focus();
+      returnFocusTo.current = null;
+      return;
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      returnFocusTo.current = document.activeElement;
+    }
+    setSelected(citekey);
+  }, []);
+
   const model = useMemo<SourcesModel>(
     () => ({
       views: (file ?? []).map(sourceView),
@@ -201,6 +222,8 @@ export function SourcesProvider({
       syncInserted,
       confirm,
       decline,
+      selected,
+      select,
     }),
     [
       file,
@@ -212,6 +235,8 @@ export function SourcesProvider({
       syncInserted,
       confirm,
       decline,
+      selected,
+      select,
     ],
   );
 

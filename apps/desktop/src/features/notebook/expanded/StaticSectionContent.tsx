@@ -154,34 +154,75 @@ function renderText(node: JSONContent) {
   }, text);
 }
 
-/** What a citation shows for one source: its cached label, else the citekey. */
-function useSourceText(citekey: string): {
+type SourceText = {
+  citekey: string;
   text: string;
   state: string | null;
-} {
+  known: boolean;
+};
+
+/** What a citation shows for one source: its cached label, else the citekey. */
+function useSourceText(citekey: string): SourceText {
   const view = useSources().lookup(citekey);
-  if (view === null) return { text: `@${citekey}`, state: null };
+  if (view === null) {
+    return { citekey, text: `@${citekey}`, state: null, known: false };
+  }
   return {
+    citekey,
     text: view.label,
     state: view.status === "ok" ? null : sourceStatusText(view.status),
+    known: true,
   };
+}
+
+/**
+ * A cited source's label. A source the bibliography holds opens its details
+ * (FR-CIT-04); one it does not has nothing to open, so stays plain text.
+ */
+function SourceLabel({ source }: { source: SourceText }) {
+  const { select } = useSources();
+  if (!source.known) return <>{source.text}</>;
+  return (
+    <button
+      type="button"
+      className="expanded__citation-open"
+      onClick={(event) => {
+        // The citation may sit in a cell or card that has its own click action.
+        event.stopPropagation();
+        select(source.citekey);
+      }}
+    >
+      {source.text}
+    </button>
+  );
 }
 
 function StaticCitation({ citekeys }: { citekeys: string[] }) {
   const { lookup } = useSources();
-  const texts = citekeys.map((citekey) => {
+  const sources = citekeys.map((citekey): SourceText => {
     const view = lookup(citekey);
     return view === null
-      ? { text: `@${citekey}`, state: null }
+      ? { citekey, text: `@${citekey}`, state: null, known: false }
       : {
+          citekey,
           text: view.label,
           state: view.status === "ok" ? null : sourceStatusText(view.status),
+          known: true,
         };
   });
-  const states = texts.flatMap(({ state }) => (state === null ? [] : [state]));
+  const states = sources.flatMap(({ state }) =>
+    state === null ? [] : [state],
+  );
   return (
     <span className="expanded__citation">
-      [{texts.map(({ text }) => text).join("; ")}]
+      [
+      {sources.map((source, index) => (
+        <Fragment key={source.citekey}>
+          {index > 0 && "; "}
+          <SourceLabel source={source} />
+        </Fragment>
+      ))}
+      ]
       {states.length > 0 && (
         <span className="expanded__citation-state">
           {" "}
@@ -199,13 +240,13 @@ function StaticInTextCitation({
   citekey: string;
   locator: string | null;
 }) {
-  const { text, state } = useSourceText(citekey);
+  const source = useSourceText(citekey);
   return (
     <span className="expanded__citation-in-text">
-      {text}
+      <SourceLabel source={source} />
       {locator === null ? "" : ` [${locator}]`}
-      {state !== null && (
-        <span className="expanded__citation-state"> ({state})</span>
+      {source.state !== null && (
+        <span className="expanded__citation-state"> ({source.state})</span>
       )}
     </span>
   );

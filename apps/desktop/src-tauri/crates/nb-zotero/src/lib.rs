@@ -17,6 +17,8 @@
 
 use std::io::ErrorKind;
 
+pub mod links;
+
 use serde::Deserialize;
 
 const DEFAULT_BASE_URL: &str = "http://127.0.0.1:23119/api";
@@ -147,7 +149,7 @@ fn classify_fetch_error(error: ureq::Error) -> Result<SourceFetch, ZoteroFetchEr
 
 /// Spec 5.7: an item key is 8 characters from `2-9` and `A-Z`. Checked
 /// before the key goes into a URL path.
-fn is_item_key(key: &str) -> bool {
+pub(crate) fn is_item_key(key: &str) -> bool {
     key.len() == 8 && key.bytes().all(|b| matches!(b, b'2'..=b'9' | b'A'..=b'Z'))
 }
 
@@ -293,6 +295,53 @@ impl ZoteroClient {
         }))
     }
 
+    /// The key of the first PDF attachment of an item that is not in the
+    /// trash, for Open PDF (FR-CIT-04). An item Zotero no longer has has no
+    /// attachment, so a 404 is `None`, not an error.
+    pub fn find_pdf_attachment(
+        &self,
+        library: &str,
+        item_key: &str,
+    ) -> Result<Option<String>, ZoteroFetchError> {
+        let scope = match library {
+            "u" => "users/0".to_string(),
+            other => match other.strip_prefix('g') {
+                Some(id) if !id.is_empty() && id.bytes().all(|b| b.is_ascii_digit()) => {
+                    format!("groups/{id}")
+                }
+                _ => return Err(ZoteroFetchError::InvalidItemKey(library.to_string())),
+            },
+        };
+        if !is_item_key(item_key) {
+            return Err(ZoteroFetchError::InvalidItemKey(item_key.to_string()));
+        }
+        let url = format!("{}/{scope}/items/{item_key}/children", self.base_url);
+        let mut response = match self
+            .agent
+            .get(&url)
+            .header("Zotero-API-Version", API_VERSION)
+            .call()
+        {
+            Ok(response) => response,
+            Err(ureq::Error::StatusCode(404)) => return Ok(None),
+            Err(error) => {
+                return Err(match classify_connection_error(error) {
+                    Ok(ConnectionFailure::Disabled) => ZoteroFetchError::Disabled,
+                    Ok(ConnectionFailure::NotRunning) => ZoteroFetchError::NotRunning,
+                    Err(zotero_error) => ZoteroFetchError::Other(zotero_error),
+                })
+            }
+        };
+        let body: serde_json::Value = serde_json::from_str(
+            &response
+                .body_mut()
+                .read_to_string()
+                .map_err(ZoteroError::from)?,
+        )
+        .map_err(ZoteroError::from)?;
+        Ok(first_pdf_attachment(&body))
+    }
+
     /// Fetches one item as CSL-JSON.
     pub fn fetch_csl_json(&self, item_key: &str) -> Result<serde_json::Value, ZoteroError> {
         let url = format!("{}/users/0/items/{item_key}", self.base_url);
@@ -313,4 +362,16 @@ fn server_id_header(response: &ureq::http::Response<ureq::Body>) -> Option<Strin
         .get("Zotero-Server-ID")
         .and_then(|value| value.to_str().ok())
         .map(str::to_string)
+}
+
+/// The key of the first non-trashed child whose content type is PDF.
+fn first_pdf_attachment(children: &serde_json::Value) -> Option<String> {
+    children.as_array()?.iter().find_map(|child| {
+        let is_pdf = child.pointer("/data/itemType").and_then(|v| v.as_str()) == Some("attachment")
+            && child.pointer("/data/contentType").and_then(|v| v.as_str())
+                == Some("application/pdf")
+            && !is_trashed(child);
+        let key = child.get("key")?.as_str()?;
+        (is_pdf && is_item_key(key)).then(|| key.to_string())
+    })
 }

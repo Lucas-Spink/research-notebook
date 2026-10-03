@@ -5,3 +5,4 @@ pub mod app;
 pub mod preview;
 pub mod projects;
 pub mod zotero;
+pub mod zotero_links;
