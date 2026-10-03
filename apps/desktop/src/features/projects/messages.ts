@@ -11,6 +11,9 @@ export const messages = {
   createButton: "Create project…",
   openButton: "Open project…",
   recentHeading: "Recent projects",
+  settingsButton: "Project settings",
+  zoteroButton: "Zotero",
+  appTitle: "Strata",
   noRecent: "No projects yet.",
   openRecent: "Open",
   missing: "Folder not found",
@@ -37,7 +40,7 @@ export const messages = {
 const failureMessages: Record<FailureReason, string> = {
   folderUnavailable:
     "That folder cannot be used. It may have been moved, renamed or removed.",
-  notAProject: "That folder does not contain a Research Notebook project.",
+  notAProject: "That folder does not contain a Strata project.",
   notebookInvalid:
     "The _notebook item in that folder is a file or a link, so nothing was written.",
   alreadyInUse:

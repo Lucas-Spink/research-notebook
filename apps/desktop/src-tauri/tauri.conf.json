@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Research Notebook",
+  "productName": "Strata",
   "version": "0.1.0",
   "identifier": "io.github.Lucas-Spink.researchnotebook",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Research Notebook",
+        "title": "Strata",
         "width": 1280,
         "height": 800,
         "minWidth": 900,

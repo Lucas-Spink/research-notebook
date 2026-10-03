@@ -240,3 +240,85 @@ describe("SourcesPanel: opening a source (FR-CIT-04)", () => {
     expect(view.querySelector("output")?.textContent).toBe("z:u:AAAA2222");
   });
 });
+
+describe("SourcesPanel: search and attach (S6-T01)", () => {
+  const sources = [
+    held("AAAA2222", "Alpha study"),
+    held("BBBB3333", "Beta trial"),
+  ];
+
+  async function mountWith(attach?: {
+    attached: string[];
+    onAttach: (key: string) => void;
+    onDetach: (key: string) => void;
+  }) {
+    const { api } = fakeApi(sources);
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    act(() =>
+      root?.render(
+        <SourcesProvider api={api} folder={1} writable now={NOW}>
+          <SourcesPanel
+            {...(attach === undefined
+              ? {}
+              : {
+                  attach: {
+                    target: "EXP-001",
+                    attached: new Set(attach.attached),
+                    busy: false,
+                    onAttach: attach.onAttach,
+                    onDetach: attach.onDetach,
+                  },
+                })}
+          />
+        </SourcesProvider>,
+      ),
+    );
+    await flush();
+    return container;
+  }
+
+  it("filters the list by title or citekey", async () => {
+    const view = await mountWith();
+    const input = view.querySelector('input[type="search"]');
+    if (!(input instanceof HTMLInputElement)) throw new Error("no search box");
+    act(() => {
+      Reflect.set(HTMLInputElement.prototype, "value", "beta", input);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const shown = [...view.querySelectorAll("li")].map((li) => li.textContent);
+    expect(shown).toHaveLength(1);
+    expect(shown[0]).toMatch(/Beta trial/);
+    act(() => {
+      Reflect.set(HTMLInputElement.prototype, "value", "nothing", input);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(view.textContent).toMatch(/No sources match/);
+  });
+
+  it("offers Attach for a source the experiment does not cite and Detach for one it does", async () => {
+    const attached: string[] = [];
+    const detached: string[] = [];
+    const view = await mountWith({
+      attached: ["z:u:AAAA2222"],
+      onAttach: (key) => attached.push(key),
+      onDetach: (key) => detached.push(key),
+    });
+    expect(
+      view.querySelector(
+        'button[aria-label="Detach Alpha study from EXP-001"]',
+      ),
+    ).not.toBeNull();
+    await click(button(view, /^Detach$/));
+    await click(button(view, /^Attach$/));
+    expect(detached).toEqual(["z:u:AAAA2222"]);
+    expect(attached).toEqual(["z:u:BBBB3333"]);
+  });
+
+  it("offers neither without an experiment to attach to", async () => {
+    const view = await mountWith();
+    expect(view.textContent).not.toMatch(/Attach|Detach/);
+  });
+});

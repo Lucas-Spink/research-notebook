@@ -6,15 +6,22 @@ import {
   type RecognisedSectionKey,
   type ReferenceIndex,
 } from "@research-notebook/format";
-import { useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useReducer,
+  useState,
+  type ReactNode,
+} from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import {
+  CitationJumpProvider,
   LiteraturePrompt,
-  SourceDetailsPanel,
-  SourcesPanel,
   StylePicker,
   SourcesProvider,
   useLiteraturePlanner,
+  useSources,
+  useSourceSync,
   useSourceRepair,
   useStyleManagement,
 } from "../citations";
@@ -23,7 +30,6 @@ import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
 import type { QuestionChoice } from "./ExperimentItem";
 import { inboxRequestMessage, messages, problemMessage } from "./messages";
-import { NewTitleForm } from "./NewTitleForm";
 import { SearchPanel } from "./search/SearchPanel";
 import { columnLayout } from "./table/model/columns";
 import {
@@ -33,9 +39,27 @@ import {
   type HeaderRow,
   type SortState,
 } from "./table/model/rows";
-import { TableToolbar } from "./table/TableToolbar";
 import { useTableEditing } from "./table/useTableEditing";
 import { WorkspaceTable } from "./table/WorkspaceTable";
+import { assertNever } from "../../shared/assertNever";
+import { evidenceOf } from "./model/evidence";
+import { paneMessages, ribbonMessages } from "./workspace/messages";
+import {
+  initialPanes,
+  panesReducer,
+  resultTabId,
+  type PaneTab,
+} from "./workspace/model/panes";
+import {
+  BibliographyPanel,
+  type BibliographyTarget,
+} from "./workspace/BibliographyPanel";
+import { attachedCitekeys } from "./workspace/model/attach";
+import { PaneHost } from "./workspace/PaneHost";
+import { ResultPane } from "./workspace/ResultPane";
+import { Ribbon } from "./workspace/Ribbon";
+import { SourcesPane } from "./workspace/SourcesPane";
+import { useSourceAttach } from "./workspace/useSourceAttach";
 import type { NotebookModel } from "./useNotebook";
 import "./NotebookPanel.css";
 
@@ -105,6 +129,10 @@ type NotebookViewProps = {
   folder: FolderHandle;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
+  /** The ribbon's Project group, which belongs to the projects feature. */
+  projectControls?: ReactNode;
+  /** Notices from the project, kept under the ribbon. */
+  projectBanners?: ReactNode;
 };
 
 /** Inside the sources provider, so a save can render Literature from `bibliography.json`. */
@@ -112,6 +140,8 @@ function NotebookViewBody({
   notebook,
   folder,
   viewportHeight,
+  projectControls,
+  projectBanners,
 }: NotebookViewProps) {
   const {
     view,
@@ -130,6 +160,8 @@ function NotebookViewBody({
   const [filter, setFilter] = useState<FilterState>(NO_FILTER);
   const [sort, setSort] = useState<SortState>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  /** The row picked on purpose (its title, header or a search result): the only one highlighted. Choosing a cell selects its row for the ribbon's actions without highlighting it. */
+  const [pickedKey, setPickedKey] = useState<string | null>(null);
   /** Which section to focus, set only when the selection came from a search result (FR-SRC-02). */
   const [focusSection, setFocusSection] = useState<RecognisedSectionKey | null>(
     null,
@@ -157,10 +189,26 @@ function NotebookViewBody({
       actions.editExperimentSection(id, section, text, literature.plan),
   });
 
+  const [panes, dispatchPanes] = useReducer(panesReducer, initialPanes);
+  const syncInserted = useSourceSync();
+  const sources = useSources();
+  // A citation in the text asks for its entry in the Bibliography below the table.
+  const [bibliographyTarget, setBibliographyTarget] =
+    useState<BibliographyTarget>(null);
+  const jumpToCitation = useCallback(
+    (citekey: string) =>
+      setBibliographyTarget((previous) => ({
+        citekey,
+        n: (previous?.n ?? 0) + 1,
+      })),
+    [],
+  );
+
   // A new selection always moves on: its section opens once the old one's
   // pending text has been tried (ADR-0043).
   function openSelection(key: string, section: RecognisedSectionKey | null) {
     setSelectedKey(key);
+    setPickedKey(key);
     setFocusSection(section);
     void live.activate(openedSection(findSelected(arranged, key), section), {
       force: true,
@@ -206,8 +254,20 @@ function NotebookViewBody({
     actions,
     onSelectRow: (row) => {
       setSelectedKey(row.key);
+      setPickedKey(null);
       setFocusSection(null);
     },
+    onOpenResult: (experimentFolder, artefactId, version) =>
+      dispatchPanes({
+        type: "open",
+        tab: {
+          id: resultTabId(experimentFolder, artefactId),
+          kind: "result",
+          experimentFolder,
+          artefactId,
+          version,
+        },
+      }),
   });
   const questions = useMemo<QuestionChoice[]>(
     () =>
@@ -241,127 +301,256 @@ function NotebookViewBody({
     options: { immediate: boolean },
   ) => actions.changeSettings({ widths: { [key]: width } }, options);
 
+  const attach = useSourceAttach({
+    item: selected?.kind === "experiment" ? selected.item : null,
+    live,
+    writable,
+    save: (id, section, text) =>
+      actions.editExperimentSection(id, section, text, literature.plan),
+    sync: syncInserted,
+  });
+
+  /** Every source cited anywhere in the project, for the Bibliography. */
+  const citedSources = useMemo(
+    () =>
+      new Set(
+        [
+          ...(arranged?.questions ?? []).flatMap((group) => group.experiments),
+          ...(arranged?.unassigned ?? []),
+        ].flatMap((item) => [...attachedCitekeys(item.experiment.file.body)]),
+      ),
+    [arranged],
+  );
+
+  function collapseAll(collapse: boolean) {
+    const ids = (arranged?.questions ?? []).map(
+      (group) => group.question.file.frontmatter.id,
+    );
+    actions.changeSettings({
+      collapsed: Object.fromEntries(ids.map((id) => [id, collapse])),
+    });
+    actions.setUnassignedCollapsed(collapse);
+  }
+
+  /** The selected experiment's row, when it is in view, so Add result can open its Results cell. */
+  const selectedRow = rows.find(
+    (row) => row.kind === "experiment" && row.key === selectedKey,
+  );
+  const addResult =
+    selectedRow?.kind === "experiment" && writable && !selectedRow.item.readOnly
+      ? () => editing.onOpenResults(selectedRow)
+      : null;
+
+  function titleOf(tab: PaneTab): string {
+    switch (tab.kind) {
+      case "sources":
+        return paneMessages.sourcesTab;
+      case "search":
+        return paneMessages.searchTab;
+      case "citations":
+        return paneMessages.citationsTab;
+      case "details":
+        return paneMessages.detailsTab;
+      case "result": {
+        const item = (arranged?.questions ?? [])
+          .flatMap((group) => group.experiments)
+          .concat(arranged?.unassigned ?? [])
+          .find(
+            (candidate) => candidate.experiment.folder === tab.experimentFolder,
+          );
+        const artefacts = item === undefined ? null : evidenceOf(item);
+        return (
+          artefacts?.artefacts.find((a) => a.id === tab.artefactId)?.name ??
+          paneMessages.resultTab
+        );
+      }
+      default:
+        return assertNever(tab);
+    }
+  }
+
+  function paneContent(tab: PaneTab): ReactNode {
+    if (arranged === null) return null;
+    switch (tab.kind) {
+      case "sources":
+        return <SourcesPane repair={repair} attach={attach} />;
+      case "search":
+        return (
+          <SearchPanel
+            embedded
+            arranged={arranged}
+            folder={folder}
+            onOpenResult={openSelection}
+          />
+        );
+      case "citations":
+        return <StylePicker model={styles} />;
+      case "details":
+        return (
+          <DetailsPanel
+            selected={selected}
+            questions={questions}
+            sharedRefs={shared}
+            actions={actions}
+            disabled={disabled}
+            writable={writable}
+            folder={folder}
+            projectId={projectId}
+            references={references}
+            focusSection={focusSection}
+            live={live}
+          />
+        );
+      case "result":
+        return (
+          <ResultPane
+            tab={tab}
+            arranged={arranged}
+            folder={folder}
+            projectId={projectId}
+            references={references}
+            editing={editing}
+            readOnly={!writable}
+          />
+        );
+      default:
+        return assertNever(tab);
+    }
+  }
+
   return (
-    <>
-      <section className="notebook" aria-labelledby="notebook-heading">
-        <h3 id="notebook-heading">{messages.heading}</h3>
-        {!writable && <p className="notebook__note">{messages.readOnly}</p>}
-        <div role="status" aria-live="polite">
-          {busy && (
-            <p>
-              <span className="spinner" aria-hidden="true" />
-              {messages.working}
-            </p>
+    <CitationJumpProvider value={jumpToCitation}>
+      <section className="workspace" aria-labelledby="notebook-heading">
+        <Ribbon
+          projectControls={projectControls}
+          writable={writable}
+          disabled={disabled}
+          actions={actions}
+          selected={selected}
+          questions={questions}
+          filter={filter}
+          onFilter={setFilter}
+          sort={sort}
+          onSort={setSort}
+          layout={layout}
+          onHide={(key, hidden) =>
+            actions.changeSettings({ hidden: { [key]: hidden } })
+          }
+          onWidth={(key, width) =>
+            actions.changeSettings(
+              { widths: { [key]: width } },
+              { immediate: true },
+            )
+          }
+          onReset={() => actions.resetColumns()}
+          onCollapseAll={collapseAll}
+          onAddResult={addResult}
+          openTabs={new Set(panes.tabs.map((tab) => tab.id))}
+          onOpenPane={(tab) => dispatchPanes({ type: "open", tab })}
+        />
+        <div className="workspace__banners">
+          <h2 id="notebook-heading" className="wtable__sr">
+            {messages.heading}
+          </h2>
+          {projectBanners}
+          {!writable && <p className="notebook__note">{messages.readOnly}</p>}
+          <div role="status" aria-live="polite">
+            {busy && (
+              <p>
+                <span className="spinner" aria-hidden="true" />
+                {messages.working}
+              </p>
+            )}
+            {notice !== null && (
+              <p className="notebook__notice notice">
+                <span>{notice}</span>
+                <button
+                  type="button"
+                  className="notice__dismiss"
+                  aria-label={messages.dismiss}
+                  onClick={() => actions.dismissNotice()}
+                >
+                  ×
+                </button>
+              </p>
+            )}
+            {failure !== null && <p className="notebook__notice">{failure}</p>}
+            {view.status === "loading" && <p>{messages.loading}</p>}
+          </div>
+          {arranged !== null && (
+            <>
+              <LiteraturePrompt literature={literature} />
+              {arranged.problems.length > 0 && (
+                <details className="notebook__problems-box">
+                  <summary>
+                    {ribbonMessages.problems(arranged.problems.length)}
+                  </summary>
+                  <h4 id="notebook-problems">{messages.problemsHeading}</h4>
+                  <ul className="notebook__problems">
+                    {arranged.problems.map((problem, index) => (
+                      <li key={`${problem.kind}-${index}`}>
+                        {problemMessage(problem)}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {invalidInboxRequests.length > 0 && (
+                <details className="notebook__problems-box">
+                  <summary>{messages.inboxHeading}</summary>
+                  <ul className="notebook__problems">
+                    {invalidInboxRequests.map((item) => (
+                      <li key={item.request}>
+                        {inboxRequestMessage(item.reason)}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>
           )}
-          {notice !== null && (
-            <p className="notebook__notice notice">
-              <span>{notice}</span>
-              <button
-                type="button"
-                className="notice__dismiss"
-                aria-label={messages.dismiss}
-                onClick={() => actions.dismissNotice()}
-              >
-                ×
-              </button>
-            </p>
-          )}
-          {failure !== null && <p className="notebook__notice">{failure}</p>}
-          {view.status === "loading" && <p>{messages.loading}</p>}
         </div>
         {arranged !== null && (
-          <>
-            <SearchPanel
-              arranged={arranged}
-              folder={folder}
-              onOpenResult={openSelection}
-            />
-            <SourcesPanel repair={repair} />
-            <SourceDetailsPanel />
-            <StylePicker model={styles} />
-            <LiteraturePrompt literature={literature} />
-            <TableToolbar
-              filter={filter}
-              onFilter={setFilter}
-              sort={sort}
-              onSort={setSort}
-              layout={layout}
-              writable={writable}
-              onHide={(key, hidden) =>
-                actions.changeSettings({ hidden: { [key]: hidden } })
-              }
-              onWidth={(key, width) =>
-                actions.changeSettings(
-                  { widths: { [key]: width } },
-                  { immediate: true },
-                )
-              }
-              onReset={() => actions.resetColumns()}
-            />
-            {arranged.problems.length > 0 && (
-              <section aria-labelledby="notebook-problems">
-                <h4 id="notebook-problems">{messages.problemsHeading}</h4>
-                <ul className="notebook__problems">
-                  {arranged.problems.map((problem, index) => (
-                    <li key={`${problem.kind}-${index}`}>
-                      {problemMessage(problem)}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {invalidInboxRequests.length > 0 && (
-              <section aria-labelledby="notebook-inbox">
-                <h4 id="notebook-inbox">{messages.inboxHeading}</h4>
-                <ul className="notebook__problems">
-                  {invalidInboxRequests.map((item) => (
-                    <li key={item.request}>
-                      {inboxRequestMessage(item.reason)}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {rows.length === 0 ? (
-              <p>{messages.empty}</p>
-            ) : (
-              <WorkspaceTable
-                rows={rows}
-                layout={layout}
-                selectedKey={selectedKey}
-                sharedRefs={shared}
-                folder={folder}
-                onSelectExperiment={(row) => select(row.key)}
-                onSelectQuestion={(row) => select(row.key)}
-                onToggle={toggle}
-                onResize={resize}
-                editing={editing}
-                {...(viewportHeight === undefined ? {} : { viewportHeight })}
-              />
-            )}
-            <DetailsPanel
-              selected={selected}
-              questions={questions}
-              sharedRefs={shared}
-              actions={actions}
-              disabled={disabled}
-              writable={writable}
-              folder={folder}
-              projectId={projectId}
-              references={references}
-              focusSection={focusSection}
-              live={live}
-            />
-            <NewTitleForm
-              label={messages.newQuestionLabel}
-              placeholder={messages.newQuestionPlaceholder}
-              submitLabel={messages.addQuestion}
-              disabled={disabled}
-              onSubmit={(title) => actions.createQuestion(title)}
-            />
-          </>
+          <div className="workspace__main">
+            <div className="workspace__table">
+              {rows.length === 0 ? (
+                <p className="workspace__empty">{messages.empty}</p>
+              ) : (
+                <WorkspaceTable
+                  rows={rows}
+                  layout={layout}
+                  selectedKey={selectedKey}
+                  pickedKey={pickedKey}
+                  sharedRefs={shared}
+                  folder={folder}
+                  onSelectExperiment={(row) => select(row.key)}
+                  onSelectQuestion={(row) => select(row.key)}
+                  onToggle={toggle}
+                  onResize={resize}
+                  editing={editing}
+                  {...(viewportHeight === undefined ? {} : { viewportHeight })}
+                />
+              )}
+            </div>
+            <PaneHost state={panes} dispatch={dispatchPanes} titleOf={titleOf}>
+              {paneContent}
+            </PaneHost>
+          </div>
+        )}
+        {arranged !== null && (
+          <BibliographyPanel
+            citekeys={citedSources}
+            target={bibliographyTarget}
+            onShowDetails={(citekey) => {
+              dispatchPanes({
+                type: "open",
+                tab: { id: "sources", kind: "sources" },
+              });
+              sources.select(citekey);
+            }}
+          />
         )}
       </section>
-    </>
+    </CitationJumpProvider>
   );
 }

@@ -11,6 +11,23 @@
   overflow: auto;
 }
 
+.preview__zoom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* A magnified image is dragged to pan it. */
+.preview__scroll--pan {
+  cursor: grab;
+  touch-action: none;
+}
+
+.preview__scroll--pan:active {
+  cursor: grabbing;
+}
+
 .preview__image--fit {
   display: block;
   max-width: 100%;

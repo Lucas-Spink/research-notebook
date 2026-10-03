@@ -79,7 +79,25 @@ export const sourcesMessages = {
   changed:
     "bibliography.json changed on disk, so nothing was written. Try again.",
   failed: "Sources could not be updated. Nothing was lost; try again.",
+  filterLabel: "Search sources",
+  filterPlaceholder: "Title, author or citekey",
+  noMatches: "No sources match.",
+  attach: "Attach",
+  detach: "Detach",
+  attachFromZotero: "Add from Zotero…",
+  attachTo: "Attaching to",
+  noExperiment: "Select an experiment to attach sources to it.",
+  attachFailed: "The source could not be attached. Nothing was changed.",
+  detachFailed: "The source could not be detached. Nothing was changed.",
 } as const;
+
+export function attachLabel(source: string, experiment: string): string {
+  return `Attach ${source} to ${experiment}`;
+}
+
+export function detachLabel(source: string, experiment: string): string {
+  return `Detach ${source} from ${experiment}`;
+}
 
 /** User-facing text for the source details panel (FR-CIT-04), in British English. */
 export const sourceDetailsMessages = {
@@ -270,3 +288,14 @@ export function repairedText(experiments: number, keptEdited: number): string {
         : ` ${keptEdited} Literature blocks were edited by hand and were left as they were.`;
   return `Replaced the source in ${where}.${kept}`;
 }
+
+/** User-facing text for a citation shown as an interactive reference (S6-T01), in British English. */
+export const citationChipMessages = {
+  publishedIn: "Published in",
+  year: "Year",
+  state: "State",
+  clickHint: "Click to go to it in the Bibliography.",
+  notCached: (citekey: string) =>
+    `${citekey} is not in this project's bibliography.json yet.`,
+  goTo: (label: string) => `Citation ${label}: go to it in the Bibliography`,
+};

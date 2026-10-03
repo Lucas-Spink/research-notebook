@@ -88,26 +88,28 @@ export function ColumnsMenu({
       <h4 id={headingId}>{tableMessages.columnsHeading}</h4>
       {!writable && <p>{tableMessages.sessionOnly}</p>}
       <ul>
-        {layout.map((column) => {
-          const label = columnLabel(column.key);
-          return (
-            <li key={column.key}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={!column.hidden}
-                  onChange={() => onHide(column.key, !column.hidden)}
-                />{" "}
-                {showColumnLabel(label)}
-              </label>
-              <WidthField
-                label={widthLabel(label)}
-                width={column.width}
-                onCommit={(width) => onWidth(column.key, width)}
-              />
-            </li>
-          );
-        })}
+        {layout
+          .filter((column) => column.key !== "literature")
+          .map((column) => {
+            const label = columnLabel(column.key);
+            return (
+              <li key={column.key}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={!column.hidden}
+                    onChange={() => onHide(column.key, !column.hidden)}
+                  />{" "}
+                  {showColumnLabel(label)}
+                </label>
+                <WidthField
+                  label={widthLabel(label)}
+                  width={column.width}
+                  onCommit={(width) => onWidth(column.key, width)}
+                />
+              </li>
+            );
+          })}
       </ul>
       <button type="button" onClick={onReset}>
         {tableMessages.resetColumns}

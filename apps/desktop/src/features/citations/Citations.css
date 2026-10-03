@@ -15,12 +15,12 @@
 }
 
 .citations__dot--connected {
-  background: #2e8b57;
+  background: var(--palette-success);
 }
 
 .citations__dot--disabled,
 .citations__dot--notRunning {
-  background: #b8860b;
+  background: var(--palette-warning);
 }
 
 .citations__dot--unknown {
@@ -48,7 +48,7 @@
 
 li[data-status="trashed"] .citations__source-status,
 li[data-status="missing"] .citations__source-status {
-  color: #b8860b;
+  color: var(--palette-warning);
   opacity: 1;
 }
 
@@ -88,4 +88,80 @@ li[data-status="missing"] .citations__source-status {
   font: inherit;
   text-decoration: underline dotted;
   cursor: pointer;
+}
+
+/* A citation as an interactive reference: it reads as text with a quiet link underline. */
+.citation-chip {
+  white-space: normal;
+}
+
+.citation-chip .citation-chip__source {
+  display: inline;
+  padding: 0;
+  color: var(--palette-accent);
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+}
+
+.citation-chip .citation-chip__source:hover:not(:disabled) {
+  color: var(--palette-accent-hover);
+  background: none;
+  border-bottom-style: solid;
+}
+
+.citation-chip .citation-chip__source:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+/* The small preview of a cited source, beside the reference that was hovered. */
+.citation-preview {
+  position: fixed;
+  z-index: 40;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--palette-secondary);
+  border-top: 3px solid var(--palette-accent);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(31 41 55 / 30%);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.citation-preview p {
+  margin: 0 0 0.35rem;
+}
+
+.citation-preview__entry {
+  font-weight: 600;
+}
+
+.citation-preview__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.5rem;
+  margin: 0 0 0.35rem;
+}
+
+.citation-preview__meta dt {
+  opacity: 0.7;
+}
+
+.citation-preview__meta dd {
+  margin: 0;
+}
+
+.citation-preview__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
 }

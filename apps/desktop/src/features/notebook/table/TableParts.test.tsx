@@ -17,7 +17,11 @@ function html(node: React.ReactElement): HTMLElement {
   return container;
 }
 
-const place = { index: 2, style: { height: 64 } };
+const place = {
+  index: 2,
+  style: { minHeight: 64 },
+  measure: { ref: () => undefined, dataIndex: 0 },
+};
 
 const header: HeaderRow = {
   kind: "header",
@@ -41,6 +45,7 @@ function headerView(row: HeaderRow, motivationWidth: number | null = 220) {
       columnCount={6}
       motivationWidth={motivationWidth}
       selected={false}
+      picked={false}
       sharesRef={false}
       onToggle={() => undefined}
       onSelect={() => undefined}
@@ -126,16 +131,16 @@ describe("ColumnsMenu", () => {
     );
   }
 
-  it("lists every column with a show control and a width, each named", () => {
+  it("lists every column but Literature, which has no column of its own, with a show control and a width, each named", () => {
     const view = menu(true);
     const items = [...view.querySelectorAll("li")];
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(5);
     expect(items[1]?.textContent).toContain("Show Methods");
     const checks = items.map(
       (li) =>
         li.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked,
     );
-    expect(checks).toEqual([true, true, true, true, true, false]);
+    expect(checks).toEqual([true, true, true, true, true]);
     const width = view.querySelector<HTMLInputElement>('input[type="number"]');
     expect(width?.value).toBe("220");
     expect(view.textContent).toContain("Width of Motivation (pixels)");
@@ -281,7 +286,7 @@ describe("SummaryCell", () => {
       [text("See "), ref("PCA by treatment"), text(" for detail.")],
       artefacts,
     );
-    expect(view.querySelector(".wtable__clamp")?.textContent).toBe(
+    expect(view.querySelector(".wtable__text")?.textContent).toBe(
       "See PCA by treatment (current) for detail.",
     );
   });

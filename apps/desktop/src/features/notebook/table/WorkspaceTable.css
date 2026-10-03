@@ -1,9 +1,8 @@
+/* The table fills its space in the workspace; only its own rows scroll. */
 .wtable {
-  height: min(75vh, 1400px);
-  min-height: 320px;
+  height: 100%;
   overflow: auto;
-  border: 1px solid currentColor;
-  border-radius: 6px;
+  background: var(--color-surface);
   text-align: left;
 }
 
@@ -12,7 +11,7 @@
 .wtable__resize:focus-visible,
 .notebook select:focus-visible,
 .notebook input:focus-visible {
-  outline: 2px solid #396cd8;
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -22,8 +21,9 @@
   top: 0;
   z-index: 2;
   display: flex;
-  background: Canvas;
-  border-bottom: 1px solid currentColor;
+  color: var(--palette-primary-dark);
+  background: var(--palette-light);
+  border-bottom: 2px solid var(--palette-secondary);
 }
 
 .wtable__heading {
@@ -53,8 +53,15 @@
   bottom: 25%;
   left: 4px;
   width: 1px;
-  background: currentColor;
-  opacity: 0.4;
+  background: var(--palette-secondary);
+  opacity: 0.5;
+}
+
+.wtable__resize:hover::after {
+  width: 3px;
+  left: 3px;
+  background: var(--palette-accent);
+  opacity: 1;
 }
 
 .wtable__body {
@@ -71,42 +78,98 @@
   width: 100%;
 }
 
+/* An experiment row is neutral and light so long text reads easily, set in
+   from its question's header by a light edge. */
 .wtable__row {
   display: flex;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+  border-bottom: 1px solid var(--color-border);
+  border-left: 6px solid var(--palette-light);
+  background: var(--color-surface);
 }
 
+/* Only a row picked on purpose (its title or header) is marked; choosing a
+   cell marks that cell alone. */
 .wtable__row--selected {
-  background: rgba(57, 108, 216, 0.14);
+  background: var(--color-surface-alt);
+  border-left-color: var(--palette-accent);
 }
 
+/* Every cell shows all its text: long words and paths wrap rather than being cut. */
 .wtable__cell {
   box-sizing: border-box;
   flex: none;
-  overflow: hidden;
+  min-width: 0;
   padding: 0.5rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* The chosen cell has a thin inset outline, which takes no space and moves
+   no neighbour; a cell being edited has a slightly stronger one. */
+.wtable__cell--selected {
+  box-shadow: inset 0 0 0 1px var(--color-cell-selected);
+}
+
+.wtable__cell--editing {
+  box-shadow: inset 0 0 0 2px var(--color-cell-editing);
+}
+
+/* The cell's own outline is the focus indicator, so what is inside it draws none. */
+.wtable__cell :focus-visible {
+  outline: none;
 }
 
 /* A section's summary, which opens for editing in place (FR-TBL-11). */
 .wtable__edit {
-  height: 100%;
+  min-height: 100%;
   cursor: text;
 }
 
-.wtable__edit:focus-visible {
-  outline: 2px solid Highlight;
-  outline-offset: -2px;
-}
-
-/* The one cell being edited: its content sets the row's height (ADR-0043). */
+/* The cell being edited becomes the editor: it fills the whole cell, with the
+   cell's own padding, font and line height and no border of its own, and the
+   row grows as the text does (ADR-0043). */
 .wtable__cell--editing {
+  display: flex;
+  flex-direction: column;
   overflow: visible;
 }
 
-/* Long sections scroll inside the editor instead of growing the row without end. */
+.wtable__cell--editing .expanded__field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
 .wtable__cell--editing .expanded__editor {
-  max-height: 60vh;
-  overflow: auto;
+  box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+}
+
+.wtable__cell--editing .expanded__editor .ProseMirror {
+  flex: 1;
+  min-height: 1.4em;
+  outline: none;
+}
+
+.wtable__cell--editing .ProseMirror p {
+  margin: 0 0 0.5em;
+}
+
+.wtable__cell--editing .ProseMirror p:last-child {
+  margin-bottom: 0;
 }
 
 /* The column heading already names the section; the label stays for screen readers. */
@@ -138,15 +201,64 @@
 
 .wtable__thumbs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
+}
+
+.wtable__thumb {
+  flex: none;
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  cursor: zoom-in;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   overflow: hidden;
 }
 
-.wtable__thumbs > * {
-  flex: none;
-  width: 40px;
-  height: 40px;
+.wtable__thumb:hover {
+  border-color: var(--palette-accent);
+}
+
+.wtable__thumb > img,
+.wtable__thumb > span,
+.wtable__thumb canvas {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+}
+
+/* The larger preview while a thumbnail is hovered. */
+.wtable__hover {
+  position: fixed;
+  z-index: 40;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--palette-secondary);
+  border-top: 3px solid var(--palette-accent);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(31 41 55 / 30%);
+}
+
+.wtable__hover-name {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.wtable__hover-image {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.wtable__hover-image--thumb {
+  width: 280px;
+  height: 220px;
 }
 
 .wtable__browse {
@@ -181,14 +293,9 @@
   flex-basis: 100%;
 }
 
-/* Four lines of a summary, however long the section is (FR-TBL-05). */
-.wtable__clamp {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  line-height: 1.35;
+/* A section's whole text, wrapped, so the row grows to fit it (S6-T01). */
+.wtable__text {
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
@@ -200,10 +307,10 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0 0.35rem;
-  border: 1px solid currentColor;
+  border: 1px solid var(--palette-secondary);
   border-radius: 4px;
+  color: var(--palette-secondary);
   font-size: 0.85em;
-  opacity: 0.85;
 }
 
 .wtable__chip--detached {
@@ -215,11 +322,33 @@
   font-style: italic;
 }
 
+/* A question stands out from its experiments: a dark band with light type. */
 .wtable__question {
   display: flex;
   align-items: center;
-  background: rgba(128, 128, 128, 0.16);
-  border-bottom: 1px solid currentColor;
+  color: var(--color-on-dark);
+  background: var(--palette-secondary);
+  border-bottom: 1px solid var(--palette-primary-dark);
+  border-left: 6px solid var(--palette-accent);
+}
+
+.wtable__question.wtable__row--selected {
+  background: var(--palette-primary-dark);
+}
+
+.wtable__question button {
+  color: inherit;
+  background: none;
+  border-color: transparent;
+}
+
+.wtable__question button:hover:not(:disabled) {
+  background: none;
+  color: var(--palette-light);
+}
+
+.wtable__collapse {
+  padding: 0 var(--space-2);
 }
 
 /* The header's content stays at the left edge when the table is scrolled sideways. */
@@ -229,17 +358,14 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  max-width: 100vw;
-  padding: 0 0.5rem;
+  max-width: 100%;
+  padding: 0.5rem;
 }
 
 .wtable__motivation {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
   font-style: italic;
+  opacity: 0.9;
+  overflow-wrap: anywhere;
 }
 
 .wtable__none {
@@ -255,6 +381,7 @@
   text-align: left;
   text-decoration: underline;
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 .wtable__status {
@@ -265,7 +392,14 @@
 .wtable__title-input {
   box-sizing: border-box;
   width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   font: inherit;
+  line-height: inherit;
+  outline: none;
 }
 
 .wtable__status-select {
@@ -280,6 +414,7 @@
 
 .wtable__flag {
   font-weight: 600;
+  color: var(--palette-warning);
 }
 
 /* Text that only a screen reader needs, kept out of sight. */
@@ -297,14 +432,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-  margin: 0.75rem 0;
+  margin: 0;
 }
 
 .notebook__columns {
-  margin: 0.5rem 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid currentColor;
-  border-radius: 6px;
+  margin: 0;
+  padding: 0;
 }
 
 .notebook__columns li {
@@ -323,4 +456,8 @@
 .wtable__add--drop {
   outline: 2px dashed currentColor;
   outline-offset: 2px;
+}
+
+.wtable__select {
+  white-space: normal;
 }

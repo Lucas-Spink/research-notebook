@@ -6,11 +6,34 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
-  --color-text: #0f0f0f;
-  --color-bg: #f6f6f6;
+  /* The notebook's palette (S6-T01): a dark slate for the ribbon and
+     headings, light slate for panels and table headings, and a blue accent,
+     with green and amber for success and warning. */
+  --palette-primary-dark: #1f2937;
+  --palette-secondary: #334155;
+  --palette-background: #f8fafc;
+  --palette-light: #e2e8f0;
+  --palette-accent: #2563eb;
+  --palette-accent-hover: #1d4ed8;
+  --palette-success: #16a34a;
+  --palette-warning: #d97706;
+
+  --color-text: var(--palette-primary-dark);
+  --color-bg: var(--palette-background);
   --color-surface: #ffffff;
-  --color-border: color-mix(in srgb, currentColor 20%, transparent);
-  --color-accent: #396cd8;
+  --color-surface-alt: color-mix(in srgb, var(--palette-light) 45%, #ffffff);
+  --color-border: color-mix(
+    in srgb,
+    var(--palette-primary-dark) 22%,
+    transparent
+  );
+  --color-accent: var(--palette-accent);
+  --color-accent-hover: var(--palette-accent-hover);
+  --color-on-dark: var(--palette-background);
+  --color-focus: var(--palette-accent);
+  /* A cell: quiet when chosen, a little stronger while it is being edited. */
+  --color-cell-selected: #94a3b8;
+  --color-cell-editing: #3b82f6;
 
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -19,6 +42,7 @@
 
   color: var(--color-text);
   background-color: var(--color-bg);
+  color-scheme: light;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -27,12 +51,14 @@
   -webkit-text-size-adjust: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-text: #f6f6f6;
-    --color-bg: #2f2f2f;
-    --color-surface: #262626;
-  }
+body {
+  margin: 0;
+}
+
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
@@ -43,6 +69,13 @@
 
 h1 {
   margin: 0 0 var(--space-5);
+  color: var(--palette-primary-dark);
+}
+
+h2,
+h3,
+h4 {
+  color: var(--palette-primary-dark);
 }
 
 button,
@@ -56,12 +89,30 @@ select {
   padding: var(--space-2) var(--space-3);
 }
 
+button {
+  cursor: pointer;
+}
+
 button:hover:not(:disabled) {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-hover);
+  background: color-mix(
+    in srgb,
+    var(--palette-accent-hover) 10%,
+    var(--color-surface)
+  );
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 button:disabled {
   opacity: 0.6;
+  cursor: default;
 }
 
 /* A small rotating indicator for a busy action, paired with text for screen readers. */

@@ -18,6 +18,8 @@ type Options = {
   actions: NotebookActions;
   /** Selects a row, as clicking its title does. */
   onSelectRow: (row: ExperimentRow) => void;
+  /** Opens a result in the side pane. */
+  onOpenResult: TableEditing["onOpenResult"];
 };
 
 /**
@@ -34,6 +36,7 @@ export function useTableEditing({
   evidence,
   actions,
   onSelectRow,
+  onOpenResult,
 }: Options): TableEditing {
   const [openResults, setOpenResults] = useState<string | null>(null);
 
@@ -64,6 +67,7 @@ export function useTableEditing({
     openResults,
     onOpenResults,
     onCloseResults: () => setOpenResults(null),
+    onOpenResult,
     evidence,
     editArtefacts: (folder, change) => actions.editArtefacts(folder, change),
   };

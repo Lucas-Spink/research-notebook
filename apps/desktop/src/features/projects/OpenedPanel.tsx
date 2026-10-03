@@ -13,6 +13,8 @@ type Props = {
   onAddRoot?: (label: string) => void;
   onTakeOver: () => void;
   onRetry: () => void;
+  /** In the ribbon's settings panel: no heading, banner or Zotero status, which the ribbon and the workspace show themselves. */
+  compact?: boolean;
 };
 
 /**
@@ -27,6 +29,7 @@ export function OpenedPanel({
   onAddRoot,
   onTakeOver,
   onRetry,
+  compact = false,
 }: Props) {
   const [label, setLabel] = useState("");
   const zoteroStatus = useZoteroStatus();
@@ -40,9 +43,12 @@ export function OpenedPanel({
   }
 
   return (
-    <section aria-labelledby="opened-heading" className="projects__opened">
-      <h2 id="opened-heading">{messages.openedHeading}</h2>
-      {project.mode.kind === "readOnly" && (
+    <section
+      {...(compact ? {} : { "aria-labelledby": "opened-heading" })}
+      className="projects__opened"
+    >
+      {!compact && <h2 id="opened-heading">{messages.openedHeading}</h2>}
+      {!compact && project.mode.kind === "readOnly" && (
         <ReadOnlyBanner
           reason={project.mode.reason}
           busy={busy}
@@ -57,7 +63,7 @@ export function OpenedPanel({
         {messages.openedAt}:{" "}
         <span className="projects__path">{project.path}</span>
       </p>
-      <ZoteroStatusIndicator state={zoteroStatus} />
+      {!compact && <ZoteroStatusIndicator state={zoteroStatus} />}
       {(roots.length > 0 || onAddRoot !== undefined) && (
         <>
           <h3>{messages.externalRootsHeading}</h3>

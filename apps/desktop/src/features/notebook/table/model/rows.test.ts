@@ -183,8 +183,18 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
   /** Flattens a summary's parts back to plain text, for assertions that do
    * not care whether a bit of it is a reference chip. */
   const flat = (
-    parts: readonly { kind: string; text?: string; label?: string }[],
-  ) => parts.map((p) => (p.kind === "ref" ? p.label : p.text)).join("");
+    parts: readonly {
+      kind: string;
+      text?: string;
+      label?: string;
+      raw?: string;
+    }[],
+  ) =>
+    parts
+      .map((p) =>
+        p.kind === "ref" ? p.label : p.kind === "cite" ? p.raw : p.text,
+      )
+      .join("");
 
   it("summarises each section as plain text", () => {
     const s = edited(
@@ -246,14 +256,20 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
     );
   });
 
-  it("bounds each summary so a huge section does not make a huge cell", () => {
-    const s = edited(
+  it("keeps a long section whole in its cell, bounding only a pathological one (S6-T01)", () => {
+    const long = "word ".repeat(400).trim();
+    const whole = edited(state, "EXP-001", withSection("methods", long));
+    expect(flat(experiments(rowsOf(whole))[0]?.summaries.methods ?? [])).toBe(
+      long,
+    );
+
+    const huge = edited(
       state,
       "EXP-001",
-      withSection("methods", "word ".repeat(10_000)),
+      withSection("methods", "word ".repeat(100_000)),
     );
-    const summary = flat(experiments(rowsOf(s))[0]?.summaries.methods ?? []);
-    expect([...summary].length).toBeLessThanOrEqual(240);
+    const summary = flat(experiments(rowsOf(huge))[0]?.summaries.methods ?? []);
+    expect([...summary].length).toBeLessThanOrEqual(20_000);
     expect(summary.endsWith("…")).toBe(true);
   });
 });

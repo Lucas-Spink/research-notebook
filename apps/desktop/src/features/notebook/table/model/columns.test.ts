@@ -69,8 +69,13 @@ describe("gridColumns", () => {
       "methods",
       "results_notes",
       "interpretation",
-      "literature",
     ]);
+  });
+
+  it("never gives Literature a column of its own, shown or not (S6-T01)", () => {
+    expect(
+      gridColumns(columnLayout(table)).some((c) => c.key === "literature"),
+    ).toBe(false);
   });
 
   it("finds the Motivation column only while it is shown", () => {
@@ -82,7 +87,7 @@ describe("gridColumns", () => {
   it("adds up the width of the experiment column and every column shown", () => {
     const columns = gridColumns(columnLayout(table));
     expect(gridWidth(columns)).toBe(
-      EXPERIMENT_COLUMN_WIDTH + 260 + 280 + 300 + 320 + 240,
+      EXPERIMENT_COLUMN_WIDTH + 260 + 280 + 300 + 320,
     );
     expect(gridWidth([])).toBe(EXPERIMENT_COLUMN_WIDTH);
   });

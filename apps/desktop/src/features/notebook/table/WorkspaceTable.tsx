@@ -7,8 +7,13 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  defaultRangeExtractor,
+  measureElement,
+  useVirtualizer,
+  type Virtualizer,
+} from "@tanstack/react-virtual";
+import { useMemo, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { tableMessages } from "../messages";
 import { ColumnHeadings } from "./ColumnHeadings";
@@ -40,9 +45,10 @@ const features = tableFeatures({
 const columnHelper = createColumnHelper<typeof features, ExperimentRow>();
 
 /**
- * Rows are a fixed height, so scrolling never has to measure them
- * (FR-TBL-10); only the row being edited is measured, as it grows to fit
- * its editor (ADR-0043).
+ * Rows are at least these heights and grow to fit their wrapped content, so
+ * no cell is truncated (S6-T01). Each row drawn is measured by the
+ * virtualiser; unmeasured rows are estimated at these heights, so scrolling
+ * still only mounts the rows in view (FR-TBL-10).
  */
 const COLUMN_HEADER_HEIGHT = 40;
 const QUESTION_ROW_HEIGHT = 64;
@@ -51,6 +57,18 @@ const EMPTY_ROW_HEIGHT = 40;
 /** The number of rows drawn before the window is measured, and beyond it while scrolling. */
 const INITIAL_VIEWPORT_HEIGHT = 720;
 const OVERSCAN = 8;
+
+/** The size of a measured row; a row that has no layout yet (zero) keeps its estimate. */
+function measuredSize(
+  element: Element,
+  entry: ResizeObserverEntry | undefined,
+  instance: Virtualizer<HTMLDivElement, Element>,
+): number {
+  const size = measureElement(element, entry, instance);
+  if (size > 0) return size;
+  const index = Number(element.getAttribute("data-index"));
+  return instance.options.estimateSize(index);
+}
 
 const EXPERIMENT = "experiment";
 const definitions = columnHelper.columns([
@@ -73,6 +91,8 @@ type Props = {
   /** The columns from `project.yaml`, with changes not saved yet applied. */
   layout: readonly ColumnLayout[];
   selectedKey: string | null;
+  /** The row picked on purpose, by its title or header, which alone is highlighted; choosing a cell does not highlight its row. */
+  pickedKey: string | null;
   /** Refs that more than one file holds, to flag where they are shown. */
   sharedRefs: ReadonlySet<string>;
   /** The open project, so a cell's reference chips can read each experiment's artefacts.yaml (FR-EDT-06). */
@@ -90,6 +110,12 @@ type Props = {
   /** Height of the window before it is measured. Only tests set it. */
   viewportHeight?: number;
 };
+
+/** The least height of a row of this kind, and the estimate before it is measured. */
+function estimateFor(kind: TableRow["kind"] | undefined): number {
+  if (kind === "header") return QUESTION_ROW_HEIGHT;
+  return kind === "empty" ? EMPTY_ROW_HEIGHT : EXPERIMENT_ROW_HEIGHT;
+}
 
 /** The index of the row open in the table, if any: grown to fit, and kept rendered. */
 function editedRow(
@@ -124,6 +150,7 @@ export function WorkspaceTable({
   rows,
   layout,
   selectedKey,
+  pickedKey,
   sharedRefs,
   folder,
   onSelectExperiment,
@@ -184,7 +211,6 @@ export function WorkspaceTable({
   const motivation = motivationColumn(shown);
 
   const edited = editedRow(rows, editing);
-  const editedKey = edited === null ? null : (rows[edited]?.key ?? null);
   const focus = useGridFocus({
     rows,
     colCount: cells.length + 1,
@@ -198,23 +224,14 @@ export function WorkspaceTable({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => {
-      const kind = rows[index]?.kind;
-      if (kind === "header") return QUESTION_ROW_HEIGHT;
-      return kind === "empty" ? EMPTY_ROW_HEIGHT : EXPERIMENT_ROW_HEIGHT;
-    },
+    estimateSize: (index) => estimateFor(rows[index]?.kind),
+    measureElement: measuredSize,
     getItemKey: (index) => rows[index]?.key ?? index,
     rangeExtractor: (range) => withPinned(defaultRangeExtractor(range), pinned),
     overscan: OVERSCAN,
     scrollMargin: COLUMN_HEADER_HEIGHT,
     initialRect: { width: total, height: viewportHeight },
   });
-
-  // A row that has stopped being edited goes back to its fixed height: its
-  // measured size is forgotten, and only the newly edited row is measured.
-  useEffect(() => {
-    virtualizer.measure();
-  }, [virtualizer, editedKey]);
 
   return (
     <div
@@ -253,8 +270,12 @@ export function WorkspaceTable({
             const place = {
               index: item.index + 2,
               style: {
-                height: item.size,
+                minHeight: estimateFor(row.kind),
                 transform: `translateY(${item.start - COLUMN_HEADER_HEIGHT}px)`,
+              },
+              measure: {
+                ref: virtualizer.measureElement,
+                dataIndex: item.index,
               },
             };
             if (row.kind === "header") {
@@ -266,6 +287,7 @@ export function WorkspaceTable({
                   columnCount={cells.length + 1}
                   motivationWidth={motivation?.width ?? null}
                   selected={selectedKey === row.key}
+                  picked={pickedKey === row.key}
                   sharesRef={row.ref !== null && sharedRefs.has(row.ref)}
                   onToggle={onToggle}
                   onSelect={onSelectQuestion}
@@ -275,34 +297,24 @@ export function WorkspaceTable({
             if (row.kind === "empty") {
               return <EmptyRowView key={row.key} place={place} />;
             }
-            const growing =
-              item.index === edited
-                ? {
-                    ...place,
-                    style: {
-                      minHeight: EXPERIMENT_ROW_HEIGHT,
-                      transform: place.style.transform,
-                    },
-                    measure: {
-                      ref: virtualizer.measureElement,
-                      dataIndex: item.index,
-                    },
-                  }
-                : place;
             return (
               <ExperimentRowView
                 key={row.key}
                 row={row}
-                place={growing}
+                place={place}
                 columns={cells}
                 experimentWidth={experimentWidth}
                 selected={selectedKey === row.key}
+                picked={pickedKey === row.key}
                 sharesRef={sharedRefs.has(
                   row.item.experiment.file.frontmatter.ref,
                 )}
                 folder={folder}
                 onSelect={onSelectExperiment}
                 editing={editing}
+                selectedCol={
+                  focus.selected?.rowKey === row.key ? focus.selected.col : null
+                }
                 focusCol={
                   focus.cell?.rowKey === row.key ? focus.cell.col : null
                 }

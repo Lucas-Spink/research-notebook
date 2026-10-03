@@ -292,3 +292,6 @@ export function useProjects() {
     retryLock: () => changeMode((project) => retryLockFlow(commands, project)),
   };
 }
+
+/** What `useProjects` holds, for components that show and drive it. */
+export type Projects = ReturnType<typeof useProjects>;

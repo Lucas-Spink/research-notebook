@@ -8,6 +8,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { sampleNotebook } from "./model/fakeApi";
 import { NotebookView } from "./NotebookView";
+import type { FilterState } from "./table/model/rows";
+import { FilterControls, SortControls } from "./table/TableToolbar";
 import type { NotebookActions, NotebookModel } from "./useNotebook";
 
 const actions: NotebookActions = {
@@ -63,6 +65,13 @@ function render(notebook: NotebookModel, viewportHeight = 720): HTMLElement {
   );
   return container;
 }
+
+const NO_FILTER: FilterState = { text: "", status: "all" };
+/** A button in the ribbon, by its text. */
+const ribbonButton = (view: HTMLElement, label: string) =>
+  [...view.querySelectorAll('[role="toolbar"] button')].find(
+    (button) => button.textContent === label,
+  );
 
 const rowsIn = (view: HTMLElement) => [
   ...view.querySelectorAll(".wtable__body > [role='row']"),
@@ -149,7 +158,6 @@ describe("NotebookView: the table", () => {
       "Results",
       "Results notes",
       "Interpretation",
-      "Literature",
     ]);
     const separator = view.querySelector(
       '[aria-label="Resize Methods column"]',
@@ -188,7 +196,7 @@ describe("NotebookView: the table", () => {
     );
   });
 
-  it("shows read-only, line-clamped summaries in the cells, and no editors", () => {
+  it("shows read-only, wrapped text in the cells, and no editors", () => {
     const edited = withSection(
       state,
       "EXP-001",
@@ -197,11 +205,9 @@ describe("NotebookView: the table", () => {
     );
     const view = render(model(edited));
     const row = rowsIn(view)[1];
-    const clamp = row?.querySelector(".wtable__clamp");
+    const clamp = row?.querySelector(".wtable__text");
     expect(clamp?.textContent).toBe("PCA on variance-stabilised counts.");
-    expect(clamp?.getAttribute("title")).toBe(
-      "PCA on variance-stabilised counts.",
-    );
+    expect(clamp?.getAttribute("title")).toBeNull();
     expect(text(row)).toContain("None yet");
     expect(
       view.querySelector(".wtable textarea, .wtable [contenteditable]"),
@@ -285,33 +291,40 @@ describe("NotebookView: only the rows in view are drawn (FR-TBL-10)", () => {
 describe("NotebookView: controls", () => {
   const { state } = sampleNotebook();
 
-  it("has a labelled filter, status filter, sort, direction and columns control", () => {
-    const view = render(model(state));
-    const toolbar = view.querySelector('[role="search"]');
-    for (const label of toolbar?.querySelectorAll("label") ?? []) {
+  it("has a labelled filter, status filter, sort and direction control, and ribbon tabs", () => {
+    const toolbar = document.createElement("div");
+    toolbar.innerHTML = renderToStaticMarkup(
+      <>
+        <FilterControls filter={NO_FILTER} onFilter={() => undefined} />
+        <SortControls sort={null} onSort={() => undefined} />
+      </>,
+    );
+    for (const label of toolbar.querySelectorAll("label")) {
       const id = label.getAttribute("for") ?? "";
       expect(
-        toolbar?.querySelector(`#${CSS.escape(id)}`),
+        toolbar.querySelector(`#${CSS.escape(id)}`),
         label.textContent,
       ).not.toBeNull();
     }
     expect(text(toolbar)).toContain("Filter experiments");
     expect(text(toolbar)).toContain("Sort within each question");
-    const direction = toolbar?.querySelector(
+    const direction = toolbar.querySelector(
       'button[aria-label="Change sort direction"]',
     );
     expect(direction?.hasAttribute("disabled")).toBe(true);
-    const columns = [...(toolbar?.querySelectorAll("button") ?? [])].find(
-      (b) => b.textContent === "Columns",
-    );
-    expect(columns?.getAttribute("aria-expanded")).toBe("false");
+    const tabs = [
+      ...render(model(state)).querySelectorAll('[role="tablist"] [role="tab"]'),
+    ].map((tab) => tab.textContent);
+    expect(tabs).toEqual(["Home", "Experiments", "Sources", "View", "Project"]);
   });
 
-  it("offers, below the table, what to do with a selection, and to add a question", () => {
+  it("offers, in the ribbon, what to do with a selection, and to add a question", () => {
     const view = render(model(state));
-    const details = view.querySelector(".notebook__details");
-    expect(text(details)).toContain("Select an experiment or a question");
-    expect(text(view)).toContain("New question");
+    expect(ribbonButton(view, "Details")?.hasAttribute("disabled")).toBe(true);
+    expect(text(view.querySelector('[role="toolbar"]'))).toContain(
+      "New question",
+    );
+    expect(view.querySelector(".notebook__details")).toBeNull();
   });
 
   it("keeps the table usable, and the forms off, in a read-only project", () => {
@@ -320,16 +333,17 @@ describe("NotebookView: controls", () => {
     expect(view.querySelector(".wtable button")?.hasAttribute("disabled")).toBe(
       false,
     );
-    const form = view.querySelector(".notebook__new input");
-    expect(form?.hasAttribute("disabled")).toBe(true);
+    expect(ribbonButton(view, "New question")?.hasAttribute("disabled")).toBe(
+      true,
+    );
   });
 
   it("says so while an operation is under way, and turns the forms off", () => {
     const view = render(model(state, { busy: true }));
     expect(text(view)).toContain("Working…");
-    expect(
-      view.querySelector(".notebook__new input")?.hasAttribute("disabled"),
-    ).toBe(true);
+    expect(ribbonButton(view, "New question")?.hasAttribute("disabled")).toBe(
+      true,
+    );
   });
 
   it("lists the problems found, in words, and flags the ref where it is shown", () => {

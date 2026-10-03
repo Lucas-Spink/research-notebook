@@ -116,7 +116,17 @@ export function tableOf(view: HTMLElement): HTMLElement {
   return found;
 }
 
+/** The details panel, which lives in a side-pane tab: opened from the ribbon's Details button when it is not already showing. */
 export function detailsOf(view: HTMLElement): HTMLElement {
+  if (view.querySelector(".notebook__details") === null) {
+    const open = [...view.querySelectorAll('[role="toolbar"] button')].find(
+      (button) => button.textContent === "Details",
+    );
+    if (open === undefined) throw new Error("no Details button");
+    act(() => {
+      open.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+  }
   const found = view.querySelector(".notebook__details");
   if (!(found instanceof HTMLElement)) throw new Error("no details panel");
   return found;

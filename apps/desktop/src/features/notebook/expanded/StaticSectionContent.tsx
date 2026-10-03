@@ -10,7 +10,7 @@ import {
   type CitationItem,
 } from "@research-notebook/format";
 import { Fragment } from "react";
-import { sourceStatusText, useSources } from "../../citations";
+import { CitationSource, sourceStatusText, useSources } from "../../citations";
 import { expandedMessages } from "../messages";
 import { ArtefactRefChip } from "./ArtefactRefChip";
 import {
@@ -183,17 +183,10 @@ function SourceLabel({ source }: { source: SourceText }) {
   const { select } = useSources();
   if (!source.known) return <>{source.text}</>;
   return (
-    <button
-      type="button"
-      className="expanded__citation-open"
-      onClick={(event) => {
-        // The citation may sit in a cell or card that has its own click action.
-        event.stopPropagation();
-        select(source.citekey);
-      }}
-    >
-      {source.text}
-    </button>
+    <CitationSource
+      citekey={source.citekey}
+      onActivate={() => select(source.citekey)}
+    />
   );
 }
 

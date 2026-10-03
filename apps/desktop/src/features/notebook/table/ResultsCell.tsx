@@ -1,20 +1,13 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { commands } from "../../../ipc/bindings";
-import {
-  planPreview,
-  PreviewThumbnail,
-  useThumbnail,
-  versionPath,
-} from "../../preview";
 import {
   applyGroupAction,
   ResultsTree,
   type ActionOutcome,
   type GroupAction,
 } from "../../results";
-import { ReferencePreviewOverlay } from "../expanded/ReferencePreviewOverlay";
 import {
   browseResultsLabel,
   resultsCountLabel,
@@ -24,7 +17,8 @@ import { AddFilesBar } from "./AddFilesBar";
 import { evidenceDrops } from "./dropsApi";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
-import { resultsSummary, type ResultsThumbnail } from "./model/resultsSummary";
+import { resultsSummary } from "./model/resultsSummary";
+import { ResultThumb } from "./ResultThumb";
 
 type Props = {
   row: ExperimentRow;
@@ -39,34 +33,7 @@ type Props = {
 /** Keys that open a focused Results cell, as they open a section. */
 const OPEN_KEYS = new Set(["Enter", " ", "F2"]);
 
-/** A result's latest version, drawn small (spec 8). */
-function ResultThumb({
-  folder,
-  experimentFolder,
-  thumb,
-}: {
-  folder: FolderHandle;
-  experimentFolder: string;
-  thumb: ResultsThumbnail;
-}) {
-  const plan = useMemo(
-    () =>
-      planPreview({ fileName: thumb.file, type: thumb.type, captured: true }),
-    [thumb.file, thumb.type],
-  );
-  const thumbnail = useThumbnail({
-    api: commands,
-    target: {
-      folder,
-      file: versionPath(experimentFolder, thumb.file),
-      sha256: thumb.sha256,
-    },
-    plan,
-  });
-  return <PreviewThumbnail name={thumb.name} thumbnail={thumbnail} />;
-}
-
-/** The version a preview opens at: a copy's latest, or `null` for a linked file. */
+/** The version a result opens at: a copy's latest, or `null` for a linked file. */
 function previewVersion(file: ArtefactsFileModel, artefactId: string) {
   const artefact = file.artefacts.find((a) => a.id === artefactId);
   if (artefact === undefined || artefact.mode !== "copy") return null;
@@ -93,7 +60,6 @@ export function ResultsCell({
   const ref = experiment.file.frontmatter.ref;
   const open = editing.openResults === experiment.folder;
   const readOnly = !editing.writable || row.item.readOnly || artefacts === null;
-  const [preview, setPreview] = useState<string | null>(null);
   const control = useRef<HTMLDivElement>(null);
   const openCell = useRef<HTMLDivElement>(null);
   const returnFocus = useRef(false);
@@ -121,28 +87,14 @@ export function ResultsCell({
       : { ok: false, error: outcome.error };
   }
 
-  const overlay =
-    preview !== null && artefacts !== null && editing.projectId !== null ? (
-      <ReferencePreviewOverlay
-        api={commands}
-        folder={folder}
-        projectId={editing.projectId}
-        experimentFolder={experiment.folder}
-        file={artefacts}
-        artefactId={preview}
-        version={previewVersion(artefacts, preview)}
-        references={editing.references}
-        {...(editing.evidence === null || readOnly
-          ? {}
-          : {
-              relink: {
-                editArtefacts: editing.editArtefacts,
-                externalRoots: editing.evidence.externalRoots,
-              },
-            })}
-        onClose={() => setPreview(null)}
-      />
-    ) : null;
+  const openResult = (artefactId: string) =>
+    artefacts === null
+      ? undefined
+      : editing.onOpenResult(
+          experiment.folder,
+          artefactId,
+          previewVersion(artefacts, artefactId),
+        );
 
   if (open) {
     return (
@@ -185,10 +137,9 @@ export function ResultsCell({
             file={artefacts}
             disabled={readOnly}
             onAction={onAction}
-            onOpen={setPreview}
+            onOpen={openResult}
           />
         )}
-        {overlay}
       </div>
     );
   }
@@ -230,6 +181,7 @@ export function ResultsCell({
                 folder={folder}
                 experimentFolder={experiment.folder}
                 thumb={thumb}
+                onOpen={() => openResult(thumb.artefactId)}
               />
             ))}
           </div>

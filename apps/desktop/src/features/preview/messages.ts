@@ -11,6 +11,9 @@ export const previewMessages = {
   thumbnailAlt: (name: string) => `Thumbnail of ${name}`,
   fitToPanel: "Fit to panel",
   actualSize: "Actual size",
+  zoomIn: "Zoom in",
+  zoomOut: "Zoom out",
+  resetZoom: "Reset zoom",
   pdf: {
     page: (page: number, pages: number) => `Page ${page} of ${pages}`,
     previous: "Previous page",

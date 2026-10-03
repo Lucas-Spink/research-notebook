@@ -16,6 +16,8 @@ type Props = {
   folder: FolderHandle;
   /** Opens a result at its question or experiment, and its section when it has one (FR-SRC-02). */
   onOpenResult: (key: string, section: RecognisedSectionKey | null) => void;
+  /** Shown whole in a pane, with no button to open it (S6-T01). */
+  embedded?: boolean;
 };
 
 function experimentFoldersOf(arranged: Arranged): string[] {
@@ -33,8 +35,14 @@ function experimentFoldersOf(arranged: Arranged): string[] {
  * artefact's display name and filename. Results are grouped by question or
  * experiment (FR-SRC-02); activating one opens it at that location.
  */
-export function SearchPanel({ arranged, folder, onOpenResult }: Props) {
-  const [open, setOpen] = useState(false);
+export function SearchPanel({
+  arranged,
+  folder,
+  onOpenResult,
+  embedded = false,
+}: Props) {
+  const [expanded, setOpen] = useState(false);
+  const open = embedded || expanded;
   const [query, setQuery] = useState("");
   const headingId = useId();
   const inputId = useId();
@@ -57,9 +65,15 @@ export function SearchPanel({ arranged, folder, onOpenResult }: Props) {
 
   return (
     <div className="notebook__search">
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {searchMessages.toggle}
-      </button>
+      {!embedded && (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          {searchMessages.toggle}
+        </button>
+      )}
       {open && (
         <section
           className="notebook__search-panel"
