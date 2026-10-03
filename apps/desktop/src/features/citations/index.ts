@@ -8,6 +8,7 @@ export {
   useSourceSync,
   type SourcesModel,
 } from "./SourcesContext";
+export { SourceDetailsPanel } from "./SourceDetailsPanel";
 export { SourcesPanel } from "./SourcesPanel";
 export { StylePicker } from "./StylePicker";
 export { useStyleManagement, type StyleModel } from "./useStyleManagement";
