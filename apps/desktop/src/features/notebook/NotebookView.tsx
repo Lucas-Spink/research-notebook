@@ -28,6 +28,7 @@ import {
   useSourceRepair,
   useStyleManagement,
 } from "../citations";
+import { ManifestPanel, useManifest } from "../archive";
 import {
   IntegrityPanel,
   useIntegrityCheck,
@@ -240,6 +241,8 @@ function NotebookViewBody({
     arranged,
     bibliography: sources.items,
   });
+
+  const manifest = useManifest({ api: commands, folder, arranged, writable });
 
   /** Takes the person to the existing place a finding is put right (FR-ARC-01). */
   function resolveFinding(target: ResolveTarget) {
@@ -506,7 +509,21 @@ function NotebookViewBody({
       case "citations":
         return <StylePicker model={styles} />;
       case "integrity":
-        return <IntegrityPanel model={integrity} onResolve={resolveFinding} />;
+        return (
+          <>
+            <IntegrityPanel model={integrity} onResolve={resolveFinding} />
+            <ManifestPanel
+              model={manifest}
+              integrityOpen={
+                integrity.state === "done"
+                  ? integrity.findings.filter(
+                      (f) => !integrity.acknowledged.has(f.key),
+                    ).length
+                  : null
+              }
+            />
+          </>
+        );
       case "results":
         return (
           <ResultsPane

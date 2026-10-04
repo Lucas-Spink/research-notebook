@@ -174,6 +174,13 @@ describe("the workspace (S6-T01)", () => {
     expect(pane(view)?.textContent).toContain("has not been run");
   });
 
+  it("offers the manifest beside the integrity check, and does not write it until asked", () => {
+    const { view } = mountNotebook(state);
+    click(ribbonTab(view, "Project"));
+    click(ribbonButton(view, "Integrity check"));
+    expect(pane(view)?.textContent).toContain("has not been generated");
+  });
+
   it("shows several tabs in one pane and closes them one at a time", () => {
     const { view } = mountNotebook(state);
     click(ribbonButton(view, "Sources"));
