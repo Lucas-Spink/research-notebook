@@ -145,6 +145,11 @@ export const commands = {
 	/**  The language and kernel of a notebook version, from at most 1 MiB. */
 	previewNotebook: (folder: FolderHandle, file: VersionPath) => typedError<NotebookPreview, PreviewFailure>(__TAURI_INVOKE("preview_notebook", { folder, file })),
 	/**
+	 *  Which of an experiment's captured version files are missing or cannot be
+	 *  opened (FR-ARC-01). Answers by position in `files`, so no path comes back.
+	 */
+	checkVersionFiles: (folder: FolderHandle, files: VersionPath[]) => typedError<VersionFileProblem[], PreviewFailure>(__TAURI_INVOKE("check_version_files", { folder, files })),
+	/**
 	 *  Acts on a captured version's file, resolved and confined to
 	 *  `evidence/` or `methods/` the same way a preview would be (spec 6.5).
 	 */
@@ -888,6 +893,16 @@ export type TrashedItem = {
  *  file, never as part of a path.
  */
 export type Ulid = string;
+
+/**
+ *  A version file the integrity check could not open (FR-ARC-01). `index` is
+ *  the position in the list the webview sent, so no path is sent back.
+ */
+export type VersionFileProblem = {
+	index: number,
+	/**  Nothing is there; otherwise the file exists but cannot be opened. */
+	missing: boolean,
+};
 
 /**
  *  The project-relative path of a captured version's file, such as

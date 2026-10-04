@@ -22,7 +22,7 @@ use tauri::{AppHandle, Manager, State};
 use super::folders::{FolderHandle, PickedFolders};
 pub use types::{
     AssetFile, AssetKind, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview, TextPreview,
-    VersionPath,
+    VersionFileProblem, VersionPath,
 };
 
 /// The thumbnail cache of this run, or `None` if its folder could not be
@@ -173,4 +173,19 @@ pub async fn preview_notebook(
     file: VersionPath,
 ) -> Result<NotebookPreview, PreviewFailure> {
     in_project(&folders, folder, move |root| read::notebook(&root, &file)).await
+}
+
+/// Which of an experiment's captured version files are missing or cannot be
+/// opened (FR-ARC-01). Answers by position in `files`, so no path comes back.
+#[tauri::command]
+#[specta::specta]
+pub async fn check_version_files(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    files: Vec<VersionPath>,
+) -> Result<Vec<VersionFileProblem>, PreviewFailure> {
+    in_project(&folders, folder, move |root| {
+        Ok(read::version_file_problems(&root, &files))
+    })
+    .await
 }

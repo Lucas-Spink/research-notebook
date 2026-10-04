@@ -6,7 +6,7 @@
 use std::io::BufReader;
 use std::path::PathBuf;
 
-use nb_fs::ProjectRoot;
+use nb_fs::{ProjectRoot, ReadError};
 use nb_preview::cache::{ThumbnailCache, ThumbnailKey, DEFAULT_THUMBNAIL_SIZE};
 use nb_preview::notebook::{notebook_info, NotebookFormat};
 use nb_preview::raster::cached_raster_thumbnail;
@@ -17,7 +17,7 @@ use nb_preview::PreviewError;
 
 use super::types::{
     AssetKind, Dimensions, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview, TextPreview,
-    VersionPath,
+    VersionFileProblem, VersionPath,
 };
 
 /// The cached thumbnail of a raster image version, made if needed.
@@ -109,6 +109,30 @@ pub(super) fn notebook(
     })
 }
 
+/// The version files that cannot be opened as regular files (FR-ARC-01):
+/// `missing` when nothing is there, otherwise unreadable. Only opens them
+/// through `nb-fs`; nothing is read or written.
+pub(super) fn version_file_problems(
+    root: &ProjectRoot,
+    files: &[VersionPath],
+) -> Vec<VersionFileProblem> {
+    files
+        .iter()
+        .enumerate()
+        .filter_map(|(index, file)| {
+            let failed = match file.to_rel() {
+                Ok(rel) => root.open_version_file(&rel).err(),
+                Err(_) => return Some((index, false)),
+            };
+            failed.map(|e| (index, matches!(e, ReadError::Missing { .. })))
+        })
+        .map(|(index, missing)| VersionFileProblem {
+            index: u32::try_from(index).unwrap_or(u32::MAX),
+            missing,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 // The workspace denies unwrap outside tests; these are tests, and they write
 // fixture files with std::fs.
@@ -138,6 +162,52 @@ mod tests {
     }
 
     const EVIDENCE: &str = "_notebook/experiments/EXP-001/evidence";
+
+    #[test]
+    fn only_the_version_files_that_are_not_there_are_reported() {
+        let (_dir, root) = project(&[(&format!("{EVIDENCE}/here.txt"), b"x")]);
+        let files = [
+            path(&format!("{EVIDENCE}/here.txt")),
+            path(&format!("{EVIDENCE}/gone.txt")),
+        ];
+
+        let problems = version_file_problems(&root, &files);
+
+        assert_eq!(
+            problems,
+            [VersionFileProblem {
+                index: 1,
+                missing: true
+            }]
+        );
+    }
+
+    #[test]
+    fn a_folder_where_a_version_file_belongs_is_unreadable_not_missing() {
+        let (_dir, root) = project(&[(&format!("{EVIDENCE}/dir/inner.txt"), b"x")]);
+
+        let problems = version_file_problems(&root, &[path(&format!("{EVIDENCE}/dir"))]);
+
+        assert_eq!(
+            problems,
+            [VersionFileProblem {
+                index: 0,
+                missing: false
+            }]
+        );
+    }
+
+    #[test]
+    fn checking_version_files_changes_nothing() {
+        let (dir, root) = project(&[(&format!("{EVIDENCE}/here.txt"), b"x")]);
+
+        version_file_problems(&root, &[path(&format!("{EVIDENCE}/here.txt"))]);
+
+        assert_eq!(
+            fs::read(dir.path().join(format!("{EVIDENCE}/here.txt"))).unwrap(),
+            b"x"
+        );
+    }
 
     #[test]
     fn a_table_preview_gives_rows_and_dimensions() {

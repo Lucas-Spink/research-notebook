@@ -72,6 +72,16 @@ impl<'de> Deserialize<'de> for Sha256Hex {
     }
 }
 
+/// A version file the integrity check could not open (FR-ARC-01). `index` is
+/// the position in the list the webview sent, so no path is sent back.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct VersionFileProblem {
+    pub index: u32,
+    /// Nothing is there; otherwise the file exists but cannot be opened.
+    pub missing: bool,
+}
+
 /// Why a preview could not be made. The `kind` is the key of the message
 /// the webview shows with its recovery action (FR-PRV-05); no path or system
 /// text is sent.
