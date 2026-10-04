@@ -25,18 +25,32 @@ function ulidOf(node: JSONContent): string | null {
   return typeof attrs?.ulid === "string" ? attrs.ulid : null;
 }
 
-/** Every artefact-reference node's ULID in `doc`, in document order. Walks the
+function versionOf(node: JSONContent): number | null {
+  const attrs: Record<string, unknown> | undefined = node.attrs;
+  return typeof attrs?.version === "number" ? attrs.version : null;
+}
+
+/** An artefact reference as written: the artefact and the version it pins, if any. */
+export interface ArtefactReference {
+  ulid: string;
+  version: number | null;
+}
+
+/** Every artefact-reference node in `doc`, in document order. Walks the
  * same Tiptap JSON the live editor renders (`sectionReferences.ts`'s
  * `editor.state.doc.descendants`), but from `parseSectionMarkdown`'s output
  * rather than a mounted editor, so a reference inside a code fence or other
  * passthrough block — never reachable by the real parser's inline tokenizer
  * — is correctly left out (AGENTS.md rule 2: no second, regex-based parser). */
-function referencedUlids(doc: JSONContent, found: string[] = []): string[] {
+export function artefactReferencesIn(
+  doc: JSONContent,
+  found: ArtefactReference[] = [],
+): ArtefactReference[] {
   if (doc.type === ARTEFACT_REF_NODE_NAME) {
     const ulid = ulidOf(doc);
-    if (ulid !== null) found.push(ulid);
+    if (ulid !== null) found.push({ ulid, version: versionOf(doc) });
   }
-  for (const child of doc.content ?? []) referencedUlids(child, found);
+  for (const child of doc.content ?? []) artefactReferencesIn(child, found);
   return found;
 }
 
@@ -57,7 +71,9 @@ function experimentReferences(
       experimentTitle,
       section: section.key,
     };
-    for (const ulid of referencedUlids(parseSectionMarkdown(section.body))) {
+    for (const { ulid } of artefactReferencesIn(
+      parseSectionMarkdown(section.body),
+    )) {
       found.push({ ulid, location });
     }
   }

@@ -56,6 +56,7 @@ const SOURCES_TAB: PaneTab = { id: "sources", kind: "sources" };
 const SEARCH_TAB: PaneTab = { id: "search", kind: "search" };
 const CITATIONS_TAB: PaneTab = { id: "citations", kind: "citations" };
 const DETAILS_TAB: PaneTab = { id: "details", kind: "details" };
+const INTEGRITY_TAB: PaneTab = { id: "integrity", kind: "integrity" };
 
 /**
  * The ribbon (S6-T01): a row of tabs, Home, Experiments, Sources, View and
@@ -306,9 +307,20 @@ export function Ribbon(props: Props) {
         );
       case "project":
         return (
-          <RibbonGroup label={m.groups.project}>
-            {props.projectControls}
-          </RibbonGroup>
+          <>
+            <RibbonGroup label={m.groups.project}>
+              {props.projectControls}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.check}>
+              <button
+                type="button"
+                className="ribbon__button"
+                {...pane(INTEGRITY_TAB)}
+              >
+                {m.integrityCheck}
+              </button>
+            </RibbonGroup>
+          </>
         );
     }
   }

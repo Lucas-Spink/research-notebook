@@ -108,3 +108,13 @@ export {
   changeCitationStyle,
   type CitationStyleChange,
 } from "./citation-style";
+export {
+  buildIntegrityReport,
+  linkedArtefactsOf,
+  versionFilesOf,
+  type IntegrityFinding,
+  type IntegrityObservations,
+  type LinkAvailability,
+  type LinkedToCheck,
+  type VersionFileToCheck,
+} from "./integrity";

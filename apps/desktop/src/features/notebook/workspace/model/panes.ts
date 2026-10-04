@@ -6,6 +6,7 @@ export type PaneTab =
   | { id: string; kind: "search" }
   | { id: string; kind: "citations" }
   | { id: string; kind: "details" }
+  | { id: string; kind: "integrity" }
   | { id: string; kind: "addResult"; experimentFolder: string }
   | { id: string; kind: "results"; experimentFolder: string }
   | {
