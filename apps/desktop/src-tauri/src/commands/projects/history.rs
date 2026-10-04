@@ -124,7 +124,7 @@ impl From<Backup> for BackupMade {
 }
 
 /// Writing needs the project's lock: any other state is read-only.
-fn writable(health: LockHealth) -> Result<(), ProjectError> {
+pub(super) fn writable(health: LockHealth) -> Result<(), ProjectError> {
     match health {
         LockHealth::Held => Ok(()),
         LockHealth::Lost | LockHealth::NotHeld => Err(ProjectError::NotWritable),

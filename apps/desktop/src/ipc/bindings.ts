@@ -150,6 +150,17 @@ export const commands = {
 	 */
 	checkVersionFiles: (folder: FolderHandle, files: VersionPath[]) => typedError<VersionFileProblem[], PreviewFailure>(__TAURI_INVOKE("check_version_files", { folder, files })),
 	/**
+	 *  What each captured version file is on disk now, for the manifest
+	 *  (FR-ARC-02). Read-only. Files that cannot be observed are reported as
+	 *  such, never skipped.
+	 */
+	observeVersionFiles: (folder: FolderHandle, files: VersionPath[]) => typedError<VersionObserved[], ProjectError>(__TAURI_INVOKE("observe_version_files", { folder, files })),
+	/**
+	 *  Writes `exports/manifest.csv` (FR-ARC-02). Refused, with nothing written,
+	 *  unless this application holds the project's lock.
+	 */
+	writeManifest: (folder: FolderHandle, csv: string) => typedError<null, ProjectError>(__TAURI_INVOKE("write_manifest", { folder, csv })),
+	/**
 	 *  Acts on a captured version's file, resolved and confined to
 	 *  `evidence/` or `methods/` the same way a preview would be (spec 6.5).
 	 */
@@ -903,6 +914,17 @@ export type VersionFileProblem = {
 	/**  Nothing is there; otherwise the file exists but cannot be opened. */
 	missing: boolean,
 };
+
+/**
+ *  What a captured version's file is on disk now (FR-ARC-02). Answered by
+ *  position, so no path or system text comes back. Sizes and times are
+ *  numbers of the webview's own kind, exact below 2^53.
+ */
+export type VersionObserved = { kind: "observed"; size: number | null; modifiedMs: number | null; sha256: string } | 
+/**  Nothing is there. */
+{ kind: "missing" } | 
+/**  Something is there that could not be read as a captured file. */
+{ kind: "unreadable" };
 
 /**
  *  The project-relative path of a captured version's file, such as
