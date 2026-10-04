@@ -60,6 +60,12 @@ export {
   type ReferenceIndex,
   type ReferenceLocation,
 } from "./references";
+export {
+  buildCitedByIndex,
+  citedBy,
+  type CitedByIndex,
+  type CitedByLocation,
+} from "./citedBy";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { artefactsOf, editArtefacts, EMPTY_ARTEFACTS } from "./artefacts-edit";
 export {
