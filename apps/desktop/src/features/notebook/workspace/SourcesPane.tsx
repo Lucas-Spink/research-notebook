@@ -1,3 +1,4 @@
+import type { CitedByIndex } from "@research-notebook/format";
 import { useRef, useState } from "react";
 import {
   CitationPicker,
@@ -11,6 +12,8 @@ import type { SourceAttach } from "./useSourceAttach";
 type Props = {
   repair: RepairModel;
   attach: SourceAttach;
+  citedBy: CitedByIndex;
+  onOpenExperiment: (folder: string) => void;
 };
 
 /**
@@ -19,7 +22,12 @@ type Props = {
  * and attach and detach for the selected experiment. Sources not yet in the
  * project are found in Zotero with the citation picker and attached in one go.
  */
-export function SourcesPane({ repair, attach }: Props) {
+export function SourcesPane({
+  repair,
+  attach,
+  citedBy,
+  onOpenExperiment,
+}: Props) {
   const [picking, setPicking] = useState(false);
   // The picker reports the composed text, then the citekeys; both are needed to attach.
   const composed = useRef("");
@@ -56,7 +64,10 @@ export function SourcesPane({ repair, attach }: Props) {
         repair={repair}
         {...(attach.model ? { attach: attach.model } : {})}
       />
-      <SourceDetailsPanel />
+      <SourceDetailsPanel
+        citedBy={citedBy}
+        onOpenExperiment={onOpenExperiment}
+      />
     </div>
   );
 }
