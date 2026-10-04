@@ -128,6 +128,9 @@ export const sourceDetailsMessages = {
     "Open PDF needs Zotero's local API, which is switched off.",
   pdfFailed: "Zotero could not be asked about a PDF.",
   openFailed: "That link could not be opened.",
+  citedByHeading: "Cited by",
+  citedByNone: "Not cited by any experiment.",
+  citedByEntry: (ref: string, title: string) => `${ref} ${title}`,
 } as const;
 
 /** A source's state, as the list and the citations in text say it. */

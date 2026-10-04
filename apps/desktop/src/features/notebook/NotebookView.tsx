@@ -1,10 +1,12 @@
 import {
+  buildCitedByIndex,
   buildReferenceIndex,
   type Arranged,
   type ArtefactModel,
   type ColumnKey,
   type Problem,
   type RecognisedSectionKey,
+  type CitedByIndex,
   type ReferenceIndex,
 } from "@research-notebook/format";
 import {
@@ -71,6 +73,7 @@ import "./NotebookPanel.css";
 
 const NO_FILTER: FilterState = { text: "", status: "all" };
 const EMPTY_REFERENCES: ReferenceIndex = new Map();
+const EMPTY_CITED_BY: CitedByIndex = new Map();
 
 /** The refs that two or more files of one kind hold, so each can be flagged where it is shown. */
 function sharedRefs(problems: readonly Problem[]): ReadonlySet<string> {
@@ -249,6 +252,10 @@ function NotebookViewBody({
   const references = useMemo(
     () =>
       arranged === null ? EMPTY_REFERENCES : buildReferenceIndex(arranged),
+    [arranged],
+  );
+  const citedBy = useMemo(
+    () => (arranged === null ? EMPTY_CITED_BY : buildCitedByIndex(arranged)),
     [arranged],
   );
   const editing = useTableEditing({
@@ -434,7 +441,16 @@ function NotebookViewBody({
     if (arranged === null) return null;
     switch (tab.kind) {
       case "sources":
-        return <SourcesPane repair={repair} attach={attach} />;
+        return (
+          <SourcesPane
+            repair={repair}
+            attach={attach}
+            citedBy={citedBy}
+            onOpenExperiment={(experimentFolder) =>
+              openSelection(`experiment:${experimentFolder}`, null)
+            }
+          />
+        );
       case "search":
         return (
           <SearchPanel

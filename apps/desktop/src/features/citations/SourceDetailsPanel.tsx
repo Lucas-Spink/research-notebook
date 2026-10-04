@@ -1,3 +1,4 @@
+import { citedBy, type CitedByIndex } from "@research-notebook/format";
 import { useEffect, useRef, useState } from "react";
 import { commands } from "../../ipc/bindings";
 import { assertNever } from "../../shared/assertNever";
@@ -32,6 +33,8 @@ function pdfNote(pdf: PdfState): string | null {
   }
 }
 
+const NOT_CITED: CitedByIndex = new Map();
+
 /**
  * The open source's metadata with Open in Zotero, a DOI link and Open PDF
  * (FR-CIT-04). Everything but Open PDF comes from `bibliography.json`, so
@@ -40,8 +43,14 @@ function pdfNote(pdf: PdfState): string | null {
  */
 export function SourceDetailsPanel({
   api = commands,
+  citedBy: citedByIndex = NOT_CITED,
+  onOpenExperiment,
 }: {
   api?: SourceDetailsApi;
+  /** The experiments citing each source (FR-CIT-12), from the project's text, so it needs no Zotero. */
+  citedBy?: CitedByIndex;
+  /** Opens an experiment by its folder; the entries are plain text without it. */
+  onOpenExperiment?: (folder: string) => void;
 }) {
   const { items, selected, select } = useSources();
   const item = items.find((candidate) => candidate.id === selected);
@@ -66,6 +75,7 @@ export function SourceDetailsPanel({
       .catch(() => setFailed(true));
   };
   const doi = details.doi;
+  const citing = citedBy(citedByIndex, details.citekey);
 
   return (
     <section
@@ -105,6 +115,30 @@ export function SourceDetailsPanel({
         <dt>{text.statusLabel}</dt>
         <dd>{sourceStatusText(details.status)}</dd>
       </dl>
+      <h5>{text.citedByHeading}</h5>
+      {citing.length === 0 ? (
+        <p>{text.citedByNone}</p>
+      ) : (
+        <ul aria-label={text.citedByHeading}>
+          {citing.map((where) => (
+            <li key={where.experimentFolder}>
+              {onOpenExperiment === undefined ? (
+                text.citedByEntry(where.experimentRef, where.experimentTitle)
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenExperiment(where.experimentFolder)}
+                >
+                  {text.citedByEntry(
+                    where.experimentRef,
+                    where.experimentTitle,
+                  )}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="citations__details-actions">
         <button
           type="button"

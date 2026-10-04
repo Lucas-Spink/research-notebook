@@ -2,7 +2,7 @@ import {
   serialiseBibliography,
   type BibliographyFileModel,
 } from "@research-notebook/format";
-import { act } from "react";
+import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../shared/sha256";
@@ -83,6 +83,7 @@ async function mount(
   file: BibliographyFileModel,
   pdf?: unknown,
   select = "z:u:ABCD2345",
+  citedBy: Partial<ComponentProps<typeof SourceDetailsPanel>> = {},
 ) {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   const fakes = apis(file, pdf);
@@ -93,7 +94,7 @@ async function mount(
     root?.render(
       <SourcesProvider api={fakes.sources} folder={1} writable>
         <Opener citekey={select} />
-        <SourceDetailsPanel api={fakes.api} />
+        <SourceDetailsPanel api={fakes.api} {...citedBy} />
       </SourcesProvider>,
     ),
   );
@@ -114,8 +115,12 @@ async function click(element: HTMLElement | null) {
   await flush();
 }
 
-async function open(file: BibliographyFileModel, pdf?: unknown) {
-  const mounted = await mount(file, pdf);
+async function open(
+  file: BibliographyFileModel,
+  pdf?: unknown,
+  citedBy: Partial<ComponentProps<typeof SourceDetailsPanel>> = {},
+) {
+  const mounted = await mount(file, pdf, undefined, citedBy);
   await click(named(mounted.view, /^cite$/));
   return mounted;
 }
@@ -237,5 +242,49 @@ describe("SourceDetailsPanel (FR-CIT-04)", () => {
     const { view } = await mount([source()], undefined, "z:u:ZZZZ9999");
     await click(named(view, /^cite$/));
     expect(view.querySelector(PANEL)).toBeNull();
+  });
+
+  describe("Cited by (FR-CIT-12)", () => {
+    const index = new Map([
+      [
+        "z:u:ABCD2345",
+        [
+          {
+            experimentFolder: "EXP-001",
+            experimentRef: "EXP-001",
+            experimentTitle: "First run",
+          },
+          {
+            experimentFolder: "EXP-004",
+            experimentRef: "EXP-004",
+            experimentTitle: "Repeat",
+          },
+        ],
+      ],
+    ]);
+
+    it("lists the experiments citing the source, with Zotero closed", async () => {
+      const { view } = await open([source()], undefined, { citedBy: index });
+      const list = view.querySelector("ul[aria-label='Cited by']");
+      expect(list?.textContent).toContain("EXP-001 First run");
+      expect(list?.textContent).toContain("EXP-004 Repeat");
+    });
+
+    it("says so when no experiment cites the source", async () => {
+      const { view } = await open([source()], undefined, {
+        citedBy: new Map(),
+      });
+      expect(view.textContent).toContain("Not cited by any experiment.");
+    });
+
+    it("opens the chosen experiment", async () => {
+      const onOpenExperiment = vi.fn();
+      const { view } = await open([source()], undefined, {
+        citedBy: index,
+        onOpenExperiment,
+      });
+      await click(named(view, /EXP-004 Repeat/));
+      expect(onOpenExperiment).toHaveBeenCalledWith("EXP-004");
+    });
   });
 });
