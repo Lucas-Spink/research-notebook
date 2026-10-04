@@ -2,8 +2,9 @@
 //! parsed by `packages/format`, the only parser (AGENTS.md rule 2).
 
 use std::fs::{self, File};
-use std::io;
+use std::io::{self, Read};
 use std::path::{Component, Path, PathBuf};
+use std::time::UNIX_EPOCH;
 
 use sha2::{Digest, Sha256};
 
@@ -132,6 +133,66 @@ impl ProjectRoot {
             len,
         })
     }
+}
+
+impl ProjectRoot {
+    /// What a captured version's file is on disk now: its size, modification
+    /// time and SHA-256, for the manifest (FR-ARC-02). Opens the file as
+    /// [`ProjectRoot::open_version_file`] does, so the same files are refused,
+    /// and reads it once, never writing. The size is the number of bytes
+    /// hashed, so it always describes the same bytes as the hash.
+    pub fn observe_version_file(
+        &self,
+        path: &ProjectRelPath,
+    ) -> Result<VersionObservation, ReadError> {
+        let mut opened = self.open_version_file(path)?;
+        let io_error = |source| ReadError::Io {
+            path: path.to_string(),
+            source,
+        };
+        let modified = opened
+            .file
+            .metadata()
+            .and_then(|metadata| metadata.modified())
+            .map_err(io_error)?;
+        let mut hasher = Sha256::new();
+        let mut buffer = vec![0u8; HASH_BUFFER];
+        let mut size: u64 = 0;
+        loop {
+            let read = match opened.file.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(read) => read,
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(io_error(e)),
+            };
+            let chunk = buffer.get(..read).unwrap_or_default();
+            hasher.update(chunk);
+            size += u64::try_from(read).unwrap_or(0);
+        }
+        Ok(VersionObservation {
+            size,
+            // A time before 1970 has no place in the manifest; it reads as the epoch.
+            modified_ms: modified.duration_since(UNIX_EPOCH).map_or(0, |since| {
+                u64::try_from(since.as_millis()).unwrap_or(u64::MAX)
+            }),
+            sha256: format!("{:x}", hasher.finalize()),
+        })
+    }
+}
+
+/// How many bytes are hashed at a time: small enough to bound memory for a
+/// multi-gigabyte file, large enough that reading is not the bottleneck.
+const HASH_BUFFER: usize = 64 * 1024;
+
+/// A captured version's file as it is on disk (FR-ARC-02).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VersionObservation {
+    /// Bytes read, which are the bytes hashed.
+    pub size: u64,
+    /// Modification time, milliseconds since the Unix epoch.
+    pub modified_ms: u64,
+    /// Lower-case hexadecimal SHA-256.
+    pub sha256: String,
 }
 
 /// Whether `relative` (to `_notebook/`) has the form
