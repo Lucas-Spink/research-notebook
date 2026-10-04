@@ -166,6 +166,14 @@ describe("the workspace (S6-T01)", () => {
     expect(pane(view)).toBeNull();
   });
 
+  it("opens the integrity check from the Project tab, and does not run it until asked", () => {
+    const { view } = mountNotebook(state);
+    click(ribbonTab(view, "Project"));
+    click(ribbonButton(view, "Integrity check"));
+    expect(pane(view)?.textContent).toContain("Integrity check");
+    expect(pane(view)?.textContent).toContain("has not been run");
+  });
+
   it("shows several tabs in one pane and closes them one at a time", () => {
     const { view } = mountNotebook(state);
     click(ribbonButton(view, "Sources"));

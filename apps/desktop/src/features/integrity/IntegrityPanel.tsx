@@ -1,12 +1,12 @@
 import type { IntegrityFinding } from "@research-notebook/format";
 import { describeFinding, integrityMessages, summary } from "./messages";
-import { resolutionOf, type Resolution } from "./model/resolution";
+import { resolveTargetOf, type ResolveTarget } from "./model/resolution";
 import type { IntegrityModel } from "./useIntegrityCheck";
 
 type Props = {
   model: IntegrityModel;
   /** Takes the person to where the finding can be put right. */
-  onResolve: (finding: IntegrityFinding, where: Resolution) => void;
+  onResolve: (target: ResolveTarget) => void;
 };
 
 const KINDS = [
@@ -83,12 +83,12 @@ function FindingRow({
   model: IntegrityModel;
   onResolve: Props["onResolve"];
 }) {
-  const where = resolutionOf(finding);
+  const target = resolveTargetOf(finding);
   return (
     <li>
       <span>{describeFinding(finding)}</span>{" "}
-      {where !== null && (
-        <button type="button" onClick={() => onResolve(finding, where)}>
+      {target !== null && (
+        <button type="button" onClick={() => onResolve(target)}>
           {integrityMessages.resolve}
         </button>
       )}{" "}

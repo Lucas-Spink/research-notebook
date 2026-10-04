@@ -1,26 +1,43 @@
-import type { IntegrityFinding } from "@research-notebook/format";
+import type {
+  IntegrityFinding,
+  RecognisedSectionKey,
+} from "@research-notebook/format";
 
 /**
  * Where a finding can be put right, using what already exists (FR-ARC-01):
- * the experiment's Results, the experiment's text, or the Sources list.
- * `null` means there is nothing to do but acknowledge it.
+ * an experiment's Results (relink, replace), its text (update the reference)
+ * or the Sources list (repair, refresh).
  */
-export type Resolution = "results" | "experiment" | "source";
+export type ResolveTarget =
+  | { kind: "results"; experimentFolder: string }
+  | {
+      kind: "experiment";
+      experimentFolder: string;
+      section: RecognisedSectionKey;
+    }
+  | { kind: "source"; citekey: string };
 
-export function resolutionOf(finding: IntegrityFinding): Resolution | null {
+/** Where to take the person for `finding`, or `null` when it can only be acknowledged. */
+export function resolveTargetOf(
+  finding: IntegrityFinding,
+): ResolveTarget | null {
   switch (finding.kind) {
     case "missingFile":
-      return "results";
+      return { kind: "results", experimentFolder: finding.experimentFolder };
     case "externalFile":
       // A linked file that is there needs nothing; one that is not is relinked in Results.
       return finding.availability === "available" ||
         finding.availability === "unchecked"
         ? null
-        : "results";
+        : { kind: "results", experimentFolder: finding.experimentFolder };
     case "unresolvedReference":
-      return "experiment";
+      return {
+        kind: "experiment",
+        experimentFolder: finding.experimentFolder,
+        section: finding.section,
+      };
     case "sourceProblem":
-      return "source";
+      return { kind: "source", citekey: finding.citekey };
     case "unreadableArtefacts":
       return null;
   }

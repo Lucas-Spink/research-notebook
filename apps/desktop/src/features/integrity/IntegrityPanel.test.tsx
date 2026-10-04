@@ -1,13 +1,13 @@
 import type {
   Arranged,
   BibliographyFileModel,
-  IntegrityFinding,
 } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IntegrityPanel } from "./IntegrityPanel";
 import type { IntegrityApi } from "./model/collect";
+import type { ResolveTarget } from "./model/resolution";
 import { arranged as sample } from "./model/fixtures";
 import { useIntegrityCheck } from "./useIntegrityCheck";
 
@@ -49,7 +49,7 @@ const NO_SOURCES: BibliographyFileModel = [];
 function Harness(props: {
   api: IntegrityApi;
   arranged: Arranged;
-  onResolve: (finding: IntegrityFinding, where: string) => void;
+  onResolve: (target: ResolveTarget) => void;
 }) {
   const model = useIntegrityCheck({
     api: props.api,
@@ -134,10 +134,10 @@ describe("IntegrityPanel", () => {
       ),
     ).toHaveLength(1);
     await press(button("Resolve"));
-    expect(onResolve).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "missingFile" }),
-      "results",
-    );
+    expect(onResolve).toHaveBeenCalledWith({
+      kind: "results",
+      experimentFolder: "EXP-001",
+    });
   });
 
   it("counts acknowledged findings apart and keeps them when the check is run again", async () => {

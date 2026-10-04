@@ -16,7 +16,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { FolderHandle } from "../../ipc/bindings";
+import { commands, type FolderHandle } from "../../ipc/bindings";
 import {
   CitationActionsProvider,
   LiteraturePrompt,
@@ -28,6 +28,11 @@ import {
   useSourceRepair,
   useStyleManagement,
 } from "../citations";
+import {
+  IntegrityPanel,
+  useIntegrityCheck,
+  type ResolveTarget,
+} from "../integrity";
 import { DetailsPanel, type Selected } from "./DetailsPanel";
 import type { LiveTarget } from "./editing/model/liveEditor";
 import { useLiveEditor } from "./editing/useLiveEditor";
@@ -228,6 +233,42 @@ function NotebookViewBody({
     openSelection(key, null);
   }
 
+  const integrity = useIntegrityCheck({
+    api: commands,
+    folder,
+    projectId,
+    arranged,
+    bibliography: sources.items,
+  });
+
+  /** Takes the person to the existing place a finding is put right (FR-ARC-01). */
+  function resolveFinding(target: ResolveTarget) {
+    switch (target.kind) {
+      case "results":
+        dispatchPanes({
+          type: "open",
+          tab: {
+            id: resultsTabId(target.experimentFolder),
+            kind: "results",
+            experimentFolder: target.experimentFolder,
+          },
+        });
+        return;
+      case "experiment":
+        openSelection(`experiment:${target.experimentFolder}`, target.section);
+        return;
+      case "source":
+        dispatchPanes({
+          type: "open",
+          tab: { id: "sources", kind: "sources" },
+        });
+        sources.select(target.citekey);
+        return;
+      default:
+        assertNever(target);
+    }
+  }
+
   const layout = useMemo(
     () => (table === null ? [] : columnLayout(table)),
     [table],
@@ -415,6 +456,8 @@ function NotebookViewBody({
         return paneMessages.citationsTab;
       case "details":
         return paneMessages.detailsTab;
+      case "integrity":
+        return paneMessages.integrityTab;
       case "addResult":
         return paneMessages.addResultTab;
       case "results":
@@ -462,6 +505,8 @@ function NotebookViewBody({
         );
       case "citations":
         return <StylePicker model={styles} />;
+      case "integrity":
+        return <IntegrityPanel model={integrity} onResolve={resolveFinding} />;
       case "results":
         return (
           <ResultsPane
