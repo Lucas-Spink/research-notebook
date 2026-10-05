@@ -85,10 +85,12 @@ describe("GitBundlePanel", () => {
     expect(view.textContent).toContain("not been written yet");
   });
 
-  it("warns that a bundle holds the whole history and may be large", async () => {
+  it("warns that a bundle is large and holds only committed history", async () => {
     const { api } = fakeApi({ status: "ok", data: [] });
     const view = await show({ api, repos: ["."] });
-    expect(view.textContent).toContain("whole history");
+    expect(view.textContent).toContain("whole committed history");
+    expect(view.textContent).toContain("can be large");
+    expect(view.textContent).toContain("were not committed");
   });
 
   it("says there is nothing to bundle when no file records a repository", async () => {

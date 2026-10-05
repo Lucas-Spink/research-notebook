@@ -95,7 +95,7 @@ export function describeFinding(finding: VerifyFinding): string {
 export const gitBundleMessages = {
   heading: "Git bundles",
   intro:
-    "Optionally writes a git bundle of each repository your captured files were taken from, into exports/git/, so the exact code behind the results can be restored with git clone. A bundle holds a repository's whole history and can be large. The repositories themselves are not changed. Git must be installed.",
+    "Optionally writes a git bundle of each repository your captured files were taken from, into exports/git/, so the exact code behind the results can be restored with git clone. A bundle holds a repository's whole committed history and can be large. Changes that were not committed when a file was captured are not in it. The repositories themselves are not changed. Git must be installed.",
   write: "Write git bundles",
   writing: "Writing…",
   again: "Write again",
