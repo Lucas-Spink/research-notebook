@@ -126,3 +126,9 @@ export {
   type ManifestProblem,
   type ManifestRow,
 } from "./manifest";
+export {
+  parseManifest,
+  unlistedFiles,
+  type ManifestEntry,
+  type ManifestParseError,
+} from "./manifestParse";
