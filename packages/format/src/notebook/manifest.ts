@@ -59,7 +59,7 @@ export function manifestCell(text: string): string {
   return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 }
 
-function experimentsOf(arranged: Arranged): ArrangedExperiment[] {
+export function experimentsOf(arranged: Arranged): ArrangedExperiment[] {
   return [
     ...arranged.questions.flatMap((question) => question.experiments),
     ...arranged.unassigned,
