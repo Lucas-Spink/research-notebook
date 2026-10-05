@@ -21,6 +21,11 @@ impl VersionPath {
         ProjectRelPath::parse(&self.0).map_err(|_| PreviewFailure::FileUnavailable)
     }
 
+    /// The path as text, `/`-separated.
+    pub(crate) fn as_str(&self) -> &str {
+        &self.0
+    }
+
     /// The file name, the last segment of the path.
     pub(super) fn file_name(&self) -> &str {
         self.0.rsplit('/').next().unwrap_or(&self.0)

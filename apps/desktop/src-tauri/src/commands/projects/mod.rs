@@ -17,6 +17,7 @@ pub mod lock;
 pub mod open;
 pub mod preview;
 mod types;
+pub mod verify;
 pub mod watch;
 
 use std::path::PathBuf;

@@ -1,0 +1,15 @@
+[package]
+name = "nb-archive"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+
+[lints]
+workspace = true
+
+[dependencies]
+nb-fs = { path = "../nb-fs", version = "0.1.0" }
+
+[dev-dependencies]
+proptest = "1.11.0"
+tempfile = "=3.27.0"

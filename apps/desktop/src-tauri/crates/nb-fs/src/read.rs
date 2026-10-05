@@ -136,6 +136,16 @@ impl ProjectRoot {
 }
 
 impl ProjectRoot {
+    /// The text of `_notebook/exports/manifest.csv`, for Verify (FR-ARC-03).
+    /// Read through the same confinement as other notebook reads, and never
+    /// written. The text goes to `packages/format` to be parsed.
+    pub fn read_manifest(&self) -> Result<String, ReadError> {
+        self.read_confined("exports/manifest.csv")
+            .map(|(text, _)| text)
+    }
+}
+
+impl ProjectRoot {
     /// What a captured version's file is on disk now: its size, modification
     /// time and SHA-256, for the manifest (FR-ARC-02). Opens the file as
     /// [`ProjectRoot::open_version_file`] does, so the same files are refused,

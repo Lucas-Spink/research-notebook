@@ -28,7 +28,7 @@ import {
   useSourceRepair,
   useStyleManagement,
 } from "../citations";
-import { ManifestPanel, useManifest } from "../archive";
+import { ManifestPanel, useManifest, useVerify, VerifyPanel } from "../archive";
 import {
   IntegrityPanel,
   useIntegrityCheck,
@@ -243,6 +243,7 @@ function NotebookViewBody({
   });
 
   const manifest = useManifest({ api: commands, folder, arranged, writable });
+  const verify = useVerify({ api: commands, folder, arranged });
 
   /** Takes the person to the existing place a finding is put right (FR-ARC-01). */
   function resolveFinding(target: ResolveTarget) {
@@ -522,6 +523,7 @@ function NotebookViewBody({
                   : null
               }
             />
+            <VerifyPanel model={verify} />
           </>
         );
       case "results":

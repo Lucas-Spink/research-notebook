@@ -952,6 +952,7 @@ dependencies = [
 name = "desktop"
 version = "0.1.0"
 dependencies = [
+ "nb-archive",
  "nb-fs",
  "nb-git",
  "nb-opener",
@@ -3854,6 +3855,15 @@ name = "mutate_once"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
+
+[[package]]
+name = "nb-archive"
+version = "0.1.0"
+dependencies = [
+ "nb-fs",
+ "proptest",
+ "tempfile",
+]
 
 [[package]]
 name = "nb-export"
