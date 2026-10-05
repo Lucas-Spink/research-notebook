@@ -197,3 +197,15 @@ proptest! {
         prop_assert_eq!(seen.sha256, sha256(&bytes));
     }
 }
+
+#[test]
+fn read_manifest_returns_the_text_and_reports_a_missing_manifest() {
+    let project = TestProject::new();
+    let root = project.open();
+    assert!(matches!(
+        root.read_manifest(),
+        Err(ReadError::Missing { .. })
+    ));
+    write(&project, "exports/manifest.csv", b"path,size\n");
+    assert_eq!(root.read_manifest().unwrap(), "path,size\n");
+}
