@@ -1,5 +1,6 @@
 import type { ManifestProblem } from "@research-notebook/format";
 import type { ManifestFailure } from "./model/generate";
+import type { VerifyFailure, VerifyFinding } from "./model/verify";
 
 /** Text of the manifest (FR-ARC-02). British English, as everything the person reads. */
 export const manifestMessages = {
@@ -46,4 +47,44 @@ const problemText = {
 
 export function describeProblem(problem: ManifestProblem): string {
   return `${problem.path} (${problem.experiment}): ${problemText[problem.kind]}`;
+}
+
+/** Text of Verify (FR-ARC-03). */
+export const verifyMessages = {
+  heading: "Verify",
+  intro:
+    "Re-hashes every file listed in exports/manifest.csv and reports any that are missing or no longer match. Nothing is changed. Linked files are outside the notebook and are not checked.",
+  verify: "Verify files",
+  verifying: "Verifying…",
+  again: "Verify again",
+  notRun: "The files have not been verified yet.",
+  clean: "Every listed file matches the manifest.",
+  findingsHeading: "Files that do not match",
+  unlistedHeading: "Captured files not in the manifest",
+  unlistedNote:
+    "These were captured after the manifest was made, so Verify cannot vouch for them. Generate the manifest again to include them.",
+  failures: {
+    noManifest: "There is no manifest to verify against. Generate it first.",
+    manifestUnreadable:
+      "The manifest could not be read, so nothing has been verified.",
+    manifestMalformed:
+      "The manifest is not in the form this application writes, so nothing has been verified. Generate it again.",
+    filesNotChecked:
+      "The files could not be inspected, so nothing has been verified.",
+  } satisfies Record<VerifyFailure, string>,
+} as const;
+
+export function verified(files: number): string {
+  return `${plural(files, "file", "files")} checked.`;
+}
+
+export function describeFinding(finding: VerifyFinding): string {
+  switch (finding.kind) {
+    case "missing":
+      return `${finding.path}: not found`;
+    case "unreadable":
+      return `${finding.path}: could not be read`;
+    case "changed":
+      return `${finding.path}: ${finding.sizeChanged ? "the size and contents differ" : "the contents differ"} from the manifest`;
+  }
 }
