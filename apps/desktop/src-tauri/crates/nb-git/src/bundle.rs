@@ -10,7 +10,7 @@
 
 use std::ffi::OsStr;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// Why a bundle was not made. `Failed` and `VerifyFailed` carry git's own
@@ -83,9 +83,9 @@ fn run(
     let mut command = Command::new(git);
     command
         .arg("-C")
-        .arg(repo_root)
+        .arg(without_verbatim_prefix(repo_root))
         .args(subcommand)
-        .arg(file)
+        .arg(without_verbatim_prefix(file))
         .args(after)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -108,5 +108,47 @@ fn run(
         Err(RunError::Refused(
             String::from_utf8_lossy(&output.stderr).trim().to_owned(),
         ))
+    }
+}
+
+/// Git for Windows fails on the `\\?\C:\...` form that canonical paths take
+/// there ("Invalid argument"), so the prefix is dropped when the rest is an
+/// ordinary drive path. Any other path is returned as it is.
+fn without_verbatim_prefix(path: &Path) -> PathBuf {
+    let text = path.to_string_lossy();
+    match text.strip_prefix(r"\\?\") {
+        Some(rest) if has_drive_prefix(rest) => PathBuf::from(rest),
+        _ => path.to_path_buf(),
+    }
+}
+
+fn has_drive_prefix(text: &str) -> bool {
+    let mut chars = text.chars();
+    matches!(
+        (chars.next(), chars.next(), chars.next()),
+        (Some(letter), Some(':'), Some('\\' | '/')) if letter.is_ascii_alphabetic()
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_verbatim_drive_path_loses_its_prefix() {
+        assert_eq!(
+            without_verbatim_prefix(Path::new(r"\\?\C:\Users\a\.x.tmp")),
+            PathBuf::from(r"C:\Users\a\.x.tmp")
+        );
+    }
+
+    #[test]
+    fn other_paths_are_left_alone() {
+        for text in [r"\\?\UNC\server\share", r"C:\a", "/home/a", "relative/a"] {
+            assert_eq!(
+                without_verbatim_prefix(Path::new(text)),
+                PathBuf::from(text)
+            );
+        }
     }
 }

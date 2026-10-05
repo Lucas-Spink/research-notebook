@@ -3861,6 +3861,7 @@ name = "nb-archive"
 version = "0.1.0"
 dependencies = [
  "nb-fs",
+ "nb-git",
  "proptest",
  "tempfile",
 ]
