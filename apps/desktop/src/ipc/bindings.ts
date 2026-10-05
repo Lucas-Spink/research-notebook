@@ -160,6 +160,13 @@ export const commands = {
 	 *  unless this application holds the project's lock.
 	 */
 	writeManifest: (folder: FolderHandle, csv: string) => typedError<null, ProjectError>(__TAURI_INVOKE("write_manifest", { folder, csv })),
+	/**  The manifest's text, for `packages/format` to parse. Read-only. */
+	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
+	/**
+	 *  Re-hashes the listed files and compares them with the manifest (FR-ARC-03).
+	 *  Read-only: needs no project lock, so a read-only project can be verified.
+	 */
+	verifyManifestFiles: (folder: FolderHandle, files: ManifestEntry[]) => typedError<FileVerdict[], ProjectError>(__TAURI_INVOKE("verify_manifest_files", { folder, files })),
 	/**
 	 *  Acts on a captured version's file, resolved and confined to
 	 *  `evidence/` or `methods/` the same way a preview would be (spec 6.5).
@@ -575,6 +582,9 @@ export type FileRead =
  */
 { kind: "missing" };
 
+/**  How one listed file compares with the manifest. Answered by position. */
+export type FileVerdict = { kind: "matches" } | { kind: "missing" } | { kind: "unreadable" } | { kind: "differs"; sizeChanged: boolean; hashChanged: boolean };
+
 /**
  *  Stands for a folder the person chose in a native dialog. The webview holds
  *  this number, never the path, so it cannot name a folder it was not given
@@ -650,6 +660,22 @@ export type LockOutcome = { kind: "acquired" } |
 export type LockState = "held" | 
 /**  Taken over by another instance, or the heartbeat failed. */
 "lost" | "notHeld";
+
+/**  One line of the manifest, as `packages/format` parsed it. */
+export type ManifestEntry = {
+	path: VersionPath,
+	/**  Bytes; a whole number the webview can hold exactly. */
+	size: number | null,
+	/**  Lower-case hexadecimal SHA-256. */
+	sha256: string,
+};
+
+/**  The text of `exports/manifest.csv`, or why there is none to verify against. */
+export type ManifestText = { kind: "found"; text: string } | 
+/**  No manifest has been generated. */
+{ kind: "missing" } | 
+/**  There is something at the manifest's place that cannot be read as text. */
+{ kind: "unreadable" };
 
 /**  The question files and experiment folders a project has, by name, sorted. */
 export type NotebookFiles = {

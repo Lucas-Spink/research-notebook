@@ -45,6 +45,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::projects::preview::check_version_files,
             commands::projects::archive::observe_version_files,
             commands::projects::archive::write_manifest,
+            commands::projects::verify::read_manifest,
+            commands::projects::verify::verify_manifest_files,
             commands::projects::open::open_captured_file_action,
             commands::projects::open::open_linked_file_action,
             commands::projects::open::open_project_folder,
