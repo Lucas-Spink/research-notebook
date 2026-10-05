@@ -1,6 +1,6 @@
 //! FR-ARC-04 (ADR-0053): a git bundle of each repository referenced by
 //! provenance, written only under `_notebook/exports/git/`.
-#![allow(clippy::unwrap_used, clippy::disallowed_methods)]
+#![allow(clippy::unwrap_used, clippy::panic, clippy::disallowed_methods)]
 
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
