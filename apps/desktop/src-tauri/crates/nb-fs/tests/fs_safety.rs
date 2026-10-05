@@ -331,8 +331,8 @@ fn discovery_scenario(project: &TestProject) {
     .is_err());
 }
 
-/// S3-T10. Previews only read a captured version's file through
-/// `open_version_file`: reading one to the end, and being refused for an
+/// S3-T10, S6-T02. Previews and the manifest only read a captured version's
+/// file through `open_version_file`: reading one to the end, and being refused for an
 /// `evidence/` folder that is a link to analysis results, an analysis file
 /// named directly and a notebook data file, changes nothing.
 fn preview_scenario(project: &TestProject, root: &ProjectRoot) {
@@ -349,6 +349,22 @@ fn preview_scenario(project: &TestProject, root: &ProjectRoot) {
     assert_eq!(bytes, b"not really a png");
     drop(opened);
 
+    // S6-T02. The manifest hashes a version file and writes `exports/` inside
+    // the notebook only; the same links and analysis files are refused.
+    let observed = root
+        .observe_version_file(&rel("_notebook/experiments/EXP-PRV/evidence/plot.png"))
+        .unwrap();
+    assert_eq!(observed.size, 16);
+    root.write_atomic(
+        &rel("_notebook/exports/manifest.csv"),
+        b"path,size,modified,sha256,experiments,groups
+",
+    )
+    .unwrap();
+    assert!(root
+        .write_atomic(&rel("exports/manifest.csv"), b"outside")
+        .is_err());
+
     let linked = project.on_disk("_notebook/experiments/EXP-LNK");
     fs::create_dir_all(&linked).unwrap();
     make_dir_link(&linked.join("evidence"), &project.on_disk("results/pca"));
@@ -358,6 +374,10 @@ fn preview_scenario(project: &TestProject, root: &ProjectRoot) {
         "_notebook/project.yaml",
     ] {
         assert!(root.open_version_file(&rel(refused)).is_err(), "{refused}");
+        assert!(
+            root.observe_version_file(&rel(refused)).is_err(),
+            "{refused}"
+        );
     }
 }
 

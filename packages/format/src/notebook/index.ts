@@ -118,3 +118,11 @@ export {
   type LinkedToCheck,
   type VersionFileToCheck,
 } from "./integrity";
+export {
+  buildManifest,
+  manifestCell,
+  type Manifest,
+  type ManifestObservation,
+  type ManifestProblem,
+  type ManifestRow,
+} from "./manifest";
