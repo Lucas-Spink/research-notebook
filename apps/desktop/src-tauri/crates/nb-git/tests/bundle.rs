@@ -14,8 +14,11 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use nb_git::{create_bundle, create_bundle_with, BundleError};
+
+static NEXT: AtomicU32 = AtomicU32::new(0);
 
 struct Scratch {
     dir: PathBuf,
@@ -23,13 +26,12 @@ struct Scratch {
 
 impl Scratch {
     fn new() -> Self {
+        // A counter, not the clock: on Windows the clock ticks every 100 ns,
+        // so two tests started together can read the same time.
         let dir = std::env::temp_dir().join(format!(
             "nb-git-bundle-{}-{}",
             std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
+            NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&dir).unwrap();
         Self { dir }
