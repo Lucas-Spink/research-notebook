@@ -160,6 +160,13 @@ export const commands = {
 	 *  unless this application holds the project's lock.
 	 */
 	writeManifest: (folder: FolderHandle, csv: string) => typedError<null, ProjectError>(__TAURI_INVOKE("write_manifest", { folder, csv })),
+	/**
+	 *  Writes a git bundle of each repository, into `_notebook/exports/git/`
+	 *  (FR-ARC-04). The repositories are only read. Refused, with nothing
+	 *  written, unless this application holds the project's lock. A repository
+	 *  that cannot be bundled is reported and the others still are.
+	 */
+	writeGitBundles: (folder: FolderHandle, repos: RepoPath[]) => typedError<GitBundleOutcome[], ProjectError>(__TAURI_INVOKE("write_git_bundles", { folder, repos })),
 	/**  The manifest's text, for `packages/format` to parse. Read-only. */
 	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
 	/**
@@ -592,6 +599,26 @@ export type FileVerdict = { kind: "matches" } | { kind: "missing" } | { kind: "u
  */
 export type FolderHandle = number;
 
+/**
+ *  What happened to one repository. Answered by position, and with no text
+ *  from git, which may name paths the person did not ask about.
+ */
+export type GitBundleOutcome = 
+/**  Bundled and accepted by `git bundle verify`. `file` is project-relative. */
+{ kind: "written"; file: string; bytes: number | null } | 
+/**  The `git` program could not be started. */
+{ kind: "gitMissing" } | 
+/**  Not the root of a git repository. */
+{ kind: "notARepository" } | 
+/**  The repository has no commits. */
+{ kind: "noCommits" } | 
+/**  The path is not a folder inside the project. */
+{ kind: "refused" } | 
+/**  Git failed, or did not accept what it made. Any earlier bundle is kept. */
+{ kind: "failed" } | 
+/**  The bundle could not be placed in the notebook. */
+{ kind: "writeFailed" };
+
 export type HygieneReport = {
 	/**  `.gitignore` or `.gitattributes`. */
 	file: string,
@@ -854,6 +881,13 @@ export type RelinkCandidateDto = {
 	sizeMatches: boolean,
 	hashMatches: boolean,
 };
+
+/**
+ *  A repository as provenance records it (spec 5.8): `.` for the project's
+ *  own folder, or a forward-only path below it. Backslashes are accepted and
+ *  stored as `/`. Where it resolves is checked again by `nb-archive`.
+ */
+export type RepoPath = string;
 
 /**  What a save did. */
 export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "changed"; current: string | null };

@@ -11,6 +11,7 @@ pub mod archive;
 pub mod evidence;
 pub mod files;
 mod folders;
+pub mod git_bundle;
 pub mod history;
 mod ids;
 pub mod lock;
