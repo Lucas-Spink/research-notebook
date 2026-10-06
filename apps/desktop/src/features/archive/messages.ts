@@ -1,5 +1,7 @@
 import type { ManifestProblem } from "@research-notebook/format";
+import type { GitBundleOutcome } from "../../ipc/bindings";
 import type { ManifestFailure } from "./model/generate";
+import type { GitBundleFailure } from "./model/gitBundle";
 import type { VerifyFailure, VerifyFinding } from "./model/verify";
 
 /** Text of the manifest (FR-ARC-02). British English, as everything the person reads. */
@@ -86,5 +88,72 @@ export function describeFinding(finding: VerifyFinding): string {
       return `${finding.path}: could not be read`;
     case "changed":
       return `${finding.path}: ${finding.sizeChanged ? "the size and contents differ" : "the contents differ"} from the manifest`;
+  }
+}
+
+/** Text of the git bundles (FR-ARC-04, ADR-0053). */
+export const gitBundleMessages = {
+  heading: "Git bundles",
+  intro:
+    "Optionally writes a git bundle of each repository your captured files were taken from, into exports/git/, so the exact code behind the results can be restored with git clone. A bundle holds a repository's whole committed history and can be large. Changes that were not committed when a file was captured are not in it. The repositories themselves are not changed. Git must be installed.",
+  write: "Write git bundles",
+  writing: "Writing…",
+  again: "Write again",
+  notWritten: "The git bundles have not been written yet.",
+  nothingToBundle:
+    "No captured file records a git repository, so there is nothing to bundle.",
+  readOnly: "This project is read-only, so git bundles cannot be written.",
+  repositoriesHeading: "Repositories",
+  resultsHeading: "Bundles",
+  failures: {
+    notWritable:
+      "The git bundles were not written because this project is not open for writing.",
+    writeFailed:
+      "The git bundles could not be written, so none can be relied on. Try again.",
+  } satisfies Record<GitBundleFailure, string>,
+} as const;
+
+/** `.` is the project's own folder; anything else is shown as recorded. */
+export function repositoryLabel(repo: string): string {
+  return repo === "." ? "the project folder" : repo;
+}
+
+const UNITS = ["KB", "MB", "GB", "TB"] as const;
+
+export function describeSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(1)} ${UNITS[unit]}`;
+}
+
+export function bundled(done: number, total: number): string {
+  return `${done} of ${plural(total, "repository", "repositories")} bundled.`;
+}
+
+export function describeBundle(
+  repo: string,
+  outcome: GitBundleOutcome,
+): string {
+  const label = repositoryLabel(repo);
+  switch (outcome.kind) {
+    case "written":
+      return `${label}: written to ${outcome.file}${outcome.bytes === null ? "" : ` (${describeSize(outcome.bytes)})`}`;
+    case "gitMissing":
+      return `${label}: git is not installed or was not found, so no bundle was made`;
+    case "notARepository":
+      return `${label}: not the root of a git repository (it may have moved)`;
+    case "noCommits":
+      return `${label}: the repository has no commits, so there is nothing to bundle`;
+    case "refused":
+      return `${label}: not a folder inside the project, so it was skipped`;
+    case "failed":
+      return `${label}: git could not make a bundle; any earlier bundle was kept`;
+    case "writeFailed":
+      return `${label}: the bundle could not be saved in the notebook`;
   }
 }

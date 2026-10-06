@@ -10,9 +10,13 @@
 //! wants — spec 5.8's `provenance` object, with `repo` already expressed
 //! relative to the project root.
 
+mod bundle;
+
 use std::path::{Path, PathBuf};
 
 use gix::bstr::BString;
+
+pub use bundle::{create_bundle, create_bundle_with, BundleError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitProvenance {

@@ -81,3 +81,45 @@ export function arranged(): Arranged {
     ],
   };
 }
+
+/**
+ * The same experiment with one captured artefact whose versions were taken
+ * from `repos`, one version per repository, so the git bundle tests have
+ * repositories to name.
+ */
+export function arrangedWithRepositories(repos: readonly string[]): Arranged {
+  const file = ArtefactsFile.parse({
+    format_version: 1,
+    artefacts: [
+      {
+        id: COPIED,
+        name: "Plot",
+        role: "result",
+        mode: "copy",
+        type: "pdf",
+        source: { root: "project", path: "plot.pdf" },
+        created: "2026-09-03T14:02:11Z",
+        versions: repos.map((repo, index) => ({
+          v: index + 1,
+          file: `evidence/plot.v${index + 1}.pdf`,
+          sha256: HASH,
+          size: 3,
+          captured: "2026-09-03T14:02:11Z",
+          provenance: {
+            repo,
+            commit: "d".repeat(40),
+            path_in_repo: "plot.R",
+            file_dirty: false,
+            tree_dirty: false,
+          },
+        })),
+      },
+    ],
+    groups: [],
+  });
+  const result = arranged();
+  const [item] = result.unassigned;
+  if (item === undefined) throw new Error("fixture");
+  item.artefacts = { kind: "file", file };
+  return result;
+}
