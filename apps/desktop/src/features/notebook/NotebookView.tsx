@@ -30,8 +30,10 @@ import {
 } from "../citations";
 import {
   GitBundlePanel,
+  HtmlExportPanel,
   ManifestPanel,
   useGitBundle,
+  useHtmlExport,
   useManifest,
   useVerify,
   VerifyPanel,
@@ -252,6 +254,17 @@ function NotebookViewBody({
   const manifest = useManifest({ api: commands, folder, arranged, writable });
   const verify = useVerify({ api: commands, folder, arranged });
   const gitBundle = useGitBundle({ api: commands, folder, arranged, writable });
+  const loadedProject = notebook.loadedState?.project;
+  const htmlExport = useHtmlExport({
+    api: commands,
+    folder,
+    arranged,
+    project:
+      loadedProject === undefined
+        ? null
+        : { name: loadedProject.name, locale: loadedProject.locale },
+    writable,
+  });
 
   /** Takes the person to the existing place a finding is put right (FR-ARC-01). */
   function resolveFinding(target: ResolveTarget) {
@@ -533,6 +546,7 @@ function NotebookViewBody({
             />
             <VerifyPanel model={verify} />
             <GitBundlePanel model={gitBundle} />
+            <HtmlExportPanel model={htmlExport} />
           </>
         );
       case "results":

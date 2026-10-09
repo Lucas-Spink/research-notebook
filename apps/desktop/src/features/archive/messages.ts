@@ -2,6 +2,7 @@ import type { ManifestProblem } from "@research-notebook/format";
 import type { GitBundleOutcome } from "../../ipc/bindings";
 import type { ManifestFailure } from "./model/generate";
 import type { GitBundleFailure } from "./model/gitBundle";
+import type { HtmlExportFailure, HtmlExportOutcome } from "./model/htmlExport";
 import type { VerifyFailure, VerifyFinding } from "./model/verify";
 
 /** Text of the manifest (FR-ARC-02). British English, as everything the person reads. */
@@ -156,4 +157,38 @@ export function describeBundle(
     case "writeFailed":
       return `${label}: the bundle could not be saved in the notebook`;
   }
+}
+
+/** Text of the static HTML export (FR-ARC-05, ADR-0054). */
+export const htmlExportMessages = {
+  heading: "HTML export",
+  intro:
+    "Writes a set of static web pages into exports/html/: one for each question and experiment, with figures reduced to 800 pixels, the first rows of tables, and links to the original files. Open index.html in any browser. The pages hold no scripts and load nothing from the internet. Your captured files are not changed. Pages from an earlier export that are no longer needed are left in place.",
+  write: "Write HTML export",
+  writing: "Writing…",
+  again: "Write again",
+  notWritten: "The HTML export has not been written yet.",
+  readOnly: "This project is read-only, so the HTML export cannot be written.",
+  notLoaded: "The project is still loading.",
+  failures: {
+    filesNotPrepared:
+      "The figures and tables could not be read, so nothing was written. Try again.",
+    notWritable:
+      "The HTML export was not written because this project is not open for writing.",
+    writeFailed:
+      "The HTML export could not be written, so it cannot be relied on. Try again.",
+  } satisfies Record<HtmlExportFailure, string>,
+} as const;
+
+export function exported(outcome: HtmlExportOutcome): string {
+  const pages = plural(outcome.pages, "page", "pages");
+  return `${pages} written to exports/html/. Open index.html to start.`;
+}
+
+export function notPreparedNote(count: number): string {
+  return `${plural(count, "figure or table", "figures and tables")} could not be reduced or sampled, so ${count === 1 ? "its page links" : "their pages link"} the original file only.`;
+}
+
+export function failedPagesNote(names: readonly string[]): string {
+  return `These pages could not be written and are as they were before: ${names.join(", ")}.`;
 }

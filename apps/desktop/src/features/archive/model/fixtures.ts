@@ -123,3 +123,38 @@ export function arrangedWithRepositories(repos: readonly string[]): Arranged {
   item.artefacts = { kind: "file", file };
   return result;
 }
+
+/** The experiment with one captured image and one captured table, which the HTML export prepares. */
+export function arrangedWithFigures(): Arranged {
+  const copy = (id: number, name: string, type: string, file: string) => ({
+    id: ID(id),
+    name,
+    role: "result",
+    mode: "copy",
+    type,
+    source: { root: "project", path: file },
+    created: "2026-09-03T14:02:11Z",
+    versions: [
+      {
+        v: 1,
+        file: `evidence/${file}`,
+        sha256: String(id).repeat(64),
+        size: 3,
+        captured: "2026-09-03T14:02:11Z",
+      },
+    ],
+  });
+  const file = ArtefactsFile.parse({
+    format_version: 1,
+    artefacts: [
+      copy(3, "Volcano", "image", "volcano.png"),
+      copy(4, "Counts", "table", "counts.csv"),
+    ],
+    groups: [],
+  });
+  const result = arranged();
+  const [item] = result.unassigned;
+  if (item === undefined) throw new Error("fixture");
+  item.artefacts = { kind: "file", file };
+  return result;
+}
