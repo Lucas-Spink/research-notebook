@@ -48,6 +48,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::projects::git_bundle::write_git_bundles,
             commands::projects::html_export::prepare_html_assets,
             commands::projects::html_export::write_html_pages,
+            commands::projects::machine_export::write_machine_export,
             commands::projects::verify::read_manifest,
             commands::projects::verify::verify_manifest_files,
             commands::projects::open::open_captured_file_action,

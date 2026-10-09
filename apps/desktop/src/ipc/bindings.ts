@@ -180,6 +180,12 @@ export const commands = {
 	 *  this application holds the project's lock.
 	 */
 	writeHtmlPages: (folder: FolderHandle, pages: HtmlPageInput[]) => typedError<HtmlPageOutcome[], ProjectError>(__TAURI_INVOKE("write_html_pages", { folder, pages })),
+	/**
+	 *  Writes the machine-readable export into `_notebook/exports/machine/`
+	 *  (FR-ARC-07), replacing the files of an earlier run. Refused, with nothing
+	 *  written, unless this application holds the project's lock.
+	 */
+	writeMachineExport: (folder: FolderHandle, files: MachineFileInput[]) => typedError<MachineFileOutcome[], ProjectError>(__TAURI_INVOKE("write_machine_export", { folder, files })),
 	/**  The manifest's text, for `packages/format` to parse. Read-only. */
 	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
 	/**
@@ -729,6 +735,15 @@ export type LockOutcome = { kind: "acquired" } |
 export type LockState = "held" | 
 /**  Taken over by another instance, or the heartbeat failed. */
 "lost" | "notHeld";
+
+/**  One file of the export, named relative to `_notebook/exports/machine/`. */
+export type MachineFileInput = {
+	name: string,
+	text: string,
+};
+
+/**  What became of one file, answered by position. */
+export type MachineFileOutcome = "written" | "refused" | "writeFailed";
 
 /**  One line of the manifest, as `packages/format` parsed it. */
 export type ManifestEntry = {
