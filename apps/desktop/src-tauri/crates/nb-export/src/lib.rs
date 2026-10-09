@@ -22,15 +22,16 @@
 //! vectorise a PDF figure before this step. Worth carrying into the
 //! ADR-0007 update (S1-T11).
 
-use typst::diag::{FileError, FileResult, SourceDiagnostic, Warned};
-use typst::foundations::{Bytes, Datetime, Duration};
-use typst::syntax::{FileId, RootedPath, Source, VirtualPath, VirtualRoot};
-use typst::text::{Font, FontBook};
-use typst::utils::LazyHash;
-use typst::{Library, LibraryExt, World};
-use typst_kit::fonts::FontStore;
+use typst::diag::{SourceDiagnostic, Warned};
+use typst::foundations::Datetime;
 use typst_layout::PagedDocument;
 use typst_pdf::{PdfOptions, PdfStandard, PdfStandards, Timestamp};
+
+mod project;
+mod world;
+
+pub use project::{compile_project, export_project_pdf, to_pdf_a_3b, ProjectPdf};
+use world::FixedWorld;
 
 /// The fixed export template. Committed source, reviewed like any other
 /// code; never built from runtime strings.
@@ -46,6 +47,8 @@ pub enum ExportError {
     Standards(typst::diag::HintedString),
     #[error("failed to export the compiled document to PDF: {0:?}")]
     Pdf(typst::ecow::EcoVec<SourceDiagnostic>),
+    #[error("the input has no valid `generated` time (UTC, YYYY-MM-DDTHH:MM:SSZ)")]
+    BadGenerated,
 }
 
 /// Compiles `experiment_json` and `figure_svg` through the fixed template
@@ -57,7 +60,13 @@ pub enum ExportError {
 /// (SVG — see the module-level PDF-embedding finding), embedded via
 /// `image("/figure.svg")`.
 pub fn compile(experiment_json: &str, figure_svg: &[u8]) -> Result<PagedDocument, ExportError> {
-    let world = TemplateWorld::new(experiment_json, figure_svg)?;
+    let world = FixedWorld::new(
+        TEMPLATE,
+        &[
+            ("/data.json", experiment_json.as_bytes()),
+            ("/figure.svg", figure_svg),
+        ],
+    )?;
     let Warned { output, .. } = typst::compile::<PagedDocument>(&world);
     output.map_err(ExportError::Compile)
 }
@@ -74,88 +83,4 @@ pub fn to_pdf_a_2b(document: &PagedDocument, timestamp: Datetime) -> Result<Vec<
         ..Default::default()
     };
     typst_pdf::pdf(document, &options).map_err(ExportError::Pdf)
-}
-
-/// Serves exactly three virtual files to the Typst compiler: the fixed
-/// template, one experiment's JSON data, and one figure image. Nothing else
-/// resolves, so the template cannot reach outside what this call was given.
-struct TemplateWorld {
-    library: LazyHash<Library>,
-    fonts: FontStore,
-    main_id: FileId,
-    main_source: Source,
-    data_id: FileId,
-    data_bytes: Bytes,
-    figure_id: FileId,
-    figure_bytes: Bytes,
-}
-
-impl TemplateWorld {
-    fn new(experiment_json: &str, figure_svg: &[u8]) -> Result<Self, ExportError> {
-        let main_id = virtual_file_id("/main.typ")?;
-        let data_id = virtual_file_id("/data.json")?;
-        let figure_id = virtual_file_id("/figure.svg")?;
-
-        let mut fonts = FontStore::new();
-        fonts.extend(typst_kit::fonts::embedded());
-
-        Ok(Self {
-            library: LazyHash::new(Library::builder().build()),
-            fonts,
-            main_id,
-            main_source: Source::new(main_id, TEMPLATE.to_string()),
-            data_id,
-            data_bytes: Bytes::new(experiment_json.as_bytes().to_vec()),
-            figure_id,
-            figure_bytes: Bytes::new(figure_svg.to_vec()),
-        })
-    }
-}
-
-impl World for TemplateWorld {
-    fn library(&self) -> &LazyHash<Library> {
-        &self.library
-    }
-
-    fn book(&self) -> &LazyHash<FontBook> {
-        self.fonts.book()
-    }
-
-    fn main(&self) -> FileId {
-        self.main_id
-    }
-
-    fn source(&self, id: FileId) -> FileResult<Source> {
-        if id == self.main_id {
-            Ok(self.main_source.clone())
-        } else {
-            Err(FileError::NotSource)
-        }
-    }
-
-    fn file(&self, id: FileId) -> FileResult<Bytes> {
-        if id == self.data_id {
-            Ok(self.data_bytes.clone())
-        } else if id == self.figure_id {
-            Ok(self.figure_bytes.clone())
-        } else {
-            Err(FileError::NotFound(id.vpath().get_without_slash().into()))
-        }
-    }
-
-    fn font(&self, index: usize) -> Option<Font> {
-        self.fonts.font(index)
-    }
-
-    // The template never calls Typst's `datetime()` function, so a fixed
-    // `None` is correct here; the PDF's own creation-date metadata is set
-    // explicitly and deterministically via `to_pdf_a_2b`'s `timestamp`.
-    fn today(&self, _offset: Option<Duration>) -> Option<Datetime> {
-        None
-    }
-}
-
-fn virtual_file_id(path: &str) -> Result<FileId, ExportError> {
-    let vpath = VirtualPath::new(path).map_err(ExportError::InvalidVirtualPath)?;
-    Ok(FileId::new(RootedPath::new(VirtualRoot::Project, vpath)))
 }
