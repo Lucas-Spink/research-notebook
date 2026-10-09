@@ -111,13 +111,26 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: apps/desktop/src-tauri }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # packages/format builds the PDF's inputs from the fixture (Rust never
+      # parses notebook files); the example only compiles and exports them.
+      - name: Build the PDF inputs from the typical fixture
+        run: >
+          node scripts/build-pdf-input.mjs
+          fixtures/projects/format-v1/typical "$RUNNER_TEMP/export"
       - name: Export typical fixture
         run: >
           cargo run --manifest-path apps/desktop/src-tauri/Cargo.toml
-          -p nb-export --example export_fixture --
-          fixtures/projects/format-v1/typical "$RUNNER_TEMP/export"
+          -p nb-export --example export_fixture -- "$RUNNER_TEMP/export"
       - name: Validate with veraPDF
         run: docker run --rm -v "$RUNNER_TEMP/export:/data" verapdf/cli --flavour 3b /data/project.pdf
+      - name: Check notebook.json and bibliography.json are embedded
+        run: |
+          grep -aq '(notebook.json)' "$RUNNER_TEMP/export/project.pdf"
+          grep -aq '(bibliography.json)' "$RUNNER_TEMP/export/project.pdf"
 
   bench:
     name: Benchmarks (${{ matrix.os }})

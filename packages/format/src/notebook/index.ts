@@ -146,3 +146,10 @@ export {
   type MachineExportInput,
   type MachineFile,
 } from "./machineExport";
+export {
+  buildPdfExport,
+  projectCitationClusters,
+  type PdfBibliography,
+  type PdfExportFiles,
+  type PdfExportInput,
+} from "./pdfExport";
