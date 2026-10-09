@@ -13,6 +13,7 @@ pub mod files;
 mod folders;
 pub mod git_bundle;
 pub mod history;
+pub mod html_export;
 mod ids;
 pub mod lock;
 pub mod open;

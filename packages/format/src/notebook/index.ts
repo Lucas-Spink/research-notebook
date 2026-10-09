@@ -133,3 +133,11 @@ export {
   type ManifestEntry,
   type ManifestParseError,
 } from "./manifestParse";
+export {
+  htmlAssetRequests,
+  renderHtmlExport,
+  type ExportAsset,
+  type HtmlAssetRequest,
+  type HtmlExportInput,
+  type HtmlPage,
+} from "./htmlExport";

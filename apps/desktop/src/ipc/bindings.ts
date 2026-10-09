@@ -167,6 +167,19 @@ export const commands = {
 	 *  that cannot be bundled is reported and the others still are.
 	 */
 	writeGitBundles: (folder: FolderHandle, repos: RepoPath[]) => typedError<GitBundleOutcome[], ProjectError>(__TAURI_INVOKE("write_git_bundles", { folder, repos })),
+	/**
+	 *  Reduces figures and samples tables for the HTML export, writing reduced
+	 *  figures under `_notebook/exports/html/assets/` (FR-ARC-05). The captured
+	 *  files are only read. Refused, with nothing written, unless this
+	 *  application holds the project's lock.
+	 */
+	prepareHtmlAssets: (folder: FolderHandle, requests: HtmlAssetRequest[]) => typedError<HtmlAssetOutcome[], ProjectError>(__TAURI_INVOKE("prepare_html_assets", { folder, requests })),
+	/**
+	 *  Writes the export's pages into `_notebook/exports/html/` (FR-ARC-05),
+	 *  replacing those of an earlier run. Refused, with nothing written, unless
+	 *  this application holds the project's lock.
+	 */
+	writeHtmlPages: (folder: FolderHandle, pages: HtmlPageInput[]) => typedError<HtmlPageOutcome[], ProjectError>(__TAURI_INVOKE("write_html_pages", { folder, pages })),
 	/**  The manifest's text, for `packages/format` to parse. Read-only. */
 	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
 	/**
@@ -618,6 +631,35 @@ export type GitBundleOutcome =
 { kind: "failed" } | 
 /**  The bundle could not be placed in the notebook. */
 { kind: "writeFailed" };
+
+/**  What to prepare for a captured file. */
+export type HtmlAssetKind = "image" | "table";
+
+/**  What became of one request, answered by position and with no system text. */
+export type HtmlAssetOutcome = 
+/**  A reduced PNG was written; `file` is project-relative. */
+{ kind: "image"; file: string; width: number; height: number } | { kind: "table"; header: string[]; rows: string[][]; moreRows: boolean; moreColumns: boolean; 
+/**  Known only when the whole file was read. */
+totalRows: number | null } | { kind: "unsupported" } | { kind: "missing" } | { kind: "unavailable" } | { kind: "writeFailed" } | { kind: "refused" };
+
+/**
+ *  A figure or table the pages need. `sha256` only names the reduced copy;
+ *  `nb-archive` refuses anything that is not a SHA-256.
+ */
+export type HtmlAssetRequest = {
+	file: VersionPath,
+	sha256: string,
+	kind: HtmlAssetKind,
+};
+
+/**  One page of the export, named relative to `_notebook/exports/html/`. */
+export type HtmlPageInput = {
+	name: string,
+	html: string,
+};
+
+/**  What became of one page, answered by position. */
+export type HtmlPageOutcome = "written" | "refused" | "writeFailed";
 
 export type HygieneReport = {
 	/**  `.gitignore` or `.gitattributes`. */
