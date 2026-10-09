@@ -23,6 +23,7 @@ import {
   StylePicker,
   SourcesProvider,
   useLiteraturePlanner,
+  useProjectBibliography,
   useSources,
   useSourceSync,
   useSourceRepair,
@@ -33,10 +34,12 @@ import {
   HtmlExportPanel,
   MachineExportPanel,
   ManifestPanel,
+  PdfExportPanel,
   useGitBundle,
   useHtmlExport,
   useMachineExport,
   useManifest,
+  usePdfExport,
   useVerify,
   VerifyPanel,
 } from "../archive";
@@ -273,6 +276,19 @@ function NotebookViewBody({
     arranged,
     project: loadedProject ?? null,
     writable,
+    now: () => new Date(),
+  });
+  const formatBibliography = useProjectBibliography({
+    folder,
+    styleFile: notebook.citationStyle,
+  });
+  const pdfExport = usePdfExport({
+    api: commands,
+    folder,
+    arranged,
+    project: loadedProject ?? null,
+    writable,
+    formatBibliography,
     now: () => new Date(),
   });
 
@@ -558,6 +574,7 @@ function NotebookViewBody({
             <GitBundlePanel model={gitBundle} />
             <HtmlExportPanel model={htmlExport} />
             <MachineExportPanel model={machineExport} />
+            <PdfExportPanel model={pdfExport} />
           </>
         );
       case "results":

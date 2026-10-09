@@ -3,6 +3,7 @@ import type { GitBundleOutcome } from "../../ipc/bindings";
 import type { ManifestFailure } from "./model/generate";
 import type { GitBundleFailure } from "./model/gitBundle";
 import type { HtmlExportFailure, HtmlExportOutcome } from "./model/htmlExport";
+import type { PdfExportFailure } from "./model/pdfExport";
 import type {
   MachineExportFailure,
   MachineExportOutcome,
@@ -225,3 +226,29 @@ export function machineExported(outcome: MachineExportOutcome): string {
 export function failedFilesNote(names: readonly string[]): string {
   return `These files could not be written and are as they were before: ${names.join(", ")}.`;
 }
+
+/** Text of the PDF/A export (FR-ARC-06, ADR-0056). */
+export const pdfExportMessages = {
+  heading: "PDF/A export",
+  intro:
+    "Writes exports/pdf/project.pdf, a single archival PDF/A-3b document with every question, experiment, section and artefact listed, and one bibliography of every source cited anywhere in the project. notebook.json and bibliography.json are attached inside it. Figures are not included; artefacts are listed with their versions and checksums. Your captured files are not changed.",
+  write: "Write PDF/A export",
+  writing: "Writing…",
+  again: "Write again",
+  notWritten: "The PDF/A export has not been written yet.",
+  readOnly: "This project is read-only, so the PDF/A export cannot be written.",
+  notLoaded: "The project is still loading.",
+  exported: "PDF written to exports/pdf/project.pdf.",
+  failures: {
+    filesNotRead:
+      "The PDF/A export was not written because the project's sources could not be read. Try again.",
+    bibliographyFailed:
+      "The PDF/A export was not written because the bibliography could not be formatted with the project's citation style.",
+    notBuilt:
+      "The PDF/A export could not be built from this project, so nothing was written.",
+    notWritable:
+      "The PDF/A export was not written because this project is not open for writing.",
+    writeFailed:
+      "The PDF/A export could not be written, so it cannot be relied on. Try again.",
+  } satisfies Record<PdfExportFailure, string>,
+} as const;
