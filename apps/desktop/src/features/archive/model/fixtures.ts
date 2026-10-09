@@ -1,4 +1,9 @@
-import { ArtefactsFile, type Arranged } from "@research-notebook/format";
+import {
+  ArtefactsFile,
+  ProjectYaml,
+  type Arranged,
+  type ProjectYamlModel,
+} from "@research-notebook/format";
 
 /** One experiment with a captured artefact of two versions and a linked one, for the manifest tests. */
 export const ID = (n: number) => `01JB000000000000000000000${n}`;
@@ -157,4 +162,33 @@ export function arrangedWithFigures(): Arranged {
   if (item === undefined) throw new Error("fixture");
   item.artefacts = { kind: "file", file };
   return result;
+}
+
+/** A valid `project.yaml` for the machine-readable export tests. */
+export function projectYaml(): ProjectYamlModel {
+  return ProjectYaml.parse({
+    format_version: 1,
+    id: "01JAX9Q2B7N4M8T6V3W5Y1Z0KC",
+    name: "Yeast",
+    created: "2026-09-01T09:12:44Z",
+    last_written_by: "0.1.0",
+    archived: null,
+    locale: "en-GB",
+    citation_style: "nature.csl",
+    capture: { copy_threshold_mb: 100, evidence_in_git: false },
+    numbering: { next_question: 1, next_experiment: 2 },
+    order: [],
+    table: {
+      columns: [
+        { key: "motivation", width: 200, hidden: false },
+        { key: "methods", width: 200, hidden: false },
+        { key: "results", width: 200, hidden: false },
+        { key: "results_notes", width: 200, hidden: false },
+        { key: "interpretation", width: 200, hidden: false },
+        { key: "literature", width: 200, hidden: false },
+      ],
+      collapsed_questions: [],
+    },
+    external_roots: [],
+  });
 }

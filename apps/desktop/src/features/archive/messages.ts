@@ -3,6 +3,10 @@ import type { GitBundleOutcome } from "../../ipc/bindings";
 import type { ManifestFailure } from "./model/generate";
 import type { GitBundleFailure } from "./model/gitBundle";
 import type { HtmlExportFailure, HtmlExportOutcome } from "./model/htmlExport";
+import type {
+  MachineExportFailure,
+  MachineExportOutcome,
+} from "./model/machineExport";
 import type { VerifyFailure, VerifyFinding } from "./model/verify";
 
 /** Text of the manifest (FR-ARC-02). British English, as everything the person reads. */
@@ -191,4 +195,33 @@ export function notPreparedNote(count: number): string {
 
 export function failedPagesNote(names: readonly string[]): string {
   return `These pages could not be written and are as they were before: ${names.join(", ")}.`;
+}
+
+/** Text of the machine-readable export (FR-ARC-07, ADR-0055). */
+export const machineExportMessages = {
+  heading: "Machine-readable export",
+  intro:
+    "Writes notebook.json into exports/machine/, with the JSON Schemas it follows and a Markdown file for each question and experiment, so the notebook can be read by other programs and without this application. Your captured files are not changed. Files from an earlier export that are no longer needed are left in place.",
+  write: "Write machine-readable export",
+  writing: "Writing…",
+  again: "Write again",
+  notWritten: "The machine-readable export has not been written yet.",
+  readOnly:
+    "This project is read-only, so the machine-readable export cannot be written.",
+  notLoaded: "The project is still loading.",
+  failures: {
+    notWritable:
+      "The machine-readable export was not written because this project is not open for writing.",
+    writeFailed:
+      "The machine-readable export could not be written, so it cannot be relied on. Try again.",
+  } satisfies Record<MachineExportFailure, string>,
+} as const;
+
+export function machineExported(outcome: MachineExportOutcome): string {
+  const files = plural(outcome.files, "file", "files");
+  return `${files} written to exports/machine/. Open notebook.json to start.`;
+}
+
+export function failedFilesNote(names: readonly string[]): string {
+  return `These files could not be written and are as they were before: ${names.join(", ")}.`;
 }
