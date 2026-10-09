@@ -186,6 +186,12 @@ export const commands = {
 	 *  written, unless this application holds the project's lock.
 	 */
 	writeMachineExport: (folder: FolderHandle, files: MachineFileInput[]) => typedError<MachineFileOutcome[], ProjectError>(__TAURI_INVOKE("write_machine_export", { folder, files })),
+	/**
+	 *  Writes the project PDF/A-3b into `_notebook/exports/pdf/` (FR-ARC-06),
+	 *  replacing the one of an earlier run. Refused, with nothing written, unless
+	 *  this application holds the project's lock.
+	 */
+	writePdfExport: (folder: FolderHandle, input: PdfExportInput) => typedError<PdfExportOutcome, ProjectError>(__TAURI_INVOKE("write_pdf_export", { folder, input })),
 	/**  The manifest's text, for `packages/format` to parse. Read-only. */
 	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
 	/**
@@ -819,6 +825,21 @@ export type OpenedProject = {
 	path: string,
 	projectYaml: string,
 };
+
+/**
+ *  The three texts the PDF is made from, all built by `packages/format` except
+ *  `bibliography_json`, which is the project's own file.
+ */
+export type PdfExportInput = {
+	inputJson: string,
+	notebookJson: string,
+	bibliographyJson: string,
+};
+
+/**  How the export ended. Carries no system text. */
+export type PdfExportOutcome = "written" | 
+/**  The inputs did not make a valid PDF/A document; nothing was written. */
+"notBuilt" | "writeFailed";
 
 /**
  *  Why a preview could not be made. The `kind` is the key of the message
