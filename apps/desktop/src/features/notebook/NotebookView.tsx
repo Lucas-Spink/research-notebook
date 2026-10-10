@@ -30,11 +30,13 @@ import {
   useStyleManagement,
 } from "../citations";
 import {
+  BundlePanel,
   GitBundlePanel,
   HtmlExportPanel,
   MachineExportPanel,
   ManifestPanel,
   PdfExportPanel,
+  useBundle,
   useGitBundle,
   useHtmlExport,
   useMachineExport,
@@ -260,6 +262,12 @@ function NotebookViewBody({
   const verify = useVerify({ api: commands, folder, arranged });
   const gitBundle = useGitBundle({ api: commands, folder, arranged, writable });
   const loadedProject = notebook.loadedState?.project;
+  const bundle = useBundle({
+    api: commands,
+    folder,
+    arranged,
+    projectName: loadedProject?.name ?? null,
+  });
   const htmlExport = useHtmlExport({
     api: commands,
     folder,
@@ -572,6 +580,7 @@ function NotebookViewBody({
             />
             <VerifyPanel model={verify} />
             <GitBundlePanel model={gitBundle} />
+            <BundlePanel model={bundle} />
             <HtmlExportPanel model={htmlExport} />
             <MachineExportPanel model={machineExport} />
             <PdfExportPanel model={pdfExport} />
