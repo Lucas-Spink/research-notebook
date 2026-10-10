@@ -73,6 +73,25 @@ export function useProjects() {
     [],
   );
 
+  /**
+   * The application itself wrote `project.yaml` (archiving or unarchiving):
+   * read it again and decide the mode afresh, as for an outside change.
+   */
+  const refreshProjectFile = useCallback(async (): Promise<void> => {
+    const current = openedRef.current;
+    if (current === null) return;
+    const read = await commands.readNotebookFile(current.folder, PROJECT_YAML);
+    if (read.status !== "ok") {
+      setNotices([messages.unexpected]);
+      return;
+    }
+    await reloadProjectFile(
+      read.data.kind === "text"
+        ? { text: read.data.text, sha256: read.data.sha256 }
+        : null,
+    );
+  }, [reloadProjectFile]);
+
   // Other parts of the window that hold notebook files hear of outside changes too.
   const reloadListeners = useRef(new Set<(reload: Reload) => void>());
 
@@ -279,6 +298,7 @@ export function useProjects() {
       : notices,
     changed: changes.files,
     fileChanges,
+    refreshProjectFile,
     resolveConflict: changes.resolveConflict,
     busy,
     create: (name: string) => run(() => createFlow(commands, name, env)),

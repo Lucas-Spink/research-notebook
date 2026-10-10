@@ -9,6 +9,10 @@ type Props = {
   /** This window holds the project's lock. Otherwise the list is shown and nothing can be changed. */
   writable: boolean;
   changes: ChangesPort;
+  /** When the project was archived, or `null`. */
+  archived?: string | null;
+  /** The application wrote `project.yaml`: read it again to decide the mode. */
+  onProjectFileChanged?: () => void;
   /** The ribbon's Project group. */
   projectControls?: ReactNode;
   /** Project notices, kept under the ribbon. */
@@ -20,6 +24,8 @@ export function NotebookPanel({
   folder,
   writable,
   changes,
+  archived = null,
+  onProjectFileChanged,
   projectControls,
   projectBanners,
 }: Props) {
@@ -28,6 +34,8 @@ export function NotebookPanel({
     <NotebookView
       notebook={notebook}
       folder={folder}
+      archived={archived}
+      {...(onProjectFileChanged === undefined ? {} : { onProjectFileChanged })}
       {...(projectControls === undefined ? {} : { projectControls })}
       {...(projectBanners === undefined ? {} : { projectBanners })}
     />

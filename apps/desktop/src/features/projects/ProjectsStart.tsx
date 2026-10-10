@@ -27,6 +27,8 @@ export function ProjectsStart() {
         folder={opened.folder}
         writable={opened.mode.kind === "writable"}
         changes={projects.fileChanges}
+        archived={opened.summary.archived}
+        onProjectFileChanged={() => void projects.refreshProjectFile()}
         projectControls={<ProjectRibbonControls projects={projects} />}
         projectBanners={
           <>

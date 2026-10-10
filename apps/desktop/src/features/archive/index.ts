@@ -19,3 +19,9 @@ export { usePdfExport, type PdfExportModel } from "./usePdfExport";
 export { useManifest, type ManifestModel } from "./useManifest";
 export { useVerify, type VerifyModel } from "./useVerify";
 export { VerifyPanel } from "./VerifyPanel";
+export { ArchivePanel } from "./ArchivePanel";
+export {
+  useArchiveProject,
+  type ArchiveModel,
+  type UnarchiveApi,
+} from "./useArchiveProject";
