@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { applyGroupAction } from "./actions";
 import { pickedAction, rowMenu } from "./menu";
 import { ids, sampleArtefacts } from "./sample";
 import { treeRows, type TreeRow } from "./tree";
 
 const file = sampleArtefacts();
+const testEnv = {
+  now: () => new Date("2026-09-23T10:00:00Z"),
+  newId: () => ids.g(9),
+  appVersion: "0.0.0",
+};
 const rows = treeRows(file, {});
 const row = (index: number): TreeRow => {
   const found = rows[index];
@@ -21,6 +27,8 @@ describe("rowMenu", () => {
       "preview",
       "moveTo",
       "addTo",
+      "markMainFigure",
+      "classify",
       "moveDown",
       "remove",
     ]);
@@ -35,9 +43,22 @@ describe("rowMenu", () => {
   });
 
   it("offers Move to and Add to as separate actions for an item (FR-GRP-02)", () => {
-    expect(labels(row(3))).toEqual(["moveTo", "addTo", "moveDown", "remove"]);
-    expect(labels(row(4))).toEqual(["moveTo", "addTo", "moveUp", "remove"]);
-    expect(labels(row(8))).toEqual(["moveTo", "addTo"]);
+    const classify = ["markMainFigure", "classify"];
+    expect(labels(row(3))).toEqual([
+      "moveTo",
+      "addTo",
+      ...classify,
+      "moveDown",
+      "remove",
+    ]);
+    expect(labels(row(4))).toEqual([
+      "moveTo",
+      "addTo",
+      ...classify,
+      "moveUp",
+      "remove",
+    ]);
+    expect(labels(row(8))).toEqual(["moveTo", "addTo", ...classify]);
   });
 
   it("only offers groups that do not already hold the artefact", () => {
@@ -107,5 +128,75 @@ describe("pickedAction", () => {
       parent: ids.g(2),
     });
     expect(pickedAction(row(0), "addTo", ids.g(2))).toBeNull();
+  });
+});
+
+describe("classification entries (ADR-0059)", () => {
+  const withClass = (value: string) => {
+    const classified = sampleArtefacts();
+    const target = classified.artefacts.find((a) => a.id === ids.r(1));
+    if (target === undefined) throw new Error("sample");
+    target.classification = value;
+    const item = treeRows(classified, {}).find(
+      (r) => r.kind === "item" && r.artefactId === ids.r(1),
+    );
+    if (item === undefined) throw new Error("sample");
+    return { classified, item };
+  };
+
+  it("marks an unclassified result as a main figure, and offers the other classifications", () => {
+    const item = row(3);
+    const menu = rowMenu(file, item);
+    expect(menu.find((e) => e.label === "markMainFigure")?.run).toEqual({
+      kind: "action",
+      action: {
+        kind: "setClassification",
+        artefactId: ids.r(1),
+        classification: "main_figure",
+      },
+    });
+    const classify = menu.find((e) => e.label === "classify");
+    expect(
+      classify?.run.kind === "pick" && classify.run.targets.map((t) => t.id),
+    ).toEqual([
+      "main_figure",
+      "supplementary_figure",
+      "intermediate_output",
+      "quality_control",
+      "general",
+    ]);
+  });
+
+  it("unmarks a main figure, and offers Clear for any other classification", () => {
+    const main = withClass("main_figure");
+    const mainLabels = rowMenu(main.classified, main.item).map((e) => e.label);
+    expect(mainLabels).toContain("unmarkMainFigure");
+    expect(mainLabels).not.toContain("clearClassification");
+    const qc = withClass("quality_control");
+    const qcLabels = rowMenu(qc.classified, qc.item).map((e) => e.label);
+    expect(qcLabels).toContain("markMainFigure");
+    expect(qcLabels).toContain("clearClassification");
+  });
+
+  it("builds the picked classification as an action, and none for a group", () => {
+    expect(pickedAction(row(3), "classify", "quality_control")).toEqual({
+      kind: "setClassification",
+      artefactId: ids.r(1),
+      classification: "quality_control",
+    });
+    expect(pickedAction(row(0), "classify", "general")).toBeNull();
+  });
+
+  it("keeps the classification when the result is moved between groups", () => {
+    const { classified, item } = withClass("main_figure");
+    if (item.kind !== "item") throw new Error("sample");
+    const moved = applyGroupAction(
+      classified,
+      { kind: "addToGroup", artefactId: ids.r(1), groupId: ids.g(2) },
+      testEnv,
+    );
+    expect(moved.ok && moved.value.artefacts[0]?.classification).toBe(
+      "main_figure",
+    );
   });
 });

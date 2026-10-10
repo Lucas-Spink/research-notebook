@@ -1,4 +1,7 @@
-import type { ArtefactsFileModel } from "@research-notebook/format";
+import {
+  KNOWN_CLASSIFICATIONS,
+  type ArtefactsFileModel,
+} from "@research-notebook/format";
 import type { GroupAction } from "./actions";
 import { stepAction } from "./keys";
 import {
@@ -10,7 +13,7 @@ import {
 } from "./tree";
 
 /** Pickers that ask which group: Move to and Add to for an item, Move into for a group. */
-export type PickMode = "moveTo" | "addTo" | "moveInto";
+export type PickMode = "moveTo" | "addTo" | "moveInto" | "classify";
 
 /** What choosing a menu entry does. */
 export type MenuRun =
@@ -28,6 +31,9 @@ export type MenuLabel =
   | "moveUp"
   | "moveDown"
   | "remove"
+  | "markMainFigure"
+  | "unmarkMainFigure"
+  | "clearClassification"
   | "rename"
   | "newSubgroup"
   | "moveToTop"
@@ -50,6 +56,37 @@ function pick(mode: PickMode, targets: GroupTarget[]): MenuEntry[] {
   return targets.length === 0
     ? []
     : [{ label: mode, run: { kind: "pick", mode, targets } }];
+}
+
+function classification(
+  file: ArtefactsFileModel,
+  row: Extract<TreeRow, { kind: "item" }>,
+): MenuEntry[] {
+  // A method cannot be classified, and only results are in the tree, but the
+  // file is the authority, so a missing or method artefact offers nothing.
+  const found = file.artefacts.find((a) => a.id === row.artefactId);
+  if (found === undefined || found.role !== "result") return [];
+  const set = (value: string | null): MenuRun => ({
+    kind: "action",
+    action: {
+      kind: "setClassification",
+      artefactId: row.artefactId,
+      classification: value,
+    },
+  });
+  const main = row.classification === "main_figure";
+  const targets: GroupTarget[] = KNOWN_CLASSIFICATIONS.filter(
+    (value) => value !== row.classification,
+  ).map((value) => ({ id: value, name: value, depth: 1 }));
+  return [
+    main
+      ? { label: "unmarkMainFigure", run: set(null) }
+      : { label: "markMainFigure", run: set("main_figure") },
+    ...pick("classify", targets),
+    ...(row.classification === null || main
+      ? []
+      : [{ label: "clearClassification" as const, run: set(null) }]),
+  ];
 }
 
 /**
@@ -100,6 +137,7 @@ export function rowMenu(
       ...preview,
       ...pick("moveTo", free),
       ...pick("addTo", free),
+      ...classification(file, row),
       ...step(row, -1),
       ...step(row, 1),
       ...remove,
@@ -147,6 +185,13 @@ export function pickedAction(
   }
   if (row.kind === "item" && mode === "addTo") {
     return { kind: "addToGroup", artefactId: row.artefactId, groupId: target };
+  }
+  if (row.kind === "item" && mode === "classify") {
+    return {
+      kind: "setClassification",
+      artefactId: row.artefactId,
+      classification: target,
+    };
   }
   if (row.kind === "group" && mode === "moveInto") {
     return { kind: "moveGroup", groupId: row.id, parent: target };

@@ -25,6 +25,14 @@ export const resultsMessages = {
     groups === 0
       ? plural(items, "artefact", "artefacts")
       : `${plural(items, "artefact", "artefacts")}, ${plural(groups, "group", "groups")}`,
+  /** Classification labels; a value this build does not know is shown as stored. */
+  classifications: {
+    main_figure: "Main figure",
+    supplementary_figure: "Supplementary figure",
+    intermediate_output: "Intermediate output",
+    quality_control: "Quality control",
+    general: "General result",
+  } as Readonly<Record<string, string>>,
   totals: (results: number, groups: number) =>
     `${plural(results, "result", "results")} · ${plural(groups, "group", "groups")}`,
   menu: {
@@ -34,6 +42,10 @@ export const resultsMessages = {
     moveUp: "Move up",
     moveDown: "Move down",
     remove: "Remove from this group",
+    markMainFigure: "Mark as main figure",
+    unmarkMainFigure: "Unmark main figure",
+    clearClassification: "Clear classification",
+    classify: "Classify as…",
     rename: "Rename",
     newSubgroup: "New subgroup",
     moveToTop: "Move to top level",
@@ -44,6 +56,7 @@ export const resultsMessages = {
     moveTo: "Move to which group?",
     addTo: "Add to which group?",
     moveInto: "Move into which group?",
+    classify: "Classify as what?",
   } satisfies Record<PickMode, string>,
   confirmDelete: (
     name: string,
@@ -80,4 +93,9 @@ export function refusalMessage(error: NotebookError): string {
     default:
       return assertNever(error);
   }
+}
+
+/** A classification as shown to the person: its label, or the stored slug when unknown. */
+export function classificationLabel(value: string): string {
+  return resultsMessages.classifications[value] ?? value;
 }

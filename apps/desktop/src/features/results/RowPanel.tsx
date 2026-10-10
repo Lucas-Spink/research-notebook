@@ -1,7 +1,7 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
 import { useEffect, useRef } from "react";
 import { assertNever } from "../../shared/assertNever";
-import { resultsMessages } from "./messages";
+import { classificationLabel, resultsMessages } from "./messages";
 import { pickedAction, rowMenu, type MenuEntry } from "./model/menu";
 import { deletionSummary } from "./model/tree";
 import { NameForm } from "./NameForm";
@@ -112,7 +112,9 @@ function PanelBody({
                 style={{ marginInlineStart: `${target.depth - 1}rem` }}
                 onClick={() => action !== null && void tree.run(action)}
               >
-                {target.name}
+                {panel.mode === "classify"
+                  ? classificationLabel(target.id)
+                  : target.name}
               </button>
             );
           })}

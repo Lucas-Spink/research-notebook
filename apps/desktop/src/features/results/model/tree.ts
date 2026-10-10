@@ -46,6 +46,8 @@ export type ItemRow = Base & {
   name: string;
   /** What kind of file it is, for its icon. */
   artefactType: ArtefactModel["type"];
+  /** The result's classification, or `null` when it has none; independent of its groups. */
+  classification: string | null;
   /** The group this row shows the artefact in; `null`: the Ungrouped area. */
   group: string | null;
   index: number;
@@ -75,6 +77,9 @@ export function treeRows(
 ): TreeRow[] {
   const names = new Map(file.artefacts.map((a) => [a.id, a.name] as const));
   const types = new Map(file.artefacts.map((a) => [a.id, a.type] as const));
+  const classes = new Map(
+    file.artefacts.map((a) => [a.id, a.classification ?? null] as const),
+  );
   const rows: TreeRow[] = [];
   const items = (
     ids: readonly string[],
@@ -91,6 +96,7 @@ export function treeRows(
         artefactId,
         name: names.get(artefactId) ?? artefactId,
         artefactType: types.get(artefactId) ?? "other",
+        classification: classes.get(artefactId) ?? null,
         group,
         index,
         siblings: ids.length,

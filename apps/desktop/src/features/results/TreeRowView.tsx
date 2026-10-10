@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArtefactTypeIcon, FolderIcon } from "../../shared/ArtefactTypeIcon";
-import { resultsMessages } from "./messages";
+import { classificationLabel, resultsMessages } from "./messages";
 import { hasChildren, type TreeRow } from "./model/tree";
 import type { ResultsTreeState } from "./useResultsTree";
 
@@ -104,6 +104,13 @@ export function TreeRowView({
       {row.kind === "item" && (
         <span className="results__icon" title={row.artefactType}>
           <ArtefactTypeIcon type={row.artefactType} />
+        </span>
+      )}
+      {row.kind === "item" && row.classification !== null && (
+        <span
+          className={`results__badge${row.classification === "main_figure" ? " results__badge--main" : ""}`}
+        >
+          {classificationLabel(row.classification)}
         </span>
       )}
       {count !== null && <span className="results__count">{count}</span>}
