@@ -80,6 +80,12 @@ const groupsOf = (view: HTMLElement) =>
   );
 
 describe("the workspace (S6-T01)", () => {
+  it("names the open project beside the application title (#101)", () => {
+    const { view } = mountNotebook(state);
+    const name = view.querySelector(".ribbon__project");
+    expect(name?.textContent).toBe(state.project.name);
+  });
+
   it("has Home, Experiments, Sources, View, Project and Export tabs, and shows only the chosen tab's groups", () => {
     const { view } = mountNotebook(state);
     expect(

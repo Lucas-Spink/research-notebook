@@ -36,5 +36,5 @@
 .notebook__search-hit-field {
   flex: 0 0 auto;
   font-weight: 600;
-  font-size: 0.85em;
+  font-size: var(--text-small);
 }

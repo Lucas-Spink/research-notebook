@@ -18,7 +18,7 @@
   color: var(--color-on-dark);
   background: var(--palette-secondary);
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   vertical-align: middle;
 }
 
@@ -50,5 +50,28 @@
 .bibliography__details {
   margin-inline-start: var(--space-2);
   padding: 0 var(--space-2);
-  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+}
+
+/* A collapsed entry: the title, then one quiet line of authors, year and journal. */
+.bibliography__summary {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.bibliography__title {
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}
+
+.bibliography__meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+}
+
+.bibliography__compact .bibliography__text {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-small);
 }

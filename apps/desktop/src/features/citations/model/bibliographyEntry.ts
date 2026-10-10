@@ -38,6 +38,30 @@ export function bibliographyEntry(details: SourceDetails): string {
     .join(" ");
 }
 
+/**
+ * The short form of an entry for the collapsed Bibliography list: the title,
+ * then abbreviated authors, year and journal. Three or more authors become
+ * "First et al." so a long author list cannot fill the panel.
+ */
+export function compactEntry(details: SourceDetails): {
+  title: string;
+  meta: string;
+} {
+  const [first] = details.authors;
+  const authors =
+    first === undefined
+      ? null
+      : details.authors.length >= 3
+        ? `${first} et al.`
+        : authorsText(details.authors);
+  return {
+    title: details.title,
+    meta: [authors, details.year, details.container]
+      .filter((part) => part !== null)
+      .join(" · "),
+  };
+}
+
 /** An entry of the Bibliography panel. */
 export type BibliographyRow = {
   citekey: string;

@@ -252,13 +252,13 @@
   border: 1px solid var(--palette-secondary);
   border-top: 3px solid var(--palette-accent);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgb(31 41 55 / 30%);
+  box-shadow: var(--shadow-popover);
 }
 
 .wtable__hover-name {
   margin-bottom: 0.25rem;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }
 
 .wtable__hover-image {
@@ -323,7 +323,7 @@
   border: 1px solid var(--palette-secondary);
   border-radius: 4px;
   color: var(--palette-secondary);
-  font-size: 0.85em;
+  font-size: var(--text-small);
 }
 
 .wtable__chip--detached {
@@ -392,13 +392,27 @@
   font: inherit;
   color: inherit;
   text-align: left;
-  text-decoration: underline;
   cursor: pointer;
   overflow-wrap: anywhere;
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
+}
+
+.wtable__select:hover {
+  text-decoration: underline;
+}
+
+/* The identifier is a label for the title, so it is quieter than it. */
+.wtable__select strong {
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
 }
 
 .wtable__status {
-  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
 }
 
 /* The title and status, edited in place (FR-TBL-11). */
@@ -417,12 +431,16 @@
 
 .wtable__status-select {
   font: inherit;
-  font-weight: 600;
+  font-size: var(--text-meta);
+  font-weight: var(--weight-medium);
+  padding: 0 var(--space-1);
+  background: transparent;
 }
 
 .wtable__muted,
 .wtable__count {
-  opacity: 0.75;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
 }
 
 .wtable__flag {

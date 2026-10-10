@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { bibliographyRows, useSources } from "../../citations";
+import {
+  bibliographyRows,
+  compactEntry,
+  useSources,
+  type BibliographyRow,
+} from "../../citations";
 import { bibliographyMessages as m } from "./messages";
 import "./BibliographyPanel.css";
 
@@ -66,7 +71,11 @@ export function BibliographyPanel({ citekeys, target, onShowDetails }: Props) {
               tabIndex={-1}
               className={`bibliography__entry${marked === row.citekey ? " bibliography__entry--marked" : ""}`}
             >
-              <span className="bibliography__text">{row.text}</span>
+              {row.details === null ? (
+                <span className="bibliography__text">{row.text}</span>
+              ) : (
+                <CompactEntry text={row.text} details={row.details} />
+              )}
               {row.details !== null && (
                 <button
                   type="button"
@@ -82,5 +91,29 @@ export function BibliographyPanel({ citekeys, target, onShowDetails }: Props) {
         </ol>
       )}
     </section>
+  );
+}
+
+/**
+ * One source, collapsed to its title and a line of abbreviated authors, year
+ * and journal; opening it shows the full reference (issue #101). A native
+ * disclosure keeps it keyboard-operable without a second state in the panel.
+ */
+function CompactEntry({
+  text,
+  details,
+}: {
+  text: string;
+  details: NonNullable<BibliographyRow["details"]>;
+}) {
+  const { title, meta } = compactEntry(details);
+  return (
+    <details className="bibliography__compact">
+      <summary className="bibliography__summary">
+        <span className="bibliography__title">{title}</span>
+        {meta !== "" && <span className="bibliography__meta">{meta}</span>}
+      </summary>
+      <p className="bibliography__text">{text}</p>
+    </details>
   );
 }

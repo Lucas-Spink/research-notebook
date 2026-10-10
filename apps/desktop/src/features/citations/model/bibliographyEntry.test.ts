@@ -1,6 +1,10 @@
 import type { BibliographyFileModel } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
-import { bibliographyEntry, bibliographyRows } from "./bibliographyEntry";
+import {
+  bibliographyEntry,
+  bibliographyRows,
+  compactEntry,
+} from "./bibliographyEntry";
 import { sourceDetails } from "./sourceDetails";
 
 function item(
@@ -90,5 +94,41 @@ describe("bibliographyRows", () => {
     expect(rows).toEqual([
       { citekey: "z:u:GONE9999", details: null, text: "no z:u:GONE9999" },
     ]);
+  });
+});
+
+describe("compactEntry", () => {
+  const details = (authors: { given: string; family: string }[]) =>
+    sourceDetails(
+      item("CCCC4444", {
+        title: "Spatial ecology",
+        author: authors,
+        issued: { "date-parts": [[2026]] },
+        "container-title": "Genome Medicine",
+      }),
+    );
+  const person = (family: string) => ({ given: "A", family });
+
+  it("abbreviates three or more authors to the first and et al.", () => {
+    expect(
+      compactEntry(details([person("Celik"), person("Lee"), person("Wu")])),
+    ).toEqual({
+      title: "Spatial ecology",
+      meta: "A Celik et al. · 2026 · Genome Medicine",
+    });
+  });
+
+  it("names one or two authors in full", () => {
+    expect(compactEntry(details([person("Celik")])).meta).toBe(
+      "A Celik · 2026 · Genome Medicine",
+    );
+    expect(compactEntry(details([person("Celik"), person("Lee")])).meta).toBe(
+      "A Celik and A Lee · 2026 · Genome Medicine",
+    );
+  });
+
+  it("leaves out what the source lacks", () => {
+    const bare = sourceDetails(item("DDDD5555", { title: "Only a title" }));
+    expect(compactEntry(bare)).toEqual({ title: "Only a title", meta: "" });
   });
 });

@@ -25,6 +25,8 @@ export const resultsMessages = {
     groups === 0
       ? plural(items, "artefact", "artefacts")
       : `${plural(items, "artefact", "artefacts")}, ${plural(groups, "group", "groups")}`,
+  totals: (results: number, groups: number) =>
+    `${plural(results, "result", "results")} · ${plural(groups, "group", "groups")}`,
   menu: {
     preview: "Preview",
     moveTo: "Move to group…",

@@ -6,6 +6,24 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
 
+  /* Type scale (issue #101, phase 1). Every component takes its size and
+     weight from here so the hierarchy stays consistent. The root size is
+     unchanged, so em-based sizes elsewhere keep their meaning. */
+  --text-meta: 0.75rem;
+  --text-small: 0.875rem;
+  --text-body: 1rem;
+  --text-title: 1.0625rem;
+  --text-heading: 1.125rem;
+  --text-project: 1.5rem;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --shadow-popover: 0 8px 24px rgb(31 41 55 / 28%);
+  --shadow-dialog: 0 16px 48px rgb(31 41 55 / 40%);
+
   /* The notebook's palette (S6-T01): a dark slate for the ribbon and
      headings, light slate for panels and table headings, and a blue accent,
      with green and amber for success and warning. */
@@ -19,6 +37,8 @@
   --palette-warning: #d97706;
 
   --color-text: var(--palette-primary-dark);
+  /* Secondary metadata: identifiers, dates, counts. */
+  --color-text-muted: color-mix(in srgb, var(--palette-secondary) 85%, #ffffff);
   --color-bg: var(--palette-background);
   --color-surface: #ffffff;
   --color-surface-alt: color-mix(in srgb, var(--palette-light) 45%, #ffffff);
@@ -31,6 +51,17 @@
   --color-accent-hover: var(--palette-accent-hover);
   --color-on-dark: var(--palette-background);
   --color-focus: var(--palette-accent);
+  /* One hover and one selected tint for every control and row. */
+  --color-hover: color-mix(
+    in srgb,
+    var(--palette-accent-hover) 10%,
+    var(--color-surface)
+  );
+  --color-selected: color-mix(
+    in srgb,
+    var(--palette-accent) 16%,
+    var(--color-surface)
+  );
   /* A cell: quiet when chosen, a little stronger while it is being edited. */
   --color-cell-selected: #94a3b8;
   --color-cell-editing: #3b82f6;
@@ -68,12 +99,21 @@ body {
 h1 {
   margin: 0 0 var(--space-5);
   color: var(--palette-primary-dark);
+  font-size: var(--text-project);
+  font-weight: var(--weight-semibold);
 }
 
 h2,
 h3,
 h4 {
   color: var(--palette-primary-dark);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+}
+
+h4 {
+  font-size: var(--text-title);
+  font-weight: var(--weight-medium);
 }
 
 button,
@@ -83,7 +123,7 @@ select {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-3);
 }
 
@@ -93,11 +133,7 @@ button {
 
 button:hover:not(:disabled) {
   border-color: var(--color-accent-hover);
-  background: color-mix(
-    in srgb,
-    var(--palette-accent-hover) 10%,
-    var(--color-surface)
-  );
+  background: var(--color-hover);
 }
 
 button:focus-visible,

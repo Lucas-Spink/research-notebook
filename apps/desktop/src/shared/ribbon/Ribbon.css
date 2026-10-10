@@ -63,7 +63,7 @@
   right: 0;
   left: 0;
   z-index: 25;
-  box-shadow: 0 8px 24px rgb(31 41 55 / 25%);
+  box-shadow: var(--shadow-popover);
 }
 
 .ribbon__toolbar {
@@ -75,7 +75,7 @@
 }
 
 .ribbon__hint {
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   opacity: 0.8;
 }
 
@@ -106,7 +106,7 @@
 }
 
 .ribbon__group-name {
-  font-size: 0.7rem;
+  font-size: var(--text-meta);
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -139,7 +139,7 @@
 }
 
 .ribbon label {
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }
 
 .ribbon button:focus-visible,
@@ -168,7 +168,7 @@
   border: 1px solid var(--color-border);
   border-top: 3px solid var(--palette-accent);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgb(31 41 55 / 25%);
+  box-shadow: var(--shadow-popover);
   text-align: left;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .ribbon__panel label {
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }
 
 .ribbon__panel h2,
@@ -224,4 +224,17 @@
 
 .workspace__banners:empty {
   display: none;
+}
+
+/* The project's name: the research context, larger than the controls around it. */
+.ribbon__project {
+  align-self: center;
+  max-width: 24rem;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-on-dark);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

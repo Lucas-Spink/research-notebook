@@ -29,7 +29,7 @@
 
 .citations__guidance {
   flex-basis: 100%;
-  font-size: 0.9rem;
+  font-size: var(--text-small);
   opacity: 0.85;
 }
 
@@ -131,8 +131,8 @@ li[data-status="missing"] .citations__source-status {
   border: 1px solid var(--palette-secondary);
   border-top: 3px solid var(--palette-accent);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgb(31 41 55 / 30%);
-  font-size: 0.875rem;
+  box-shadow: var(--shadow-popover);
+  font-size: var(--text-small);
   line-height: 1.4;
   text-align: left;
 }
@@ -162,6 +162,6 @@ li[data-status="missing"] .citations__source-status {
 
 .citation-preview__hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   opacity: 0.7;
 }

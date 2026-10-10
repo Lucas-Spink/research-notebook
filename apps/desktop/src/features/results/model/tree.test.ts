@@ -5,6 +5,7 @@ import {
   hasChildren,
   positions,
   treeRows,
+  treeTotals,
 } from "./tree";
 import { ids, largeArtefacts, sampleArtefacts } from "./sample";
 
@@ -127,5 +128,17 @@ describe("positions and hasChildren", () => {
       {},
     );
     expect(empty.map(hasChildren)).toEqual([false, false]);
+  });
+});
+
+describe("treeTotals", () => {
+  it("counts result artefacts and groups at every depth, never methods", () => {
+    const file = sampleArtefacts();
+    const totals = treeTotals(file);
+    expect(totals.results).toBe(
+      file.artefacts.filter((a) => a.role === "result").length,
+    );
+    // Two top-level groups and one nested in the first.
+    expect(totals.groups).toBe(3);
   });
 });

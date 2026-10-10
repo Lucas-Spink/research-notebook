@@ -110,7 +110,7 @@
   color: var(--color-on-dark);
   background: none;
   border-color: color-mix(in srgb, var(--color-on-dark) 40%, transparent);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }
 
 .pane__body {
@@ -127,7 +127,7 @@
   color: var(--color-on-dark);
   background: none;
   border-color: color-mix(in srgb, var(--color-on-dark) 40%, transparent);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }
 
 /* The pane folded to a narrow rail: a small square icon per open tab, to switch between them. */
