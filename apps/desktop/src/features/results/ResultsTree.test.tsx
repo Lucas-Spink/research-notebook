@@ -4,13 +4,18 @@ import type { ArtefactsFileModel } from "@research-notebook/format";
 import { ResultsTree } from "./ResultsTree";
 import { largeArtefacts, sampleArtefacts } from "./model/sample";
 
-function render(file: ArtefactsFileModel, disabled = false): HTMLElement {
+function render(
+  file: ArtefactsFileModel,
+  disabled = false,
+  missing?: ReadonlySet<string>,
+): HTMLElement {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
     <ResultsTree
       file={file}
       disabled={disabled}
       onAction={() => Promise.resolve({ ok: true })}
+      {...(missing === undefined ? {} : { missing })}
     />,
   );
   return container;
@@ -26,6 +31,16 @@ const items = (root: HTMLElement) =>
   }));
 
 describe("ResultsTree", () => {
+  it("marks a result whose linked file is missing, in words (#101)", () => {
+    const file = sampleArtefacts();
+    const target = file.artefacts.find((a) => a.name === "Counts");
+    if (target === undefined) throw new Error("sample");
+    const root = render(file, false, new Set([target.id]));
+    const marks = [...root.querySelectorAll(".results__badge--missing")];
+    expect(marks.map((el) => el.textContent)).toEqual(["⚠ File missing"]);
+    expect(render(file).querySelector(".results__badge--missing")).toBeNull();
+  });
+
   it("labels a classified result in words, whatever group it is in (ADR-0059)", () => {
     const file = sampleArtefacts();
     const target = file.artefacts.find((a) => a.name === "Heatmap");

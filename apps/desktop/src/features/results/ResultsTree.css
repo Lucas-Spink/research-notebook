@@ -184,3 +184,9 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.results__badge--missing {
+  color: var(--palette-warning);
+  border-color: var(--palette-warning);
+  font-weight: var(--weight-medium);
+}
