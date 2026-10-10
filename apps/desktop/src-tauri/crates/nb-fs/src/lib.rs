@@ -23,6 +23,7 @@ mod clock;
 mod create;
 pub mod discovery;
 mod error;
+mod export;
 pub mod history;
 pub mod hygiene;
 pub mod inbox;
@@ -49,6 +50,7 @@ pub use error::{
     CaptureError, CreateError, DiscoveryError, InboxError, LinkError, LockError, OpenError,
     PathError, ReadError, WriteError,
 };
+pub use export::{ArchiveFile, ArchiveListing, ArchiveScope, ExportError, Exported};
 pub use history::{Expected, SaveOutcome};
 pub use inbox::PayloadExpectation;
 pub use link::{
