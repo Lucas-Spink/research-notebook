@@ -3,13 +3,15 @@
 //! write only under `_notebook/exports/git/`; and the static HTML export
 //! (FR-ARC-05, ADR-0054), which writes only under `_notebook/exports/html/`;
 //! and the machine-readable export (FR-ARC-07, ADR-0055), which writes only
-//! under `_notebook/exports/machine/`.
+//! under `_notebook/exports/machine/`; and the project PDF (FR-ARC-06,
+//! ADR-0056), which writes only `_notebook/exports/pdf/project.pdf`.
 //! All file access goes through `nb-fs`.
 #![forbid(unsafe_code)]
 
 mod git_bundle;
 mod html_export;
 mod machine_export;
+mod pdf_export;
 mod verify;
 
 pub use git_bundle::{write_git_bundles, write_git_bundles_with, BundleVerdict};
@@ -18,4 +20,5 @@ pub use html_export::{
     SampledTable,
 };
 pub use machine_export::{write_machine_files, FileVerdict};
+pub use pdf_export::write_project_pdf;
 pub use verify::{verify, Expected, Verdict};

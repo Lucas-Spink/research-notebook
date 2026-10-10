@@ -34,4 +34,5 @@ export {
   type LiteratureModel,
   type LiteraturePlanner,
 } from "./useLiteraturePlanner";
+export { useProjectBibliography } from "./useProjectBibliography";
 export { useSourceRepair, type RepairModel } from "./useSourceRepair";

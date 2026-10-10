@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "title": "Batch effects in treated organoids",
+  "locale": "en-GB",
+  "generated": "2026-10-09T12:00:00Z",
+  "questions": [
+    {
+      "ref": "Q-001",
+      "title": "Why does it grow?",
+      "motivation": [
+        {
+          "t": "p",
+          "c": [
+            {
+              "t": "text",
+              "s": "Because "
+            },
+            {
+              "t": "strong",
+              "c": [
+                {
+                  "t": "text",
+                  "s": "yeast"
+                }
+              ]
+            },
+            {
+              "t": "text",
+              "s": "."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "experiments": [
+    {
+      "ref": "EXP-001",
+      "title": "PCA run",
+      "status": "planned",
+      "question": "Q-001",
+      "started": null,
+      "completed": null,
+      "preamble": [],
+      "sections": [
+        {
+          "heading": "Methods",
+          "blocks": [
+            {
+              "t": "p",
+              "c": [
+                {
+                  "t": "text",
+                  "s": "Samples were "
+                },
+                {
+                  "t": "strong",
+                  "c": [
+                    {
+                      "t": "text",
+                      "s": "grown"
+                    }
+                  ]
+                },
+                {
+                  "t": "text",
+                  "s": " overnight, see "
+                },
+                {
+                  "t": "text",
+                  "s": "PCA"
+                },
+                {
+                  "t": "text",
+                  "s": " and "
+                },
+                {
+                  "t": "text",
+                  "s": "volcano"
+                },
+                {
+                  "t": "text",
+                  "s": " "
+                },
+                {
+                  "t": "cite",
+                  "s": "[@z:u:7XK2PQ9M, p. 4]"
+                },
+                {
+                  "t": "text",
+                  "s": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Results notes",
+          "blocks": []
+        },
+        {
+          "heading": "Interpretation",
+          "blocks": []
+        }
+      ],
+      "artefacts": [
+        {
+          "name": "PCA script",
+          "lines": [
+            "script, method",
+            "Version 1: methods/02_pca.R (4121 bytes, captured 2026-09-03T13:58:02Z, SHA-256 5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e)"
+          ]
+        },
+        {
+          "name": "PCA by treatment",
+          "lines": [
+            "pdf, result",
+            "Version 1: evidence/pca_by_treatment.pdf (88213 bytes, captured 2026-09-03T14:02:11Z, SHA-256 9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c)",
+            "Version 2: evidence/pca_by_treatment.v2.pdf (90411 bytes, captured 2026-09-05T09:40:52Z, SHA-256 4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a)"
+          ]
+        },
+        {
+          "name": "PCA by batch",
+          "lines": [
+            "pdf, result",
+            "Version 1: evidence/pca_by_batch.pdf (79002 bytes, captured 2026-09-03T14:05:30Z, SHA-256 a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5)"
+          ]
+        },
+        {
+          "name": "Raw counts",
+          "lines": [
+            "other, result",
+            "Linked file, not copied into the notebook: data/counts.h5"
+          ]
+        },
+        {
+          "name": "Volcano plot",
+          "lines": [
+            "image, result",
+            "Version 1: evidence/volcano.png (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a)",
+            "Version 2: evidence/volcano.v2.png (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a)"
+          ]
+        },
+        {
+          "name": "Counts",
+          "lines": [
+            "table, result",
+            "Version 1: evidence/counts.csv (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b)"
+          ]
+        },
+        {
+          "name": "Diagram",
+          "lines": [
+            "svg, result",
+            "Version 1: evidence/diagram.svg (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c)"
+          ]
+        }
+      ],
+      "literature": []
+    }
+  ],
+  "bibliography": [
+    [
+      {
+        "t": "text",
+        "s": "1. Smith J. "
+      },
+      {
+        "t": "em",
+        "c": [
+          {
+            "t": "text",
+            "s": "A study of yeast"
+          }
+        ]
+      },
+      {
+        "t": "text",
+        "s": ". 2020."
+      }
+    ]
+  ],
+  "notExported": []
+}

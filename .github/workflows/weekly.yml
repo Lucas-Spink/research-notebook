@@ -45,6 +45,25 @@ jobs:
         with:
           manifest-path: apps/desktop/src-tauri/Cargo.toml
           command: check advisories
+      # The Typst advisories are ignored in deny.toml with a reason each
+      # (ADR-0056). cargo-deny says `advisory-not-detected` once one no longer
+      # applies; fail then, so the exception is removed, not forgotten.
+      - name: Fail on advisory exceptions that no longer apply
+        run: |
+          cargo install cargo-deny --locked --version 0.20.2
+          cargo deny --manifest-path apps/desktop/src-tauri/Cargo.toml check advisories 2>&1 | tee "$RUNNER_TEMP/deny.log"
+          if grep -q "advisory-not-detected" "$RUNNER_TEMP/deny.log"; then
+            echo "::error::An ignored advisory no longer applies. Remove it from deny.toml (ADR-0056)."
+            exit 1
+          fi
+      - name: Report the latest releases of the crates behind those exceptions
+        run: |
+          {
+            echo "### Latest releases (ADR-0056 lists what each exception waits for)"
+            for crate in typst hayagriva citationberg syntect two-face rustybuzz ttf-parser; do
+              cargo search "$crate" --limit 1 | head -1
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc, cache: pnpm }

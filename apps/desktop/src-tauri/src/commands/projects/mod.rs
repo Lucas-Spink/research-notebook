@@ -18,6 +18,7 @@ mod ids;
 pub mod lock;
 pub mod machine_export;
 pub mod open;
+pub mod pdf_export;
 pub mod preview;
 mod types;
 pub mod verify;
