@@ -56,6 +56,21 @@ jobs:
           name: e2e-screenshots-${{ matrix.os }}
           path: apps/desktop/e2e/output/
 
+  zip64-archive:
+    name: ZIP64 archive over 4 GiB (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - run: cargo test --release --manifest-path apps/desktop/src-tauri/Cargo.toml -p nb-archive --test zip64 -- --ignored
+
   handoff-create:
     name: Handoff create (${{ matrix.os }})
     strategy:

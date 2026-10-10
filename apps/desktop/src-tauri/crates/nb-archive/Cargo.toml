@@ -11,6 +11,8 @@ workspace = true
 nb-fs = { path = "../nb-fs", version = "0.1.0" }
 nb-git = { path = "../nb-git", version = "0.1.0" }
 nb-preview = { path = "../nb-preview", version = "0.1.0" }
+sha2 = "=0.10.9"
+zip = { version = "=9.0.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [dev-dependencies]
 image = { version = "=0.25.10", default-features = false, features = ["png"] }

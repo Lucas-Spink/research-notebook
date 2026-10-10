@@ -10,7 +10,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::atomic::{self, Destination, RealIo};
+use crate::atomic::{self, AtomicIo, Destination};
 use crate::error::ReadError;
 use crate::names::{is_windows_safe, split_extension};
 use crate::path::ProjectRelPath;
@@ -147,7 +147,7 @@ impl ProjectRoot {
     }
 
     /// Writes a new file named `name` into `folder`, which must exist and lie
-    /// outside the project. `produce` fills a temporary file made in `folder`;
+    /// outside the project. `produce` fills a temporary file made in `folder`, which it may also read;
     /// only if it succeeds is the file given its name. If `name` is taken the
     /// file is called `stem (2).ext`, `stem (3).ext`, and so on: nothing that
     /// is already there is replaced. A failure removes the temporary file.
@@ -169,7 +169,7 @@ impl ProjectRoot {
             return Err(ExportError::UnsafeName);
         }
         let folder = self.outside_folder(folder)?;
-        let mut io = RealIo;
+        let mut io = ReadableTemp;
         let destination = Destination {
             dir: &folder,
             name,
@@ -216,6 +216,20 @@ impl ProjectRoot {
             return Err(ExportError::InsideProject);
         }
         Ok(resolved)
+    }
+}
+
+/// Creates the temporary file readable as well as writable, so a producer can
+/// read back what it wrote before the file is given its name.
+struct ReadableTemp;
+
+impl AtomicIo for ReadableTemp {
+    fn create_temp(&mut self, path: &Path) -> io::Result<File> {
+        fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)
     }
 }
 
