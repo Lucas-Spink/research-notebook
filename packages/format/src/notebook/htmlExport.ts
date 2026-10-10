@@ -39,7 +39,8 @@ export interface HtmlAssetRequest {
   kind: "image" | "table";
 }
 
-type Exported = {
+/** What the exports include and what they name as left out. */
+export type Exported = {
   questions: ArrangedQuestion[];
   experiments: ArrangedExperiment[];
   skipped: string[];
@@ -50,7 +51,7 @@ type Exported = {
  * ID with an earlier one (spec P6) or whose page name an earlier one took.
  * Those are named on the index, never dropped silently.
  */
-function selectExported(arranged: Arranged): Exported {
+export function selectExported(arranged: Arranged): Exported {
   const taken = new Set<string>(["index"]);
   const skipped: string[] = [];
   const free = (ref: string, readOnly: boolean): boolean => {

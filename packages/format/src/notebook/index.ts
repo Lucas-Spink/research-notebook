@@ -141,3 +141,8 @@ export {
   type HtmlExportInput,
   type HtmlPage,
 } from "./htmlExport";
+export {
+  buildMachineExport,
+  type MachineExportInput,
+  type MachineFile,
+} from "./machineExport";

@@ -16,6 +16,7 @@ pub mod history;
 pub mod html_export;
 mod ids;
 pub mod lock;
+pub mod machine_export;
 pub mod open;
 pub mod preview;
 mod types;

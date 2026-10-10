@@ -4,6 +4,7 @@ export * from "./common";
 export * from "./experiment";
 export * from "./json-schema";
 export * from "./lock";
+export * from "./notebookJson";
 export * from "./project";
 export * from "./question";
 export * from "./request";

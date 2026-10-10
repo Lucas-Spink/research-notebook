@@ -31,9 +31,11 @@ import {
 import {
   GitBundlePanel,
   HtmlExportPanel,
+  MachineExportPanel,
   ManifestPanel,
   useGitBundle,
   useHtmlExport,
+  useMachineExport,
   useManifest,
   useVerify,
   VerifyPanel,
@@ -264,6 +266,14 @@ function NotebookViewBody({
         ? null
         : { name: loadedProject.name, locale: loadedProject.locale },
     writable,
+  });
+  const machineExport = useMachineExport({
+    api: commands,
+    folder,
+    arranged,
+    project: loadedProject ?? null,
+    writable,
+    now: () => new Date(),
   });
 
   /** Takes the person to the existing place a finding is put right (FR-ARC-01). */
@@ -547,6 +557,7 @@ function NotebookViewBody({
             <VerifyPanel model={verify} />
             <GitBundlePanel model={gitBundle} />
             <HtmlExportPanel model={htmlExport} />
+            <MachineExportPanel model={machineExport} />
           </>
         );
       case "results":

@@ -1,12 +1,15 @@
 export { GitBundlePanel } from "./GitBundlePanel";
 export { HtmlExportPanel } from "./HtmlExportPanel";
+export { MachineExportPanel } from "./MachineExportPanel";
 export { ManifestPanel } from "./ManifestPanel";
 export type { ManifestApi } from "./model/generate";
 export type { GitBundleApi } from "./model/gitBundle";
 export type { HtmlExportApi } from "./model/htmlExport";
+export type { MachineExportApi } from "./model/machineExport";
 export type { VerifyApi } from "./model/verify";
 export { useGitBundle, type GitBundleModel } from "./useGitBundle";
 export { useHtmlExport, type HtmlExportModel } from "./useHtmlExport";
+export { useMachineExport, type MachineExportModel } from "./useMachineExport";
 export { useManifest, type ManifestModel } from "./useManifest";
 export { useVerify, type VerifyModel } from "./useVerify";
 export { VerifyPanel } from "./VerifyPanel";
