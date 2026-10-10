@@ -78,6 +78,49 @@ input given that only `packages/format` parses notebook files (AGENTS.md rule 2)
     veraPDF with `--flavour 3b` and checks that both file names are present in
     the PDF.
 
+## Advisories ignored in `deny.toml`
+
+Checked 2026-10-10 against Typst 0.15.1 (the newest release) and the crate
+sources in the lockfile. Each exception is by advisory ID, which cargo-deny
+cannot narrow to one crate or one call, so the argument is that the code is not
+reachable from untrusted input. Untrusted input here means a researcher's
+notes, titles, artefact names, citation data and the files in the project.
+
+What reaches Typst: only `/data.json` (the project as JSON text), the two JSON
+files to attach, the fixed template and the embedded fonts. The `World` serves
+nothing else (`world.rs`), the template is committed source, and project text
+is only ever read as JSON strings, never evaluated. Researcher wording is
+printed literally (`pdfa3.rs`, `injection.rs`).
+
+| Advisory | Crate and path | Kind | Reachable from untrusted input? | Remove when |
+| --- | --- | --- | --- | --- |
+| RUSTSEC-2026-0194, RUSTSEC-2026-0195 | `quick-xml` 0.38.4 via `typst-library` > `hayagriva` > `citationberg` | Vulnerabilities (CPU and memory exhaustion on crafted XML) | No. The only caller in Typst is `CslStyle::from_data` (`bibliography.rs:546`), run for a CSL file given to `bibliography(style: ...)`. The template has no `bibliography`, no application code supplies a style, and nothing here serves XML. Built-in styles and locales are read from Typst's compiled archive, not parsed as XML. `plist`'s `quick-xml` 0.42 is outside the affected range. | `citationberg` is built on `quick-xml` 0.41 or later |
+| RUSTSEC-2025-0141 | `bincode` 1.3.3 via `syntect` | Unmaintained | No. It decodes syntax sets compiled into the binary. | `syntect` or `two-face` no longer use `bincode` 1 |
+| RUSTSEC-2024-0320 | `yaml-rust` 0.4.5 via `syntect` | Unmaintained | No. `SyntaxDefinition::load_from_str` (`raw.rs:732`) runs only for custom syntaxes passed to `raw(syntaxes: ...)`; the template passes none. Code blocks use `raw` with no language. | `syntect` moves to a maintained YAML parser |
+| RUSTSEC-2026-0206 | `rustybuzz` 0.20.1 via `typst-layout`, `krilla` | Unmaintained | Shapes researcher text, but there is no known vulnerability. Fonts are the embedded ones. | Typst moves to `harfrust` or a maintained `rustybuzz` |
+| RUSTSEC-2026-0192 | `ttf-parser` 0.25.1 via `fontdb`, `typst` | Unmaintained | Parses font files, and only the embedded fonts are ever loaded: no system or user fonts (`typst-kit` has `embedded-fonts` only). There is no known vulnerability. | Typst moves to a maintained font parser |
+
+Latest releases on 2026-10-10: `typst` 0.15.1, `hayagriva` 0.10.1,
+`citationberg` 0.7.0, `syntect` 5.3.0, `rustybuzz` 0.20.1, `ttf-parser` 0.25.1,
+all already locked, so no upstream fix exists yet. `two-face` 0.5.2 is newer than
+the 0.4.5 Typst pins; it does not remove a Typst dependency on its own.
+
+Keeping the argument true:
+
+- `crates/nb-export/tests/template_surface.rs` fails if the template starts to
+  use `bibliography`, `cite`, custom syntaxes or themes, `xml`, `yaml`, `toml`,
+  `csv`, `cbor`, `read`, `image`, `eval`, `plugin`, `#import`, `#include` or a
+  package, or if fonts are ever searched for instead of the embedded ones.
+- Giving Typst an XML, YAML or font file that is not embedded needs this
+  section reopened, because it removes the reason the exceptions hold.
+- cargo-deny reports `advisory-not-detected` when an ignored advisory stops
+  applying, for instance after a Typst upgrade. The weekly workflow
+  (`weekly.yml`, job `advisories`) fails on that warning, so a fixed exception
+  cannot linger, and it writes the latest releases of these crates to the job
+  summary, so the wait is visible. Removing an exception means deleting its entry
+  in `deny.toml` and its row here.
+- A new advisory on any of these crates, or any other crate, still fails CI.
+
 ## Alternatives considered
 
 | Option | Why not chosen |
@@ -91,16 +134,9 @@ input given that only `packages/format` parses notebook files (AGENTS.md rule 2)
 ## Consequences
 
 - **Dependency graph.** The desktop crate now depends on `nb-export`, so Typst
-  and its dependencies are in the application and not only in a workspace
-  member. `cargo deny check advisories` now reports six advisories on that
-  graph (it passes on `main`): two vulnerabilities in `quick-xml` 0.38.4
-  (RUSTSEC-2026-0194, RUSTSEC-2026-0195, fixed in 0.41 but pinned by
-  `citationberg`, itself pulled in by Typst's `hayagriva`) and four
-  unmaintained crates (`bincode`, `rustybuzz`, `ttf-parser`, `yaml-rust`). The
-  template never calls Typst's `bibliography()`, so the application never gives
-  Typst XML to parse, but `deny.toml` is protected and the decision to ignore
-  them, or to keep Typst out of the application, is the maintainer's. See the
-  PR description.
+  and its dependencies are in the application, and `cargo deny check advisories`
+  reports six advisories on them. They are ignored in `deny.toml`, each with a
+  reason, on the grounds set out under "Advisories ignored in `deny.toml`".
 - **Tests.** `nb-export/tests/pdfa3.rs` (PDF/A-3b markers, both attachments with
   type and relationship, text reaches the page, hostile wording stays literal,
   deterministic bytes, the date comes from the input), `pdfBlocks.test.ts`,
@@ -114,8 +150,8 @@ input given that only `packages/format` parses notebook files (AGENTS.md rule 2)
   nested lists, code, quote, bibliography) were validated locally with veraPDF
   1.30 `--flavour 3b`: compliant, 146 rules passed, none failed (S6-G01). The
   nightly job repeats this on every run.
-- **Protected paths.** `.github/workflows/nightly.yml`, `crates/nb-archive/` and
-  this ADR.
+- **Protected paths.** `.github/workflows/nightly.yml`,
+  `.github/workflows/weekly.yml`, `deny.toml`, `crates/nb-archive/` and this ADR.
 - **Not tested.** The look of the PDF in a viewer; a very large project (the PDF
   grows with it); non-Latin scripts; the typical fixture has an empty
   `bibliography.json`, so the combined bibliography is covered by the unit tests
