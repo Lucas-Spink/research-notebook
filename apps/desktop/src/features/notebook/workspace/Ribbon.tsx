@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { RibbonGroup, RibbonMenu } from "../../../shared/ribbon";
+import { useTheme } from "../../../shared/theme";
 import { useSources } from "../../citations";
 import type { Selected } from "../DetailsPanel";
 import type { QuestionChoice } from "../ExperimentItem";
@@ -102,6 +103,7 @@ export function Ribbon(props: Props) {
   const { actions, selected, questions, disabled, openTabs, onOpenPane } =
     props;
   const sources = useSources();
+  const { theme, setTheme } = useTheme();
   const ids = useId();
   const root = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<RibbonTab>("home");
@@ -401,6 +403,16 @@ export function Ribbon(props: Props) {
                 {...pane(INTEGRITY_TAB)}
               >
                 {m.integrityCheck}
+              </button>
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.appearance}>
+              <button
+                type="button"
+                className="ribbon__button"
+                aria-pressed={theme === "dark"}
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {m.darkMode}
               </button>
             </RibbonGroup>
           </>

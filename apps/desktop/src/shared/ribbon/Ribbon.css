@@ -39,23 +39,23 @@
 .ribbon__tab {
   min-height: 32px;
   padding: 0 var(--space-4);
-  color: #e2e8f0;
+  color: var(--tab-fg);
   font-size: var(--text-small);
-  background: #475569;
+  background: var(--tab-bg);
   border: 0;
   border-radius: var(--radius-control) var(--radius-control) 0 0;
 }
 
 .ribbon__tab:hover:not(:disabled) {
-  color: #ffffff;
-  background: #64748b;
+  color: var(--tab-hover-fg);
+  background: var(--tab-hover-bg);
   border-color: transparent;
 }
 
 .ribbon__tab[aria-selected="true"] {
   color: var(--color-text-strong);
   font-weight: var(--weight-semibold);
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
 }
 
 .ribbon__tabbar :focus-visible {
@@ -80,7 +80,7 @@
 
 .ribbon__commands {
   padding: var(--space-1) var(--space-4);
-  background: var(--color-surface);
+  background: var(--color-surface-alt);
 }
 
 /* A collapsed ribbon shows a tab's commands over the table, not above it. */
@@ -131,7 +131,7 @@
 .ribbon__group-name {
   align-self: stretch;
   padding-top: 2px;
-  color: #475569;
+  color: var(--color-text-muted);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
   line-height: 1.2;

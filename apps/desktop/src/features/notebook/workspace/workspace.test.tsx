@@ -80,6 +80,22 @@ const groupsOf = (view: HTMLElement) =>
   );
 
 describe("the workspace (S6-T01)", () => {
+  it("switches between dark and light from Settings, dark being the default", () => {
+    window.localStorage.clear();
+    const { view } = mountNotebook(state);
+    click(ribbonTab(view, "Settings"));
+    const toggle = ribbonButton(view, "Dark mode");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    click(toggle);
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(ribbonButton(view, "Dark mode").getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    click(ribbonButton(view, "Dark mode"));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    window.localStorage.clear();
+  });
+
   it("switches the table between Detailed comparison and Compact overview (#101)", () => {
     const { view } = mountNotebook(state);
     const table = view.querySelector(".wtable");
@@ -168,7 +184,7 @@ describe("the workspace (S6-T01)", () => {
       "Packages",
     ]);
     click(ribbonTab(view, "Settings"));
-    expect(groupsOf(view)).toEqual(["Project", "Check"]);
+    expect(groupsOf(view)).toEqual(["Project", "Check", "Appearance"]);
   });
 
   it("moves between ribbon tabs with the arrow keys", () => {

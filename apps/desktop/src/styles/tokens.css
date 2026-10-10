@@ -70,9 +70,63 @@
   --status-abandoned-bg: #fee2e2;
 
   /* Shape. */
+  /* The ribbon's tabs: grey on the navigation bar. The chosen tab takes the
+     surface-alt colour so it joins the commands strip below it. */
+  --tab-fg: #e2e8f0;
+  --tab-bg: #475569;
+  --tab-hover-fg: #ffffff;
+  --tab-hover-bg: #64748b;
+
   --radius-control: 6px;
   --radius-panel: 8px;
   --control-height: 28px;
   --shadow-popover: 0 4px 14px rgb(30 41 59 / 16%);
   --shadow-dialog: 0 12px 32px rgb(30 41 59 / 28%);
+}
+
+/* Dark mode, the default: the same tokens with dark values. Everything that
+   takes its colour from a token follows. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --palette-accent: #3b82f6;
+  --palette-accent-hover: #60a5fa;
+  --palette-primary-dark: #0b1220;
+  --palette-secondary: #334155;
+  --palette-background: #0f172a;
+  --palette-light: #1e293b;
+  --palette-success: #4ade80;
+  --palette-warning: #fbbf24;
+
+  --color-text: #cbd5e1;
+  --color-text-strong: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-alt: #273449;
+  --color-border: #334155;
+  --color-border-control: #475569;
+  --color-nav: #0b1220;
+  --color-nav-hover: #1e293b;
+  --color-hover: #2b3a52;
+  --color-selected: #1e3a5f;
+  --color-cell-selected: #64748b;
+  --color-cell-editing: #60a5fa;
+
+  --status-planned-fg: #cbd5e1;
+  --status-planned-bg: #334155;
+  --status-running-fg: #93c5fd;
+  --status-running-bg: #1e3a8a;
+  --status-complete-fg: #86efac;
+  --status-complete-bg: #14532d;
+  --status-abandoned-fg: #fca5a5;
+  --status-abandoned-bg: #7f1d1d;
+
+  --tab-fg: #cbd5e1;
+  --tab-bg: #1e293b;
+  --tab-hover-fg: #ffffff;
+  --tab-hover-bg: #334155;
+
+  --shadow-popover: 0 4px 14px rgb(0 0 0 / 45%);
+  --shadow-dialog: 0 12px 32px rgb(0 0 0 / 55%);
 }

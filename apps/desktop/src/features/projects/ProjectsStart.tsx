@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ConflictPanel } from "../conflicts";
 import { NotebookPanel } from "../notebook";
+import { ThemeToggle } from "../../shared/ThemeToggle";
 import { messages } from "./messages";
 import { OpenedPanel } from "./OpenedPanel";
 import { ProjectRibbonControls } from "./ProjectRibbonControls";
@@ -72,6 +73,7 @@ export function ProjectsStart() {
   return (
     <section className="projects container" aria-labelledby="projects-heading">
       <h1>{messages.appTitle}</h1>
+      <ThemeToggle label={messages.darkMode} />
       <div className="projects__narrow">
         <h2 id="projects-heading">{messages.heading}</h2>
 
