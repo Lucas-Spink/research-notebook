@@ -19,7 +19,7 @@ import type { FilterState, SortState } from "../table/model/rows";
 import { FilterControls, SortControls } from "../table/TableToolbar";
 import type { NotebookActions } from "../useNotebook";
 import { paneMessages, ribbonMessages as m } from "./messages";
-import type { PaneTab } from "./model/panes";
+import type { ExportSection, PaneTab } from "./model/panes";
 import { NewExperimentForm } from "./NewExperimentForm";
 import { SelectionCommands } from "./SelectionCommands";
 
@@ -44,12 +44,21 @@ type Props = {
   onCollapseAll: (collapsed: boolean) => void;
   /** Opens the selected experiment's Results cell, where files are added. */
   onAddResult: (() => void) | null;
+  /** Whether the project can be archived here, which adds the Archive command. */
+  archivable: boolean;
   /** The tab ids that are open, to show which ribbon buttons they belong to. */
   openTabs: ReadonlySet<string>;
   onOpenPane: (tab: PaneTab) => void;
 };
 
-const TAB_KEYS = ["home", "experiments", "sources", "view", "project"] as const;
+const TAB_KEYS = [
+  "home",
+  "experiments",
+  "sources",
+  "view",
+  "project",
+  "export",
+] as const;
 type RibbonTab = (typeof TAB_KEYS)[number];
 
 const SOURCES_TAB: PaneTab = { id: "sources", kind: "sources" };
@@ -57,10 +66,15 @@ const SEARCH_TAB: PaneTab = { id: "search", kind: "search" };
 const CITATIONS_TAB: PaneTab = { id: "citations", kind: "citations" };
 const DETAILS_TAB: PaneTab = { id: "details", kind: "details" };
 const INTEGRITY_TAB: PaneTab = { id: "integrity", kind: "integrity" };
+const exportTab = (section: ExportSection): PaneTab => ({
+  id: `export:${section}`,
+  kind: "export",
+  section,
+});
 
 /**
- * The ribbon (S6-T01): a row of tabs, Home, Experiments, Sources, View and
- * Project, and under it only the commands of the chosen tab, in labelled
+ * The ribbon (S6-T01): a row of tabs, Home, Experiments, Sources, View,
+ * Project and Export, and under it only the commands of the chosen tab, in labelled
  * groups, so nothing needs more width than a window has. Less common
  * actions sit in menus. It can be collapsed to its tabs alone to give the
  * table more height; choosing a tab then shows its commands over the table
@@ -192,6 +206,15 @@ export function Ribbon(props: Props) {
       {m.sourcesPane}
     </button>
   );
+  const exportButton = (section: ExportSection, label: string) => (
+    <button
+      type="button"
+      className="ribbon__button"
+      {...pane(exportTab(section))}
+    >
+      {label}
+    </button>
+  );
   const filters = (
     <RibbonMenu label={m.filters}>
       <FilterControls filter={props.filter} onFilter={props.onFilter} />
@@ -320,6 +343,27 @@ export function Ribbon(props: Props) {
                 {m.integrityCheck}
               </button>
             </RibbonGroup>
+          </>
+        );
+      case "export":
+        return (
+          <>
+            <RibbonGroup label={m.groups.documents}>
+              {exportButton("pdf", m.exportPdf)}
+              {exportButton("html", m.exportHtml)}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.data}>
+              {exportButton("machine", m.exportMachine)}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.packages}>
+              {exportButton("bundles", m.exportBundles)}
+              {exportButton("gitBundle", m.exportGitBundle)}
+            </RibbonGroup>
+            {props.archivable && (
+              <RibbonGroup label={m.groups.preservation}>
+                {exportButton("archive", m.archiveProject)}
+              </RibbonGroup>
+            )}
           </>
         );
     }

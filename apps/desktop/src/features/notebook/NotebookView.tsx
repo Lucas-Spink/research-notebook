@@ -77,6 +77,7 @@ import {
   initialPanes,
   panesReducer,
   resultTabId,
+  type ExportSection,
   type PaneTab,
 } from "./workspace/model/panes";
 import {
@@ -533,6 +534,8 @@ function NotebookViewBody({
         return paneMessages.detailsTab;
       case "integrity":
         return paneMessages.integrityTab;
+      case "export":
+        return paneMessages.exportTabs[tab.section];
       case "addResult":
         return paneMessages.addResultTab;
       case "results":
@@ -552,6 +555,25 @@ function NotebookViewBody({
       }
       default:
         return assertNever(tab);
+    }
+  }
+
+  function exportContent(section: ExportSection): ReactNode {
+    switch (section) {
+      case "pdf":
+        return <PdfExportPanel model={pdfExport} />;
+      case "html":
+        return <HtmlExportPanel model={htmlExport} />;
+      case "machine":
+        return <MachineExportPanel model={machineExport} />;
+      case "bundles":
+        return <BundlePanel model={bundle} />;
+      case "gitBundle":
+        return <GitBundlePanel model={gitBundle} />;
+      case "archive":
+        return <ArchivePanel model={archive} />;
+      default:
+        return assertNever(section);
     }
   }
 
@@ -595,16 +617,10 @@ function NotebookViewBody({
               }
             />
             <VerifyPanel model={verify} />
-            <GitBundlePanel model={gitBundle} />
-            <BundlePanel model={bundle} />
-            <HtmlExportPanel model={htmlExport} />
-            <MachineExportPanel model={machineExport} />
-            <PdfExportPanel model={pdfExport} />
-            {onProjectFileChanged !== undefined && (
-              <ArchivePanel model={archive} />
-            )}
           </>
         );
+      case "export":
+        return exportContent(tab.section);
       case "results":
         return (
           <ResultsPane
@@ -669,6 +685,7 @@ function NotebookViewBody({
       <section className="workspace" aria-labelledby="notebook-heading">
         <Ribbon
           projectControls={projectControls}
+          archivable={onProjectFileChanged !== undefined}
           writable={writable}
           disabled={disabled}
           actions={actions}

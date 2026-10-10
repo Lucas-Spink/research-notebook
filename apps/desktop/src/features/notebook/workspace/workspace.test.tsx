@@ -80,13 +80,13 @@ const groupsOf = (view: HTMLElement) =>
   );
 
 describe("the workspace (S6-T01)", () => {
-  it("has Home, Experiments, Sources, View and Project tabs, and shows only the chosen tab's groups", () => {
+  it("has Home, Experiments, Sources, View, Project and Export tabs, and shows only the chosen tab's groups", () => {
     const { view } = mountNotebook(state);
     expect(
       [...view.querySelectorAll('.ribbon [role="tab"]')].map(
         (t) => t.textContent,
       ),
-    ).toEqual(["Home", "Experiments", "Sources", "View", "Project"]);
+    ).toEqual(["Home", "Experiments", "Sources", "View", "Project", "Export"]);
     expect(ribbonTab(view, "Home").getAttribute("aria-selected")).toBe("true");
     expect(groupsOf(view)).toEqual(["Add", "Selection", "Panes"]);
 
@@ -179,6 +179,42 @@ describe("the workspace (S6-T01)", () => {
     click(ribbonTab(view, "Project"));
     click(ribbonButton(view, "Integrity check"));
     expect(pane(view)?.textContent).toContain("has not been generated");
+  });
+
+  it("groups the export commands on the Export tab", () => {
+    const { view } = mountNotebook(state);
+    click(ribbonTab(view, "Export"));
+    expect(groupsOf(view)).toEqual(["Documents", "Data", "Packages"]);
+  });
+
+  it.each([
+    ["PDF/A", "PDF/A export", "pdf-export"],
+    ["HTML", "HTML export", "html-export"],
+    ["Machine-readable", "Machine-readable export", "machine-export"],
+    ["Bundles", "Bundles", "bundles"],
+    ["Git bundle", "Git bundles", "git-bundle"],
+  ])(
+    "opens %s from the Export tab in its own pane tab, and writes nothing until asked",
+    (button, title, section) => {
+      const { view } = mountNotebook(state);
+      click(ribbonTab(view, "Export"));
+      click(ribbonButton(view, button));
+      expect(
+        [...view.querySelectorAll('aside.pane [role="tab"]')].map(
+          (t) => t.textContent,
+        ),
+      ).toEqual([title]);
+      expect(pane(view)?.querySelector(`section.${section}`)).not.toBeNull();
+    },
+  );
+
+  it("no longer lists the export panels in the Integrity check pane", () => {
+    const { view } = mountNotebook(state);
+    click(ribbonTab(view, "Project"));
+    click(ribbonButton(view, "Integrity check"));
+    expect(pane(view)?.textContent).toContain("Manifest");
+    expect(pane(view)?.textContent).not.toContain("PDF/A export");
+    expect(pane(view)?.textContent).not.toContain("HTML export");
   });
 
   it("shows several tabs in one pane and closes them one at a time", () => {
