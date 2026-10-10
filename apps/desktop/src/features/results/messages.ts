@@ -35,6 +35,8 @@ export const resultsMessages = {
     quality_control: "Quality control",
     general: "General result",
   } as Readonly<Record<string, string>>,
+  fileActionFailed:
+    "The file could not be opened. It may be missing; nothing was changed.",
   details: {
     type: "Type",
     storage: "Stored",
@@ -55,6 +57,8 @@ export const resultsMessages = {
   menu: {
     preview: "Preview",
     details: "Show details",
+    openFile: "Open in default application",
+    reveal: "Show in file explorer",
     renameResult: "Rename display name",
     moveTo: "Move to group…",
     addTo: "Add to group…",

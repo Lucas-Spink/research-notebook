@@ -34,7 +34,10 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
   function choose(entry: MenuEntry) {
     const { run } = entry;
     if (run.kind === "open") tree.open?.(run.artefactId);
-    else if (run.kind === "renameResult" && panel.row.kind === "item")
+    else if (run.kind === "file" && panel.row.kind === "item") {
+      void tree.fileAction?.(panel.row.artefactId, run.action);
+      tree.closePanel();
+    } else if (run.kind === "renameResult" && panel.row.kind === "item")
       tree.setPanel({ kind: "renameResult", row: panel.row });
     else if (run.kind === "details" && panel.row.kind === "item")
       tree.setPanel({ kind: "details", row: panel.row });
@@ -53,7 +56,8 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
     else if (
       panel.row.kind === "group" &&
       run.kind !== "details" &&
-      run.kind !== "renameResult"
+      run.kind !== "renameResult" &&
+      run.kind !== "file"
     )
       tree.setPanel({ kind: run.kind, row: panel.row });
   }
@@ -100,6 +104,7 @@ function PanelBody({
         <ul className="results__menu">
           {rowMenu(file, panel.row, {
             canOpen: tree.open !== undefined,
+            canOpenFiles: tree.fileAction !== undefined,
             selected: chosenWith(tree, panel.row),
           }).map((entry) => (
             <li key={entry.label}>

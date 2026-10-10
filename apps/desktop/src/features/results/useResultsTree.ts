@@ -11,7 +11,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
-import { refusalMessage } from "./messages";
+import { refusalMessage, resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
 import { draggedFrom, dropAction, type Dragged } from "./model/drag";
 import { navigate, rowCommand } from "./model/keys";
@@ -49,6 +49,11 @@ type Options = {
   onAction: (action: GroupAction) => Promise<ActionOutcome>;
   /** Opens an artefact's preview (ADR-0044); leave out where there is none to open. */
   onOpen?: (artefactId: string) => void;
+  /** Opens a result's file outside the application; resolves whether it worked. Leave out where there is none. */
+  onFileAction?: (
+    artefactId: string,
+    action: "openFile" | "reveal",
+  ) => Promise<boolean>;
 };
 
 /** Copy rather than move: Ctrl on Windows, Option on macOS. */
@@ -58,7 +63,13 @@ const copyKey = (event: DragEvent) => event.ctrlKey || event.altKey;
  * The state of the Results tree: which rows are open (in memory only, not
  * saved), which row has focus, the open panel and the last refusal.
  */
-export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
+export function useResultsTree({
+  file,
+  disabled,
+  onAction,
+  onOpen,
+  onFileAction,
+}: Options) {
   const [expansion, setExpansion] = useState<Expansion>({});
   const [focus, setFocus] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -241,6 +252,15 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
     drag,
     /** Opens an artefact's preview, or `undefined` when the tree has none to open. */
     open: onOpen,
+    /** Opens or reveals a result's file; `undefined` when the tree cannot. */
+    fileAction:
+      onFileAction === undefined
+        ? undefined
+        : async (artefactId: string, action: "openFile" | "reveal") => {
+            setStatus(null);
+            if (!(await onFileAction(artefactId, action)))
+              setStatus(resultsMessages.fileActionFailed);
+          },
   };
 }
 

@@ -29,12 +29,16 @@ export type MenuRun =
   | { kind: "expandAll" | "collapseAll" }
   /** Opens the artefact's preview; changes nothing, so it is offered read-only too. */
   | { kind: "open"; artefactId: string }
+  /** Opens the result's file in its default application or the file manager; changes nothing. */
+  | { kind: "file"; action: "openFile" | "reveal" }
   /** Shows what the file records about the artefact; changes nothing. */
   | { kind: "details" };
 
 export type MenuLabel =
   | "preview"
   | "details"
+  | "openFile"
+  | "reveal"
   | "renameResult"
   | PickMode
   | "moveUp"
@@ -111,8 +115,13 @@ export function rowMenu(
   row: TreeRow,
   {
     canOpen = false,
+    canOpenFiles = false,
     selected = [],
-  }: { canOpen?: boolean; selected?: readonly ItemRow[] } = {},
+  }: {
+    canOpen?: boolean;
+    canOpenFiles?: boolean;
+    selected?: readonly ItemRow[];
+  } = {},
 ): MenuEntry[] {
   const all = groupTargets(file);
   // Several chosen artefacts: only what makes sense for all of them at once.
@@ -169,6 +178,18 @@ export function rowMenu(
     return [
       ...preview,
       ...details,
+      ...(canOpenFiles
+        ? [
+            {
+              label: "openFile" as const,
+              run: { kind: "file" as const, action: "openFile" as const },
+            },
+            {
+              label: "reveal" as const,
+              run: { kind: "file" as const, action: "reveal" as const },
+            },
+          ]
+        : []),
       { label: "renameResult", run: { kind: "renameResult" } },
       ...pick("moveTo", free),
       ...pick("addTo", free),

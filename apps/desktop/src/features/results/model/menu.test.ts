@@ -216,3 +216,19 @@ describe("classification entries (ADR-0059)", () => {
     );
   });
 });
+
+describe("file entries", () => {
+  it("offers Open and Show in file explorer only when files can be opened", () => {
+    const item = row(3);
+    const without = rowMenu(file, item).map((e) => e.label);
+    expect(without).not.toContain("openFile");
+    const withFiles = rowMenu(file, item, { canOpenFiles: true });
+    expect(withFiles.map((e) => e.label)).toEqual(
+      expect.arrayContaining(["openFile", "reveal"]),
+    );
+    expect(withFiles.find((e) => e.label === "reveal")?.run).toEqual({
+      kind: "file",
+      action: "reveal",
+    });
+  });
+});
