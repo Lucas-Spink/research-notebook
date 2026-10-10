@@ -13,7 +13,12 @@ import {
 } from "react";
 import { refusalMessage, resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
-import { draggedFrom, dropAction, type Dragged } from "./model/drag";
+import {
+  draggedFrom,
+  dropAction,
+  dropOnRoot,
+  type Dragged,
+} from "./model/drag";
 import { navigate, rowCommand } from "./model/keys";
 import type { PickMode } from "./model/menu";
 import {
@@ -62,6 +67,9 @@ type Options = {
 const copyKey = (event: { ctrlKey: boolean; altKey: boolean }) =>
   event.ctrlKey || event.altKey;
 
+/** The key the tree's background answers to as a drop target. */
+export const ROOT_KEY = "root";
+
 /** How far the pointer must travel with the button down before a press becomes a drag. */
 const DRAG_THRESHOLD = 5;
 
@@ -70,7 +78,7 @@ export type DragState = {
   label: string;
   x: number;
   y: number;
-  /** The key of the row the pointer is over, or `null`. */
+  /** The key of the row the pointer is over, `"root"` for the tree's background, or `null`. */
   over: string | null;
   /** Whether dropping there would do anything. */
   valid: boolean;
@@ -259,17 +267,18 @@ export function useResultsTree({
       const origin = { x: event.clientX, y: event.clientY };
       let started = false;
 
-      const rowAt = (x: number, y: number): TreeRow | null => {
-        const key = document
+      // The row under the pointer, or the tree's background, which is the top level.
+      const keyAt = (x: number, y: number): string | null =>
+        document
           .elementFromPoint(x, y)
           ?.closest("[data-row-key]")
-          ?.getAttribute("data-row-key");
-        return rowsRef.current.find((r) => r.key === key) ?? null;
-      };
+          ?.getAttribute("data-row-key") ?? null;
       const actionAt = (e: PointerEvent) => {
-        const target = rowAt(e.clientX, e.clientY);
+        const key = keyAt(e.clientX, e.clientY);
+        if (key === ROOT_KEY) return { key, action: dropOnRoot(source) };
+        const target = rowsRef.current.find((r) => r.key === key) ?? null;
         return {
-          target,
+          key: target?.key ?? null,
           action:
             target === null ? null : dropAction(source, target, copyKey(e)),
         };
@@ -302,12 +311,12 @@ export function useResultsTree({
           started = true;
           document.body.classList.add("results-dragging");
         }
-        const { target, action } = actionAt(e);
+        const { key, action } = actionAt(e);
         setDragState({
           label,
           x: e.clientX,
           y: e.clientY,
-          over: target?.key ?? null,
+          over: key,
           valid: action !== null,
           copy: copyKey(e),
         });

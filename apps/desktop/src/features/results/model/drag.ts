@@ -13,13 +13,19 @@ type DraggedItem = {
 
 export type Dragged =
   | DraggedItem
-  | { kind: "group"; groupId: string }
+  | {
+      kind: "group";
+      groupId: string;
+      /** The group it is in; `null` or absent at the top level. */
+      parent?: string | null;
+    }
   /** Several chosen artefacts dragged together. */
   | { kind: "items"; items: DraggedItem[] };
 
 /** The row that was dragged, as a `Dragged`, or `null` for the Ungrouped header. */
 export function draggedFrom(row: TreeRow): Dragged | null {
-  if (row.kind === "group") return { kind: "group", groupId: row.id };
+  if (row.kind === "group")
+    return { kind: "group", groupId: row.id, parent: row.parent };
   if (row.kind === "item") {
     return {
       kind: "item",
@@ -93,4 +99,32 @@ export function dropAction(
   }
   if (row.kind !== "item" || row.group === null) return null;
   return itemDrop(dragged, row.group, row.index, copy);
+}
+
+/**
+ * What dropping `dragged` on the tree's own background does: a folder goes
+ * to the top level, and an artefact leaves its folder for the Ungrouped
+ * area. A folder already at the top level, or an artefact already ungrouped,
+ * has nowhere to go. `null`: the drop is not allowed.
+ */
+export function dropOnRoot(dragged: Dragged): GroupAction | null {
+  if (dragged.kind === "group") {
+    return dragged.parent === undefined || dragged.parent === null
+      ? null
+      : { kind: "moveGroup", groupId: dragged.groupId, parent: null };
+  }
+  if (dragged.kind === "items") {
+    const steps = dragged.items.flatMap((item) => {
+      const step = dropOnRoot(item);
+      return step === null ? [] : [step];
+    });
+    return steps.length === 0 ? null : { kind: "batch", actions: steps };
+  }
+  return dragged.from === null
+    ? null
+    : {
+        kind: "removeFromGroup",
+        artefactId: dragged.artefactId,
+        groupId: dragged.from,
+      };
 }

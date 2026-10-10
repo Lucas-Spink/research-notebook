@@ -24,7 +24,7 @@
   z-index: 2;
   transform: translateY(var(--head-offset, 0px));
   display: flex;
-  color: var(--palette-primary-dark);
+  color: var(--color-text-strong);
   background: var(--palette-light);
   border-bottom: 2px solid var(--palette-secondary);
 }
@@ -219,7 +219,7 @@
   padding: 0 0.35rem;
   border: 1px solid var(--palette-secondary);
   border-radius: 4px;
-  color: var(--palette-secondary);
+  color: var(--color-text-muted);
   font-size: var(--text-small);
 }
 

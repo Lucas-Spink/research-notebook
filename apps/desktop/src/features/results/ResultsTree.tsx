@@ -8,7 +8,7 @@ import { NameForm } from "./NameForm";
 import { RowPanel } from "./RowPanel";
 import { TreeMenu } from "./TreeMenu";
 import { TreeRowView } from "./TreeRowView";
-import { useResultsTree, type ActionOutcome } from "./useResultsTree";
+import { ROOT_KEY, useResultsTree, type ActionOutcome } from "./useResultsTree";
 import "./ResultsTree.css";
 
 type Props = {
@@ -82,7 +82,10 @@ export function ResultsTree({
   const totals = useMemo(() => treeTotals(file), [file]);
 
   return (
-    <div className="results">
+    <div
+      className={`results${tree.dragState?.over === ROOT_KEY ? (tree.dragState.valid ? " results--root-over" : " results--root-no-drop") : ""}`}
+      data-row-key={ROOT_KEY}
+    >
       {compact ? (
         <div className="results__head">
           <div className="results__head-main">{header}</div>
