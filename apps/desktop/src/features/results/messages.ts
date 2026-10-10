@@ -33,6 +33,9 @@ export const resultsMessages = {
     quality_control: "Quality control",
     general: "General result",
   } as Readonly<Record<string, string>>,
+  missing: "File missing",
+  missingHint:
+    "The linked file was not found where it was recorded. Open the result to find it again. Nothing has been changed.",
   details: {
     type: "Type",
     storage: "Stored",

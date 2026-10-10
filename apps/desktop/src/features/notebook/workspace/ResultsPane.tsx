@@ -1,5 +1,5 @@
 import type { Arranged } from "@research-notebook/format";
-import type { FolderHandle } from "../../../ipc/bindings";
+import { commands, type FolderHandle } from "../../../ipc/bindings";
 import {
   applyGroupAction,
   ResultsTree,
@@ -12,12 +12,15 @@ import { previewVersion } from "../table/model/resultVersion";
 import { CodeFolder } from "./CodeFolder";
 import { paneMessages, resultsBrowserMessages as m } from "./messages";
 import type { PaneTab } from "./model/panes";
+import { useMissingLinks } from "./useMissingLinks";
 import "./ResultsPane.css";
 
 type Props = {
   tab: Extract<PaneTab, { kind: "results" }>;
   arranged: Arranged;
   folder: FolderHandle;
+  /** `project.yaml`'s id, which resolving a linked file's root needs; `null` before it has loaded. */
+  projectId: string | null;
   editing: TableEditing;
   /** Opens the Add result pane for this experiment. */
   onAddResults: (experimentFolder: string) => void;
@@ -34,6 +37,7 @@ export function ResultsPane({
   tab,
   arranged,
   folder,
+  projectId,
   editing,
   onAddResults,
 }: Props) {
@@ -42,6 +46,7 @@ export function ResultsPane({
     ...arranged.unassigned,
   ].find((candidate) => candidate.experiment.folder === tab.experimentFolder);
   const file = item === undefined ? null : evidenceOf(item);
+  const missing = useMissingLinks(commands, folder, projectId, file);
   if (item === undefined || file === null) {
     return <p>{paneMessages.resultUnavailable}</p>;
   }
@@ -86,6 +91,7 @@ export function ResultsPane({
         disabled={readOnly}
         onAction={onAction}
         onOpen={open}
+        missing={missing}
       />
       <CodeFolder
         file={file}

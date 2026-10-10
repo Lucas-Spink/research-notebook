@@ -24,6 +24,8 @@ type Props = {
    * actions, or by Enter when read-only. Left out, no file can be opened.
    */
   onOpen?: (artefactId: string) => void;
+  /** Linked results whose file cannot be found now; each is marked in words. */
+  missing?: ReadonlySet<string>;
 };
 
 /**
@@ -32,7 +34,13 @@ type Props = {
  * reordered and deleted, and artefacts moved or added, by drag, keyboard
  * or each row's actions (FR-GRP-01 to FR-GRP-06).
  */
-export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
+export function ResultsTree({
+  file,
+  disabled,
+  onAction,
+  onOpen,
+  missing,
+}: Props) {
   const tree = useResultsTree({
     file,
     disabled,
@@ -81,6 +89,9 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
               tabbable={row.key === tree.tabKey}
               disabled={disabled}
               tree={tree}
+              missing={
+                row.kind === "item" && (missing?.has(row.artefactId) ?? false)
+              }
             />
           );
         })}
