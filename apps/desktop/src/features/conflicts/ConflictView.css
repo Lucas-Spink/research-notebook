@@ -22,10 +22,10 @@
   border: 1px solid currentColor;
   border-color: color-mix(in srgb, currentColor 30%, transparent);
   font-family: ui-monospace, monospace;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }
 
 .conflict__actions p {
   margin: 0.25rem 0 0;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
 }

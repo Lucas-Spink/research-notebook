@@ -24,11 +24,11 @@
 
 .citation-picker__heading {
   margin: 0;
-  font-size: 0.9em;
+  font-size: var(--text-small);
 }
 
 .citation-picker__label {
-  font-size: 0.85em;
+  font-size: var(--text-small);
   font-weight: 600;
 }
 
@@ -90,7 +90,7 @@
 }
 
 .citation-picker__result-meta {
-  font-size: 0.85em;
+  font-size: var(--text-small);
   opacity: 0.8;
 }
 
@@ -132,5 +132,5 @@
 }
 
 .citation-picker__separate {
-  font-size: 0.9em;
+  font-size: var(--text-small);
 }

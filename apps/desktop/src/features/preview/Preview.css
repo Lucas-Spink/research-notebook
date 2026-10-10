@@ -54,7 +54,7 @@
 
 .preview__table {
   border-collapse: collapse;
-  font-size: 0.875em;
+  font-size: var(--text-small);
 }
 
 .preview__table caption {
@@ -75,13 +75,13 @@
   max-height: 70vh;
   overflow: auto;
   font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
-  font-size: 0.875em;
+  font-size: var(--text-small);
   white-space: pre;
 }
 
 .preview__note {
   margin: 0;
-  font-size: 0.875em;
+  font-size: var(--text-small);
 }
 
 .preview__details {
@@ -118,6 +118,6 @@
   width: 4rem;
   height: 4rem;
   border: 1px solid currentColor;
-  font-size: 0.75em;
+  font-size: var(--text-meta);
   text-align: center;
 }

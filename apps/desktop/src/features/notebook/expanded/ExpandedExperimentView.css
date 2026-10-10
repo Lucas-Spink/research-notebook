@@ -86,7 +86,7 @@
   border: 1px solid currentColor;
   border-radius: 4px;
   padding: 0.125rem 0.375rem;
-  font-size: 0.85em;
+  font-size: var(--text-small);
 }
 
 .expanded__artefact-ref-group {
@@ -102,7 +102,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.85em;
+  font-size: var(--text-small);
   font-style: italic;
 }
 

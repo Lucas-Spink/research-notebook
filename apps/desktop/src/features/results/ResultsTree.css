@@ -13,7 +13,7 @@
 
 .results__help {
   margin: 0;
-  font-size: 0.875em;
+  font-size: var(--text-small);
 }
 
 .results__status:empty {
@@ -109,7 +109,7 @@
 
 .results__count {
   font-weight: normal;
-  font-size: 0.875em;
+  font-size: var(--text-small);
 }
 
 .results__panel {

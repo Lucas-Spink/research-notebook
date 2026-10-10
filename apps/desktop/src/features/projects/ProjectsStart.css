@@ -46,14 +46,14 @@
 }
 
 .projects__path {
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   opacity: 0.75;
   overflow-wrap: anywhere;
 }
 
 .projects__missing,
 .projects__notice {
-  font-size: 0.9rem;
+  font-size: var(--text-small);
 }
 
 .projects__missing {

@@ -35,5 +35,5 @@
 }
 
 .slash-menu__description {
-  font-size: 0.85em;
+  font-size: var(--text-small);
 }
