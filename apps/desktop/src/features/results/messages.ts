@@ -11,7 +11,7 @@ export const resultsMessages = {
   ungrouped: "Ungrouped",
   help: "Use the arrow keys to move through groups, and Enter for actions. Alt+Up and Alt+Down reorder. Ctrl-click, Shift-click or Space chooses several artefacts to move together. Drag to move an artefact; hold Ctrl (Option on macOS) while dropping to add it instead.",
   readOnly: "This project is read-only, so groups cannot be changed.",
-  newGroupLabel: "New group",
+  newGroupLabel: "New folder",
   resultNameLabel: "Display name",
   resultNameNote: "Only the name shown here changes. The file is not renamed.",
   newGroupPlaceholder: "For example, Main figures",
@@ -35,6 +35,9 @@ export const resultsMessages = {
     quality_control: "Quality control",
     general: "General result",
   } as Readonly<Record<string, string>>,
+  treeActions: "Results actions",
+  filterTargets: "Filter",
+  noTargets: "No match",
   fileActionFailed:
     "The file could not be opened. It may be missing; nothing was changed.",
   missing: "File missing",
@@ -56,7 +59,7 @@ export const resultsMessages = {
   expandAll: "Expand all",
   collapseAll: "Collapse all",
   totals: (results: number, groups: number) =>
-    `${plural(results, "result", "results")} · ${plural(groups, "group", "groups")}`,
+    `${plural(results, "result", "results")} · ${plural(groups, "folder", "folders")}`,
   menu: {
     preview: "Preview",
     details: "Show details",
@@ -73,7 +76,7 @@ export const resultsMessages = {
     clearClassification: "Clear classification",
     classify: "Classify as…",
     rename: "Rename",
-    newSubgroup: "New subgroup",
+    newSubgroup: "New subfolder",
     expandAll: "Expand all inside",
     collapseAll: "Collapse all inside",
     moveToTop: "Move to top level",

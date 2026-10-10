@@ -1,7 +1,11 @@
+/* A compact, VS Code-style explorer: 12px type, rows of about 22px,
+   14px of indent per level, and small icons. */
 .results {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .results__name {
@@ -13,11 +17,26 @@
 
 .results__help {
   margin: 0;
-  font-size: var(--text-small);
+  font-size: var(--text-meta);
 }
 
 .results__status:empty {
   display: none;
+}
+
+.results__head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.results__head-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  min-width: 0;
 }
 
 .results__tree {
@@ -26,14 +45,13 @@
   padding: 0;
 }
 
-/* A file system: a folder icon before a group's name, and a file's type icon
-   just after its name. The actions button shows on hover or focus. */
 .results__row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 4px;
+  border-radius: 3px;
   cursor: default;
 }
 
@@ -47,7 +65,7 @@
 
 .results__row--over {
   background: color-mix(in srgb, var(--palette-accent) 14%, transparent);
-  box-shadow: inset 0 0 0 2px var(--palette-accent);
+  box-shadow: inset 0 0 0 1px var(--palette-accent);
 }
 
 .results__icon {
@@ -57,9 +75,10 @@
   color: var(--palette-secondary);
 }
 
-.results__icon .artefact-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+.results__icon .artefact-icon,
+.results__icon .folder-icon {
+  width: 15px;
+  height: 15px;
 }
 
 .results__icon--folder {
@@ -67,23 +86,36 @@
 }
 
 .results__name-text {
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .results__count {
   margin-inline-start: auto;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: var(--weight-regular);
 }
 
 .results__actions-dots::before {
   content: "⋯";
 }
 
-.results__actions {
+.results__actions,
+.results__tree-actions {
   flex: none;
-  padding: 0 0.4rem;
-  line-height: 1.2;
+  padding: 0 4px;
+  color: var(--color-text-muted);
   background: none;
   border-color: transparent;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.results__actions {
   opacity: 0;
 }
 
@@ -93,23 +125,28 @@
   opacity: 1;
 }
 
+.results__actions:hover,
+.results__tree-actions:hover {
+  background: var(--color-hover);
+}
+
 .results__row:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: -2px;
+  outline: 1px solid var(--color-focus);
+  outline-offset: -1px;
 }
 
 .results__row--group,
 .results__row--ungrouped {
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 
 .results__toggle {
-  inline-size: 1em;
-}
-
-.results__count {
-  font-weight: normal;
-  font-size: var(--text-small);
+  display: inline-block;
+  flex: none;
+  inline-size: 10px;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  text-align: center;
 }
 
 .results__panel {
@@ -129,30 +166,119 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
 }
 
 .results__pick {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.25rem;
+  gap: 2px;
+}
+
+/* The popover a row's or the tree's menu opens in: it floats over the table. */
+.results-popover {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  min-width: 160px;
+  max-width: 220px;
+  max-height: min(60vh, 320px);
+  overflow: auto;
+  padding: 3px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgb(31 41 55 / 18%);
+  font-size: 12px;
+}
+
+.results-popover button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 26px;
+  padding: 0 6px;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  background: none;
+  border: 0;
+  border-radius: 3px;
+}
+
+.results-popover button:hover:not(:disabled),
+.results-popover button:focus-visible {
+  background: var(--color-hover);
+  outline: none;
+}
+
+.results-popover button:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--color-focus);
+}
+
+.results-popover__glyph {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.results-popover__more {
+  margin-inline-start: auto;
+  color: var(--color-text-muted);
+}
+
+.results-popover__back {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+}
+
+.results-popover__filter {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 2px 0;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.results-popover__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.results-popover__none {
+  padding: 4px 6px;
+  color: var(--color-text-muted);
+}
+
+.results-popover form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 4px;
+}
+
+.results-popover p {
+  margin: 0;
+  padding: 2px 6px;
 }
 
 /* The footer: how many results and groups the experiment has. */
 .results__totals {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
-  font-size: var(--text-meta);
+  font-size: 10.5px;
 }
 
 /* A result's classification, as text so colour is never the only signal. */
 .results__badge {
-  padding: 0 var(--space-2);
+  flex: none;
+  padding: 0 4px;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  font-size: var(--text-meta);
+  font-size: 10px;
+  line-height: 14px;
   white-space: nowrap;
 }
 

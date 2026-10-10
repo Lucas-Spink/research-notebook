@@ -59,14 +59,14 @@ describe("ResultsTree", () => {
     expect(tree?.getAttribute("aria-label")).toBe("Result groups");
     expect(items(root)).toEqual([
       {
-        text: "▾Figures2 artefacts, 1 group",
+        text: "▾Figures3",
         level: "1",
         pos: "1/3",
         expanded: "true",
         tab: "0",
       },
       {
-        text: "▾Supplementary1 artefact",
+        text: "▾Supplementary1",
         level: "2",
         pos: "1/3",
         expanded: "true",
@@ -82,7 +82,7 @@ describe("ResultsTree", () => {
       },
       { text: "Heatmap", level: "2", pos: "3/3", expanded: null, tab: "-1" },
       {
-        text: "▾Tables1 artefact",
+        text: "▾Tables1",
         level: "1",
         pos: "2/3",
         expanded: "true",
@@ -90,7 +90,7 @@ describe("ResultsTree", () => {
       },
       { text: "Counts", level: "2", pos: "1/1", expanded: null, tab: "-1" },
       {
-        text: "▾Ungrouped1 artefact",
+        text: "▾Ungrouped1",
         level: "1",
         pos: "3/3",
         expanded: "true",
@@ -111,20 +111,20 @@ describe("ResultsTree", () => {
     const root = render(largeArtefacts(120, 2));
     expect(items(root)).toEqual([
       expect.objectContaining({
-        text: "▸Group 160 artefacts",
+        text: "▸Group 160",
         expanded: "false",
       }),
       expect.objectContaining({
-        text: "▸Group 260 artefacts",
+        text: "▸Group 260",
         expanded: "false",
       }),
-      expect.objectContaining({ text: "Ungrouped0 artefacts", expanded: null }),
+      expect.objectContaining({ text: "Ungrouped0", expanded: null }),
     ]);
   });
 
   it("offers a new group form and dragging when writable", () => {
     const root = render(sampleArtefacts());
-    expect(root.querySelector("form label")?.textContent).toBe("New group");
+    expect(root.querySelector("form label")?.textContent).toBe("New folder");
     const draggable = root.querySelectorAll(
       '[role="treeitem"][draggable="true"]',
     );

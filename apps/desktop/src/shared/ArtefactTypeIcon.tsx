@@ -4,7 +4,7 @@ import { assertNever } from "./assertNever";
 type Props = { type: ArtefactModel["type"] };
 
 /** The page outline every type icon shares, with `children` as the glyph inside it. */
-function Page({ children }: { children: React.ReactNode }) {
+export function Page({ children }: { children: React.ReactNode }) {
   return (
     <svg
       className="artefact-icon"
