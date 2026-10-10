@@ -24,6 +24,11 @@ type Props = {
    * actions, or by Enter when read-only. Left out, no file can be opened.
    */
   onOpen?: (artefactId: string) => void;
+  /** Opens a result's file outside the application; resolves whether it worked. */
+  onFileAction?: (
+    artefactId: string,
+    action: "openFile" | "reveal",
+  ) => Promise<boolean>;
 };
 
 /**
@@ -32,12 +37,19 @@ type Props = {
  * reordered and deleted, and artefacts moved or added, by drag, keyboard
  * or each row's actions (FR-GRP-01 to FR-GRP-06).
  */
-export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
+export function ResultsTree({
+  file,
+  disabled,
+  onAction,
+  onOpen,
+  onFileAction,
+}: Props) {
   const tree = useResultsTree({
     file,
     disabled,
     onAction,
     ...(onOpen === undefined ? {} : { onOpen }),
+    ...(onFileAction === undefined ? {} : { onFileAction }),
   });
   const helpId = useId();
   const places = useMemo(() => positions(tree.rows), [tree.rows]);
@@ -58,6 +70,14 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
           }
         />
       )}
+      <div className="results__bulk">
+        <button type="button" onClick={() => tree.setAll(null, true)}>
+          {resultsMessages.expandAll}
+        </button>
+        <button type="button" onClick={() => tree.setAll(null, false)}>
+          {resultsMessages.collapseAll}
+        </button>
+      </div>
       <p id={helpId} className="results__help">
         {resultsMessages.help}
       </p>
@@ -66,6 +86,7 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
       </p>
       <ul
         role="tree"
+        aria-multiselectable="true"
         className="results__tree"
         aria-label={resultsMessages.treeLabel}
         aria-describedby={helpId}

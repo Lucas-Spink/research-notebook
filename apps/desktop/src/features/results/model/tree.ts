@@ -234,3 +234,22 @@ export function treeTotals(file: ArtefactsFileModel): {
     groups: count(file.groups),
   };
 }
+
+/**
+ * An `Expansion` that opens or closes `groupId` and every group inside it, or
+ * the whole tree and the Ungrouped area when `groupId` is `null`. Merge it
+ * over the current one: rows it does not name keep their state.
+ */
+export function expansionFor(
+  file: ArtefactsFileModel,
+  groupId: string | null,
+  expanded: boolean,
+): Expansion {
+  const scope =
+    groupId === null
+      ? file.groups
+      : [findGroup(file.groups, groupId)].filter((g) => g !== undefined);
+  const keys = scope.flatMap(subtreeIds).map(groupKey);
+  if (groupId === null) keys.push(UNGROUPED_KEY);
+  return Object.fromEntries(keys.map((key) => [key, expanded]));
+}
