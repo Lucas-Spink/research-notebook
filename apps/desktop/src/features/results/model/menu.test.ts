@@ -26,6 +26,7 @@ describe("rowMenu", () => {
     expect(menu.map((entry) => entry.label)).toEqual([
       "preview",
       "details",
+      "renameResult",
       "moveTo",
       "addTo",
       "markMainFigure",
@@ -47,6 +48,7 @@ describe("rowMenu", () => {
     const classify = ["markMainFigure", "classify"];
     expect(labels(row(3))).toEqual([
       "details",
+      "renameResult",
       "moveTo",
       "addTo",
       ...classify,
@@ -55,13 +57,20 @@ describe("rowMenu", () => {
     ]);
     expect(labels(row(4))).toEqual([
       "details",
+      "renameResult",
       "moveTo",
       "addTo",
       ...classify,
       "moveUp",
       "remove",
     ]);
-    expect(labels(row(8))).toEqual(["details", "moveTo", "addTo", ...classify]);
+    expect(labels(row(8))).toEqual([
+      "details",
+      "renameResult",
+      "moveTo",
+      "addTo",
+      ...classify,
+    ]);
   });
 
   it("only offers groups that do not already hold the artefact", () => {

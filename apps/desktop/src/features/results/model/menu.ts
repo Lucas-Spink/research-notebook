@@ -21,6 +21,7 @@ export type MenuRun =
   | { kind: "action"; action: GroupAction }
   | { kind: "pick"; mode: PickMode; targets: GroupTarget[] }
   | { kind: "rename" }
+  | { kind: "renameResult" }
   | { kind: "newSubgroup" }
   | { kind: "confirmDelete" }
   /** Opens or closes this group and everything in it; changes no data. */
@@ -33,6 +34,7 @@ export type MenuRun =
 export type MenuLabel =
   | "preview"
   | "details"
+  | "renameResult"
   | PickMode
   | "moveUp"
   | "moveDown"
@@ -147,6 +149,7 @@ export function rowMenu(
     return [
       ...preview,
       ...details,
+      { label: "renameResult", run: { kind: "renameResult" } },
       ...pick("moveTo", free),
       ...pick("addTo", free),
       ...classification(file, row),

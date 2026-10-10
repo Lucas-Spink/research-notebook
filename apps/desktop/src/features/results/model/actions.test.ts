@@ -54,4 +54,17 @@ describe("applyGroupAction", () => {
       ).ok,
     ).toBe(false);
   });
+
+  it("renames a result's display name without touching its groups (#101)", () => {
+    const file = sampleArtefacts();
+    const renamed = applyGroupAction(
+      file,
+      { kind: "renameArtefact", artefactId: ids.r(1), name: "Volcano, final" },
+      env,
+    );
+    expect(renamed.ok && renamed.value.artefacts[0]?.name).toBe(
+      "Volcano, final",
+    );
+    expect(renamed.ok && renamed.value.groups).toEqual(file.groups);
+  });
 });

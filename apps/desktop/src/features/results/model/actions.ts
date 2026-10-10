@@ -5,6 +5,7 @@ import {
   moveGroup,
   moveToGroup,
   removeFromGroup,
+  renameArtefact,
   renameGroup,
   reorderItem,
   setClassification,
@@ -40,6 +41,8 @@ export type GroupAction =
     }
   | { kind: "removeFromGroup"; artefactId: string; groupId: string }
   | { kind: "reorderItem"; groupId: string; artefactId: string; index: number }
+  /** Changes a result's display name; the file it records is untouched. */
+  | { kind: "renameArtefact"; artefactId: string; name: string }
   /** Sets a result's classification, or clears it with `null` (ADR-0059). */
   | {
       kind: "setClassification";
@@ -79,6 +82,8 @@ export function applyGroupAction(
       return removeFromGroup(file, action.artefactId, action.groupId);
     case "reorderItem":
       return reorderItem(file, action.groupId, action.artefactId, action.index);
+    case "renameArtefact":
+      return renameArtefact(file, action.artefactId, action.name);
     case "setClassification":
       return setClassification(file, action.artefactId, action.classification);
     default:

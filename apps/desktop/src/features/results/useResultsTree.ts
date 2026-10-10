@@ -33,6 +33,7 @@ export type Panel =
   | { kind: "details"; row: Extract<TreeRow, { kind: "item" }> }
   | { kind: "pick"; row: TreeRow; mode: PickMode; targets: GroupTarget[] }
   | { kind: "rename"; row: Extract<TreeRow, { kind: "group" }> }
+  | { kind: "renameResult"; row: Extract<TreeRow, { kind: "item" }> }
   | { kind: "newSubgroup"; row: Extract<TreeRow, { kind: "group" }> }
   | { kind: "confirmDelete"; row: Extract<TreeRow, { kind: "group" }> };
 

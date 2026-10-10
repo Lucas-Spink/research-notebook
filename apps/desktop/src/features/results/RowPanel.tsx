@@ -33,6 +33,8 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
   function choose(entry: MenuEntry) {
     const { run } = entry;
     if (run.kind === "open") tree.open?.(run.artefactId);
+    else if (run.kind === "renameResult" && panel.row.kind === "item")
+      tree.setPanel({ kind: "renameResult", row: panel.row });
     else if (run.kind === "details" && panel.row.kind === "item")
       tree.setPanel({ kind: "details", row: panel.row });
     else if (run.kind === "expandAll" || run.kind === "collapseAll") {
@@ -47,7 +49,11 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         mode: run.mode,
         targets: run.targets,
       });
-    else if (panel.row.kind === "group" && run.kind !== "details")
+    else if (
+      panel.row.kind === "group" &&
+      run.kind !== "details" &&
+      run.kind !== "renameResult"
+    )
       tree.setPanel({ kind: run.kind, row: panel.row });
   }
 
@@ -67,13 +73,15 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         tree={tree}
         choose={choose}
       />
-      {panel.kind !== "rename" && panel.kind !== "newSubgroup" && (
-        <button type="button" onClick={tree.closePanel}>
-          {panel.kind === "confirmDelete"
-            ? resultsMessages.cancel
-            : resultsMessages.close}
-        </button>
-      )}
+      {panel.kind !== "rename" &&
+        panel.kind !== "renameResult" &&
+        panel.kind !== "newSubgroup" && (
+          <button type="button" onClick={tree.closePanel}>
+            {panel.kind === "confirmDelete"
+              ? resultsMessages.cancel
+              : resultsMessages.close}
+          </button>
+        )}
     </section>
   );
 }
@@ -146,6 +154,27 @@ function PanelBody({
           }
           onCancel={tree.closePanel}
         />
+      );
+    case "renameResult":
+      return (
+        <>
+          <NameForm
+            label={resultsMessages.resultNameLabel}
+            initial={panel.row.name}
+            submitLabel={resultsMessages.save}
+            disabled={disabled}
+            focusOnShow
+            onSubmit={(name) =>
+              tree.run({
+                kind: "renameArtefact",
+                artefactId: panel.row.artefactId,
+                name,
+              })
+            }
+            onCancel={tree.closePanel}
+          />
+          <p className="wtable__muted">{resultsMessages.resultNameNote}</p>
+        </>
       );
     case "newSubgroup":
       return (
