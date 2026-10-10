@@ -12,6 +12,8 @@ type Props = {
   tabbable: boolean;
   disabled: boolean;
   tree: ResultsTreeState;
+  /** This result's linked file cannot be found. */
+  missing: boolean;
 };
 
 function label(row: TreeRow): string {
@@ -39,6 +41,7 @@ export function TreeRowView({
   tabbable,
   disabled,
   tree,
+  missing,
 }: Props) {
   const expandable = row.kind !== "item" && hasChildren(row);
   const count = counts(row);
@@ -104,6 +107,15 @@ export function TreeRowView({
       {row.kind === "item" && (
         <span className="results__icon" title={row.artefactType}>
           <ArtefactTypeIcon type={row.artefactType} />
+        </span>
+      )}
+      {missing && (
+        <span
+          className="results__badge results__badge--missing"
+          title={resultsMessages.missingHint}
+        >
+          <span aria-hidden="true">⚠ </span>
+          {resultsMessages.missing}
         </span>
       )}
       {row.kind === "item" && row.classification !== null && (
