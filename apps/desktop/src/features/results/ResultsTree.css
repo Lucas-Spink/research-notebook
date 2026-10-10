@@ -205,3 +205,20 @@
   border-color: var(--palette-warning);
   font-weight: var(--weight-medium);
 }
+
+/* In a table cell the instructions are for screen readers only. */
+.results__help--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.results__new {
+  align-self: flex-start;
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+  font-size: var(--text-meta);
+}

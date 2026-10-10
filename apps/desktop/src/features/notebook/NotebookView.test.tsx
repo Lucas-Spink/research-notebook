@@ -208,7 +208,7 @@ describe("NotebookView: the table", () => {
     const clamp = row?.querySelector(".wtable__text");
     expect(clamp?.textContent).toBe("PCA on variance-stabilised counts.");
     expect(clamp?.getAttribute("title")).toBeNull();
-    expect(text(row)).toContain("None yet");
+    expect(text(row)).toContain("0 results");
     expect(
       view.querySelector(".wtable textarea, .wtable [contenteditable]"),
     ).toBeNull();

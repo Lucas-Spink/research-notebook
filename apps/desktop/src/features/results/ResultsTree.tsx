@@ -1,5 +1,5 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useId, useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import { resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
 import { positions, treeTotals } from "./model/tree";
@@ -31,6 +31,16 @@ type Props = {
   ) => Promise<boolean>;
   /** Linked results whose file cannot be found now; each is marked in words. */
   missing?: ReadonlySet<string>;
+  /**
+   * For a table cell: the instructions are read out but not shown, and the
+   * New group form opens from a button, so the tree takes little room.
+   */
+  compact?: boolean;
+  /**
+   * Whether the tree's own controls are tab stops. A table cell turns them
+   * off until focus is inside it, so the grid keeps one tab stop per cell.
+   */
+  tabStops?: boolean;
 };
 
 /**
@@ -46,6 +56,8 @@ export function ResultsTree({
   onOpen,
   onFileAction,
   missing,
+  compact = false,
+  tabStops = true,
 }: Props) {
   const tree = useResultsTree({
     file,
@@ -55,6 +67,7 @@ export function ResultsTree({
     ...(onFileAction === undefined ? {} : { onFileAction }),
   });
   const helpId = useId();
+  const [formOpen, setFormOpen] = useState(false);
   const places = useMemo(() => positions(tree.rows), [tree.rows]);
   const totals = useMemo(() => treeTotals(file), [file]);
 
@@ -62,26 +75,54 @@ export function ResultsTree({
     <div className="results">
       {disabled ? (
         <p>{resultsMessages.readOnly}</p>
+      ) : compact && !formOpen ? (
+        <button
+          type="button"
+          className="results__new"
+          tabIndex={tabStops ? undefined : -1}
+          onClick={() => setFormOpen(true)}
+        >
+          {resultsMessages.newGroupLabel}
+        </button>
       ) : (
         <NameForm
           label={resultsMessages.newGroupLabel}
           placeholder={resultsMessages.newGroupPlaceholder}
           submitLabel={resultsMessages.create}
           disabled={disabled}
-          onSubmit={(name) =>
-            tree.run({ kind: "createGroup", name, parent: null })
-          }
+          focusOnShow={compact}
+          onSubmit={async (name) => {
+            const done = await tree.run({
+              kind: "createGroup",
+              name,
+              parent: null,
+            });
+            if (done) setFormOpen(false);
+            return done;
+          }}
+          {...(compact ? { onCancel: () => setFormOpen(false) } : {})}
         />
       )}
       <div className="results__bulk">
-        <button type="button" onClick={() => tree.setAll(null, true)}>
+        <button
+          type="button"
+          tabIndex={tabStops ? undefined : -1}
+          onClick={() => tree.setAll(null, true)}
+        >
           {resultsMessages.expandAll}
         </button>
-        <button type="button" onClick={() => tree.setAll(null, false)}>
+        <button
+          type="button"
+          tabIndex={tabStops ? undefined : -1}
+          onClick={() => tree.setAll(null, false)}
+        >
           {resultsMessages.collapseAll}
         </button>
       </div>
-      <p id={helpId} className="results__help">
+      <p
+        id={helpId}
+        className={`results__help${compact ? " results__help--hidden" : ""}`}
+      >
         {resultsMessages.help}
       </p>
       <p role="status" className="results__status">
@@ -102,7 +143,7 @@ export function ResultsTree({
               row={row}
               position={place?.position ?? 1}
               setSize={place?.setSize ?? 1}
-              tabbable={row.key === tree.tabKey}
+              tabbable={tabStops && row.key === tree.tabKey}
               disabled={disabled}
               tree={tree}
               missing={
