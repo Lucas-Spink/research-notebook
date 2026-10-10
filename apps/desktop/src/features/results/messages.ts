@@ -37,6 +37,9 @@ export const resultsMessages = {
   } as Readonly<Record<string, string>>,
   fileActionFailed:
     "The file could not be opened. It may be missing; nothing was changed.",
+  missing: "File missing",
+  missingHint:
+    "The linked file was not found where it was recorded. Open the result to find it again. Nothing has been changed.",
   details: {
     type: "Type",
     storage: "Stored",

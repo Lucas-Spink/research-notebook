@@ -29,6 +29,8 @@ type Props = {
     artefactId: string,
     action: "openFile" | "reveal",
   ) => Promise<boolean>;
+  /** Linked results whose file cannot be found now; each is marked in words. */
+  missing?: ReadonlySet<string>;
 };
 
 /**
@@ -43,6 +45,7 @@ export function ResultsTree({
   onAction,
   onOpen,
   onFileAction,
+  missing,
 }: Props) {
   const tree = useResultsTree({
     file,
@@ -102,6 +105,9 @@ export function ResultsTree({
               tabbable={row.key === tree.tabKey}
               disabled={disabled}
               tree={tree}
+              missing={
+                row.kind === "item" && (missing?.has(row.artefactId) ?? false)
+              }
             />
           );
         })}
