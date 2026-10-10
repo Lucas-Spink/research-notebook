@@ -629,6 +629,7 @@ function NotebookViewBody({
             tab={tab}
             arranged={arranged}
             folder={folder}
+            projectId={projectId}
             editing={editing}
             onAddResults={(experimentFolder) =>
               dispatchPanes({

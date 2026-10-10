@@ -3,8 +3,9 @@ import { useEffect, useRef } from "react";
 import { assertNever } from "../../shared/assertNever";
 import { classificationLabel, resultsMessages } from "./messages";
 import { pickedAction, rowMenu, type MenuEntry } from "./model/menu";
+import { batchAction } from "./model/selection";
 import { artefactDetails, formatSize } from "./model/details";
-import { deletionSummary } from "./model/tree";
+import { deletionSummary, type TreeRow } from "./model/tree";
 import { NameForm } from "./NameForm";
 import type { Panel, ResultsTreeState } from "./useResultsTree";
 
@@ -33,9 +34,18 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
   function choose(entry: MenuEntry) {
     const { run } = entry;
     if (run.kind === "open") tree.open?.(run.artefactId);
+    else if (run.kind === "file" && panel.row.kind === "item") {
+      void tree.fileAction?.(panel.row.artefactId, run.action);
+      tree.closePanel();
+    } else if (run.kind === "renameResult" && panel.row.kind === "item")
+      tree.setPanel({ kind: "renameResult", row: panel.row });
     else if (run.kind === "details" && panel.row.kind === "item")
       tree.setPanel({ kind: "details", row: panel.row });
-    else if (run.kind === "action") void tree.run(run.action);
+    else if (run.kind === "expandAll" || run.kind === "collapseAll") {
+      if (panel.row.kind === "group")
+        tree.setAll(panel.row.id, run.kind === "expandAll");
+      tree.closePanel();
+    } else if (run.kind === "action") void tree.run(run.action);
     else if (run.kind === "pick")
       tree.setPanel({
         kind: "pick",
@@ -43,7 +53,12 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         mode: run.mode,
         targets: run.targets,
       });
-    else if (panel.row.kind === "group" && run.kind !== "details")
+    else if (
+      panel.row.kind === "group" &&
+      run.kind !== "details" &&
+      run.kind !== "renameResult" &&
+      run.kind !== "file"
+    )
       tree.setPanel({ kind: run.kind, row: panel.row });
   }
 
@@ -63,13 +78,15 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         tree={tree}
         choose={choose}
       />
-      {panel.kind !== "rename" && panel.kind !== "newSubgroup" && (
-        <button type="button" onClick={tree.closePanel}>
-          {panel.kind === "confirmDelete"
-            ? resultsMessages.cancel
-            : resultsMessages.close}
-        </button>
-      )}
+      {panel.kind !== "rename" &&
+        panel.kind !== "renameResult" &&
+        panel.kind !== "newSubgroup" && (
+          <button type="button" onClick={tree.closePanel}>
+            {panel.kind === "confirmDelete"
+              ? resultsMessages.cancel
+              : resultsMessages.close}
+          </button>
+        )}
     </section>
   );
 }
@@ -85,24 +102,26 @@ function PanelBody({
     case "menu":
       return (
         <ul className="results__menu">
-          {rowMenu(file, panel.row, { canOpen: tree.open !== undefined }).map(
-            (entry) => (
-              <li key={entry.label}>
-                <button
-                  type="button"
-                  // Opening and details only look, so they stay available read-only.
-                  disabled={
-                    disabled &&
-                    entry.run.kind !== "open" &&
-                    entry.run.kind !== "details"
-                  }
-                  onClick={() => choose(entry)}
-                >
-                  {resultsMessages.menu[entry.label]}
-                </button>
-              </li>
-            ),
-          )}
+          {rowMenu(file, panel.row, {
+            canOpen: tree.open !== undefined,
+            canOpenFiles: tree.fileAction !== undefined,
+            selected: chosenWith(tree, panel.row),
+          }).map((entry) => (
+            <li key={entry.label}>
+              <button
+                type="button"
+                // Opening and details only look, so they stay available read-only.
+                disabled={
+                  disabled &&
+                  entry.run.kind !== "open" &&
+                  entry.run.kind !== "details"
+                }
+                onClick={() => choose(entry)}
+              >
+                {resultsMessages.menu[entry.label]}
+              </button>
+            </li>
+          ))}
         </ul>
       );
     case "details":
@@ -112,7 +131,7 @@ function PanelBody({
         <fieldset className="results__pick">
           <legend>{resultsMessages.pick[panel.mode]}</legend>
           {panel.targets.map((target) => {
-            const action = pickedAction(panel.row, panel.mode, target.id);
+            const action = pickedFor(file, tree, panel, target.id);
             return (
               <button
                 key={target.id}
@@ -142,6 +161,27 @@ function PanelBody({
           }
           onCancel={tree.closePanel}
         />
+      );
+    case "renameResult":
+      return (
+        <>
+          <NameForm
+            label={resultsMessages.resultNameLabel}
+            initial={panel.row.name}
+            submitLabel={resultsMessages.save}
+            disabled={disabled}
+            focusOnShow
+            onSubmit={(name) =>
+              tree.run({
+                kind: "renameArtefact",
+                artefactId: panel.row.artefactId,
+                name,
+              })
+            }
+            onCancel={tree.closePanel}
+          />
+          <p className="wtable__muted">{resultsMessages.resultNameNote}</p>
+        </>
       );
     case "newSubgroup":
       return (
@@ -174,6 +214,16 @@ function PanelBody({
           >
             {resultsMessages.deleteGroup}
           </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() =>
+              void tree.run({ kind: "dissolveGroup", groupId: panel.row.id })
+            }
+          >
+            {resultsMessages.dissolveGroup}
+          </button>
+          <p className="wtable__muted">{resultsMessages.dissolveNote}</p>
         </>
       );
     default:
@@ -218,4 +268,26 @@ function DetailsList({
       ))}
     </dl>
   );
+}
+
+/** The chosen artefacts when `row` is one of several, else none: the menu then acts on all of them. */
+function chosenWith(tree: ResultsTreeState, row: TreeRow) {
+  return row.kind === "item" &&
+    tree.chosen.length > 1 &&
+    tree.chosen.some((c) => c.key === row.key)
+    ? tree.chosen
+    : [];
+}
+
+/** What choosing `target` in a picker does: for several chosen artefacts, one batch. */
+function pickedFor(
+  file: ArtefactsFileModel,
+  tree: ResultsTreeState,
+  panel: Extract<Panel, { kind: "pick" }>,
+  target: string,
+) {
+  const several = chosenWith(tree, panel.row);
+  if (several.length > 0 && (panel.mode === "moveTo" || panel.mode === "addTo"))
+    return batchAction(file, several, panel.mode, target);
+  return pickedAction(panel.row, panel.mode, target);
 }

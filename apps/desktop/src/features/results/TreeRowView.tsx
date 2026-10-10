@@ -12,6 +12,8 @@ type Props = {
   tabbable: boolean;
   disabled: boolean;
   tree: ResultsTreeState;
+  /** This result's linked file cannot be found. */
+  missing: boolean;
 };
 
 function label(row: TreeRow): string {
@@ -39,9 +41,12 @@ export function TreeRowView({
   tabbable,
   disabled,
   tree,
+  missing,
 }: Props) {
   const expandable = row.kind !== "item" && hasChildren(row);
   const count = counts(row);
+  const chosen =
+    row.kind === "item" && tree.chosen.some((c) => c.key === row.key);
   // A group or the Ungrouped area being dragged over, so it shows it will take the drop.
   const [over, setOver] = useState(false);
   return (
@@ -51,7 +56,8 @@ export function TreeRowView({
         else tree.rowRefs.current.set(row.key, element);
       }}
       role="treeitem"
-      className={`results__row results__row--${row.kind}${over ? " results__row--over" : ""}`}
+      className={`results__row results__row--${row.kind}${over ? " results__row--over" : ""}${chosen ? " results__row--chosen" : ""}`}
+      aria-selected={row.kind === "item" ? chosen : undefined}
       aria-level={row.depth}
       aria-posinset={position}
       aria-setsize={setSize}
@@ -61,7 +67,11 @@ export function TreeRowView({
       draggable={!disabled && row.kind !== "ungrouped"}
       onKeyDown={(event) => tree.onKeyDown(row, event)}
       onFocus={() => tree.noteFocus(row.key)}
-      onClick={() => {
+      onClick={(event) => {
+        tree.choose(row, {
+          ctrl: event.ctrlKey || event.metaKey,
+          shift: event.shiftKey,
+        });
         if (expandable) tree.toggle(row.key, !row.expanded);
       }}
       onDoubleClick={() => {
@@ -104,6 +114,15 @@ export function TreeRowView({
       {row.kind === "item" && (
         <span className="results__icon" title={row.artefactType}>
           <ArtefactTypeIcon type={row.artefactType} />
+        </span>
+      )}
+      {missing && (
+        <span
+          className="results__badge results__badge--missing"
+          title={resultsMessages.missingHint}
+        >
+          <span aria-hidden="true">⚠ </span>
+          {resultsMessages.missing}
         </span>
       )}
       {row.kind === "item" && row.classification !== null && (

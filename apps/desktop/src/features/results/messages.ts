@@ -9,9 +9,11 @@ const plural = (n: number, one: string, many: string) =>
 export const resultsMessages = {
   treeLabel: "Result groups",
   ungrouped: "Ungrouped",
-  help: "Use the arrow keys to move through groups, and Enter for actions. Alt+Up and Alt+Down reorder. Drag to move an artefact; hold Ctrl (Option on macOS) while dropping to add it instead.",
+  help: "Use the arrow keys to move through groups, and Enter for actions. Alt+Up and Alt+Down reorder. Ctrl-click, Shift-click or Space chooses several artefacts to move together. Drag to move an artefact; hold Ctrl (Option on macOS) while dropping to add it instead.",
   readOnly: "This project is read-only, so groups cannot be changed.",
   newGroupLabel: "New group",
+  resultNameLabel: "Display name",
+  resultNameNote: "Only the name shown here changes. The file is not renamed.",
   newGroupPlaceholder: "For example, Main figures",
   create: "Create",
   save: "Save",
@@ -33,6 +35,11 @@ export const resultsMessages = {
     quality_control: "Quality control",
     general: "General result",
   } as Readonly<Record<string, string>>,
+  fileActionFailed:
+    "The file could not be opened. It may be missing; nothing was changed.",
+  missing: "File missing",
+  missingHint:
+    "The linked file was not found where it was recorded. Open the result to find it again. Nothing has been changed.",
   details: {
     type: "Type",
     storage: "Stored",
@@ -46,11 +53,16 @@ export const resultsMessages = {
     folders: "Groups",
     ungrouped: "Ungrouped",
   },
+  expandAll: "Expand all",
+  collapseAll: "Collapse all",
   totals: (results: number, groups: number) =>
     `${plural(results, "result", "results")} · ${plural(groups, "group", "groups")}`,
   menu: {
     preview: "Preview",
     details: "Show details",
+    openFile: "Open in default application",
+    reveal: "Show in file explorer",
+    renameResult: "Rename display name",
     moveTo: "Move to group…",
     addTo: "Add to group…",
     moveUp: "Move up",
@@ -62,6 +74,8 @@ export const resultsMessages = {
     classify: "Classify as…",
     rename: "Rename",
     newSubgroup: "New subgroup",
+    expandAll: "Expand all inside",
+    collapseAll: "Collapse all inside",
     moveToTop: "Move to top level",
     moveInto: "Move into group…",
     delete: "Delete group",
@@ -82,7 +96,10 @@ export const resultsMessages = {
         : ` and the ${plural(summary.groups, "group", "groups")} inside it`;
     return `Delete the group “${name}”${inside}? ${plural(summary.memberships, "membership is", "memberships are")} removed. No artefact or file is deleted.`;
   },
-  deleteGroup: "Delete group",
+  deleteGroup: "Delete group and everything inside",
+  dissolveGroup: "Delete group only, keep its contents",
+  dissolveNote:
+    "Its subgroups and artefacts move up to the group it was in, or to Ungrouped.",
 };
 
 /** Refusals from `packages/format`, by the field it named. */

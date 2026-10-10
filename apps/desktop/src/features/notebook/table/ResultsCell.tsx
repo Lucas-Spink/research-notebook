@@ -1,17 +1,12 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
-import {
-  addResultLabel,
-  browseResultsLabel,
-  resultsCountLabel,
-  tableMessages,
-} from "../messages";
+import { ResultsTree } from "../../results";
+import { addResultLabel, browseResultsLabel, tableMessages } from "../messages";
+import { CodeFolder } from "../workspace/CodeFolder";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
-import { previewVersion } from "./model/resultVersion";
-import { resultsSummary } from "./model/resultsSummary";
-import { ResultThumb } from "./ResultThumb";
+import { useResultsCellTree } from "./useResultsCellTree";
 
 type Props = {
   row: ExperimentRow;
@@ -23,17 +18,21 @@ type Props = {
   tabbable: boolean;
 };
 
-/** Keys that open a focused Results cell, as they open a section. */
-const OPEN_KEYS = new Set(["Enter", " ", "F2"]);
+/** Keys that move from the cell's heading into its tree. */
+const ENTER_KEYS = new Set(["Enter", " ", "F2"]);
 
 /**
- * The Results cell (FR-TBL-06): how many results there are, by group, and the
- * first few as files, each with its name and a small icon for its type.
- * Hovering one shows it larger, and double-clicking opens it in the side
- * pane. Clicking the cell, or Enter, Space or F2, opens the experiment's
- * Results browser in the pane, where files are organised into folders, and
- * the plus adds more. A read-only project or experiment can browse its
- * results but change nothing.
+ * The Results cell (FR-TBL-06, issue #101): this experiment's result groups
+ * as a nested, collapsible file tree inside the cell, with the plus to add
+ * results. Folders open and close in place and the row grows to fit, so the
+ * table keeps its own layout. Groups are virtual: they are saved in
+ * `artefacts.yaml` and never create folders on disk. Opening a result uses
+ * the preview pane. A read-only project or experiment can browse but not
+ * change anything.
+ *
+ * The cell's heading holds the grid's one tab stop. Enter, Space or F2 on it
+ * moves into the tree, whose own keys the grid leaves alone; Escape in the
+ * tree returns to the heading.
  */
 export function ResultsCell({
   row,
@@ -45,82 +44,94 @@ export function ResultsCell({
   const { experiment } = row.item;
   const ref = experiment.file.frontmatter.ref;
   const readOnly = !editing.writable || row.item.readOnly || artefacts === null;
-  const control = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  // The tree's controls are tab stops only once focus is inside it.
+  const [inside, setInside] = useState(false);
+  const treeProps = useResultsCellTree(
+    folder,
+    experiment.folder,
+    artefacts,
+    editing,
+  );
 
-  const openResult = (artefactId: string) =>
-    artefacts === null
-      ? undefined
-      : editing.onOpenResult(
-          experiment.folder,
-          artefactId,
-          previewVersion(artefacts, artefactId),
-        );
-
-  const summary = artefacts === null ? null : resultsSummary(artefacts);
   return (
     <div className="wtable__results-wrap">
+      <div className="wtable__results-head">
+        <div
+          ref={head}
+          role="group"
+          tabIndex={tabbable ? 0 : -1}
+          data-grid-focus
+          className="wtable__results-title"
+          aria-label={browseResultsLabel(ref)}
+          onKeyDown={(event) => {
+            if (ENTER_KEYS.has(event.key)) {
+              event.preventDefault();
+              body.current
+                ?.querySelector<HTMLElement>('[role="treeitem"]')
+                ?.focus();
+            } else if (event.key === "+" && !readOnly) {
+              event.preventDefault();
+              editing.onAddResult(row);
+            }
+          }}
+        >
+          {tableMessages.resultsHeading}
+        </div>
+        {!readOnly && (
+          <button
+            type="button"
+            className="wtable__add-result wtable__add-result--inline"
+            // The grid has one tab stop per cell (ADR-0043): by keyboard, press + in the heading.
+            tabIndex={-1}
+            aria-label={addResultLabel(ref)}
+            title={addResultLabel(ref)}
+            onClick={() => editing.onAddResult(row)}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+        )}
+      </div>
       <div
-        ref={control}
-        role="button"
-        tabIndex={tabbable ? 0 : -1}
-        data-grid-focus
-        className="wtable__edit wtable__results"
-        aria-label={browseResultsLabel(ref)}
-        onClick={() => editing.onOpenResults(row)}
+        ref={body}
+        className="wtable__results-open"
+        onFocus={() => setInside(true)}
+        onBlur={(event) => {
+          const to = event.relatedTarget;
+          if (!(to instanceof Node) || !event.currentTarget.contains(to))
+            setInside(false);
+        }}
         onKeyDown={(event) => {
-          if (OPEN_KEYS.has(event.key)) {
+          if (event.key === "Escape" && !event.defaultPrevented) {
             event.preventDefault();
-            editing.onOpenResults(row);
-          } else if (event.key === "+" && !readOnly) {
-            event.preventDefault();
-            editing.onAddResult(row);
+            head.current?.focus();
           }
         }}
       >
-        {summary === null || summary.total === 0 ? (
+        {artefacts === null ? (
           <span className="wtable__muted">{tableMessages.resultsNone}</span>
         ) : (
           <>
-            <div className="wtable__results-counts">
-              {resultsCountLabel(summary.total)}
-              {summary.groups.map((group, index) => (
-                // Two top-level groups may share a name.
-                <span key={index} className="wtable__results-group">
-                  {group.name} {group.count}
-                </span>
-              ))}
-            </div>
-            <div className="wtable__thumbs">
-              {summary.thumbnails.map((thumb) => (
-                <ResultThumb
-                  key={thumb.artefactId}
-                  folder={folder}
-                  experimentFolder={experiment.folder}
-                  thumb={thumb}
-                  onOpen={() => openResult(thumb.artefactId)}
-                />
-              ))}
-            </div>
-            <span className="wtable__browse">{tableMessages.browseAll}</span>
+            <ResultsTree
+              compact
+              tabStops={inside}
+              file={artefacts}
+              disabled={readOnly}
+              {...treeProps}
+            />
+            <CodeFolder
+              file={artefacts}
+              folder={folder}
+              experimentFolder={experiment.folder}
+              editing={editing}
+              readOnly={readOnly}
+              onOpen={treeProps.onOpen}
+              tabStops={inside}
+            />
           </>
         )}
       </div>
-      {!readOnly && (
-        <button
-          type="button"
-          className="wtable__add-result"
-          // The grid has one tab stop per cell (ADR-0043): by keyboard, press + in the cell.
-          tabIndex={-1}
-          aria-label={addResultLabel(ref)}
-          title={addResultLabel(ref)}
-          onClick={(event) => {
-            event.stopPropagation();
-            editing.onAddResult(row);
-          }}
-        >
-          <span aria-hidden="true">+</span>
-        </button>
-      )}
     </div>
   );
 }

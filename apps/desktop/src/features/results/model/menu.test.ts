@@ -26,6 +26,7 @@ describe("rowMenu", () => {
     expect(menu.map((entry) => entry.label)).toEqual([
       "preview",
       "details",
+      "renameResult",
       "moveTo",
       "addTo",
       "markMainFigure",
@@ -47,6 +48,7 @@ describe("rowMenu", () => {
     const classify = ["markMainFigure", "classify"];
     expect(labels(row(3))).toEqual([
       "details",
+      "renameResult",
       "moveTo",
       "addTo",
       ...classify,
@@ -55,13 +57,20 @@ describe("rowMenu", () => {
     ]);
     expect(labels(row(4))).toEqual([
       "details",
+      "renameResult",
       "moveTo",
       "addTo",
       ...classify,
       "moveUp",
       "remove",
     ]);
-    expect(labels(row(8))).toEqual(["details", "moveTo", "addTo", ...classify]);
+    expect(labels(row(8))).toEqual([
+      "details",
+      "renameResult",
+      "moveTo",
+      "addTo",
+      ...classify,
+    ]);
   });
 
   it("only offers groups that do not already hold the artefact", () => {
@@ -79,6 +88,8 @@ describe("rowMenu", () => {
       "rename",
       "moveDown",
       "moveInto",
+      "expandAll",
+      "collapseAll",
       "delete",
     ]);
     expect(labels(row(1))).toEqual([
@@ -86,6 +97,8 @@ describe("rowMenu", () => {
       "rename",
       "moveToTop",
       "moveInto",
+      "expandAll",
+      "collapseAll",
       "delete",
     ]);
   });
@@ -201,5 +214,21 @@ describe("classification entries (ADR-0059)", () => {
     expect(moved.ok && moved.value.artefacts[0]?.classification).toBe(
       "main_figure",
     );
+  });
+});
+
+describe("file entries", () => {
+  it("offers Open and Show in file explorer only when files can be opened", () => {
+    const item = row(3);
+    const without = rowMenu(file, item).map((e) => e.label);
+    expect(without).not.toContain("openFile");
+    const withFiles = rowMenu(file, item, { canOpenFiles: true });
+    expect(withFiles.map((e) => e.label)).toEqual(
+      expect.arrayContaining(["openFile", "reveal"]),
+    );
+    expect(withFiles.find((e) => e.label === "reveal")?.run).toEqual({
+      kind: "file",
+      action: "reveal",
+    });
   });
 });

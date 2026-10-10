@@ -184,3 +184,41 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.results__bulk {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.results__bulk button {
+  padding: 0 var(--space-2);
+  font-size: var(--text-meta);
+}
+
+/* Chosen artefacts: a tint plus aria-selected, so colour is not the only signal. */
+.results__row--chosen {
+  background: var(--color-selected);
+}
+.results__badge--missing {
+  color: var(--palette-warning);
+  border-color: var(--palette-warning);
+  font-weight: var(--weight-medium);
+}
+
+/* In a table cell the instructions are for screen readers only. */
+.results__help--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.results__new {
+  align-self: flex-start;
+  margin-bottom: var(--space-1);
+  padding: 0 var(--space-2);
+  font-size: var(--text-meta);
+}

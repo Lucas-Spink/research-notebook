@@ -54,4 +54,31 @@ describe("applyGroupAction", () => {
       ).ok,
     ).toBe(false);
   });
+
+  it("renames a result's display name without touching its groups (#101)", () => {
+    const file = sampleArtefacts();
+    const renamed = applyGroupAction(
+      file,
+      { kind: "renameArtefact", artefactId: ids.r(1), name: "Volcano, final" },
+      env,
+    );
+    expect(renamed.ok && renamed.value.artefacts[0]?.name).toBe(
+      "Volcano, final",
+    );
+    expect(renamed.ok && renamed.value.groups).toEqual(file.groups);
+  });
+
+  it("deletes a group only and keeps its artefacts and subgroups (#101)", () => {
+    const file = sampleArtefacts();
+    const result = applyGroupAction(
+      file,
+      { kind: "dissolveGroup", groupId: ids.g(1) },
+      env,
+    );
+    expect(result.ok && result.value.groups.map((g) => g.id)).toEqual([
+      ids.g(3),
+      ids.g(2),
+    ]);
+    expect(result.ok && result.value.artefacts).toEqual(file.artefacts);
+  });
 });

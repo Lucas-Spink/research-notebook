@@ -18,6 +18,8 @@ type Props = {
   readOnly: boolean;
   /** Opens a script's preview in the side pane. */
   onOpen: (artefactId: string) => void;
+  /** Whether its buttons are tab stops; a table cell turns them off until focus is inside it. */
+  tabStops?: boolean;
 };
 
 /** The scripts an experiment links: its method artefacts, in the order they were recorded. */
@@ -40,6 +42,7 @@ export function CodeFolder({
   editing,
   readOnly,
   onOpen,
+  tabStops = true,
 }: Props) {
   const scripts = scriptsOf(file);
   return (
@@ -60,6 +63,7 @@ export function CodeFolder({
               evidence={editing.evidence}
               file={file}
               editing={editing}
+              tabStops={tabStops}
             />
           )}
       </header>
@@ -72,6 +76,7 @@ export function CodeFolder({
               <button
                 type="button"
                 className="code-folder__script"
+                tabIndex={tabStops ? undefined : -1}
                 aria-label={m.scriptOpen(script.name)}
                 onClick={() => onOpen(script.id)}
               >
@@ -99,7 +104,9 @@ function LinkScripts({
   evidence,
   file,
   editing,
+  tabStops,
 }: {
+  tabStops: boolean;
   folder: FolderHandle;
   projectId: string;
   experimentFolder: string;
@@ -121,6 +128,7 @@ function LinkScripts({
       <button
         type="button"
         className="code-folder__link"
+        tabIndex={tabStops ? undefined : -1}
         disabled={add.busy}
         onClick={() => void add.pickScripts()}
       >
