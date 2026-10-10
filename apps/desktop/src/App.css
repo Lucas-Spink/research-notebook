@@ -92,7 +92,7 @@ button:disabled {
 
 /* The one main action of a view: filled with the accent. */
 .btn-primary {
-  color: #ffffff;
+  color: var(--color-on-accent);
   font-weight: var(--weight-medium);
   background: var(--color-accent);
   border-color: var(--color-accent);

@@ -51,6 +51,8 @@
   --color-nav: #1e293b;
   --color-nav-hover: #334155;
   --color-on-dark: #f8fafc;
+  /* Text on a filled accent button or mark. */
+  --color-on-accent: #ffffff;
   --color-focus: var(--palette-accent);
   --color-hover: #f1f5f9;
   --color-selected: #dbeafe;
@@ -89,44 +91,53 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --palette-accent: #3b82f6;
-  --palette-accent-hover: #60a5fa;
-  --palette-primary-dark: #0b1220;
-  --palette-secondary: #334155;
-  --palette-background: #0f172a;
-  --palette-light: #1e293b;
-  --palette-success: #4ade80;
-  --palette-warning: #fbbf24;
+  /* Monokai. Editor background #272822 and text #f8f8f2; the darker sidebar
+     #1e1f1c for navigation; #34352f for inactive tabs and raised panels;
+     #414339 for selection and focus. Cyan #66d9ef is the accent (Monokai's
+     class colour), green #a6e22e is success, yellow #e6db74 is warning and
+     #f44747 is an error. */
+  --palette-accent: #66d9ef;
+  --palette-accent-hover: #8be9f8;
+  --palette-primary-dark: #1e1f1c;
+  --palette-secondary: #414339;
+  --palette-background: #272822;
+  --palette-light: #34352f;
+  --palette-success: #a6e22e;
+  --palette-warning: #e6db74;
 
-  --color-text: #cbd5e1;
-  --color-text-strong: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-surface-alt: #273449;
-  --color-border: #334155;
-  --color-border-control: #475569;
-  --color-nav: #0b1220;
-  --color-nav-hover: #1e293b;
-  --color-hover: #2b3a52;
-  --color-selected: #1e3a5f;
-  --color-cell-selected: #64748b;
-  --color-cell-editing: #60a5fa;
+  --color-text: #f8f8f2;
+  --color-text-strong: #f8f8f2;
+  /* The comment colour #75715e is too faint for reading, so secondary text is a lighter step of it. */
+  --color-text-muted: #a6a28c;
+  --color-bg: #272822;
+  --color-surface: #2f302a;
+  --color-surface-alt: #34352f;
+  --color-border: #414339;
+  --color-border-control: #75715e;
+  --color-nav: #1e1f1c;
+  --color-nav-hover: #34352f;
+  --color-on-dark: #f8f8f2;
+  --color-on-accent: #272822;
+  --color-hover: #3e3d32;
+  --color-selected: #49483e;
+  --color-cell-selected: #75715e;
+  --color-cell-editing: #66d9ef;
 
-  --status-planned-fg: #cbd5e1;
-  --status-planned-bg: #334155;
-  --status-running-fg: #93c5fd;
-  --status-running-bg: #1e3a8a;
-  --status-complete-fg: #86efac;
-  --status-complete-bg: #14532d;
-  --status-abandoned-fg: #fca5a5;
-  --status-abandoned-bg: #7f1d1d;
+  --status-planned-fg: #f8f8f2;
+  --status-planned-bg: #414339;
+  --status-running-fg: #66d9ef;
+  --status-running-bg: #2d4a52;
+  --status-complete-fg: #a6e22e;
+  --status-complete-bg: #3a4a21;
+  /* Abandoned is the failed state. */
+  --status-abandoned-fg: #f44747;
+  --status-abandoned-bg: #4d2a2a;
 
-  --tab-fg: #cbd5e1;
-  --tab-bg: #1e293b;
-  --tab-hover-fg: #ffffff;
-  --tab-hover-bg: #334155;
+  --tab-fg: #f8f8f2;
+  --tab-bg: #34352f;
+  --tab-hover-fg: #f8f8f2;
+  --tab-hover-bg: #414339;
 
-  --shadow-popover: 0 4px 14px rgb(0 0 0 / 45%);
-  --shadow-dialog: 0 12px 32px rgb(0 0 0 / 55%);
+  --shadow-popover: 0 4px 14px rgb(0 0 0 / 50%);
+  --shadow-dialog: 0 12px 32px rgb(0 0 0 / 60%);
 }
