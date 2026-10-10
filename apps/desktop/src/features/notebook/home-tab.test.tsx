@@ -41,7 +41,7 @@ const homeButton = (view: HTMLElement) =>
     (b) => b.textContent === "‹ All projects",
   );
 
-describe("the Home tab's way back to the start page", () => {
+describe("the way back to the start page", () => {
   it("offers All projects, which closes the project", () => {
     const close = vi.fn();
     const view = mount({ onCloseProject: close });

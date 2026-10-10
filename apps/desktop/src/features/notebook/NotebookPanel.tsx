@@ -17,6 +17,8 @@ type Props = {
   onCloseProject?: () => void;
   /** The ribbon's Project group. */
   projectControls?: ReactNode;
+  /** The ribbon's Settings tab project controls. */
+  settingsControls?: ReactNode;
   /** Project notices, kept under the ribbon. */
   projectBanners?: ReactNode;
 };
@@ -30,6 +32,7 @@ export function NotebookPanel({
   onProjectFileChanged,
   onCloseProject,
   projectControls,
+  settingsControls,
   projectBanners,
 }: Props) {
   const notebook = useNotebook({ folder, writable, changes });
@@ -41,6 +44,7 @@ export function NotebookPanel({
       {...(onProjectFileChanged === undefined ? {} : { onProjectFileChanged })}
       {...(onCloseProject === undefined ? {} : { onCloseProject })}
       {...(projectControls === undefined ? {} : { projectControls })}
+      {...(settingsControls === undefined ? {} : { settingsControls })}
       {...(projectBanners === undefined ? {} : { projectBanners })}
     />
   );

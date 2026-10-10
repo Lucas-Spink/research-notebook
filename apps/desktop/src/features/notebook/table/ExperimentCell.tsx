@@ -4,6 +4,7 @@ import {
   renameHint,
   selectLabel,
   statusLabel,
+  statusMark,
   statusOfLabel,
   statusOptions,
   titleOfLabel,
@@ -159,30 +160,35 @@ export function ExperimentCell({
         </button>
       )}
       <div>
-        {canEdit ? (
-          <select
-            className="wtable__status wtable__status-select"
-            aria-label={statusOfLabel(front.ref)}
-            tabIndex={renaming ? 0 : -1}
-            value={front.status}
-            onChange={(event) => {
-              const chosen = statusOptions.find(
-                (s) => s === event.target.value,
-              );
-              if (chosen !== undefined && chosen !== front.status) {
-                void editing.onEditExperiment(front.id, { status: chosen });
-              }
-            }}
-          >
-            {statusOptions.map((option) => (
-              <option key={option} value={option}>
-                {statusLabel(option)}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="wtable__status">{statusLabel(front.status)}</span>
-        )}
+        <span className={`status status--${front.status}`}>
+          <span className="status__mark" aria-hidden="true">
+            {statusMark(front.status)}
+          </span>
+          {canEdit ? (
+            <select
+              className="wtable__status wtable__status-select"
+              aria-label={statusOfLabel(front.ref)}
+              tabIndex={renaming ? 0 : -1}
+              value={front.status}
+              onChange={(event) => {
+                const chosen = statusOptions.find(
+                  (s) => s === event.target.value,
+                );
+                if (chosen !== undefined && chosen !== front.status) {
+                  void editing.onEditExperiment(front.id, { status: chosen });
+                }
+              }}
+            >
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {statusLabel(option)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="wtable__status">{statusLabel(front.status)}</span>
+          )}
+        </span>
         {dates.length > 0 && (
           <span className="wtable__muted"> · {dates.join(" · ")}</span>
         )}

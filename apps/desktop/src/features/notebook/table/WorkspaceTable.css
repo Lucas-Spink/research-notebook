@@ -307,9 +307,45 @@
 }
 
 .wtable__status {
-  color: var(--color-text-muted);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
+}
+
+/* An experiment's status: a mark, its name and a tint, so colour is one of
+   three signals. The tint is a pill around the mark and the status text. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 20px;
+  padding: 0 var(--space-2);
+  color: var(--status-planned-fg);
+  background: var(--status-planned-bg);
+  border-radius: 999px;
+}
+
+.status--running {
+  color: var(--status-running-fg);
+  background: var(--status-running-bg);
+}
+
+.status--complete {
+  color: var(--status-complete-fg);
+  background: var(--status-complete-bg);
+}
+
+.status--abandoned {
+  color: var(--status-abandoned-fg);
+  background: var(--status-abandoned-bg);
+}
+
+.status__mark {
+  font-size: var(--text-meta);
+  line-height: 1;
+}
+
+.status select {
+  color: inherit;
 }
 
 /* The title and status, edited in place (FR-TBL-11). */
@@ -327,11 +363,14 @@
 }
 
 .wtable__status-select {
+  min-height: 0;
+  padding: 0 var(--space-1);
   font: inherit;
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
-  padding: 0 var(--space-1);
   background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
 }
 
 .wtable__muted,

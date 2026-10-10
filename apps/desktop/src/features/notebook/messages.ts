@@ -274,6 +274,18 @@ const statusLabels: Record<ExperimentStatus, string> = {
   abandoned: "Abandoned",
 };
 
+/** A mark that tells each status apart without colour: open, running, done, stopped. */
+const statusMarks: Record<ExperimentStatus, string> = {
+  planned: "○",
+  running: "▶",
+  complete: "✓",
+  abandoned: "✕",
+};
+
+export function statusMark(status: ExperimentStatus): string {
+  return statusMarks[status];
+}
+
 export const statusOptions = Object.keys(statusLabels) as ExperimentStatus[];
 
 export function statusLabel(status: ExperimentStatus): string {
