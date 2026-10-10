@@ -27,6 +27,7 @@ use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use common::TestProject;
 use nb_fs::lock::{AcquireOutcome, HeldLock, LockEnv, Timestamp};
@@ -102,6 +103,46 @@ pub fn notebook_files(project: &TestProject) -> BTreeMap<String, Vec<u8>> {
     let mut files = BTreeMap::new();
     walk(project.root(), &project.on_disk("_notebook"), &mut files);
     files
+}
+
+/// Takes the lock over as `intruder`, once the held lock looks stale to it,
+/// and returns the bytes it wrote once `lost` reports that the old owner
+/// noticed.
+///
+/// A heartbeat that read the file just before the takeover can still rename
+/// its refresh over it, and the old owner then never sees the takeover. A
+/// real intruder's own heartbeat would find its lock gone and stop, but this
+/// stand-in has none, so the takeover is repeated until the old owner has
+/// noticed one. If the intruder's lock stays in place and `lost` never turns
+/// true, this returns anyway so the caller's assertion reports it.
+pub fn take_over(
+    project: &TestProject,
+    intruder: &FakeEnv,
+    step: i64,
+    lost: impl Fn() -> bool,
+) -> Vec<u8> {
+    for _ in 0..50 {
+        intruder.advance(step);
+        let AcquireOutcome::Acquired(_) = project.open().acquire_lock(intruder, true).unwrap()
+        else {
+            continue;
+        };
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            let on_disk = project.read(LOCK);
+            if lost() {
+                return on_disk;
+            }
+            if !String::from_utf8_lossy(&on_disk).contains(intruder.host) {
+                break;
+            }
+            if Instant::now() > deadline {
+                return on_disk;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+    panic!("the old owner never noticed a takeover");
 }
 
 /// The held lock, failing the test with what came back instead.

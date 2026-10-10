@@ -12,7 +12,7 @@ use nb_fs::lock::{
 };
 
 use crate::common::TestProject;
-use crate::{FakeEnv, LOCK, START};
+use crate::{take_over, FakeEnv, LOCK, START};
 
 const TICK: Duration = Duration::from_millis(10);
 
@@ -97,14 +97,8 @@ fn a_lock_taken_over_by_someone_else_is_lost_and_never_overwritten() {
     let project = TestProject::new();
     let guard = guarded(&project);
     let intruder = FakeEnv::new("laptop", 200);
-    intruder.advance(86_400);
     // The other instance confirms a takeover once ours looks stale to it.
-    let theirs = loop {
-        if let AcquireOutcome::Acquired(_) = project.open().acquire_lock(&intruder, true).unwrap() {
-            break project.read(LOCK);
-        }
-        intruder.advance(86_400);
-    };
+    let theirs = take_over(&project, &intruder, 86_400, || guard.is_lost());
 
     eventually("the lock to be reported lost", || guard.is_lost());
 

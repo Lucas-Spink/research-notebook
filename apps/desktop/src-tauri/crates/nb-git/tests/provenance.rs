@@ -15,6 +15,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use nb_git::provenance_for_path;
 
@@ -27,10 +28,7 @@ impl TempRepo {
         let dir = std::env::temp_dir().join(format!(
             "nb-git-test-{}-{}",
             std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time")
-                .as_nanos()
+            unique_suffix()
         ));
         fs::create_dir_all(&dir).expect("mkdir temp repo");
         run_git(&dir, &["init", "-q"]);
@@ -70,6 +68,18 @@ impl Drop for TempRepo {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.dir);
     }
+}
+
+/// What tells one test's folder from another's within this process. The
+/// counter is what guarantees it: the clock alone repeats, because macOS only
+/// reads it to the microsecond, and tests run on parallel threads.
+fn unique_suffix() -> String {
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system time")
+        .as_nanos();
+    format!("{}-{nanos}", NEXT.fetch_add(1, Ordering::Relaxed))
 }
 
 fn run_git(dir: &Path, args: &[&str]) {
@@ -193,4 +203,14 @@ fn path_in_repo_uses_forward_slashes() {
 
     assert_eq!(provenance.path_in_repo, "nested/dir/file.txt");
     assert!(!provenance.path_in_repo.contains('\\'));
+}
+
+#[test]
+fn folder_names_never_repeat_when_tests_start_together() {
+    let names: Vec<_> = (0..8)
+        .map(|_| std::thread::spawn(|| (0..20_000).map(|_| unique_suffix()).collect::<Vec<_>>()))
+        .flat_map(|thread| thread.join().expect("thread"))
+        .collect();
+    let distinct: std::collections::HashSet<_> = names.iter().collect();
+    assert_eq!(distinct.len(), names.len());
 }

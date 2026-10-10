@@ -6,7 +6,7 @@
 use std::io;
 use std::path::Path;
 
-use nb_opener::{open_folder, open_uri, perform, FileAction, Launcher};
+use nb_opener::{open_folder, perform, FileAction, Launcher};
 
 /// Records every call instead of spawning anything.
 #[derive(Debug, Default)]
@@ -31,6 +31,8 @@ impl Launcher for Recording {
 
 #[cfg(windows)]
 mod windows {
+    use nb_opener::open_uri;
+
     use super::*;
 
     #[test]
