@@ -1,7 +1,7 @@
 /* The Bibliography is an ordinary section at the bottom of a long page: it
    follows the table in normal flow and is neither pinned nor scrolled apart. */
 .bibliography {
-  padding: var(--space-5) var(--space-4) var(--space-6);
+  padding: var(--space-4) var(--space-4) var(--space-5);
   background: var(--color-surface-alt);
   border-top: 2px solid var(--palette-secondary);
   text-align: left;
@@ -28,13 +28,22 @@
 }
 
 .bibliography__list {
-  padding-inline-start: 1.5rem;
+  padding-inline-start: 1.25rem;
 }
 
 .bibliography__entry {
-  padding: var(--space-1) var(--space-2);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
   border-radius: 4px;
+  line-height: 1.3;
   overflow-wrap: anywhere;
+}
+
+.bibliography__entry > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .bibliography__entry:focus-visible {
@@ -48,7 +57,7 @@
 }
 
 .bibliography__details {
-  margin-inline-start: var(--space-2);
+  flex: none;
   padding: 0 var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--text-meta);
@@ -72,6 +81,6 @@
 }
 
 .bibliography__compact .bibliography__text {
-  margin: var(--space-1) 0 0;
+  margin: 2px 0 0;
   font-size: var(--text-small);
 }
