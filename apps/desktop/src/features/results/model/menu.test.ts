@@ -79,6 +79,8 @@ describe("rowMenu", () => {
       "rename",
       "moveDown",
       "moveInto",
+      "expandAll",
+      "collapseAll",
       "delete",
     ]);
     expect(labels(row(1))).toEqual([
@@ -86,6 +88,8 @@ describe("rowMenu", () => {
       "rename",
       "moveToTop",
       "moveInto",
+      "expandAll",
+      "collapseAll",
       "delete",
     ]);
   });

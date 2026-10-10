@@ -35,7 +35,11 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
     if (run.kind === "open") tree.open?.(run.artefactId);
     else if (run.kind === "details" && panel.row.kind === "item")
       tree.setPanel({ kind: "details", row: panel.row });
-    else if (run.kind === "action") void tree.run(run.action);
+    else if (run.kind === "expandAll" || run.kind === "collapseAll") {
+      if (panel.row.kind === "group")
+        tree.setAll(panel.row.id, run.kind === "expandAll");
+      tree.closePanel();
+    } else if (run.kind === "action") void tree.run(run.action);
     else if (run.kind === "pick")
       tree.setPanel({
         kind: "pick",

@@ -58,6 +58,14 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
           }
         />
       )}
+      <div className="results__bulk">
+        <button type="button" onClick={() => tree.setAll(null, true)}>
+          {resultsMessages.expandAll}
+        </button>
+        <button type="button" onClick={() => tree.setAll(null, false)}>
+          {resultsMessages.collapseAll}
+        </button>
+      </div>
       <p id={helpId} className="results__help">
         {resultsMessages.help}
       </p>

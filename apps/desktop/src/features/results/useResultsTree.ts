@@ -17,6 +17,7 @@ import { draggedFrom, dropAction, type Dragged } from "./model/drag";
 import { navigate, rowCommand } from "./model/keys";
 import type { PickMode } from "./model/menu";
 import {
+  expansionFor,
   treeRows,
   type Expansion,
   type GroupTarget,
@@ -78,6 +79,17 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
   const toggle = useCallback((key: string, expanded: boolean) => {
     setExpansion((current) => ({ ...current, [key]: expanded }));
   }, []);
+
+  /** Opens or closes a group and everything in it, or the whole tree for `null`. */
+  const setAll = useCallback(
+    (groupId: string | null, expanded: boolean) => {
+      setExpansion((current) => ({
+        ...current,
+        ...expansionFor(file, groupId, expanded),
+      }));
+    },
+    [file],
+  );
 
   const run = useCallback(
     async (action: GroupAction) => {
@@ -158,6 +170,7 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
     /** Records focus that arrived by mouse or Tab, without moving it again. */
     noteFocus: setFocus,
     toggle,
+    setAll,
     run,
     setPanel,
     closePanel,

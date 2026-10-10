@@ -7,6 +7,7 @@ import { stepAction } from "./keys";
 import {
   findGroup,
   groupTargets,
+  hasChildren,
   subtreeIds,
   type GroupTarget,
   type TreeRow,
@@ -22,6 +23,8 @@ export type MenuRun =
   | { kind: "rename" }
   | { kind: "newSubgroup" }
   | { kind: "confirmDelete" }
+  /** Opens or closes this group and everything in it; changes no data. */
+  | { kind: "expandAll" | "collapseAll" }
   /** Opens the artefact's preview; changes nothing, so it is offered read-only too. */
   | { kind: "open"; artefactId: string }
   /** Shows what the file records about the artefact; changes nothing. */
@@ -39,6 +42,8 @@ export type MenuLabel =
   | "clearClassification"
   | "rename"
   | "newSubgroup"
+  | "expandAll"
+  | "collapseAll"
   | "moveToTop"
   | "delete";
 
@@ -172,6 +177,15 @@ export function rowMenu(
     ...step(row, 1),
     ...toTop,
     ...pick("moveInto", into),
+    ...(hasChildren(row)
+      ? [
+          { label: "expandAll" as const, run: { kind: "expandAll" as const } },
+          {
+            label: "collapseAll" as const,
+            run: { kind: "collapseAll" as const },
+          },
+        ]
+      : []),
     { label: "delete", run: { kind: "confirmDelete" } },
   ];
 }

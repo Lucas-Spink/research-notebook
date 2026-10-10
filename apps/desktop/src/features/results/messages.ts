@@ -46,6 +46,8 @@ export const resultsMessages = {
     folders: "Groups",
     ungrouped: "Ungrouped",
   },
+  expandAll: "Expand all",
+  collapseAll: "Collapse all",
   totals: (results: number, groups: number) =>
     `${plural(results, "result", "results")} · ${plural(groups, "group", "groups")}`,
   menu: {
@@ -62,6 +64,8 @@ export const resultsMessages = {
     classify: "Classify as…",
     rename: "Rename",
     newSubgroup: "New subgroup",
+    expandAll: "Expand all inside",
+    collapseAll: "Collapse all inside",
     moveToTop: "Move to top level",
     moveInto: "Move into group…",
     delete: "Delete group",
