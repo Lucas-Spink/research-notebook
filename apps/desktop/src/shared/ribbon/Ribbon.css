@@ -28,31 +28,34 @@
 
 .ribbon__tabs {
   display: flex;
+  align-items: flex-end;
   gap: var(--space-1);
   min-width: 0;
+  padding-top: var(--space-1);
 }
 
+/* Grey tabs on the navy bar: each is visible on its own, and the chosen one
+   is the lightest, joining the strip of commands below it. */
 .ribbon__tab {
-  min-height: 38px;
-  padding: 0 var(--space-3);
-  color: color-mix(in srgb, var(--color-on-dark) 75%, transparent);
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  color: #e2e8f0;
   font-size: var(--text-small);
-  background: none;
+  background: #475569;
   border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
 }
 
 .ribbon__tab:hover:not(:disabled) {
-  color: var(--color-on-dark);
-  background: var(--color-nav-hover);
+  color: #ffffff;
+  background: #64748b;
   border-color: transparent;
 }
 
 .ribbon__tab[aria-selected="true"] {
-  color: var(--color-on-dark);
-  font-weight: var(--weight-medium);
-  border-bottom-color: var(--color-accent);
+  color: var(--color-text-strong);
+  font-weight: var(--weight-semibold);
+  background: var(--color-surface);
 }
 
 .ribbon__tabbar :focus-visible {
@@ -124,12 +127,15 @@
   gap: var(--space-2);
 }
 
+/* The name of a group of commands, centred under them in an easy-to-read size. */
 .ribbon__group-name {
-  color: var(--color-text-muted);
+  align-self: stretch;
+  padding-top: 2px;
+  color: #475569;
   font-size: var(--text-meta);
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  text-align: center;
 }
 
 .ribbon__button,
