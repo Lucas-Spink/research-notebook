@@ -45,7 +45,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Install Pandoc (golden test S5-G03)
+      - name: Install Pandoc (golden test S5-G03, recovery test S6-G07)
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
@@ -82,6 +82,9 @@ jobs:
       - name: Rust tests
         run: pnpm test:rust
 
+      - name: Pandoc recovery command from the README (S6-G07)
+        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml -p nb-fs --locked --test readme_recovery
+
       - name: Filesystem safety
         run: pnpm test:fs-safety
 
@@ -105,22 +108,6 @@ jobs:
         run: |
           git status --porcelain
           test -z "$(git status --porcelain)"
-
-  pandoc-recovery:
-    name: Pandoc recovery command
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: brew install pandoc
-      - name: Render typical fixture with citations
-        shell: bash
-        run: |
-          cd fixtures/projects/format-v1/typical/_notebook/experiments/EXP-001
-          pandoc experiment.md --citeproc \
-            --bibliography ../../bibliography.json \
-            --csl "../../styles/$(ls ../../styles | head -n 1)" \
-            -o "$RUNNER_TEMP/EXP-001.html"
-          grep -q "csl-bib-body" "$RUNNER_TEMP/EXP-001.html"
 
   licences:
     name: Licences and advisories
