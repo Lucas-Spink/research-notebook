@@ -54,7 +54,7 @@ export const tableMessages = {
   experimentColumn: "Experiment",
   emptyCell: "Empty",
   resultsNone: "None yet",
-  browseAll: "Browse all",
+  resultsHeading: "Results",
   thumbHint: "Hover to enlarge, double-click to open in the side pane",
   largePreviewAlt: (name: string) => `Larger preview of ${name}`,
   closeResults: "Close",
@@ -232,8 +232,6 @@ export const browseResultsLabel = (ref: string) =>
 /** The plus in a Results cell, which opens the Add result pane. */
 export const addResultLabel = (ref: string) => `Add a result to ${ref}`;
 /** "1 result", "3 results" (FR-TBL-06). */
-export const resultsCountLabel = (count: number) =>
-  `${count} ${count === 1 ? "result" : "results"}`;
 export const titleOfLabel = (ref: string) => `Title of ${ref}`;
 export const statusOfLabel = (ref: string) => `Status of ${ref}`;
 /** How to rename an experiment in the table (FR-TBL-11), shown on its title. */

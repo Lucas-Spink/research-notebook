@@ -6,35 +6,29 @@ import {
 } from "@research-notebook/format";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
-import { browseResultsLabel, selectLabel } from "../messages";
+import { browseResultsLabel } from "../messages";
 import { sampleNotebook, testEnv } from "../model/fakeApi";
 import { stubActions } from "../model/testModel";
 import type { NotebookModel } from "../useNotebook";
-import {
-  mountNotebook,
-  openCell,
-  prepareInteractiveTable,
-  rowOf,
-  tableOf,
-  typeInto,
-} from "./tableTesting";
+import { mountNotebook, prepareInteractiveTable, rowOf } from "./tableTesting";
 
 /**
- * FR-TBL-06 and ADR-0044 point 4: the Results cell shows counts and
- * thumbnails, and opens in place into the experiment's folder tree, where
- * folders are made and files organised; one thing is open in the table at
- * a time.
+ * FR-TBL-06 and issue #101: the Results cell holds the experiment's nested,
+ * collapsible file tree, where folders are made and files organised, without
+ * opening anything else.
  */
 
 const { state } = sampleNotebook();
 
 prepareInteractiveTable();
 
+const RESULT = "01JB0000000000000000000001";
+
 const figure = ArtefactsFile.parse({
   ...EMPTY_ARTEFACTS,
   artefacts: [
     {
-      id: "01JB0000000000000000000001",
+      id: RESULT,
       name: "PCA plot",
       role: "result",
       mode: "copy",
@@ -66,7 +60,6 @@ function mount(
   overrides: Partial<NotebookModel> = {},
 ) {
   const edits: Edit[] = [];
-  const sections: string[] = [];
   const mounted = mountNotebook(from, {
     actions: {
       ...stubActions,
@@ -79,14 +72,10 @@ function mount(
         edits.push({ folder, file: changed.value });
         return Promise.resolve({ ok: true });
       },
-      editExperimentSection: (_id, _key, text) => {
-        sections.push(text);
-        return Promise.resolve({ ok: true });
-      },
     },
     ...overrides,
   });
-  return { ...mounted, edits, sections };
+  return { ...mounted, edits };
 }
 
 function resultsControl(view: HTMLElement, ref: string): HTMLElement {
@@ -98,19 +87,11 @@ function resultsControl(view: HTMLElement, ref: string): HTMLElement {
   return found;
 }
 
-async function openResults(view: HTMLElement, ref: string) {
-  await act(async () => {
-    resultsControl(view, ref).dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
-}
-
-/** The Results browser, which opens in the side pane. */
-const paneOf = (view: HTMLElement) => view.querySelector("aside.pane");
-const treeIn = (view: HTMLElement) =>
-  paneOf(view)?.querySelector('[role="tree"]') ?? null;
+/** The tree inside an experiment's Results cell. */
+const treeIn = (view: HTMLElement, ref: string) =>
+  rowOf(view, ref).querySelector('[role="tree"]');
+const cellOf = (view: HTMLElement, ref: string) =>
+  rowOf(view, ref).querySelector(".wtable__results-wrap");
 
 const withScript = (): NotebookState =>
   withResults(
@@ -137,57 +118,46 @@ const withScript = (): NotebookState =>
     }),
   );
 
-describe("Results cell (FR-TBL-06, ADR-0044)", () => {
-  it("says there are none yet, and counts results once there are some", () => {
-    const empty = mount();
-    expect(resultsControl(empty.view, "EXP-001").textContent).toContain(
-      "None yet",
-    );
-    empty.view.remove();
+/** `figure` with its one result in a folder, to open and close. */
+const grouped = (): NotebookState =>
+  withResults(
+    ArtefactsFile.parse({
+      ...figure,
+      groups: [
+        {
+          id: "01JC000000000000000000000A",
+          name: "Main figures",
+          items: [RESULT],
+          groups: [],
+        },
+      ],
+    }),
+  );
 
+const click = (element: Element) =>
+  act(() => {
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+
+const rowNames = (view: HTMLElement, ref: string) =>
+  [...(treeIn(view, ref)?.querySelectorAll('[role="treeitem"]') ?? [])].map(
+    (row) => row.querySelector(".results__name-text")?.textContent,
+  );
+
+describe("Results cell (FR-TBL-06, issue #101)", () => {
+  it("holds each experiment's own tree inside its cell, with totals, and opens no pane", () => {
     const { view } = mount(withResults(figure));
-    expect(resultsControl(view, "EXP-001").textContent).toContain("1 result");
+    expect(treeIn(view, "EXP-001")).not.toBeNull();
+    expect(cellOf(view, "EXP-001")?.textContent).toContain("1 result");
+    expect(view.querySelector("aside.pane")).toBeNull();
+    expect(treeIn(view, "EXP-002")).not.toBeNull();
+    expect(cellOf(view, "EXP-002")?.textContent).toContain("0 results");
   });
 
   it("lists each result as a file: its name, then a small icon for its type", () => {
     const { view } = mount(withResults(figure));
-    const file = rowOf(view, "EXP-001").querySelector(".wtable__thumb");
-    expect(file?.textContent).toBe("PCA plot");
-    const children = [...(file?.children ?? [])];
-    expect(children[0]?.className).toBe("wtable__file-name");
-    expect(children[1]?.querySelector("svg.artefact-icon")).not.toBeNull();
-  });
-
-  it("opens the Results browser in the side pane, and selects its row", async () => {
-    const { view } = mount(withResults(figure));
-    await openResults(view, "EXP-001");
-    expect(treeIn(view)).not.toBeNull();
-    expect(paneOf(view)?.textContent).toContain("Results of EXP-001");
-    // The row did not grow around a tree: the table stays as it was.
-    expect(rowOf(view, "EXP-001").querySelector('[role="tree"]')).toBeNull();
-    expect(
-      rowOf(view, "EXP-001")
-        .querySelector(`button[aria-label="${selectLabel("EXP-001")}"]`)
-        ?.getAttribute("aria-pressed"),
-    ).toBe("true");
-  });
-
-  it("opens from the keyboard with Enter", async () => {
-    const { view } = mount(withResults(figure));
-    await act(async () => {
-      resultsControl(view, "EXP-001").dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-      );
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-    expect(treeIn(view)).not.toBeNull();
-  });
-
-  it("shows each file in the browser with its type icon after its name, and a menu to move it", async () => {
-    const { view } = mount(withResults(figure));
-    await openResults(view, "EXP-001");
     const file = [
-      ...(paneOf(view)?.querySelectorAll('[role="treeitem"]') ?? []),
+      ...(treeIn(view, "EXP-001")?.querySelectorAll('[role="treeitem"]') ?? []),
     ].find((row) => row.textContent === "PCA plot");
     expect(file).toBeDefined();
     const kids = [...(file?.children ?? [])];
@@ -198,10 +168,53 @@ describe("Results cell (FR-TBL-06, ADR-0044)", () => {
     ).not.toBeNull();
   });
 
-  it("makes a folder through the tree and saves it in artefacts.yaml", async () => {
+  it("opens and closes a folder in place, and the folder's files follow it", () => {
+    const { view } = mount(grouped());
+    expect(rowNames(view, "EXP-001")).toEqual([
+      "Main figures",
+      "PCA plot",
+      "Ungrouped",
+    ]);
+    const folder = treeIn(view, "EXP-001")?.querySelector(
+      '[aria-expanded="true"]',
+    );
+    if (!folder) throw new Error("no open folder");
+    click(folder);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "Ungrouped"]);
+    click(folder);
+    expect(rowNames(view, "EXP-001")).toEqual([
+      "Main figures",
+      "PCA plot",
+      "Ungrouped",
+    ]);
+  });
+
+  it("moves from the heading into the tree with Enter, and back with Escape", () => {
+    const { view } = mount(withResults(figure));
+    const heading = resultsControl(view, "EXP-001");
+    act(() => {
+      heading.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
+    });
+    const first = treeIn(view, "EXP-001")?.querySelector('[role="treeitem"]');
+    expect(document.activeElement).toBe(first);
+    act(() => {
+      first?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+    });
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it("makes a folder from the cell and saves it in artefacts.yaml", async () => {
     const { view, edits } = mount(withResults(figure));
-    await openResults(view, "EXP-001");
-    const form = paneOf(view)?.querySelector("form");
+    const open = [
+      ...(cellOf(view, "EXP-001")?.querySelectorAll("button") ?? []),
+    ].find((b) => b.textContent === "New group");
+    if (!open) throw new Error("no New group button");
+    click(open);
+    const form = cellOf(view, "EXP-001")?.querySelector("form");
     const input = form?.querySelector("input");
     if (!(input instanceof HTMLInputElement) || !form) {
       throw new Error("no New group form");
@@ -221,47 +234,37 @@ describe("Results cell (FR-TBL-06, ADR-0044)", () => {
     expect(edits[0]?.file.groups.map((g) => g.name)).toEqual(["Main figures"]);
   });
 
-  it("opening Results saves and closes a section editor first, and the browser stays beside the table", async () => {
-    const { view, sections } = mount(withResults(figure));
-    await openCell(view, "EXP-001", "methods");
-    typeInto(tableOf(view), "Typed before opening Results. ");
-    await openResults(view, "EXP-002");
-    expect(sections).toHaveLength(1);
-    expect(view.querySelectorAll(".ProseMirror")).toHaveLength(0);
-    expect(treeIn(view)).not.toBeNull();
-
-    await openCell(view, "EXP-001", "interpretation");
-    expect(treeIn(view)).not.toBeNull();
+  it("has the plus for adding results inside the cell", () => {
+    const { view } = mount(withResults(figure));
     expect(
-      rowOf(view, "EXP-001").querySelectorAll(".ProseMirror"),
-    ).toHaveLength(1);
+      cellOf(view, "EXP-001")?.querySelector(".wtable__add-result"),
+    ).not.toBeNull();
   });
 
-  it("can be browsed, but not changed, in a read-only project", async () => {
+  it("can be browsed, but not changed, in a read-only project", () => {
     const { view } = mount(withResults(figure), { writable: false });
-    await openResults(view, "EXP-001");
-    expect(treeIn(view)).not.toBeNull();
-    expect(paneOf(view)?.querySelector("form")).toBeNull();
-    expect(paneOf(view)?.querySelector(".results__actions")).toBeNull();
+    const cell = cellOf(view, "EXP-001");
+    expect(treeIn(view, "EXP-001")).not.toBeNull();
+    expect(cell?.querySelector("form")).toBeNull();
+    expect(cell?.querySelector(".results__actions")).toBeNull();
+    expect(cell?.querySelector(".wtable__add-result")).toBeNull();
   });
 
-  it("has a Code folder for linked scripts, listing the scripts an experiment links", async () => {
+  it("has a Code folder for linked scripts, listing the scripts an experiment links", () => {
     const { view } = mount(withScript());
-    await openResults(view, "EXP-001");
-    const code = paneOf(view)?.querySelector(".code-folder");
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
     expect(code?.textContent).toContain("Code");
     expect(code?.textContent).toContain("1 script");
     expect(code?.textContent).toContain("analysis.py");
     expect(code?.textContent).toContain("code/analysis.py");
     expect(code?.querySelector("svg.artefact-icon")).not.toBeNull();
     // A script is not a result: it is not among the groups' files.
-    expect(treeIn(view)?.textContent).not.toContain("analysis.py");
+    expect(treeIn(view, "EXP-001")?.textContent).not.toContain("analysis.py");
   });
 
-  it("offers to link a script, and says there are none yet when there are none", async () => {
+  it("offers to link a script, and says there are none yet when there are none", () => {
     const { view } = mount(withResults(figure));
-    await openResults(view, "EXP-001");
-    const code = paneOf(view)?.querySelector(".code-folder");
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
     expect(code?.textContent).toContain("No scripts yet");
     expect(
       [...(code?.querySelectorAll("button") ?? [])].some(

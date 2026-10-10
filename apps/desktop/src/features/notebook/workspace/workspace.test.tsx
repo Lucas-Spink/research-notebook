@@ -272,8 +272,10 @@ describe("the workspace (S6-T01)", () => {
 
   it("opens a result in the pane on double-click, keeping the table beside it", () => {
     const { view } = mountNotebook(withFigure);
-    const thumb = rowOf(view, "EXP-001").querySelector(".wtable__thumb");
-    if (thumb === null) throw new Error("no thumbnail");
+    const thumb = [
+      ...rowOf(view, "EXP-001").querySelectorAll('[role="treeitem"]'),
+    ].find((r) => r.textContent === "PCA plot");
+    if (thumb === undefined) throw new Error("no result");
     act(() => {
       thumb.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
     });
@@ -282,19 +284,11 @@ describe("the workspace (S6-T01)", () => {
         (t) => t.textContent,
       ),
     ).toEqual(["PCA plot"]);
-    // The row's Results cell did not open: only the pane did.
-    expect(rowOf(view, "EXP-001").querySelector('[role="tree"]')).toBeNull();
+    // The tree stays in the cell; only the preview opened in the pane.
+    expect(
+      rowOf(view, "EXP-001").querySelector('[role="tree"]'),
+    ).not.toBeNull();
     expect(view.querySelector(".wtable")).not.toBeNull();
-  });
-
-  it("shows a larger preview while a thumbnail is hovered", () => {
-    const { view } = mountNotebook(withFigure);
-    const thumb = rowOf(view, "EXP-001").querySelector(".wtable__thumb");
-    if (thumb === null) throw new Error("no thumbnail");
-    act(() => {
-      thumb.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
-    });
-    expect(document.body.querySelector(".wtable__hover")).not.toBeNull();
   });
 
   it("selects a row, then opens Details from the ribbon", () => {
@@ -327,8 +321,6 @@ describe("the workspace (S6-T01)", () => {
         (b) => b.textContent === "Add files…",
       ),
     ).toBe(true);
-    // The cell itself did not open into the folder tree.
-    expect(rowOf(view, "EXP-001").querySelector('[role="tree"]')).toBeNull();
   });
 
   it("opens the same pane from the ribbon's Add result for the selected experiment", () => {
@@ -347,8 +339,10 @@ describe("the workspace (S6-T01)", () => {
 
   it("folds the pane into a rail of small square icons, one per open tab, to click through", () => {
     const { view } = mountNotebook(withFigure);
-    const thumb = rowOf(view, "EXP-001").querySelector(".wtable__thumb");
-    if (thumb === null) throw new Error("no result");
+    const thumb = [
+      ...rowOf(view, "EXP-001").querySelectorAll('[role="treeitem"]'),
+    ].find((r) => r.textContent === "PCA plot");
+    if (thumb === undefined) throw new Error("no result");
     act(() => {
       thumb.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
     });
