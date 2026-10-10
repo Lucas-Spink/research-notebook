@@ -11,6 +11,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use nb_git::provenance_in_project;
 
@@ -85,11 +86,16 @@ fn run_git(dir: &Path, args: &[&str]) {
     assert!(status.success(), "git {args:?} failed");
 }
 
-fn unique_suffix() -> u128 {
-    std::time::SystemTime::now()
+/// What tells one test's folder from another's within this process. The
+/// counter is what guarantees it: the clock alone repeats, because macOS only
+/// reads it to the microsecond, and tests run on parallel threads.
+fn unique_suffix() -> String {
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system time")
-        .as_nanos()
+        .as_nanos();
+    format!("{}-{nanos}", NEXT.fetch_add(1, Ordering::Relaxed))
 }
 
 fn temp_dir(name: &str) -> PathBuf {
@@ -176,4 +182,14 @@ fn a_path_outside_any_repository_reports_no_provenance() {
     assert!(provenance.is_none());
 
     let _ = fs::remove_dir_all(&project_root);
+}
+
+#[test]
+fn folder_names_never_repeat_when_tests_start_together() {
+    let names: Vec<_> = (0..8)
+        .map(|_| std::thread::spawn(|| (0..20_000).map(|_| unique_suffix()).collect::<Vec<_>>()))
+        .flat_map(|thread| thread.join().expect("thread"))
+        .collect();
+    let distinct: std::collections::HashSet<_> = names.iter().collect();
+    assert_eq!(distinct.len(), names.len());
 }
