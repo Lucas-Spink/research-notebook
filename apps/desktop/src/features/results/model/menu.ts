@@ -3,10 +3,12 @@ import {
   type ArtefactsFileModel,
 } from "@research-notebook/format";
 import type { GroupAction } from "./actions";
+import { batchRemove, type ItemRow } from "./selection";
 import { stepAction } from "./keys";
 import {
   findGroup,
   groupTargets,
+  hasChildren,
   subtreeIds,
   type GroupTarget,
   type TreeRow,
@@ -20,16 +22,24 @@ export type MenuRun =
   | { kind: "action"; action: GroupAction }
   | { kind: "pick"; mode: PickMode; targets: GroupTarget[] }
   | { kind: "rename" }
+  | { kind: "renameResult" }
   | { kind: "newSubgroup" }
   | { kind: "confirmDelete" }
+  /** Opens or closes this group and everything in it; changes no data. */
+  | { kind: "expandAll" | "collapseAll" }
   /** Opens the artefact's preview; changes nothing, so it is offered read-only too. */
   | { kind: "open"; artefactId: string }
+  /** Opens the result's file in its default application or the file manager; changes nothing. */
+  | { kind: "file"; action: "openFile" | "reveal" }
   /** Shows what the file records about the artefact; changes nothing. */
   | { kind: "details" };
 
 export type MenuLabel =
   | "preview"
   | "details"
+  | "openFile"
+  | "reveal"
+  | "renameResult"
   | PickMode
   | "moveUp"
   | "moveDown"
@@ -39,6 +49,8 @@ export type MenuLabel =
   | "clearClassification"
   | "rename"
   | "newSubgroup"
+  | "expandAll"
+  | "collapseAll"
   | "moveToTop"
   | "delete";
 
@@ -101,9 +113,33 @@ function classification(
 export function rowMenu(
   file: ArtefactsFileModel,
   row: TreeRow,
-  { canOpen = false }: { canOpen?: boolean } = {},
+  {
+    canOpen = false,
+    canOpenFiles = false,
+    selected = [],
+  }: {
+    canOpen?: boolean;
+    canOpenFiles?: boolean;
+    selected?: readonly ItemRow[];
+  } = {},
 ): MenuEntry[] {
   const all = groupTargets(file);
+  // Several chosen artefacts: only what makes sense for all of them at once.
+  if (row.kind === "item" && selected.length > 1) {
+    const remove = batchRemove(selected);
+    return [
+      ...pick("moveTo", all),
+      ...pick("addTo", all),
+      ...(remove === null
+        ? []
+        : [
+            {
+              label: "remove" as const,
+              run: { kind: "action" as const, action: remove },
+            },
+          ]),
+    ];
+  }
   if (row.kind === "ungrouped") return [];
   if (row.kind === "item") {
     const free = all.filter(
@@ -142,6 +178,19 @@ export function rowMenu(
     return [
       ...preview,
       ...details,
+      ...(canOpenFiles
+        ? [
+            {
+              label: "openFile" as const,
+              run: { kind: "file" as const, action: "openFile" as const },
+            },
+            {
+              label: "reveal" as const,
+              run: { kind: "file" as const, action: "reveal" as const },
+            },
+          ]
+        : []),
+      { label: "renameResult", run: { kind: "renameResult" } },
       ...pick("moveTo", free),
       ...pick("addTo", free),
       ...classification(file, row),
@@ -172,6 +221,15 @@ export function rowMenu(
     ...step(row, 1),
     ...toTop,
     ...pick("moveInto", into),
+    ...(hasChildren(row)
+      ? [
+          { label: "expandAll" as const, run: { kind: "expandAll" as const } },
+          {
+            label: "collapseAll" as const,
+            run: { kind: "collapseAll" as const },
+          },
+        ]
+      : []),
     { label: "delete", run: { kind: "confirmDelete" } },
   ];
 }

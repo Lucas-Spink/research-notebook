@@ -24,6 +24,11 @@ type Props = {
    * actions, or by Enter when read-only. Left out, no file can be opened.
    */
   onOpen?: (artefactId: string) => void;
+  /** Opens a result's file outside the application; resolves whether it worked. */
+  onFileAction?: (
+    artefactId: string,
+    action: "openFile" | "reveal",
+  ) => Promise<boolean>;
   /** Linked results whose file cannot be found now; each is marked in words. */
   missing?: ReadonlySet<string>;
 };
@@ -39,6 +44,7 @@ export function ResultsTree({
   disabled,
   onAction,
   onOpen,
+  onFileAction,
   missing,
 }: Props) {
   const tree = useResultsTree({
@@ -46,6 +52,7 @@ export function ResultsTree({
     disabled,
     onAction,
     ...(onOpen === undefined ? {} : { onOpen }),
+    ...(onFileAction === undefined ? {} : { onFileAction }),
   });
   const helpId = useId();
   const places = useMemo(() => positions(tree.rows), [tree.rows]);
@@ -66,6 +73,14 @@ export function ResultsTree({
           }
         />
       )}
+      <div className="results__bulk">
+        <button type="button" onClick={() => tree.setAll(null, true)}>
+          {resultsMessages.expandAll}
+        </button>
+        <button type="button" onClick={() => tree.setAll(null, false)}>
+          {resultsMessages.collapseAll}
+        </button>
+      </div>
       <p id={helpId} className="results__help">
         {resultsMessages.help}
       </p>
@@ -74,6 +89,7 @@ export function ResultsTree({
       </p>
       <ul
         role="tree"
+        aria-multiselectable="true"
         className="results__tree"
         aria-label={resultsMessages.treeLabel}
         aria-describedby={helpId}

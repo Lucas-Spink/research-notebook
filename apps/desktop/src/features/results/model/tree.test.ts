@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   deletionSummary,
+  expansionFor,
   groupTargets,
   hasChildren,
   positions,
@@ -140,5 +141,33 @@ describe("treeTotals", () => {
     );
     // Two top-level groups and one nested in the first.
     expect(totals.groups).toBe(3);
+  });
+});
+
+describe("expansionFor", () => {
+  it("names every group and the Ungrouped area for the whole tree", () => {
+    expect(expansionFor(sampleArtefacts(), null, false)).toEqual({
+      [`g:${ids.g(1)}`]: false,
+      [`g:${ids.g(3)}`]: false,
+      [`g:${ids.g(2)}`]: false,
+      ungrouped: false,
+    });
+  });
+
+  it("names one group and the groups inside it only", () => {
+    expect(expansionFor(sampleArtefacts(), ids.g(1), true)).toEqual({
+      [`g:${ids.g(1)}`]: true,
+      [`g:${ids.g(3)}`]: true,
+    });
+    expect(expansionFor(sampleArtefacts(), "missing", true)).toEqual({});
+  });
+
+  it("collapses every row when applied, and opens them again", () => {
+    const file = sampleArtefacts();
+    const closed = treeRows(file, expansionFor(file, null, false));
+    expect(closed.map((r) => r.kind)).toEqual(["group", "group", "ungrouped"]);
+    expect(
+      treeRows(file, expansionFor(file, null, true)).length,
+    ).toBeGreaterThan(closed.length);
   });
 });

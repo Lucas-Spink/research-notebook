@@ -2,16 +2,20 @@ import type { GroupAction } from "./actions";
 import type { TreeRow } from "./tree";
 
 /** What is being dragged: one row's artefact membership, or a group. */
+type DraggedItem = {
+  kind: "item";
+  artefactId: string;
+  /** `null`: dragged from the Ungrouped area. */
+  from: string | null;
+  /** Its position in `from`. */
+  index: number;
+};
+
 export type Dragged =
-  | {
-      kind: "item";
-      artefactId: string;
-      /** `null`: dragged from the Ungrouped area. */
-      from: string | null;
-      /** Its position in `from`. */
-      index: number;
-    }
-  | { kind: "group"; groupId: string };
+  | DraggedItem
+  | { kind: "group"; groupId: string }
+  /** Several chosen artefacts dragged together. */
+  | { kind: "items"; items: DraggedItem[] };
 
 /** The row that was dragged, as a `Dragged`, or `null` for the Ungrouped header. */
 export function draggedFrom(row: TreeRow): Dragged | null {
@@ -28,7 +32,7 @@ export function draggedFrom(row: TreeRow): Dragged | null {
 }
 
 function itemDrop(
-  dragged: Extract<Dragged, { kind: "item" }>,
+  dragged: DraggedItem,
   to: string,
   index: number | undefined,
   copy: boolean,
@@ -59,6 +63,16 @@ export function dropAction(
   row: TreeRow,
   copy: boolean,
 ): GroupAction | null {
+  if (dragged.kind === "items") {
+    // Only a group or the Ungrouped area takes several at once; a place among
+    // siblings is for one item.
+    if (row.kind !== "group" && row.kind !== "ungrouped") return null;
+    const steps = dragged.items.flatMap((item) => {
+      const step = dropAction(item, row, copy);
+      return step === null ? [] : [step];
+    });
+    return steps.length === 0 ? null : { kind: "batch", actions: steps };
+  }
   if (dragged.kind === "group") {
     if (row.kind !== "group" || row.id === dragged.groupId) return null;
     return { kind: "moveGroup", groupId: dragged.groupId, parent: row.id };

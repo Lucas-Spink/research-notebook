@@ -5,6 +5,7 @@ import {
   addToGroup,
   createGroup,
   deleteGroup,
+  dissolveGroup,
   moveGroup,
   moveToGroup,
   removeFromGroup,
@@ -264,6 +265,39 @@ describe("groupLocationsOf (FR-PRV-01)", () => {
     expect(groupLocationsOf(file, R3)).toEqual([]);
     expect(groupLocationsOf(sample(), "01JB0000000000000000000099")).toEqual(
       [],
+    );
+  });
+});
+
+describe("dissolveGroup", () => {
+  it("replaces a top-level group by its subgroups and leaves its artefacts ungrouped", () => {
+    const file = must(dissolveGroup(sample(), GA));
+    expect(ids(file)).toEqual([GC, GB]);
+    // R1 was only in the dissolved group; R2 is still in the subgroup.
+    expect(ungroupedArtefacts(file).map((a) => a.id)).toEqual([R1]);
+    expect(file.groups[0]?.items).toEqual([R2]);
+    expect(file.artefacts).toEqual(sample().artefacts);
+  });
+
+  it("gives a nested group's artefacts to its parent without listing any twice", () => {
+    const file = must(dissolveGroup(sample(), GC));
+    expect(file.groups[0]?.groups).toEqual([]);
+    // R2 was already in the parent, so it is not added again.
+    expect(file.groups[0]?.items).toEqual([R1, R2]);
+  });
+
+  it("puts a nested group's subgroups where it was, in order", () => {
+    const nested = must(moveGroup(sample(), GB, GA, 0));
+    const file = must(dissolveGroup(nested, GA));
+    expect(ids(file)).toEqual([GB, GC]);
+  });
+
+  it("refuses a group that does not exist", () => {
+    expect(dissolveGroup(sample(), "01JC00000000000000000000ZZ")).toMatchObject(
+      {
+        ok: false,
+        error: { kind: "notFound", entity: "group" },
+      },
     );
   });
 });
