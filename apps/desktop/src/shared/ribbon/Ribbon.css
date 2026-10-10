@@ -361,14 +361,14 @@
 
 /* The ribbon's own button rule must not hide the main action's fill. */
 .ribbon__button.btn-primary {
-  color: #ffffff;
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border-color: var(--color-accent);
 }
 
 .ribbon__button.btn-primary:hover:not(:disabled),
 .ribbon__button.btn-primary[aria-expanded="true"] {
-  color: #ffffff;
+  color: var(--color-on-accent);
   background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
 }
