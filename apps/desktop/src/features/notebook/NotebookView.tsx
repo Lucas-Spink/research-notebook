@@ -30,12 +30,14 @@ import {
   useStyleManagement,
 } from "../citations";
 import {
+  ArchivePanel,
   BundlePanel,
   GitBundlePanel,
   HtmlExportPanel,
   MachineExportPanel,
   ManifestPanel,
   PdfExportPanel,
+  useArchiveProject,
   useBundle,
   useGitBundle,
   useHtmlExport,
@@ -158,6 +160,10 @@ type NotebookViewProps = {
   notebook: NotebookModel;
   /** The open project, so the expanded view can read an experiment's artefacts.yaml (FR-EDT-04). */
   folder: FolderHandle;
+  /** When the project was archived, or `null`. */
+  archived?: string | null;
+  /** The application wrote `project.yaml`. Archiving is offered only when this is given. */
+  onProjectFileChanged?: () => void;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
   /** The ribbon's Project group, which belongs to the projects feature. */
@@ -170,6 +176,8 @@ type NotebookViewProps = {
 function NotebookViewBody({
   notebook,
   folder,
+  archived = null,
+  onProjectFileChanged,
   viewportHeight,
   projectControls,
   projectBanners,
@@ -277,6 +285,14 @@ function NotebookViewBody({
         ? null
         : { name: loadedProject.name, locale: loadedProject.locale },
     writable,
+  });
+  const archive = useArchiveProject({
+    api: commands,
+    folder,
+    archived,
+    writable,
+    now: () => new Date(),
+    onChanged: () => onProjectFileChanged?.(),
   });
   const machineExport = useMachineExport({
     api: commands,
@@ -584,6 +600,9 @@ function NotebookViewBody({
             <HtmlExportPanel model={htmlExport} />
             <MachineExportPanel model={machineExport} />
             <PdfExportPanel model={pdfExport} />
+            {onProjectFileChanged !== undefined && (
+              <ArchivePanel model={archive} />
+            )}
           </>
         );
       case "results":
