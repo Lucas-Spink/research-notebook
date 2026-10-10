@@ -71,22 +71,24 @@ export function ProjectHeader(props: Props) {
             ))}
           </ol>
         </nav>
-        <h1 className="project-header__title" title={props.projectName}>
-          {props.projectName}
-        </h1>
-        <ul className="project-header__figures" aria-label={m.summaryLabel}>
-          <li>{m.experiments(props.experiments)}</li>
-          <li>{m.results(props.results)}</li>
-          <li>{m.references(props.references)}</li>
-          <li data-integrity={props.integrity.state}>
-            <span aria-hidden="true" className="project-header__mark">
-              {integrity.mark}
-            </span>
-            {integrity.text}
-          </li>
-          {props.archived && <li>{m.archived}</li>}
-          {props.readOnly && !props.archived && <li>{m.readOnly}</li>}
-        </ul>
+        <div className="project-header__line">
+          <h1 className="project-header__title" title={props.projectName}>
+            {props.projectName}
+          </h1>
+          <ul className="project-header__figures" aria-label={m.summaryLabel}>
+            <li>{m.experiments(props.experiments)}</li>
+            <li>{m.results(props.results)}</li>
+            <li>{m.references(props.references)}</li>
+            <li data-integrity={props.integrity.state}>
+              <span aria-hidden="true" className="project-header__mark">
+                {integrity.mark}
+              </span>
+              {integrity.text}
+            </li>
+            {props.archived && <li>{m.archived}</li>}
+            {props.readOnly && !props.archived && <li>{m.readOnly}</li>}
+          </ul>
+        </div>
       </div>
       <div className="project-header__actions">
         {props.primary}

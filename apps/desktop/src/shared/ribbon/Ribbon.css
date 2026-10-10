@@ -339,3 +339,30 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* The title and the key figures share a line, to keep the header low. */
+.project-header__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  min-width: 0;
+}
+
+.project-header__actions {
+  align-self: center;
+}
+
+/* The ribbon's own button rule must not hide the main action's fill. */
+.ribbon__button.btn-primary {
+  color: #ffffff;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.ribbon__button.btn-primary:hover:not(:disabled),
+.ribbon__button.btn-primary[aria-expanded="true"] {
+  color: #ffffff;
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}

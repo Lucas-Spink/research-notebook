@@ -527,6 +527,7 @@ export function Ribbon(props: Props) {
             <RibbonMenu
               label={headerMessages.addExperiment}
               variant="primary"
+              alignEnd
               disabled={disabled || questions.length === 0}
             >
               {newExperimentForm}
