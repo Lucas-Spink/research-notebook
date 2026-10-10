@@ -26,6 +26,8 @@ import { SelectionCommands } from "./SelectionCommands";
 type Props = {
   /** The open project's name, shown beside the application title so the research context is always visible. */
   projectName?: string | null;
+  /** Closes the project and returns to the start page. */
+  onCloseProject?: () => void;
   /** The Project tab's controls, which belong to the projects feature. */
   projectControls: ReactNode;
   writable: boolean;
@@ -242,6 +244,17 @@ export function Ribbon(props: Props) {
       case "home":
         return (
           <>
+            {props.onCloseProject !== undefined && (
+              <RibbonGroup label={m.groups.project}>
+                <button
+                  type="button"
+                  className="ribbon__button"
+                  onClick={props.onCloseProject}
+                >
+                  {m.allProjects}
+                </button>
+              </RibbonGroup>
+            )}
             <RibbonGroup label={m.groups.add}>
               {newQuestion}
               {newExperiment}

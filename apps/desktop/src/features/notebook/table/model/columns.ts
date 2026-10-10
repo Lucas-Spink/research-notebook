@@ -1,7 +1,9 @@
-import type {
-  ColumnKey,
-  ProjectYamlModel,
-  TableSettingsChange,
+import {
+  DEFAULT_COLUMN_WIDTHS,
+  PREVIOUS_DEFAULT_COLUMN_WIDTHS,
+  type ColumnKey,
+  type ProjectYamlModel,
+  type TableSettingsChange,
 } from "@research-notebook/format";
 
 type Table = ProjectYamlModel["table"];
@@ -51,11 +53,23 @@ export function keyboardWidth(
   }
 }
 
+/**
+ * The width to show for a stored one. A column still at the width it had by
+ * default before Results was widened was never adjusted, so it takes the new
+ * default; anything else the person set is kept exactly. Only the display
+ * changes: `project.yaml` is not rewritten.
+ */
+function shownWidth(key: ColumnKey, stored: number): number {
+  return PREVIOUS_DEFAULT_COLUMN_WIDTHS[key] === stored
+    ? DEFAULT_COLUMN_WIDTHS[key]
+    : stored;
+}
+
 /** The six columns in the order `project.yaml` stores them (array order is display order). */
 export function columnLayout(table: Table): ColumnLayout[] {
   return table.columns.map((column) => ({
     key: column.key,
-    width: clampWidth(column.width),
+    width: clampWidth(shownWidth(column.key, column.width)),
     hidden: column.hidden,
   }));
 }

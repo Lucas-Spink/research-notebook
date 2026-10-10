@@ -79,7 +79,7 @@ export function ResultsCell({
           }
         }}
       >
-        {tableMessages.resultsHeading}
+        <span className="wtable__sr">{tableMessages.resultsHeading}</span>
       </div>
       {!readOnly && (
         <button

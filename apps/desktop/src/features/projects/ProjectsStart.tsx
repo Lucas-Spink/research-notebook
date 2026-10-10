@@ -29,6 +29,7 @@ export function ProjectsStart() {
         changes={projects.fileChanges}
         archived={opened.summary.archived}
         onProjectFileChanged={() => void projects.refreshProjectFile()}
+        onCloseProject={() => void projects.close()}
         projectControls={<ProjectRibbonControls projects={projects} />}
         projectBanners={
           <>
