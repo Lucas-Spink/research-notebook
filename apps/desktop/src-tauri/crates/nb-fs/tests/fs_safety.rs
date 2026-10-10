@@ -22,7 +22,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use common::{
-    make_dir_link, snapshot_outside_notebook, snapshot_outside_notebook_except, TestProject,
+    make_dir_link, snapshot_outside_notebook, snapshot_outside_notebook_except,
+    snapshot_whole_project, TestProject,
 };
 use nb_fs::discovery::{discover, DiscoveryOptions};
 use nb_fs::lock::{
@@ -672,4 +673,55 @@ fn creating_and_opening_a_project_changes_only_the_two_hygiene_files() {
     );
     assert!(project.read(".gitignore").starts_with(existing));
     assert!(project.temp_files().is_empty());
+}
+
+/// S6-T09, gate S6-G06. An archived project is opened and used (listed, read,
+/// its evidence opened and hashed) and nothing under it changes: not an
+/// analysis file, not a notebook file, and no `.lock` appears, because a
+/// project that is read-only for its own file never asks for one (ADR-0022).
+/// The command layer refuses writes without a held lock, which is covered by
+/// `writable` in `commands/projects/history.rs`.
+#[test]
+fn archived_project_is_not_written_when_opened_and_used() {
+    let project = TestProject::new();
+    let evidence = project.on_disk("_notebook/experiments/EXP-ARC/evidence");
+    fs::create_dir_all(&evidence).unwrap();
+    fs::write(evidence.join("plot.png"), b"not really a png").unwrap();
+    fs::write(
+        project.on_disk("_notebook/project.yaml"),
+        "format_version: 1
+archived: \"2026-10-01T09:00:00Z\"
+",
+    )
+    .unwrap();
+    fs::write(
+        project.on_disk("_notebook/experiments/EXP-ARC/experiment.md"),
+        "---
+---
+",
+    )
+    .unwrap();
+
+    let before = snapshot_whole_project(project.root());
+    assert!(
+        before.len() >= 12,
+        "the snapshot should cover the project: {before:?}"
+    );
+
+    let root = project.open();
+    let rel = |p: &str| ProjectRelPath::parse(p).unwrap();
+    root.read_project_yaml().unwrap();
+    root.list_notebook().unwrap();
+    root.read_data_file(&rel("_notebook/project.yaml")).unwrap();
+    root.read_data_file(&rel("_notebook/experiments/EXP-ARC/experiment.md"))
+        .unwrap();
+    let evidence_path = rel("_notebook/experiments/EXP-ARC/evidence/plot.png");
+    let mut opened = root.open_version_file(&evidence_path).unwrap();
+    let mut bytes = Vec::new();
+    opened.file.read_to_end(&mut bytes).unwrap();
+    drop(opened);
+    root.observe_version_file(&evidence_path).unwrap();
+
+    assert!(!project.exists("_notebook/.lock"));
+    assert_eq!(snapshot_whole_project(project.root()), before);
 }

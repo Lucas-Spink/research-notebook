@@ -132,6 +132,18 @@ pub fn snapshot_outside_notebook_except(root: &Path, except: &[&str]) -> BTreeMa
     entries
 }
 
+/// As [`snapshot_outside_notebook`], but also records everything inside
+/// `_notebook/`, for a project that must not be written at all (an archived
+/// one, S6-G06).
+pub fn snapshot_whole_project(root: &Path) -> BTreeMap<String, Entry> {
+    let mut entries = snapshot_outside_notebook(root);
+    let notebook = root.join("_notebook");
+    let mtime = fs::metadata(&notebook).unwrap().modified().unwrap();
+    entries.insert("_notebook".to_owned(), Entry::Dir { mtime });
+    walk(root, &notebook, &[], &mut entries);
+    entries
+}
+
 fn walk(root: &Path, dir: &Path, except: &[&str], entries: &mut BTreeMap<String, Entry>) {
     for item in fs::read_dir(dir).unwrap() {
         let item = item.unwrap();
