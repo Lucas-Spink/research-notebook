@@ -21,6 +21,34 @@ import {
 const { state, first, second } = sampleNotebook();
 const table = state.project.table;
 
+describe("columnLayout and the widened Results column", () => {
+  const stored = (widths: Record<string, number>) => ({
+    ...table,
+    columns: table.columns.map((c) => ({
+      ...c,
+      width: widths[c.key] ?? c.width,
+    })),
+  });
+  const widthOf = (layout: ColumnLayout[], key: string) =>
+    layout.find((c) => c.key === key)?.width;
+
+  it("shows a column still at its old default at the new default, without changing the stored table", () => {
+    const old = stored({ methods: 260, results: 280, results_notes: 300 });
+    const layout = columnLayout(old);
+    expect(widthOf(layout, "methods")).toBe(180);
+    expect(widthOf(layout, "results")).toBe(520);
+    expect(widthOf(layout, "results_notes")).toBe(200);
+    expect(old.columns.find((c) => c.key === "results")?.width).toBe(280);
+  });
+
+  it("keeps a width the person set, even beside columns still at their old defaults", () => {
+    const layout = columnLayout(stored({ methods: 400, results: 280 }));
+    expect(widthOf(layout, "methods")).toBe(400);
+    expect(widthOf(layout, "results")).toBe(520);
+    expect(widthOf(layout, "interpretation")).toBe(320);
+  });
+});
+
 describe("columnLayout", () => {
   it("lists every column in the order project.yaml stores them, with its width and visibility", () => {
     expect(columnLayout(table)).toEqual([

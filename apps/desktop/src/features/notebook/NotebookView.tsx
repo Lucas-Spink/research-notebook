@@ -165,6 +165,8 @@ type NotebookViewProps = {
   archived?: string | null;
   /** The application wrote `project.yaml`. Archiving is offered only when this is given. */
   onProjectFileChanged?: () => void;
+  /** Closes the project and returns to the start page; the ribbon's Home tab offers it when given. */
+  onCloseProject?: () => void;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
   /** The ribbon's Project group, which belongs to the projects feature. */
@@ -179,6 +181,7 @@ function NotebookViewBody({
   folder,
   archived = null,
   onProjectFileChanged,
+  onCloseProject,
   viewportHeight,
   projectControls,
   projectBanners,
@@ -688,6 +691,7 @@ function NotebookViewBody({
       <section className="workspace" aria-labelledby="notebook-heading">
         <Ribbon
           projectName={loadedProject?.name ?? null}
+          {...(onCloseProject === undefined ? {} : { onCloseProject })}
           projectControls={projectControls}
           archivable={onProjectFileChanged !== undefined}
           writable={writable}
@@ -725,7 +729,7 @@ function NotebookViewBody({
           {!writable && <p className="notebook__note">{messages.readOnly}</p>}
           <div role="status" aria-live="polite">
             {busy && (
-              <p>
+              <p className="notebook__working">
                 <span className="spinner" aria-hidden="true" />
                 {messages.working}
               </p>

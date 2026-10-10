@@ -78,6 +78,7 @@ export const ribbonMessages = {
   columns: "Columns",
   compactOverview: "Compact overview",
   detailedComparison: "Detailed comparison",
+  allProjects: "‹ All projects",
   expandAll: "Expand all",
   collapseAll: "Collapse all",
   search: "Search",

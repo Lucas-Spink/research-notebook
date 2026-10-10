@@ -448,9 +448,12 @@
   max-width: 100%;
 }
 
+/* No visible heading: the cell is the Results column. This empty strip is the
+   cell's tab stop and sits beside the plus and the menu. */
 .wtable__results-title {
-  font-size: 12.5px;
-  font-weight: var(--weight-semibold);
+  flex: 1;
+  min-height: 18px;
+  border-radius: 3px;
 }
 
 .wtable__results-open .results__head {
