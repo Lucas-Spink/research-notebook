@@ -3,7 +3,7 @@ import type {
   ArtefactsFileModel,
 } from "@research-notebook/format";
 import { commands, type FolderHandle } from "../../../ipc/bindings";
-import { ArtefactTypeIcon, FolderIcon } from "../../../shared/ArtefactTypeIcon";
+import { FileIcon, GroupFolderIcon } from "../../../shared/FileIcons";
 import type { TableEditing } from "../table/EditableSectionCell";
 import type { EvidenceProject } from "../table/model/addEvidence";
 import { useAddFiles } from "../table/useAddFiles";
@@ -48,8 +48,8 @@ export function CodeFolder({
   return (
     <section className="code-folder" aria-label={m.codeFolder}>
       <header className="code-folder__head">
-        <span className="results__icon results__icon--folder">
-          <FolderIcon />
+        <span className="results__icon">
+          <GroupFolderIcon open={scripts.length > 0} />
         </span>
         <strong>{m.codeFolder}</strong>
         <span className="results__count">{m.codeCount(scripts.length)}</span>
@@ -80,10 +80,10 @@ export function CodeFolder({
                 aria-label={m.scriptOpen(script.name)}
                 onClick={() => onOpen(script.id)}
               >
-                <span className="code-folder__name">{script.name}</span>
                 <span className="results__icon">
-                  <ArtefactTypeIcon type={script.type} />
+                  <FileIcon name={script.name} type={script.type} />
                 </span>
+                <span className="code-folder__name">{script.name}</span>
                 <span className="code-folder__path">{script.source.path}</span>
                 {script.mode === "link" && (
                   <span className="code-folder__tag">{m.linked}</span>

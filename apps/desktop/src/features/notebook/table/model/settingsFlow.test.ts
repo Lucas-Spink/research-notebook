@@ -183,7 +183,7 @@ describe("saving the table's layout", () => {
     const { committer, project } = await setup();
     project.calls.length = 0;
     committer.change(
-      { widths: { methods: 260 }, hidden: { methods: false } },
+      { widths: { methods: 180 }, hidden: { methods: false } },
       { immediate: true },
     );
     await vi.advanceTimersByTimeAsync(0);

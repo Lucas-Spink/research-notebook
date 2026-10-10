@@ -120,8 +120,22 @@ export function TreeRowView({
         tree.drag.end();
       }}
     >
-      <span className="results__toggle" aria-hidden="true">
-        {expandable ? (row.expanded ? "▾" : "▸") : ""}
+      <span
+        className={`results__toggle${expandable && row.expanded ? " results__toggle--open" : ""}`}
+        aria-hidden="true"
+      >
+        {expandable && (
+          <svg viewBox="0 0 8 8" width="8" height="8" focusable="false">
+            <path
+              d="M2.5 1 5.5 4 2.5 7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
       </span>
       {row.kind === "item" ? (
         <span className="results__icon" title={row.artefactType}>

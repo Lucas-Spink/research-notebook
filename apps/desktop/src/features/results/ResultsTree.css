@@ -116,7 +116,13 @@
 }
 
 .results__actions {
+  margin-inline-start: auto;
   opacity: 0;
+}
+
+/* A folder's count already pushes the button to the right edge. */
+.results__count + .results__actions {
+  margin-inline-start: 0;
 }
 
 .results__row:hover .results__actions,
@@ -141,12 +147,20 @@
 }
 
 .results__toggle {
-  display: inline-block;
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
   inline-size: 10px;
   color: var(--color-text-muted);
-  font-size: 9px;
-  text-align: center;
+}
+
+.results__toggle svg {
+  transition: transform 80ms ease;
+}
+
+.results__toggle--open svg {
+  transform: rotate(90deg);
 }
 
 .results__panel {

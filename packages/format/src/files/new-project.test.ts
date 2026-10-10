@@ -38,9 +38,9 @@ describe("newProject", () => {
       table: {
         columns: [
           { key: "motivation", width: 220, hidden: false },
-          { key: "methods", width: 260, hidden: false },
-          { key: "results", width: 280, hidden: false },
-          { key: "results_notes", width: 300, hidden: false },
+          { key: "methods", width: 180, hidden: false },
+          { key: "results", width: 520, hidden: false },
+          { key: "results_notes", width: 200, hidden: false },
           { key: "interpretation", width: 320, hidden: false },
           { key: "literature", width: 240, hidden: false },
         ],

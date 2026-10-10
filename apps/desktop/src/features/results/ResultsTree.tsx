@@ -70,6 +70,7 @@ export function ResultsTree({
     file,
     disabled,
     onAction,
+    hideEmptyUngrouped: compact,
     ...(onOpen === undefined ? {} : { onOpen }),
     ...(onFileAction === undefined ? {} : { onFileAction }),
   });

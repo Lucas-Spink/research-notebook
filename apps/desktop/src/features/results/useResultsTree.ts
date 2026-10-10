@@ -54,6 +54,8 @@ type Options = {
     artefactId: string,
     action: "openFile" | "reveal",
   ) => Promise<boolean>;
+  /** Leave out the Ungrouped area while it holds nothing, so a small tree stays small. */
+  hideEmptyUngrouped?: boolean;
 };
 
 /** Copy rather than move: Ctrl on Windows, Option on macOS. */
@@ -69,6 +71,7 @@ export function useResultsTree({
   onAction,
   onOpen,
   onFileAction,
+  hideEmptyUngrouped = false,
 }: Options) {
   const [expansion, setExpansion] = useState<Expansion>({});
   const [focus, setFocus] = useState<string | null>(null);
@@ -80,7 +83,12 @@ export function useResultsTree({
   const rowRefs = useRef(new Map<string, HTMLElement>());
   const moveFocus = useRef(false);
 
-  const rows = useMemo(() => treeRows(file, expansion), [file, expansion]);
+  const rows = useMemo(() => {
+    const all = treeRows(file, expansion);
+    return hideEmptyUngrouped
+      ? all.filter((row) => !(row.kind === "ungrouped" && row.itemCount === 0))
+      : all;
+  }, [file, expansion, hideEmptyUngrouped]);
   // Rows hidden by collapsing a folder drop out of the selection.
   const chosen = useMemo(
     () => selectedRows(rows, chosenKeys),

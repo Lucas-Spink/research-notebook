@@ -174,23 +174,15 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
 
   it("opens and closes a folder in place, and the folder's files follow it", () => {
     const { view } = mount(grouped());
-    expect(rowNames(view, "EXP-001")).toEqual([
-      "Main figures",
-      "PCA plot",
-      "Ungrouped",
-    ]);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "PCA plot"]);
     const folder = treeIn(view, "EXP-001")?.querySelector(
       '[aria-expanded="true"]',
     );
     if (!folder) throw new Error("no open folder");
     click(folder);
-    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "Ungrouped"]);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures"]);
     click(folder);
-    expect(rowNames(view, "EXP-001")).toEqual([
-      "Main figures",
-      "PCA plot",
-      "Ungrouped",
-    ]);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "PCA plot"]);
   });
 
   it("moves from the heading into the tree with Enter, and back with Escape", () => {

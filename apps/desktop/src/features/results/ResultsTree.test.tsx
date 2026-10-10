@@ -59,14 +59,14 @@ describe("ResultsTree", () => {
     expect(tree?.getAttribute("aria-label")).toBe("Result groups");
     expect(items(root)).toEqual([
       {
-        text: "▾Figures3",
+        text: "Figures3",
         level: "1",
         pos: "1/3",
         expanded: "true",
         tab: "0",
       },
       {
-        text: "▾Supplementary1",
+        text: "Supplementary1",
         level: "2",
         pos: "1/3",
         expanded: "true",
@@ -82,7 +82,7 @@ describe("ResultsTree", () => {
       },
       { text: "Heatmap", level: "2", pos: "3/3", expanded: null, tab: "-1" },
       {
-        text: "▾Tables1",
+        text: "Tables1",
         level: "1",
         pos: "2/3",
         expanded: "true",
@@ -90,7 +90,7 @@ describe("ResultsTree", () => {
       },
       { text: "Counts", level: "2", pos: "1/1", expanded: null, tab: "-1" },
       {
-        text: "▾Ungrouped1",
+        text: "Ungrouped1",
         level: "1",
         pos: "3/3",
         expanded: "true",
@@ -111,11 +111,11 @@ describe("ResultsTree", () => {
     const root = render(largeArtefacts(120, 2));
     expect(items(root)).toEqual([
       expect.objectContaining({
-        text: "▸Group 160",
+        text: "Group 160",
         expanded: "false",
       }),
       expect.objectContaining({
-        text: "▸Group 260",
+        text: "Group 260",
         expanded: "false",
       }),
       expect.objectContaining({ text: "Ungrouped0", expanded: null }),

@@ -28,9 +28,9 @@ export const DEFAULT_COLUMN_WIDTHS: Record<
   number
 > = {
   motivation: 220,
-  methods: 260,
-  results: 280,
-  results_notes: 300,
+  methods: 180,
+  results: 520,
+  results_notes: 200,
   interpretation: 320,
   literature: 240,
 };
