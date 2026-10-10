@@ -1,5 +1,9 @@
 import { assertNever } from "../../../../shared/assertNever";
 
+/** The export and archive tools of the Export ribbon tab, each in its own pane tab. */
+export type ExportSection =
+  "pdf" | "html" | "machine" | "bundles" | "gitBundle" | "archive";
+
 /** What a tab in the side pane shows. A result is one artefact of one experiment. */
 export type PaneTab =
   | { id: string; kind: "sources" }
@@ -7,6 +11,7 @@ export type PaneTab =
   | { id: string; kind: "citations" }
   | { id: string; kind: "details" }
   | { id: string; kind: "integrity" }
+  | { id: string; kind: "export"; section: ExportSection }
   | { id: string; kind: "addResult"; experimentFolder: string }
   | { id: string; kind: "results"; experimentFolder: string }
   | {

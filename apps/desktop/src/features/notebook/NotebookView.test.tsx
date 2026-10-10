@@ -315,7 +315,14 @@ describe("NotebookView: controls", () => {
     const tabs = [
       ...render(model(state)).querySelectorAll('[role="tablist"] [role="tab"]'),
     ].map((tab) => tab.textContent);
-    expect(tabs).toEqual(["Home", "Experiments", "Sources", "View", "Project"]);
+    expect(tabs).toEqual([
+      "Home",
+      "Experiments",
+      "Sources",
+      "View",
+      "Project",
+      "Export",
+    ]);
   });
 
   it("offers, in the ribbon, what to do with a selection, and to add a question", () => {
