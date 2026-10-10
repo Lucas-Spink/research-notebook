@@ -5,675 +5,345 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
-  /**
-   *  The version of this build, recorded in `project.yaml` as
-   *  `last_written_by` (spec 5.3) so the frontend need not read it from
-   *  anywhere it could disagree with the Rust crate.
-   */
-  appVersion: () => __TAURI_INVOKE<string>("app_version"),
-  /**
-   *  Generates a 256px-bounded PNG thumbnail for a PNG or JPEG image (spec
-   *  section 8). Spike for S1-T05: the first typed command in the app,
-   *  establishing the `apps/desktop/src/ipc/` generated-bindings boundary
-   *  that all future commands reuse (AGENTS.md section 4).
-   */
-  previewThumbnailPng: (bytes: number[]) =>
-    typedError<number[], string>(
-      __TAURI_INVOKE("preview_thumbnail_png", { bytes }),
-    ),
-  /**
-   *  Asks for a folder and creates a project in it (FR-PRJ-01). The texts are
-   *  built by `packages/format`. `None` when the person cancels.
-   */
-  createProject: (
-    projectYaml: string,
-    bibliographyJson: string,
-    evidenceInGit: boolean,
-  ) =>
-    typedError<
-      {
-        folder: FolderHandle;
-        /**  For display only. */
-        path: string;
-        hygiene: HygieneReport[];
-      } | null,
-      ProjectError
-    >(
-      __TAURI_INVOKE("create_project", {
-        projectYaml,
-        bibliographyJson,
-        evidenceInGit,
-      }),
-    ),
-  /**
-   *  Asks for a project folder and reads its `project.yaml` (FR-PRJ-02).
-   *  `None` when the person cancels.
-   */
-  openProject: () =>
-    typedError<
-      {
-        folder: FolderHandle;
-        /**  For display only. */
-        path: string;
-        projectYaml: string;
-      } | null,
-      ProjectError
-    >(__TAURI_INVOKE("open_project")),
-  /**
-   *  Opens a project from the recent list without asking for its folder. A
-   *  folder that is gone, or no longer holds a project, is reported as
-   *  `folderUnavailable` or `notAProject`, and the person can then Locate it
-   *  (FR-PRJ-03).
-   */
-  openRecentProject: (projectId: Ulid) =>
-    typedError<OpenedProject, ProjectError>(
-      __TAURI_INVOKE("open_recent_project", { projectId }),
-    ),
-  /**
-   *  Asks for the folder a moved project is now in and reads its
-   *  `project.yaml`. The frontend checks the `id` matches the project being
-   *  located before it calls `remember_project`. `None` when cancelled.
-   */
-  locateProject: () =>
-    typedError<
-      {
-        folder: FolderHandle;
-        /**  For display only. */
-        path: string;
-        projectYaml: string;
-      } | null,
-      ProjectError
-    >(__TAURI_INVOKE("locate_project")),
-  /**
-   *  Puts a project first in the recent list, or updates its path after it was
-   *  located. The identifier and name come from the parsed `project.yaml`.
-   */
-  rememberProject: (folder: FolderHandle, projectId: Ulid, name: string) =>
-    typedError<null, ProjectError>(
-      __TAURI_INVOKE("remember_project", { folder, projectId, name }),
-    ),
-  /**  The recent projects, most recent first, each marked available or not. */
-  listRecentProjects: () =>
-    typedError<RecentEntry[], ProjectError>(
-      __TAURI_INVOKE("list_recent_projects"),
-    ),
-  /**
-   *  Asks for the folder an external root of a project has on this machine and
-   *  remembers it (FR-PRJ-07). Returns the folder, or `None` when cancelled.
-   */
-  setExternalRoot: (projectId: Ulid, rootId: Ulid) =>
-    typedError<string | null, ProjectError>(
-      __TAURI_INVOKE("set_external_root", { projectId, rootId }),
-    ),
-  /**
-   *  Where each of a project's external roots is on this machine. The roots
-   *  come from the parsed `project.yaml`; an unresolved one marks the artefacts
-   *  linked through it unavailable.
-   */
-  externalRootStatus: (projectId: Ulid, rootIds: Ulid[]) =>
-    typedError<ExternalRootStatus[], ProjectError>(
-      __TAURI_INVOKE("external_root_status", { projectId, rootIds }),
-    ),
-  /**
-   *  Locks the project for writing and starts its heartbeat. Call it only for a
-   *  project that would otherwise be writable: a project that is read-only for
-   *  another reason gets no lock and no write of any kind. `confirm_takeover` is
-   *  true only after the person has agreed to take over a stale or unreadable lock.
-   */
-  acquireProjectLock: (folder: FolderHandle, confirmTakeover: boolean) =>
-    typedError<LockOutcome, ProjectError>(
-      __TAURI_INVOKE("acquire_project_lock", { folder, confirmTakeover }),
-    ),
-  /**
-   *  Whether the lock is still held. The webview asks now and then, so a lock
-   *  taken over while the project is open turns it read-only.
-   */
-  projectLockState: (folder: FolderHandle) =>
-    typedError<LockState, ProjectError>(
-      __TAURI_INVOKE("project_lock_state", { folder }),
-    ),
-  /**  Stops the heartbeat and removes the lock if it is still ours. */
-  releaseProjectLock: (folder: FolderHandle) =>
-    typedError<null, ProjectError>(
-      __TAURI_INVOKE("release_project_lock", { folder }),
-    ),
-  /**
-   *  Lists which question files and experiment folders the project has, so the
-   *  webview can read each with `read_notebook_file`. Only names are returned,
-   *  never paths outside the notebook. Nothing is written.
-   */
-  listNotebookFiles: (folder: FolderHandle) =>
-    typedError<NotebookFiles, ProjectError>(
-      __TAURI_INVOKE("list_notebook_files", { folder }),
-    ),
-  /**  Reads one notebook data file. Nothing is written. */
-  readNotebookFile: (folder: FolderHandle, path: NotebookPath) =>
-    typedError<FileRead, ProjectError>(
-      __TAURI_INVOKE("read_notebook_file", { folder, path }),
-    ),
-  /**
-   *  Overwrites a notebook data file with `text`, first keeping what it held in
-   *  `.history`. Refused, with nothing written, if this application does not
-   *  hold the project's lock, or if the file is no longer what `expected` says
-   *  (`changed`), which is how a save never overwrites an outside edit.
-   */
-  writeNotebookFile: (
-    folder: FolderHandle,
-    path: NotebookPath,
-    text: string,
-    expected: ExpectedFile,
-  ) =>
-    typedError<SaveResult, ProjectError>(
-      __TAURI_INVOKE("write_notebook_file", { folder, path, text, expected }),
-    ),
-  /**
-   *  Moves a question file or an experiment folder to `.trash/`. Nothing is
-   *  deleted; the person can move it back.
-   */
-  moveToTrash: (folder: FolderHandle, path: TrashTarget) =>
-    typedError<TrashedItem, ProjectError>(
-      __TAURI_INVOKE("move_to_trash", { folder, path }),
-    ),
-  /**
-   *  Copies the notebook's text files to `backups/` before the first write by
-   *  this version of the application. The webview decides whether one is due by
-   *  comparing `last_written_by`, which it parsed, with this build's version;
-   *  the version named in the folder is this build's own, not one it supplies.
-   */
-  backupForVersionChange: (folder: FolderHandle) =>
-    typedError<BackupMade, ProjectError>(
-      __TAURI_INVOKE("backup_for_version_change", { folder }),
-    ),
-  /**
-   *  Starts watching the project's notebook files. Safe to call again for a
-   *  project already watched. Read-only projects are watched too: they still
-   *  show what changed on disk. Nothing is written.
-   */
-  startProjectWatch: (folder: FolderHandle) =>
-    typedError<null, ProjectError>(
-      __TAURI_INVOKE("start_project_watch", { folder }),
-    ),
-  /**  Takes the changes found since the last call. */
-  pollProjectChanges: (folder: FolderHandle) =>
-    typedError<ChangeReport, ProjectError>(
-      __TAURI_INVOKE("poll_project_changes", { folder }),
-    ),
-  /**  Stops watching the project. */
-  stopProjectWatch: (folder: FolderHandle) =>
-    typedError<null, ProjectError>(
-      __TAURI_INVOKE("stop_project_watch", { folder }),
-    ),
-  /**
-   *  The 256 px thumbnail of a raster image version, from the cache or made
-   *  now (spec 8, FR-PRV-04). `sha256` is the version's recorded hash.
-   */
-  previewThumbnail: (
-    folder: FolderHandle,
-    file: VersionPath,
-    sha256: Sha256Hex,
-  ) =>
-    typedError<AssetFile, PreviewFailure>(
-      __TAURI_INVOKE("preview_thumbnail", { folder, file, sha256 }),
-    ),
-  /**
-   *  Lets the webview load one version's file as an image, PDF or SVG, if it
-   *  is within its spec 8 bound, and returns the path to load it by.
-   */
-  previewAsset: (folder: FolderHandle, file: VersionPath, kind: AssetKind) =>
-    typedError<AssetFile, PreviewFailure>(
-      __TAURI_INVOKE("preview_asset", { folder, file, kind }),
-    ),
-  /**
-   *  The header and first rows of a delimited table version (spec 8):
-   *  200 rows from 256 KiB, or 2,000 rows from 8 MiB when `expanded`.
-   */
-  previewTable: (folder: FolderHandle, file: VersionPath, expanded: boolean) =>
-    typedError<TablePreview, PreviewFailure>(
-      __TAURI_INVOKE("preview_table", { folder, file, expanded }),
-    ),
-  /**  The first 500 lines of a script or text version, from at most 1 MiB. */
-  previewText: (folder: FolderHandle, file: VersionPath) =>
-    typedError<TextPreview, PreviewFailure>(
-      __TAURI_INVOKE("preview_text", { folder, file }),
-    ),
-  /**  The language and kernel of a notebook version, from at most 1 MiB. */
-  previewNotebook: (folder: FolderHandle, file: VersionPath) =>
-    typedError<NotebookPreview, PreviewFailure>(
-      __TAURI_INVOKE("preview_notebook", { folder, file }),
-    ),
-  /**
-   *  Which of an experiment's captured version files are missing or cannot be
-   *  opened (FR-ARC-01). Answers by position in `files`, so no path comes back.
-   */
-  checkVersionFiles: (folder: FolderHandle, files: VersionPath[]) =>
-    typedError<VersionFileProblem[], PreviewFailure>(
-      __TAURI_INVOKE("check_version_files", { folder, files }),
-    ),
-  /**
-   *  What each captured version file is on disk now, for the manifest
-   *  (FR-ARC-02). Read-only. Files that cannot be observed are reported as
-   *  such, never skipped.
-   */
-  observeVersionFiles: (folder: FolderHandle, files: VersionPath[]) =>
-    typedError<VersionObserved[], ProjectError>(
-      __TAURI_INVOKE("observe_version_files", { folder, files }),
-    ),
-  /**
-   *  Writes `exports/manifest.csv` (FR-ARC-02). Refused, with nothing written,
-   *  unless this application holds the project's lock.
-   */
-  writeManifest: (folder: FolderHandle, csv: string) =>
-    typedError<null, ProjectError>(
-      __TAURI_INVOKE("write_manifest", { folder, csv }),
-    ),
-  /**
-   *  Counts what a bundle would hold, so the panel can say how large it is and
-   *  warn about FAT32 before anything is written. Reads only.
-   */
-  planBundle: (folder: FolderHandle, choice: BundleChoice) =>
-    typedError<BundleSummary, ProjectError>(
-      __TAURI_INVOKE("plan_bundle", { folder, choice }),
-    ),
-  /**
-   *  Asks for a destination folder and writes the bundle there as
-   *  `<stem>.nbk` (FR-ARC-08). `None` when the person cancels. Only reads the
-   *  project, so it needs no lock; nothing in the project changes.
-   */
-  writeBundle: (
-    folder: FolderHandle,
-    choice: BundleChoice,
-    stem: string,
-    extras: BundleExtraInput[],
-  ) =>
-    typedError<
-      /**
-       *  Written, read back and checked. `name` is the file name in the folder
-       *  the person chose; `folder` is that folder, for display only.
-       */
-      | {
-          kind: "written";
-          name: string;
-          folder: string;
-          bytes: number | null;
-          files: number | null;
-        }
-      | { kind: "folderInvalid" }
-      | { kind: "insideProject" }
-      | { kind: "unsafeName" }
-      /**  The destination refused a file this large: typically a FAT32 drive. */
-      | { kind: "tooLargeForDestination" }
-      | { kind: "noSpace" }
-      | { kind: "sourceChanged" }
-      | { kind: "failed" }
-      | null,
-      ProjectError
-    >(__TAURI_INVOKE("write_bundle", { folder, choice, stem, extras })),
-  /**
-   *  Writes a git bundle of each repository, into `_notebook/exports/git/`
-   *  (FR-ARC-04). The repositories are only read. Refused, with nothing
-   *  written, unless this application holds the project's lock. A repository
-   *  that cannot be bundled is reported and the others still are.
-   */
-  writeGitBundles: (folder: FolderHandle, repos: RepoPath[]) =>
-    typedError<GitBundleOutcome[], ProjectError>(
-      __TAURI_INVOKE("write_git_bundles", { folder, repos }),
-    ),
-  /**
-   *  Reduces figures and samples tables for the HTML export, writing reduced
-   *  figures under `_notebook/exports/html/assets/` (FR-ARC-05). The captured
-   *  files are only read. Refused, with nothing written, unless this
-   *  application holds the project's lock.
-   */
-  prepareHtmlAssets: (folder: FolderHandle, requests: HtmlAssetRequest[]) =>
-    typedError<HtmlAssetOutcome[], ProjectError>(
-      __TAURI_INVOKE("prepare_html_assets", { folder, requests }),
-    ),
-  /**
-   *  Writes the export's pages into `_notebook/exports/html/` (FR-ARC-05),
-   *  replacing those of an earlier run. Refused, with nothing written, unless
-   *  this application holds the project's lock.
-   */
-  writeHtmlPages: (folder: FolderHandle, pages: HtmlPageInput[]) =>
-    typedError<HtmlPageOutcome[], ProjectError>(
-      __TAURI_INVOKE("write_html_pages", { folder, pages }),
-    ),
-  /**
-   *  Writes the machine-readable export into `_notebook/exports/machine/`
-   *  (FR-ARC-07), replacing the files of an earlier run. Refused, with nothing
-   *  written, unless this application holds the project's lock.
-   */
-  writeMachineExport: (folder: FolderHandle, files: MachineFileInput[]) =>
-    typedError<MachineFileOutcome[], ProjectError>(
-      __TAURI_INVOKE("write_machine_export", { folder, files }),
-    ),
-  /**
-   *  Writes the project PDF/A-3b into `_notebook/exports/pdf/` (FR-ARC-06),
-   *  replacing the one of an earlier run. Refused, with nothing written, unless
-   *  this application holds the project's lock.
-   */
-  writePdfExport: (folder: FolderHandle, input: PdfExportInput) =>
-    typedError<PdfExportOutcome, ProjectError>(
-      __TAURI_INVOKE("write_pdf_export", { folder, input }),
-    ),
-  /**  The manifest's text, for `packages/format` to parse. Read-only. */
-  readManifest: (folder: FolderHandle) =>
-    typedError<ManifestText, ProjectError>(
-      __TAURI_INVOKE("read_manifest", { folder }),
-    ),
-  /**
-   *  Re-hashes the listed files and compares them with the manifest (FR-ARC-03).
-   *  Read-only: needs no project lock, so a read-only project can be verified.
-   */
-  verifyManifestFiles: (folder: FolderHandle, files: ManifestEntry[]) =>
-    typedError<FileVerdict[], ProjectError>(
-      __TAURI_INVOKE("verify_manifest_files", { folder, files }),
-    ),
-  /**
-   *  Acts on a captured version's file, resolved and confined to
-   *  `evidence/` or `methods/` the same way a preview would be (spec 6.5).
-   */
-  openCapturedFileAction: (
-    folder: FolderHandle,
-    file: VersionPath,
-    action: FileActionKind,
-  ) =>
-    typedError<null, OpenFailure>(
-      __TAURI_INVOKE("open_captured_file_action", { folder, file, action }),
-    ),
-  /**
-   *  Acts on a linked artefact's source file, resolved from the project root
-   *  or a configured external root (FR-PRJ-07). Never confined the way a
-   *  version file is: a source may legitimately be anywhere under either.
-   */
-  openLinkedFileAction: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    root: SourceRoot,
-    path: SourcePath,
-    action: FileActionKind,
-  ) =>
-    typedError<null, OpenFailure>(
-      __TAURI_INVOKE("open_linked_file_action", {
-        folder,
-        projectId,
-        root,
-        path,
-        action,
-      }),
-    ),
-  /**  Opens the project's own root folder in the file manager. */
-  openProjectFolder: (folder: FolderHandle) =>
-    typedError<null, OpenFailure>(
-      __TAURI_INVOKE("open_project_folder", { folder }),
-    ),
-  /**
-   *  A linked artefact's current availability (FR-EVD-07, FR-EVD-08): checked
-   *  now, never read from a stored flag (ADR-0031 §1), and nothing is
-   *  written by checking it.
-   */
-  linkedArtefactAvailability: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    root: SourceRoot,
-    path: SourcePath,
-  ) =>
-    typedError<Availability, OpenFailure>(
-      __TAURI_INVOKE("linked_artefact_availability", {
-        folder,
-        projectId,
-        root,
-        path,
-      }),
-    ),
-  /**
-   *  Asks the person for files to add (FR-EVD-01), starting in the project
-   *  folder. Each is returned as a location under the project or one of
-   *  `external_roots`, or refused with the reason (ADR-0044 point 1). Empty
-   *  when the person cancels.
-   */
-  pickEvidenceFiles: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    externalRoots: Ulid[],
-  ) =>
-    typedError<ChosenFile[], EvidenceFailure>(
-      __TAURI_INVOKE("pick_evidence_files", {
-        folder,
-        projectId,
-        externalRoots,
-      }),
-    ),
-  /**
-   *  Copies the file at `root`/`path` into the experiment as a new version
-   *  (FR-EVD-03 to FR-EVD-05, FR-EVD-12). The source is only read.
-   */
-  captureEvidence: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    root: SourceRoot,
-    path: SourcePath,
-    experiment: ExperimentFolder,
-    destination: Destination,
-    naming: CaptureNaming,
-    known: KnownVersionInput[],
-  ) =>
-    typedError<CaptureOutcomeDto, EvidenceFailure>(
-      __TAURI_INVOKE("capture_evidence", {
-        folder,
-        projectId,
-        root,
-        path,
-        experiment,
-        destination,
-        naming,
-        known,
-      }),
-    ),
-  /**
-   *  The hash, size and modification time of the file at `root`/`path`, to
-   *  record it as linked rather than copied (FR-EVD-02, FR-EVD-07).
-   */
-  observeEvidence: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    root: SourceRoot,
-    path: SourcePath,
-  ) =>
-    typedError<LinkObservationDto, EvidenceFailure>(
-      __TAURI_INVOKE("observe_evidence", { folder, projectId, root, path }),
-    ),
-  /**
-   *  Starts receiving files dropped on the window for the open project
-   *  (ADR-0044 point 2). Replaces any earlier target.
-   */
-  watchDrops: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) =>
-    typedError<null, EvidenceFailure>(
-      __TAURI_INVOKE("watch_drops", { folder, projectId, externalRoots }),
-    ),
-  /**  Stops receiving drops, so a file dropped on the window does nothing. */
-  unwatchDrops: () => __TAURI_INVOKE<void>("unwatch_drops"),
-  /**  The requests waiting in the project's inbox (spec 5.10), by folder name. */
-  listInboxRequests: (folder: FolderHandle) =>
-    typedError<string[], EvidenceFailure>(
-      __TAURI_INVOKE("list_inbox_requests", { folder }),
-    ),
-  /**
-   *  The text of one waiting request's `request.json`, for the format package
-   *  to parse (AGENTS.md rule 2).
-   */
-  readInboxRequest: (folder: FolderHandle, request: InboxName) =>
-    typedError<string, EvidenceFailure>(
-      __TAURI_INVOKE("read_inbox_request", { folder, request }),
-    ),
-  /**
-   *  Places a request's copy-mode payload in the experiment as a new version
-   *  (FR-EVD-01), after checking it against the `sha256` and `size` the
-   *  request declared. The request stays until `remove_inbox_request`.
-   */
-  importInboxPayload: (
-    folder: FolderHandle,
-    request: InboxName,
-    payload: InboxName,
-    sha256: string,
-    size: number | null,
-    experiment: ExperimentFolder,
-    destination: Destination,
-    naming: CaptureNaming,
-    known: KnownVersionInput[],
-  ) =>
-    typedError<CaptureOutcomeDto, EvidenceFailure>(
-      __TAURI_INVOKE("import_inbox_payload", {
-        folder,
-        request,
-        payload,
-        sha256,
-        size,
-        experiment,
-        destination,
-        naming,
-        known,
-      }),
-    ),
-  /**
-   *  Deletes a request's folder once what it asked for is recorded
-   *  (spec 5.10). A request that could not be imported is never removed.
-   */
-  removeInboxRequest: (folder: FolderHandle, request: InboxName) =>
-    typedError<null, EvidenceFailure>(
-      __TAURI_INVOKE("remove_inbox_request", { folder, request }),
-    ),
-  /**
-   *  The clutter a scan excludes unless told otherwise (ADR-0035 point 4), for
-   *  the discovery dialog to show and let the person edit.
-   */
-  defaultDiscoveryExcludes: () =>
-    __TAURI_INVOKE<string[]>("default_discovery_excludes"),
-  /**
-   *  Asks the person for a folder to scan (FR-EVD-09), starting in the project
-   *  folder. Resolved as a location under the project or one of
-   *  `external_roots`, or refused with the reason (ADR-0044 point 1). `None`
-   *  when the person cancels.
-   */
-  pickDiscoveryFolder: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    externalRoots: Ulid[],
-  ) =>
-    typedError<
-      | { kind: "located"; name: string; folder: DiscoveryFolder }
-      | { kind: "refused"; name: string; reason: Refusal }
-      | null,
-      EvidenceFailure
-    >(
-      __TAURI_INVOKE("pick_discovery_folder", {
-        folder,
-        projectId,
-        externalRoots,
-      }),
-    ),
-  /**
-   *  Scans `chosen` for files to capture (FR-EVD-09), reporting progress over
-   *  `progress` and stopping early if `cancel_discovery` is called before it
-   *  finishes. `captured` are the source paths already recorded, relative to
-   *  `chosen`, usually from `capturedSourcePaths`.
-   */
-  startDiscovery: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    chosen: DiscoveryFolder,
-    options: DiscoveryOptionsDto,
-    captured: string[],
-    progress: Channel<DiscoveryProgressDto>,
-  ) =>
-    typedError<DiscoveryResultDto, EvidenceFailure>(
-      __TAURI_INVOKE("start_discovery", {
-        folder,
-        projectId,
-        chosen,
-        options,
-        captured,
-        progress,
-      }),
-    ),
-  /**
-   *  Sets the running scan's cancel flag, if one is running. It returns what
-   *  it had found so far, with `cancelled` set (ADR-0035 point 8).
-   */
-  cancelDiscovery: () => __TAURI_INVOKE<void>("cancel_discovery"),
-  /**
-   *  Ranked candidates for a missing linked artefact's new location (FR-EVD-08,
-   *  ADR-0031 §3), among `chosen`'s direct entries. `chosen` is picked the same
-   *  way a discovery folder is, with `pick_discovery_folder`. Nothing is
-   *  applied; the caller confirms a candidate itself, through `editArtefacts`.
-   */
-  listRelinkCandidates: (
-    folder: FolderHandle,
-    projectId: Ulid,
-    chosen: DiscoveryFolder,
-    fileName: string,
-    size: number | null,
-    sha256: string,
-  ) =>
-    typedError<RelinkCandidateDto[], EvidenceFailure>(
-      __TAURI_INVOKE("list_relink_candidates", {
-        folder,
-        projectId,
-        chosen,
-        fileName,
-        size,
-        sha256,
-      }),
-    ),
-  /**
-   *  Reports whether Zotero's local API is connected, disabled or not running
-   *  (FR-CIT-01). The request runs in `spawn_blocking`, because it is a
-   *  blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
-   */
-  zoteroStatus: () =>
-    typedError<ZoteroConnection, ZoteroStatusError>(
-      __TAURI_INVOKE("zotero_status"),
-    ),
-  /**
-   *  Searches the connected Zotero library for the citation picker
-   *  (FR-CIT-03). Runs in `spawn_blocking`, as `zotero_status` does, because
-   *  it is a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
-   */
-  zoteroSearchItems: (query: string) =>
-    typedError<ZoteroSearchRow[], ZoteroSearchCommandError>(
-      __TAURI_INVOKE("zotero_search_items", { query }),
-    ),
-  /**
-   *  Fetches one source for `bibliography.json` by its Zotero item key.
-   *  Runs in `spawn_blocking`, as the other Zotero commands do, because it is
-   *  a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02). Writes nothing.
-   */
-  zoteroFetchSource: (itemKey: string) =>
-    typedError<ZoteroSourceResult, ZoteroSourceError>(
-      __TAURI_INVOKE("zotero_fetch_source", { itemKey }),
-    ),
-  /**
-   *  The key of a source's PDF attachment, when Zotero has one. Blocking HTTP
-   *  to 127.0.0.1:23119 (FR-CIT-02), so it runs in `spawn_blocking`. Writes
-   *  nothing.
-   */
-  zoteroPdfAttachment: (library: string, itemKey: string) =>
-    typedError<string | null, ZoteroSourceError>(
-      __TAURI_INVOKE("zotero_pdf_attachment", { library, itemKey }),
-    ),
-  /**
-   *  Opens one of the three source links. Launches a process, so it runs in
-   *  `spawn_blocking`.
-   */
-  openSourceLink: (link: SourceLink) =>
-    typedError<null, OpenSourceLinkError>(
-      __TAURI_INVOKE("open_source_link", { link }),
-    ),
+	/**
+	 *  The version of this build, recorded in `project.yaml` as
+	 *  `last_written_by` (spec 5.3) so the frontend need not read it from
+	 *  anywhere it could disagree with the Rust crate.
+	 */
+	appVersion: () => __TAURI_INVOKE<string>("app_version"),
+	/**
+	 *  Generates a 256px-bounded PNG thumbnail for a PNG or JPEG image (spec
+	 *  section 8). Spike for S1-T05: the first typed command in the app,
+	 *  establishing the `apps/desktop/src/ipc/` generated-bindings boundary
+	 *  that all future commands reuse (AGENTS.md section 4).
+	 */
+	previewThumbnailPng: (bytes: number[]) => typedError<number[], string>(__TAURI_INVOKE("preview_thumbnail_png", { bytes })),
+	/**
+	 *  Asks for a folder and creates a project in it (FR-PRJ-01). The texts are
+	 *  built by `packages/format`. `None` when the person cancels.
+	 */
+	createProject: (projectYaml: string, bibliographyJson: string, evidenceInGit: boolean) => typedError<{
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	hygiene: HygieneReport[],
+} | null, ProjectError>(__TAURI_INVOKE("create_project", { projectYaml, bibliographyJson, evidenceInGit })),
+	/**
+	 *  Asks for a project folder and reads its `project.yaml` (FR-PRJ-02).
+	 *  `None` when the person cancels.
+	 */
+	openProject: () => typedError<{
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	projectYaml: string,
+} | null, ProjectError>(__TAURI_INVOKE("open_project")),
+	/**
+	 *  Opens a project from the recent list without asking for its folder. A
+	 *  folder that is gone, or no longer holds a project, is reported as
+	 *  `folderUnavailable` or `notAProject`, and the person can then Locate it
+	 *  (FR-PRJ-03).
+	 */
+	openRecentProject: (projectId: Ulid) => typedError<OpenedProject, ProjectError>(__TAURI_INVOKE("open_recent_project", { projectId })),
+	/**
+	 *  Asks for the folder a moved project is now in and reads its
+	 *  `project.yaml`. The frontend checks the `id` matches the project being
+	 *  located before it calls `remember_project`. `None` when cancelled.
+	 */
+	locateProject: () => typedError<{
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	projectYaml: string,
+} | null, ProjectError>(__TAURI_INVOKE("locate_project")),
+	/**
+	 *  Puts a project first in the recent list, or updates its path after it was
+	 *  located. The identifier and name come from the parsed `project.yaml`.
+	 */
+	rememberProject: (folder: FolderHandle, projectId: Ulid, name: string) => typedError<null, ProjectError>(__TAURI_INVOKE("remember_project", { folder, projectId, name })),
+	/**  The recent projects, most recent first, each marked available or not. */
+	listRecentProjects: () => typedError<RecentEntry[], ProjectError>(__TAURI_INVOKE("list_recent_projects")),
+	/**
+	 *  Asks for the folder an external root of a project has on this machine and
+	 *  remembers it (FR-PRJ-07). Returns the folder, or `None` when cancelled.
+	 */
+	setExternalRoot: (projectId: Ulid, rootId: Ulid) => typedError<string | null, ProjectError>(__TAURI_INVOKE("set_external_root", { projectId, rootId })),
+	/**
+	 *  Where each of a project's external roots is on this machine. The roots
+	 *  come from the parsed `project.yaml`; an unresolved one marks the artefacts
+	 *  linked through it unavailable.
+	 */
+	externalRootStatus: (projectId: Ulid, rootIds: Ulid[]) => typedError<ExternalRootStatus[], ProjectError>(__TAURI_INVOKE("external_root_status", { projectId, rootIds })),
+	/**
+	 *  Locks the project for writing and starts its heartbeat. Call it only for a
+	 *  project that would otherwise be writable: a project that is read-only for
+	 *  another reason gets no lock and no write of any kind. `confirm_takeover` is
+	 *  true only after the person has agreed to take over a stale or unreadable lock.
+	 */
+	acquireProjectLock: (folder: FolderHandle, confirmTakeover: boolean) => typedError<LockOutcome, ProjectError>(__TAURI_INVOKE("acquire_project_lock", { folder, confirmTakeover })),
+	/**
+	 *  Whether the lock is still held. The webview asks now and then, so a lock
+	 *  taken over while the project is open turns it read-only.
+	 */
+	projectLockState: (folder: FolderHandle) => typedError<LockState, ProjectError>(__TAURI_INVOKE("project_lock_state", { folder })),
+	/**  Stops the heartbeat and removes the lock if it is still ours. */
+	releaseProjectLock: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("release_project_lock", { folder })),
+	/**
+	 *  Lists which question files and experiment folders the project has, so the
+	 *  webview can read each with `read_notebook_file`. Only names are returned,
+	 *  never paths outside the notebook. Nothing is written.
+	 */
+	listNotebookFiles: (folder: FolderHandle) => typedError<NotebookFiles, ProjectError>(__TAURI_INVOKE("list_notebook_files", { folder })),
+	/**  Reads one notebook data file. Nothing is written. */
+	readNotebookFile: (folder: FolderHandle, path: NotebookPath) => typedError<FileRead, ProjectError>(__TAURI_INVOKE("read_notebook_file", { folder, path })),
+	/**
+	 *  Overwrites a notebook data file with `text`, first keeping what it held in
+	 *  `.history`. Refused, with nothing written, if this application does not
+	 *  hold the project's lock, or if the file is no longer what `expected` says
+	 *  (`changed`), which is how a save never overwrites an outside edit.
+	 */
+	writeNotebookFile: (folder: FolderHandle, path: NotebookPath, text: string, expected: ExpectedFile) => typedError<SaveResult, ProjectError>(__TAURI_INVOKE("write_notebook_file", { folder, path, text, expected })),
+	/**
+	 *  Moves a question file or an experiment folder to `.trash/`. Nothing is
+	 *  deleted; the person can move it back.
+	 */
+	moveToTrash: (folder: FolderHandle, path: TrashTarget) => typedError<TrashedItem, ProjectError>(__TAURI_INVOKE("move_to_trash", { folder, path })),
+	/**
+	 *  Copies the notebook's text files to `backups/` before the first write by
+	 *  this version of the application. The webview decides whether one is due by
+	 *  comparing `last_written_by`, which it parsed, with this build's version;
+	 *  the version named in the folder is this build's own, not one it supplies.
+	 */
+	backupForVersionChange: (folder: FolderHandle) => typedError<BackupMade, ProjectError>(__TAURI_INVOKE("backup_for_version_change", { folder })),
+	/**
+	 *  Starts watching the project's notebook files. Safe to call again for a
+	 *  project already watched. Read-only projects are watched too: they still
+	 *  show what changed on disk. Nothing is written.
+	 */
+	startProjectWatch: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("start_project_watch", { folder })),
+	/**  Takes the changes found since the last call. */
+	pollProjectChanges: (folder: FolderHandle) => typedError<ChangeReport, ProjectError>(__TAURI_INVOKE("poll_project_changes", { folder })),
+	/**  Stops watching the project. */
+	stopProjectWatch: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("stop_project_watch", { folder })),
+	/**
+	 *  The 256 px thumbnail of a raster image version, from the cache or made
+	 *  now (spec 8, FR-PRV-04). `sha256` is the version's recorded hash.
+	 */
+	previewThumbnail: (folder: FolderHandle, file: VersionPath, sha256: Sha256Hex) => typedError<AssetFile, PreviewFailure>(__TAURI_INVOKE("preview_thumbnail", { folder, file, sha256 })),
+	/**
+	 *  Lets the webview load one version's file as an image, PDF or SVG, if it
+	 *  is within its spec 8 bound, and returns the path to load it by.
+	 */
+	previewAsset: (folder: FolderHandle, file: VersionPath, kind: AssetKind) => typedError<AssetFile, PreviewFailure>(__TAURI_INVOKE("preview_asset", { folder, file, kind })),
+	/**
+	 *  The header and first rows of a delimited table version (spec 8):
+	 *  200 rows from 256 KiB, or 2,000 rows from 8 MiB when `expanded`.
+	 */
+	previewTable: (folder: FolderHandle, file: VersionPath, expanded: boolean) => typedError<TablePreview, PreviewFailure>(__TAURI_INVOKE("preview_table", { folder, file, expanded })),
+	/**  The first 500 lines of a script or text version, from at most 1 MiB. */
+	previewText: (folder: FolderHandle, file: VersionPath) => typedError<TextPreview, PreviewFailure>(__TAURI_INVOKE("preview_text", { folder, file })),
+	/**  The language and kernel of a notebook version, from at most 1 MiB. */
+	previewNotebook: (folder: FolderHandle, file: VersionPath) => typedError<NotebookPreview, PreviewFailure>(__TAURI_INVOKE("preview_notebook", { folder, file })),
+	/**
+	 *  Which of an experiment's captured version files are missing or cannot be
+	 *  opened (FR-ARC-01). Answers by position in `files`, so no path comes back.
+	 */
+	checkVersionFiles: (folder: FolderHandle, files: VersionPath[]) => typedError<VersionFileProblem[], PreviewFailure>(__TAURI_INVOKE("check_version_files", { folder, files })),
+	/**
+	 *  What each captured version file is on disk now, for the manifest
+	 *  (FR-ARC-02). Read-only. Files that cannot be observed are reported as
+	 *  such, never skipped.
+	 */
+	observeVersionFiles: (folder: FolderHandle, files: VersionPath[]) => typedError<VersionObserved[], ProjectError>(__TAURI_INVOKE("observe_version_files", { folder, files })),
+	/**
+	 *  Writes `exports/manifest.csv` (FR-ARC-02). Refused, with nothing written,
+	 *  unless this application holds the project's lock.
+	 */
+	writeManifest: (folder: FolderHandle, csv: string) => typedError<null, ProjectError>(__TAURI_INVOKE("write_manifest", { folder, csv })),
+	/**
+	 *  Counts what a bundle would hold, so the panel can say how large it is and
+	 *  warn about FAT32 before anything is written. Reads only.
+	 */
+	planBundle: (folder: FolderHandle, choice: BundleChoice) => typedError<BundleSummary, ProjectError>(__TAURI_INVOKE("plan_bundle", { folder, choice })),
+	/**
+	 *  Asks for a destination folder and writes the bundle there as
+	 *  `<stem>.nbk` (FR-ARC-08). `None` when the person cancels. Only reads the
+	 *  project, so it needs no lock; nothing in the project changes.
+	 */
+	writeBundle: (folder: FolderHandle, choice: BundleChoice, stem: string, extras: BundleExtraInput[]) => typedError<
+/**
+ *  Written, read back and checked. `name` is the file name in the folder
+ *  the person chose; `folder` is that folder, for display only.
+ */
+{ kind: "written"; name: string; folder: string; bytes: number | null; files: number | null } | { kind: "folderInvalid" } | { kind: "insideProject" } | { kind: "unsafeName" } | 
+/**  The destination refused a file this large: typically a FAT32 drive. */
+{ kind: "tooLargeForDestination" } | { kind: "noSpace" } | { kind: "sourceChanged" } | { kind: "failed" } | null, ProjectError>(__TAURI_INVOKE("write_bundle", { folder, choice, stem, extras })),
+	/**
+	 *  Writes a git bundle of each repository, into `_notebook/exports/git/`
+	 *  (FR-ARC-04). The repositories are only read. Refused, with nothing
+	 *  written, unless this application holds the project's lock. A repository
+	 *  that cannot be bundled is reported and the others still are.
+	 */
+	writeGitBundles: (folder: FolderHandle, repos: RepoPath[]) => typedError<GitBundleOutcome[], ProjectError>(__TAURI_INVOKE("write_git_bundles", { folder, repos })),
+	/**
+	 *  Reduces figures and samples tables for the HTML export, writing reduced
+	 *  figures under `_notebook/exports/html/assets/` (FR-ARC-05). The captured
+	 *  files are only read. Refused, with nothing written, unless this
+	 *  application holds the project's lock.
+	 */
+	prepareHtmlAssets: (folder: FolderHandle, requests: HtmlAssetRequest[]) => typedError<HtmlAssetOutcome[], ProjectError>(__TAURI_INVOKE("prepare_html_assets", { folder, requests })),
+	/**
+	 *  Writes the export's pages into `_notebook/exports/html/` (FR-ARC-05),
+	 *  replacing those of an earlier run. Refused, with nothing written, unless
+	 *  this application holds the project's lock.
+	 */
+	writeHtmlPages: (folder: FolderHandle, pages: HtmlPageInput[]) => typedError<HtmlPageOutcome[], ProjectError>(__TAURI_INVOKE("write_html_pages", { folder, pages })),
+	/**
+	 *  Writes the machine-readable export into `_notebook/exports/machine/`
+	 *  (FR-ARC-07), replacing the files of an earlier run. Refused, with nothing
+	 *  written, unless this application holds the project's lock.
+	 */
+	writeMachineExport: (folder: FolderHandle, files: MachineFileInput[]) => typedError<MachineFileOutcome[], ProjectError>(__TAURI_INVOKE("write_machine_export", { folder, files })),
+	/**
+	 *  Writes the project PDF/A-3b into `_notebook/exports/pdf/` (FR-ARC-06),
+	 *  replacing the one of an earlier run. Refused, with nothing written, unless
+	 *  this application holds the project's lock.
+	 */
+	writePdfExport: (folder: FolderHandle, input: PdfExportInput) => typedError<PdfExportOutcome, ProjectError>(__TAURI_INVOKE("write_pdf_export", { folder, input })),
+	/**  The manifest's text, for `packages/format` to parse. Read-only. */
+	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
+	/**
+	 *  Re-hashes the listed files and compares them with the manifest (FR-ARC-03).
+	 *  Read-only: needs no project lock, so a read-only project can be verified.
+	 */
+	verifyManifestFiles: (folder: FolderHandle, files: ManifestEntry[]) => typedError<FileVerdict[], ProjectError>(__TAURI_INVOKE("verify_manifest_files", { folder, files })),
+	/**
+	 *  Acts on a captured version's file, resolved and confined to
+	 *  `evidence/` or `methods/` the same way a preview would be (spec 6.5).
+	 */
+	openCapturedFileAction: (folder: FolderHandle, file: VersionPath, action: FileActionKind) => typedError<null, OpenFailure>(__TAURI_INVOKE("open_captured_file_action", { folder, file, action })),
+	/**
+	 *  Acts on a linked artefact's source file, resolved from the project root
+	 *  or a configured external root (FR-PRJ-07). Never confined the way a
+	 *  version file is: a source may legitimately be anywhere under either.
+	 */
+	openLinkedFileAction: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath, action: FileActionKind) => typedError<null, OpenFailure>(__TAURI_INVOKE("open_linked_file_action", { folder, projectId, root, path, action })),
+	/**  Opens the project's own root folder in the file manager. */
+	openProjectFolder: (folder: FolderHandle) => typedError<null, OpenFailure>(__TAURI_INVOKE("open_project_folder", { folder })),
+	/**
+	 *  A linked artefact's current availability (FR-EVD-07, FR-EVD-08): checked
+	 *  now, never read from a stored flag (ADR-0031 §1), and nothing is
+	 *  written by checking it.
+	 */
+	linkedArtefactAvailability: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath) => typedError<Availability, OpenFailure>(__TAURI_INVOKE("linked_artefact_availability", { folder, projectId, root, path })),
+	/**
+	 *  Asks the person for files to add (FR-EVD-01), starting in the project
+	 *  folder. Each is returned as a location under the project or one of
+	 *  `external_roots`, or refused with the reason (ADR-0044 point 1). Empty
+	 *  when the person cancels.
+	 */
+	pickEvidenceFiles: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) => typedError<ChosenFile[], EvidenceFailure>(__TAURI_INVOKE("pick_evidence_files", { folder, projectId, externalRoots })),
+	/**
+	 *  Copies the file at `root`/`path` into the experiment as a new version
+	 *  (FR-EVD-03 to FR-EVD-05, FR-EVD-12). The source is only read.
+	 */
+	captureEvidence: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath, experiment: ExperimentFolder, destination: Destination, naming: CaptureNaming, known: KnownVersionInput[]) => typedError<CaptureOutcomeDto, EvidenceFailure>(__TAURI_INVOKE("capture_evidence", { folder, projectId, root, path, experiment, destination, naming, known })),
+	/**
+	 *  The hash, size and modification time of the file at `root`/`path`, to
+	 *  record it as linked rather than copied (FR-EVD-02, FR-EVD-07).
+	 */
+	observeEvidence: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath) => typedError<LinkObservationDto, EvidenceFailure>(__TAURI_INVOKE("observe_evidence", { folder, projectId, root, path })),
+	/**
+	 *  Starts receiving files dropped on the window for the open project
+	 *  (ADR-0044 point 2). Replaces any earlier target.
+	 */
+	watchDrops: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) => typedError<null, EvidenceFailure>(__TAURI_INVOKE("watch_drops", { folder, projectId, externalRoots })),
+	/**  Stops receiving drops, so a file dropped on the window does nothing. */
+	unwatchDrops: () => __TAURI_INVOKE<void>("unwatch_drops"),
+	/**  The requests waiting in the project's inbox (spec 5.10), by folder name. */
+	listInboxRequests: (folder: FolderHandle) => typedError<string[], EvidenceFailure>(__TAURI_INVOKE("list_inbox_requests", { folder })),
+	/**
+	 *  The text of one waiting request's `request.json`, for the format package
+	 *  to parse (AGENTS.md rule 2).
+	 */
+	readInboxRequest: (folder: FolderHandle, request: InboxName) => typedError<string, EvidenceFailure>(__TAURI_INVOKE("read_inbox_request", { folder, request })),
+	/**
+	 *  Places a request's copy-mode payload in the experiment as a new version
+	 *  (FR-EVD-01), after checking it against the `sha256` and `size` the
+	 *  request declared. The request stays until `remove_inbox_request`.
+	 */
+	importInboxPayload: (folder: FolderHandle, request: InboxName, payload: InboxName, sha256: string, size: number | null, experiment: ExperimentFolder, destination: Destination, naming: CaptureNaming, known: KnownVersionInput[]) => typedError<CaptureOutcomeDto, EvidenceFailure>(__TAURI_INVOKE("import_inbox_payload", { folder, request, payload, sha256, size, experiment, destination, naming, known })),
+	/**
+	 *  Deletes a request's folder once what it asked for is recorded
+	 *  (spec 5.10). A request that could not be imported is never removed.
+	 */
+	removeInboxRequest: (folder: FolderHandle, request: InboxName) => typedError<null, EvidenceFailure>(__TAURI_INVOKE("remove_inbox_request", { folder, request })),
+	/**
+	 *  The clutter a scan excludes unless told otherwise (ADR-0035 point 4), for
+	 *  the discovery dialog to show and let the person edit.
+	 */
+	defaultDiscoveryExcludes: () => __TAURI_INVOKE<string[]>("default_discovery_excludes"),
+	/**
+	 *  Asks the person for a folder to scan (FR-EVD-09), starting in the project
+	 *  folder. Resolved as a location under the project or one of
+	 *  `external_roots`, or refused with the reason (ADR-0044 point 1). `None`
+	 *  when the person cancels.
+	 */
+	pickDiscoveryFolder: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) => typedError<{ kind: "located"; name: string; folder: DiscoveryFolder } | { kind: "refused"; name: string; reason: Refusal } | null, EvidenceFailure>(__TAURI_INVOKE("pick_discovery_folder", { folder, projectId, externalRoots })),
+	/**
+	 *  Scans `chosen` for files to capture (FR-EVD-09), reporting progress over
+	 *  `progress` and stopping early if `cancel_discovery` is called before it
+	 *  finishes. `captured` are the source paths already recorded, relative to
+	 *  `chosen`, usually from `capturedSourcePaths`.
+	 */
+	startDiscovery: (folder: FolderHandle, projectId: Ulid, chosen: DiscoveryFolder, options: DiscoveryOptionsDto, captured: string[], progress: Channel<DiscoveryProgressDto>) => typedError<DiscoveryResultDto, EvidenceFailure>(__TAURI_INVOKE("start_discovery", { folder, projectId, chosen, options, captured, progress })),
+	/**
+	 *  Sets the running scan's cancel flag, if one is running. It returns what
+	 *  it had found so far, with `cancelled` set (ADR-0035 point 8).
+	 */
+	cancelDiscovery: () => __TAURI_INVOKE<void>("cancel_discovery"),
+	/**
+	 *  Ranked candidates for a missing linked artefact's new location (FR-EVD-08,
+	 *  ADR-0031 §3), among `chosen`'s direct entries. `chosen` is picked the same
+	 *  way a discovery folder is, with `pick_discovery_folder`. Nothing is
+	 *  applied; the caller confirms a candidate itself, through `editArtefacts`.
+	 */
+	listRelinkCandidates: (folder: FolderHandle, projectId: Ulid, chosen: DiscoveryFolder, fileName: string, size: number | null, sha256: string) => typedError<RelinkCandidateDto[], EvidenceFailure>(__TAURI_INVOKE("list_relink_candidates", { folder, projectId, chosen, fileName, size, sha256 })),
+	/**
+	 *  Reports whether Zotero's local API is connected, disabled or not running
+	 *  (FR-CIT-01). The request runs in `spawn_blocking`, because it is a
+	 *  blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
+	 */
+	zoteroStatus: () => typedError<ZoteroConnection, ZoteroStatusError>(__TAURI_INVOKE("zotero_status")),
+	/**
+	 *  Searches the connected Zotero library for the citation picker
+	 *  (FR-CIT-03). Runs in `spawn_blocking`, as `zotero_status` does, because
+	 *  it is a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02).
+	 */
+	zoteroSearchItems: (query: string) => typedError<ZoteroSearchRow[], ZoteroSearchCommandError>(__TAURI_INVOKE("zotero_search_items", { query })),
+	/**
+	 *  Fetches one source for `bibliography.json` by its Zotero item key.
+	 *  Runs in `spawn_blocking`, as the other Zotero commands do, because it is
+	 *  a blocking HTTP call to 127.0.0.1:23119 (FR-CIT-02). Writes nothing.
+	 */
+	zoteroFetchSource: (itemKey: string) => typedError<ZoteroSourceResult, ZoteroSourceError>(__TAURI_INVOKE("zotero_fetch_source", { itemKey })),
+	/**
+	 *  The key of a source's PDF attachment, when Zotero has one. Blocking HTTP
+	 *  to 127.0.0.1:23119 (FR-CIT-02), so it runs in `spawn_blocking`. Writes
+	 *  nothing.
+	 */
+	zoteroPdfAttachment: (library: string, itemKey: string) => typedError<string | null, ZoteroSourceError>(__TAURI_INVOKE("zotero_pdf_attachment", { library, itemKey })),
+	/**
+	 *  Opens one of the three source links. Launches a process, so it runs in
+	 *  `spawn_blocking`.
+	 */
+	openSourceLink: (link: SourceLink) => typedError<null, OpenSourceLinkError>(__TAURI_INVOKE("open_source_link", { link })),
 };
 
 /** Events */
 export const events = {
-  evidenceDragged: makeEvent<EvidenceDragged>("evidence-dragged"),
-  evidenceDropped: makeEvent<EvidenceDropped>("evidence-dropped"),
+	evidenceDragged: makeEvent<EvidenceDragged>("evidence-dragged"),
+	evidenceDropped: makeEvent<EvidenceDropped>("evidence-dropped"),
 };
 
 /* Types */
@@ -683,7 +353,7 @@ export const events = {
  *  scope before it was returned.
  */
 export type AssetFile = {
-  url: string;
+	url: string,
 };
 
 /**  What the webview renders a file as itself (spec 8). */
@@ -693,68 +363,52 @@ export type AssetKind = "image" | "pdf" | "svg";
  *  A linked artefact's availability, checked live and never persisted
  *  (ADR-0031 §1): recomputed on every call, not read from a stored flag.
  */
-export type Availability =
-  | { kind: "available"; size: number }
-  | { kind: "missing" }
-  | { kind: "rootUnresolved" }
-  | { kind: "rootFolderMissing" };
+export type Availability = { kind: "available"; size: number } | { kind: "missing" } | { kind: "rootUnresolved" } | { kind: "rootFolderMissing" };
 
 /**  A backup that was made. */
 export type BackupMade = {
-  folder: string;
-  copied: number;
-  skipped: number;
+	folder: string,
+	copied: number,
+	skipped: number,
 };
 
 /**  Which bundle to make. */
-export type BundleChoice =
-  /**  `_notebook/` only. */
-  | "notebook"
-  /**  The whole project. */
-  | "archive";
+export type BundleChoice = 
+/**  `_notebook/` only. */
+"notebook" | 
+/**  The whole project. */
+"archive";
 
 /**
  *  An entry added beside the project's files, such as the list of linked
  *  files, built by `packages/format`.
  */
 export type BundleExtraInput = {
-  path: string;
-  text: string;
+	path: string,
+	text: string,
 };
 
 /**
  *  How writing a bundle ended. Carries no system text, which can name paths
  *  the person did not ask about.
  */
-export type BundleResult =
-  /**
-   *  Written, read back and checked. `name` is the file name in the folder
-   *  the person chose; `folder` is that folder, for display only.
-   */
-  | {
-      kind: "written";
-      name: string;
-      folder: string;
-      bytes: number | null;
-      files: number | null;
-    }
-  | { kind: "folderInvalid" }
-  | { kind: "insideProject" }
-  | { kind: "unsafeName" }
-  /**  The destination refused a file this large: typically a FAT32 drive. */
-  | { kind: "tooLargeForDestination" }
-  | { kind: "noSpace" }
-  | { kind: "sourceChanged" }
-  | { kind: "failed" };
+export type BundleResult = 
+/**
+ *  Written, read back and checked. `name` is the file name in the folder
+ *  the person chose; `folder` is that folder, for display only.
+ */
+{ kind: "written"; name: string; folder: string; bytes: number | null; files: number | null } | { kind: "folderInvalid" } | { kind: "insideProject" } | { kind: "unsafeName" } | 
+/**  The destination refused a file this large: typically a FAT32 drive. */
+{ kind: "tooLargeForDestination" } | { kind: "noSpace" } | { kind: "sourceChanged" } | { kind: "failed" };
 
 /**  What a bundle would hold. */
 export type BundleSummary = {
-  files: number | null;
-  bytes: number | null;
-  /**  Links and unreadable names left out. */
-  skipped: number | null;
-  /**  The files together may not fit in one file on a FAT32 drive. */
-  exceedsFat32Limit: boolean;
+	files: number | null,
+	bytes: number | null,
+	/**  Links and unreadable names left out. */
+	skipped: number | null,
+	/**  The files together may not fit in one file on a FAT32 drive. */
+	exceedsFat32Limit: boolean,
 };
 
 /**
@@ -762,118 +416,102 @@ export type BundleSummary = {
  *  for a new artefact, or from the first version's stem and extension for a
  *  later one. Neither may contain a folder separator.
  */
-export type CaptureNaming =
-  | { kind: "new"; originalFileName: string }
-  | { kind: "version"; stem: string; extension: string };
+export type CaptureNaming = { kind: "new"; originalFileName: string } | { kind: "version"; stem: string; extension: string };
 
 export type CaptureOutcomeDto = {
-  result: CaptureResultDto;
-  /**
-   *  The same content is already a version of a different artefact: a
-   *  warning to show, not a reason to refuse (ADR-0030).
-   */
-  matchesOtherArtefact: boolean;
-  /**
-   *  `None` when the source is not in a git repository the project can
-   *  record (ADR-0032).
-   */
-  provenance: CapturedProvenance | null;
+	result: CaptureResultDto,
+	/**
+	 *  The same content is already a version of a different artefact: a
+	 *  warning to show, not a reason to refuse (ADR-0030).
+	 */
+	matchesOtherArtefact: boolean,
+	/**
+	 *  `None` when the source is not in a git repository the project can
+	 *  record (ADR-0032).
+	 */
+	provenance: CapturedProvenance | null,
 };
 
 /**  What a capture did (FR-EVD-03 to FR-EVD-05). */
-export type CaptureResultDto =
-  /**
-   *  A new version was placed. `file` is relative to the experiment
-   *  folder, beginning `evidence/` or `methods/`.
-   */
-  | {
-      kind: "created";
-      file: string;
-      sha256: string;
-      size: number | null;
-      number: number;
-    }
-  /**
-   *  The same content is already that artefact's `version`; nothing was
-   *  written.
-   */
-  | { kind: "duplicate"; version: number };
+export type CaptureResultDto = 
+/**
+ *  A new version was placed. `file` is relative to the experiment
+ *  folder, beginning `evidence/` or `methods/`.
+ */
+{ kind: "created"; file: string; sha256: string; size: number | null; number: number } | 
+/**
+ *  The same content is already that artefact's `version`; nothing was
+ *  written.
+ */
+{ kind: "duplicate"; version: number };
 
 /**
  *  Git provenance of the source (FR-EVD-12), as `CapturedFile.provenance`
  *  in `packages/format` takes it.
  */
 export type CapturedProvenance = {
-  repo: string;
-  commit: string;
-  pathInRepo: string;
-  fileDirty: boolean;
-  treeDirty: boolean;
+	repo: string,
+	commit: string,
+	pathInRepo: string,
+	fileDirty: boolean,
+	treeDirty: boolean,
 };
 
 /**  The changes found since the last poll. */
 export type ChangeReport = {
-  /**
-   *  False when the project is not being watched; there is then nothing to
-   *  report.
-   */
-  watching: boolean;
-  changes: ChangedFile[];
-  /**
-   *  Events may have been lost, or a folder was moved, so every file the
-   *  webview holds should be checked again.
-   */
-  needsRescan: boolean;
+	/**
+	 *  False when the project is not being watched; there is then nothing to
+	 *  report.
+	 */
+	watching: boolean,
+	changes: ChangedFile[],
+	/**
+	 *  Events may have been lost, or a folder was moved, so every file the
+	 *  webview holds should be checked again.
+	 */
+	needsRescan: boolean,
 };
 
 /**  One notebook data file that changed. The path is project-relative. */
 export type ChangedFile = {
-  path: string;
-  state: ChangedState;
+	path: string,
+	state: ChangedState,
 };
 
 /**  What is on disk for a changed file. */
-export type ChangedState =
-  /**
-   *  The file is there. `sha256` is of its content now, so the webview can
-   *  tell its own save from someone else's edit.
-   */
-  | { kind: "present"; sha256: string }
-  /**  The file is gone, or is a folder or link where a file should be. */
-  | { kind: "missing" }
-  /**  The file exists but could not be read for a while. */
-  | { kind: "unreadable" };
+export type ChangedState = 
+/**
+ *  The file is there. `sha256` is of its content now, so the webview can
+ *  tell its own save from someone else's edit.
+ */
+{ kind: "present"; sha256: string } | 
+/**  The file is gone, or is a folder or link where a file should be. */
+{ kind: "missing" } | 
+/**  The file exists but could not be read for a while. */
+{ kind: "unreadable" };
 
 /**
  *  One file the person picked or dropped: where it is and how big, or why
  *  it cannot be captured. Its `name` is the file's own name, for display.
  */
-export type ChosenFile =
-  | {
-      kind: "located";
-      name: string;
-      /**
-       *  Bytes. A number, not a `u64`, which the bindings cannot carry;
-       *  exact for any file under 8 PiB.
-       */
-      size: number | null;
-      location: SourceLocation;
-    }
-  | { kind: "refused"; name: string; reason: Refusal };
+export type ChosenFile = { kind: "located"; name: string; 
+/**
+ *  Bytes. A number, not a `u64`, which the bindings cannot carry;
+ *  exact for any file under 8 PiB.
+ */
+size: number | null; location: SourceLocation } | { kind: "refused"; name: string; reason: Refusal };
 
 /**
  *  A folder the person picked to scan, or why it cannot be (ADR-0044 point
  *  1). Its `name` is the folder's own name, for display.
  */
-export type ChosenFolder =
-  | { kind: "located"; name: string; folder: DiscoveryFolder }
-  | { kind: "refused"; name: string; reason: Refusal };
+export type ChosenFolder = { kind: "located"; name: string; folder: DiscoveryFolder } | { kind: "refused"; name: string; reason: Refusal };
 
 export type CreatedProject = {
-  folder: FolderHandle;
-  /**  For display only. */
-  path: string;
-  hygiene: HygieneReport[];
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	hygiene: HygieneReport[],
 };
 
 /**  Which of an experiment's folders a capture goes into (spec 5.8). */
@@ -881,8 +519,8 @@ export type Destination = "evidence" | "methods";
 
 /**  Rows (without the header) and columns of a whole table. */
 export type Dimensions = {
-  rows: number;
-  columns: number;
+	rows: number,
+	columns: number,
 };
 
 /**
@@ -890,13 +528,13 @@ export type Dimensions = {
  *  last modified, and whether its source is already captured.
  */
 export type DiscoveredFileDto = {
-  location: SourceLocation;
-  /**  The file's own name, for display. */
-  name: string;
-  size: number | null;
-  /**  `YYYY-MM-DDTHH:MM:SSZ`. */
-  modified: string;
-  captured: boolean;
+	location: SourceLocation,
+	/**  The file's own name, for display. */
+	name: string,
+	size: number | null,
+	/**  `YYYY-MM-DDTHH:MM:SSZ`. */
+	modified: string,
+	captured: boolean,
 };
 
 /**
@@ -905,8 +543,8 @@ export type DiscoveredFileDto = {
  *  root itself was chosen.
  */
 export type DiscoveryFolder = {
-  root: SourceRoot;
-  prefix: SourcePath | null;
+	root: SourceRoot,
+	prefix: SourcePath | null,
 };
 
 /**
@@ -914,8 +552,8 @@ export type DiscoveryFolder = {
  *  them. An empty `include` proposes every file not excluded.
  */
 export type DiscoveryOptionsDto = {
-  include: string[];
-  exclude: string[];
+	include: string[],
+	exclude: string[],
 };
 
 /**
@@ -923,20 +561,20 @@ export type DiscoveryOptionsDto = {
  *  its progress channel as it runs.
  */
 export type DiscoveryProgressDto = {
-  filesSeen: number | null;
-  foldersSeen: number | null;
+	filesSeen: number | null,
+	foldersSeen: number | null,
 };
 
 /**  What a finished (or cancelled) scan found (FR-EVD-09). */
 export type DiscoveryResultDto = {
-  files: DiscoveredFileDto[];
-  foldersVisited: number | null;
-  /**
-   *  How many entries could not be read or named; never their paths
-   *  (AGENTS.md rule 8).
-   */
-  skipped: number | null;
-  cancelled: boolean;
+	files: DiscoveredFileDto[],
+	foldersVisited: number | null,
+	/**
+	 *  How many entries could not be read or named; never their paths
+	 *  (AGENTS.md rule 8).
+	 */
+	skipped: number | null,
+	cancelled: boolean,
 };
 
 export type Encoding = "utf8" | "utf8Bom" | "windows1252";
@@ -946,9 +584,9 @@ export type Encoding = "utf8" | "utf8Bom" | "windows1252";
  *  in physical pixels, as the window reports them.
  */
 export type EvidenceDragged = {
-  over: boolean;
-  x: number | null;
-  y: number | null;
+	over: boolean,
+	x: number | null,
+	y: number | null,
 };
 
 /**
@@ -956,52 +594,51 @@ export type EvidenceDragged = {
  *  was in physical pixels.
  */
 export type EvidenceDropped = {
-  x: number | null;
-  y: number | null;
-  files: ChosenFile[];
+	x: number | null,
+	y: number | null,
+	files: ChosenFile[],
 };
 
 /**
  *  Why an evidence command could not complete. The `kind` is the key of the
  *  user-facing message; no path or system text is sent.
  */
-export type EvidenceFailure =
-  /**  The project folder can no longer be opened. */
-  | { kind: "projectUnavailable" }
-  /**  The application's settings could not be read. */
-  | { kind: "settingsUnavailable" }
-  /**
-   *  The source's external root has no folder set on this machine, or its
-   *  folder is gone.
-   */
-  | { kind: "rootUnavailable" }
-  /**  The source is not there, or is not a regular file. */
-  | { kind: "sourceUnavailable" }
-  /**  A name, folder or known version was not acceptable. */
-  | { kind: "invalidRequest" }
-  /**  The copy did not match its source after writing; nothing was kept. */
-  | { kind: "verificationFailed" }
-  /**  The version file that would be written already exists. */
-  | { kind: "versionExists" }
-  /**  An inbox request or its payload is not there, or cannot be read. */
-  | { kind: "requestUnavailable" }
-  /**
-   *  An inbox payload is not the file its request declared: it is left
-   *  where it is, and the request is listed as invalid (spec 5.10).
-   */
-  | { kind: "payloadMismatch" }
-  /**  Writing inside `_notebook/` failed. */
-  | { kind: "writeFailed" }
-  /**  The chosen folder is gone, is not a folder, or cannot be read. */
-  | { kind: "folderUnavailable" }
-  /**  An include or exclude glob is not a valid pattern. */
-  | { kind: "invalidPattern" }
-  /**  The file picker could not be shown, or something else went wrong. */
-  | { kind: "internal" };
+export type EvidenceFailure = 
+/**  The project folder can no longer be opened. */
+{ kind: "projectUnavailable" } | 
+/**  The application's settings could not be read. */
+{ kind: "settingsUnavailable" } | 
+/**
+ *  The source's external root has no folder set on this machine, or its
+ *  folder is gone.
+ */
+{ kind: "rootUnavailable" } | 
+/**  The source is not there, or is not a regular file. */
+{ kind: "sourceUnavailable" } | 
+/**  A name, folder or known version was not acceptable. */
+{ kind: "invalidRequest" } | 
+/**  The copy did not match its source after writing; nothing was kept. */
+{ kind: "verificationFailed" } | 
+/**  The version file that would be written already exists. */
+{ kind: "versionExists" } | 
+/**  An inbox request or its payload is not there, or cannot be read. */
+{ kind: "requestUnavailable" } | 
+/**
+ *  An inbox payload is not the file its request declared: it is left
+ *  where it is, and the request is listed as invalid (spec 5.10).
+ */
+{ kind: "payloadMismatch" } | 
+/**  Writing inside `_notebook/` failed. */
+{ kind: "writeFailed" } | 
+/**  The chosen folder is gone, is not a folder, or cannot be read. */
+{ kind: "folderUnavailable" } | 
+/**  An include or exclude glob is not a valid pattern. */
+{ kind: "invalidPattern" } | 
+/**  The file picker could not be shown, or something else went wrong. */
+{ kind: "internal" };
 
 /**  What the caller believes is on disk. */
-export type ExpectedFile =
-  { kind: "absent" } | { kind: "sha256"; sha256: string };
+export type ExpectedFile = { kind: "absent" } | { kind: "sha256"; sha256: string };
 
 /**
  *  An experiment's folder under `experiments/`: one path segment, so a
@@ -1011,36 +648,31 @@ export type ExperimentFolder = string;
 
 /**  Where an external root of a project is on this machine (FR-PRJ-07). */
 export type ExternalRootStatus = {
-  rootId: string;
-  /**  For display only; `None` when no folder has been chosen on this machine. */
-  path: string | null;
-  /**
-   *  False when there is no path or the folder is gone, which marks the
-   *  artefacts linked through it unavailable.
-   */
-  available: boolean;
+	rootId: string,
+	/**  For display only; `None` when no folder has been chosen on this machine. */
+	path: string | null,
+	/**
+	 *  False when there is no path or the folder is gone, which marks the
+	 *  artefacts linked through it unavailable.
+	 */
+	available: boolean,
 };
 
 /**  One of FR-PRV-02's distinct actions. */
-export type FileActionKind =
-  "openFile" | "reveal" | "openInVsCode" | "copyPath";
+export type FileActionKind = "openFile" | "reveal" | "openInVsCode" | "copyPath";
 
 /**  What reading a notebook data file found. */
-export type FileRead =
-  /**  The file's text exactly as on disk, and the SHA-256 of those bytes. */
-  | { kind: "text"; text: string; sha256: string }
-  /**
-   *  There is no such file now. Not an error: a file that was deleted
-   *  after a change was reported is an ordinary outcome.
-   */
-  | { kind: "missing" };
+export type FileRead = 
+/**  The file's text exactly as on disk, and the SHA-256 of those bytes. */
+{ kind: "text"; text: string; sha256: string } | 
+/**
+ *  There is no such file now. Not an error: a file that was deleted
+ *  after a change was reported is an ordinary outcome.
+ */
+{ kind: "missing" };
 
 /**  How one listed file compares with the manifest. Answered by position. */
-export type FileVerdict =
-  | { kind: "matches" }
-  | { kind: "missing" }
-  | { kind: "unreadable" }
-  | { kind: "differs"; sizeChanged: boolean; hashChanged: boolean };
+export type FileVerdict = { kind: "matches" } | { kind: "missing" } | { kind: "unreadable" } | { kind: "differs"; sizeChanged: boolean; hashChanged: boolean };
 
 /**
  *  Stands for a folder the person chose in a native dialog. The webview holds
@@ -1053,75 +685,61 @@ export type FolderHandle = number;
  *  What happened to one repository. Answered by position, and with no text
  *  from git, which may name paths the person did not ask about.
  */
-export type GitBundleOutcome =
-  /**  Bundled and accepted by `git bundle verify`. `file` is project-relative. */
-  | { kind: "written"; file: string; bytes: number | null }
-  /**  The `git` program could not be started. */
-  | { kind: "gitMissing" }
-  /**  Not the root of a git repository. */
-  | { kind: "notARepository" }
-  /**  The repository has no commits. */
-  | { kind: "noCommits" }
-  /**  The path is not a folder inside the project. */
-  | { kind: "refused" }
-  /**  Git failed, or did not accept what it made. Any earlier bundle is kept. */
-  | { kind: "failed" }
-  /**  The bundle could not be placed in the notebook. */
-  | { kind: "writeFailed" };
+export type GitBundleOutcome = 
+/**  Bundled and accepted by `git bundle verify`. `file` is project-relative. */
+{ kind: "written"; file: string; bytes: number | null } | 
+/**  The `git` program could not be started. */
+{ kind: "gitMissing" } | 
+/**  Not the root of a git repository. */
+{ kind: "notARepository" } | 
+/**  The repository has no commits. */
+{ kind: "noCommits" } | 
+/**  The path is not a folder inside the project. */
+{ kind: "refused" } | 
+/**  Git failed, or did not accept what it made. Any earlier bundle is kept. */
+{ kind: "failed" } | 
+/**  The bundle could not be placed in the notebook. */
+{ kind: "writeFailed" };
 
 /**  What to prepare for a captured file. */
 export type HtmlAssetKind = "image" | "table";
 
 /**  What became of one request, answered by position and with no system text. */
-export type HtmlAssetOutcome =
-  /**  A reduced PNG was written; `file` is project-relative. */
-  | { kind: "image"; file: string; width: number; height: number }
-  | {
-      kind: "table";
-      header: string[];
-      rows: string[][];
-      moreRows: boolean;
-      moreColumns: boolean;
-      /**  Known only when the whole file was read. */
-      totalRows: number | null;
-    }
-  | { kind: "unsupported" }
-  | { kind: "missing" }
-  | { kind: "unavailable" }
-  | { kind: "writeFailed" }
-  | { kind: "refused" };
+export type HtmlAssetOutcome = 
+/**  A reduced PNG was written; `file` is project-relative. */
+{ kind: "image"; file: string; width: number; height: number } | { kind: "table"; header: string[]; rows: string[][]; moreRows: boolean; moreColumns: boolean; 
+/**  Known only when the whole file was read. */
+totalRows: number | null } | { kind: "unsupported" } | { kind: "missing" } | { kind: "unavailable" } | { kind: "writeFailed" } | { kind: "refused" };
 
 /**
  *  A figure or table the pages need. `sha256` only names the reduced copy;
  *  `nb-archive` refuses anything that is not a SHA-256.
  */
 export type HtmlAssetRequest = {
-  file: VersionPath;
-  sha256: string;
-  kind: HtmlAssetKind;
+	file: VersionPath,
+	sha256: string,
+	kind: HtmlAssetKind,
 };
 
 /**  One page of the export, named relative to `_notebook/exports/html/`. */
 export type HtmlPageInput = {
-  name: string;
-  html: string;
+	name: string,
+	html: string,
 };
 
 /**  What became of one page, answered by position. */
 export type HtmlPageOutcome = "written" | "refused" | "writeFailed";
 
 export type HygieneReport = {
-  /**  `.gitignore` or `.gitattributes`. */
-  file: string;
-  status: HygieneStatus;
+	/**  `.gitignore` or `.gitattributes`. */
+	file: string,
+	status: HygieneStatus,
 };
 
 /**  What became of one repository hygiene file when a project was created. */
-export type HygieneStatus =
-  | "added"
-  | "unchanged"
-  /**  Not updated. The project exists; the entries can be added by hand. */
-  | "failed";
+export type HygieneStatus = "added" | "unchanged" | 
+/**  Not updated. The project exists; the entries can be added by hand. */
+"failed";
 
 /**
  *  One path segment naming an inbox request folder or the payload file in
@@ -1134,60 +752,57 @@ export type InboxName = string;
  *  the webview parsed (AGENTS.md rule 2), so a capture can tell a duplicate.
  */
 export type KnownVersionInput = {
-  sha256: string;
-  number: number;
-  sameArtefact: boolean;
+	sha256: string,
+	number: number,
+	sameArtefact: boolean,
 };
 
 /**  A linked file's observation (FR-EVD-07), as `applyLink` takes it. */
 export type LinkObservationDto = {
-  sha256: string;
-  size: number | null;
-  /**  `YYYY-MM-DDTHH:MM:SSZ`. */
-  observedMtime: string;
+	sha256: string,
+	size: number | null,
+	/**  `YYYY-MM-DDTHH:MM:SSZ`. */
+	observedMtime: string,
 };
 
 /**  Who holds a lock and since when, for the banner. Times are RFC 3339 UTC. */
 export type LockHolder = {
-  host: string;
-  pid: number;
-  appVersion: string;
-  opened: string;
-  heartbeat: string;
+	host: string,
+	pid: number,
+	appVersion: string,
+	opened: string,
+	heartbeat: string,
 };
 
 /**
  *  The result of asking to lock a project. Only `acquired` allows writing;
  *  each other kind is a read-only reason with its own banner.
  */
-export type LockOutcome =
-  | { kind: "acquired" }
-  /**  Held by another instance whose heartbeat is recent. */
-  | { kind: "live"; holder: LockHolder }
-  /**
-   *  The heartbeat is five minutes old or more; taking over needs the
-   *  person's confirmation.
-   */
-  | { kind: "stale"; holder: LockHolder }
-  /**
-   *  `.lock` is not a valid lock. When `replaceable`, taking over needs
-   *  confirmation; otherwise it is a folder, link or read-only file.
-   */
-  | { kind: "unreadable"; replaceable: boolean }
-  /**  The project's medium or folder does not allow writing. */
-  | { kind: "readOnlyMedia" };
+export type LockOutcome = { kind: "acquired" } | 
+/**  Held by another instance whose heartbeat is recent. */
+{ kind: "live"; holder: LockHolder } | 
+/**
+ *  The heartbeat is five minutes old or more; taking over needs the
+ *  person's confirmation.
+ */
+{ kind: "stale"; holder: LockHolder } | 
+/**
+ *  `.lock` is not a valid lock. When `replaceable`, taking over needs
+ *  confirmation; otherwise it is a folder, link or read-only file.
+ */
+{ kind: "unreadable"; replaceable: boolean } | 
+/**  The project's medium or folder does not allow writing. */
+{ kind: "readOnlyMedia" };
 
 /**  Whether this application still holds a project's lock. */
-export type LockState =
-  | "held"
-  /**  Taken over by another instance, or the heartbeat failed. */
-  | "lost"
-  | "notHeld";
+export type LockState = "held" | 
+/**  Taken over by another instance, or the heartbeat failed. */
+"lost" | "notHeld";
 
 /**  One file of the export, named relative to `_notebook/exports/machine/`. */
 export type MachineFileInput = {
-  name: string;
-  text: string;
+	name: string,
+	text: string,
 };
 
 /**  What became of one file, answered by position. */
@@ -1195,27 +810,26 @@ export type MachineFileOutcome = "written" | "refused" | "writeFailed";
 
 /**  One line of the manifest, as `packages/format` parsed it. */
 export type ManifestEntry = {
-  path: VersionPath;
-  /**  Bytes; a whole number the webview can hold exactly. */
-  size: number | null;
-  /**  Lower-case hexadecimal SHA-256. */
-  sha256: string;
+	path: VersionPath,
+	/**  Bytes; a whole number the webview can hold exactly. */
+	size: number | null,
+	/**  Lower-case hexadecimal SHA-256. */
+	sha256: string,
 };
 
 /**  The text of `exports/manifest.csv`, or why there is none to verify against. */
-export type ManifestText =
-  | { kind: "found"; text: string }
-  /**  No manifest has been generated. */
-  | { kind: "missing" }
-  /**  There is something at the manifest's place that cannot be read as text. */
-  | { kind: "unreadable" };
+export type ManifestText = { kind: "found"; text: string } | 
+/**  No manifest has been generated. */
+{ kind: "missing" } | 
+/**  There is something at the manifest's place that cannot be read as text. */
+{ kind: "unreadable" };
 
 /**  The question files and experiment folders a project has, by name, sorted. */
 export type NotebookFiles = {
-  /**  File names in `questions/`, such as `Q-001.md`. */
-  questionFiles: string[];
-  /**  Folder names in `experiments/`, such as `EXP-001`. */
-  experimentFolders: string[];
+	/**  File names in `questions/`, such as `Q-001.md`. */
+	questionFiles: string[],
+	/**  Folder names in `experiments/`, such as `EXP-001`. */
+	experimentFolders: string[],
 };
 
 export type NotebookKind = "jupyter" | "rMarkdown" | "quarto";
@@ -1228,45 +842,45 @@ export type NotebookKind = "jupyter" | "rMarkdown" | "quarto";
 export type NotebookPath = string;
 
 export type NotebookPreview = {
-  kind: NotebookKind;
-  language: string | null;
-  kernel: string | null;
+	kind: NotebookKind,
+	language: string | null,
+	kernel: string | null,
 };
 
 /**
  *  Why an action on a file or folder could not be completed. The `kind` is
  *  the key of the user-facing message; no path or system text is sent.
  */
-export type OpenFailure =
-  /**  The project folder can no longer be opened. */
-  | { kind: "projectUnavailable" }
-  /**  The version's file is not there, or is not a version file. */
-  | { kind: "fileUnavailable" }
-  /**  The artefact's external root has no folder set on this machine. */
-  | { kind: "rootUnresolved" }
-  /**  The external root's folder is set but no longer exists. */
-  | { kind: "rootFolderMissing" }
-  /**  The application's settings could not be read. */
-  | { kind: "settingsUnavailable" }
-  /**  The action itself failed to start. */
-  | { kind: "actionFailed" };
+export type OpenFailure = 
+/**  The project folder can no longer be opened. */
+{ kind: "projectUnavailable" } | 
+/**  The version's file is not there, or is not a version file. */
+{ kind: "fileUnavailable" } | 
+/**  The artefact's external root has no folder set on this machine. */
+{ kind: "rootUnresolved" } | 
+/**  The external root's folder is set but no longer exists. */
+{ kind: "rootFolderMissing" } | 
+/**  The application's settings could not be read. */
+{ kind: "settingsUnavailable" } | 
+/**  The action itself failed to start. */
+{ kind: "actionFailed" };
 
 /**  Why a link did not open. */
-export type OpenSourceLinkError =
-  /**  The parts were not a valid library, key or DOI; nothing was launched. */
-  | { kind: "invalid" }
-  /**  The operating system could not launch the handler. */
-  | { kind: "launchFailed" };
+export type OpenSourceLinkError = 
+/**  The parts were not a valid library, key or DOI; nothing was launched. */
+{ kind: "invalid" } | 
+/**  The operating system could not launch the handler. */
+{ kind: "launchFailed" };
 
 /**
  *  A project folder that was opened. The text is `project.yaml` exactly as it
  *  is on disk; the frontend parses it with `packages/format`, the only parser.
  */
 export type OpenedProject = {
-  folder: FolderHandle;
-  /**  For display only. */
-  path: string;
-  projectYaml: string;
+	folder: FolderHandle,
+	/**  For display only. */
+	path: string,
+	projectYaml: string,
 };
 
 /**
@@ -1274,117 +888,115 @@ export type OpenedProject = {
  *  `bibliography_json`, which is the project's own file.
  */
 export type PdfExportInput = {
-  inputJson: string;
-  notebookJson: string;
-  bibliographyJson: string;
+	inputJson: string,
+	notebookJson: string,
+	bibliographyJson: string,
 };
 
 /**  How the export ended. Carries no system text. */
-export type PdfExportOutcome =
-  | "written"
-  /**  The inputs did not make a valid PDF/A document; nothing was written. */
-  | "notBuilt"
-  | "writeFailed";
+export type PdfExportOutcome = "written" | 
+/**  The inputs did not make a valid PDF/A document; nothing was written. */
+"notBuilt" | "writeFailed";
 
 /**
  *  Why a preview could not be made. The `kind` is the key of the message
  *  the webview shows with its recovery action (FR-PRV-05); no path or system
  *  text is sent.
  */
-export type PreviewFailure =
-  /**  The project folder can no longer be opened. */
-  | { kind: "projectUnavailable" }
-  /**  The version's file is not there. */
-  | { kind: "fileMissing" }
-  /**  The file is there but cannot be opened, or is not a version file. */
-  | { kind: "fileUnavailable" }
-  /**  The file's name does not fit the preview asked for. */
-  | { kind: "notPreviewable" }
-  /**  Above the spec 8 size bound for this preview. */
-  | { kind: "tooLarge" }
-  /**  An image above 100 megapixels. */
-  | { kind: "tooManyPixels" }
-  /**  The content could not be decoded or parsed. */
-  | { kind: "unreadable" }
-  /**  The thumbnail cache could not be used. */
-  | { kind: "cacheUnavailable" }
-  /**  A background task failed. Not caused by the file. */
-  | { kind: "internal" };
+export type PreviewFailure = 
+/**  The project folder can no longer be opened. */
+{ kind: "projectUnavailable" } | 
+/**  The version's file is not there. */
+{ kind: "fileMissing" } | 
+/**  The file is there but cannot be opened, or is not a version file. */
+{ kind: "fileUnavailable" } | 
+/**  The file's name does not fit the preview asked for. */
+{ kind: "notPreviewable" } | 
+/**  Above the spec 8 size bound for this preview. */
+{ kind: "tooLarge" } | 
+/**  An image above 100 megapixels. */
+{ kind: "tooManyPixels" } | 
+/**  The content could not be decoded or parsed. */
+{ kind: "unreadable" } | 
+/**  The thumbnail cache could not be used. */
+{ kind: "cacheUnavailable" } | 
+/**  A background task failed. Not caused by the file. */
+{ kind: "internal" };
 
 /**
  *  Why a project command failed. The `kind` is the key of the user-facing
  *  message, which lives in the frontend's message files (spec 6.5); no path
  *  or system text is sent.
  */
-export type ProjectError =
-  /**  The folder cannot be used: it is missing or is not a folder. */
-  | { kind: "folderUnavailable" }
-  /**  The folder holds no `_notebook/project.yaml`. */
-  | { kind: "notAProject" }
-  /**  `_notebook` is a file or a link, or is spelt in another case. */
-  | { kind: "notebookInvalid" }
-  /**  Creating: `_notebook` already holds files, so nothing was written. */
-  | { kind: "alreadyInUse" }
-  /**  `project.yaml` exists but cannot be read as text. */
-  | { kind: "projectFileUnreadable" }
-  /**  Something was written and failed part way, or was refused. */
-  | { kind: "writeFailed" }
-  /**
-   *  Nothing was written: this application does not hold the project's
-   *  lock, so the project is read-only.
-   */
-  | { kind: "notWritable" }
-  /**  The project lock could not be read, written or removed. */
-  | { kind: "lockFailed" }
-  /**
-   *  A notebook data file could not be read: it is not one that may be read,
-   *  is not a file, is not UTF-8 or could not be opened.
-   */
-  | { kind: "fileUnavailable" }
-  /**  Watching the project for outside changes could not start. */
-  | { kind: "watchFailed" }
-  /**  No recent project has that identifier. */
-  | { kind: "notRemembered" }
-  /**  The settings file is damaged, and is left as it is. */
-  | { kind: "settingsDamaged" }
-  /**  The settings file was written by a newer version, and is left as it is. */
-  | { kind: "settingsNewer" }
-  /**  The settings file could not be read or written. */
-  | { kind: "settingsUnavailable" }
-  /**  A background task failed. Not caused by the person's input. */
-  | { kind: "internal" };
+export type ProjectError = 
+/**  The folder cannot be used: it is missing or is not a folder. */
+{ kind: "folderUnavailable" } | 
+/**  The folder holds no `_notebook/project.yaml`. */
+{ kind: "notAProject" } | 
+/**  `_notebook` is a file or a link, or is spelt in another case. */
+{ kind: "notebookInvalid" } | 
+/**  Creating: `_notebook` already holds files, so nothing was written. */
+{ kind: "alreadyInUse" } | 
+/**  `project.yaml` exists but cannot be read as text. */
+{ kind: "projectFileUnreadable" } | 
+/**  Something was written and failed part way, or was refused. */
+{ kind: "writeFailed" } | 
+/**
+ *  Nothing was written: this application does not hold the project's
+ *  lock, so the project is read-only.
+ */
+{ kind: "notWritable" } | 
+/**  The project lock could not be read, written or removed. */
+{ kind: "lockFailed" } | 
+/**
+ *  A notebook data file could not be read: it is not one that may be read,
+ *  is not a file, is not UTF-8 or could not be opened.
+ */
+{ kind: "fileUnavailable" } | 
+/**  Watching the project for outside changes could not start. */
+{ kind: "watchFailed" } | 
+/**  No recent project has that identifier. */
+{ kind: "notRemembered" } | 
+/**  The settings file is damaged, and is left as it is. */
+{ kind: "settingsDamaged" } | 
+/**  The settings file was written by a newer version, and is left as it is. */
+{ kind: "settingsNewer" } | 
+/**  The settings file could not be read or written. */
+{ kind: "settingsUnavailable" } | 
+/**  A background task failed. Not caused by the person's input. */
+{ kind: "internal" };
 
 /**  A recent project as listed on the start screen. */
 export type RecentEntry = {
-  id: string;
-  name: string;
-  /**  For display only. */
-  path: string;
-  /**
-   *  False when the folder no longer holds a project, so the person can be
-   *  offered Locate project (FR-PRJ-03).
-   */
-  available: boolean;
+	id: string,
+	name: string,
+	/**  For display only. */
+	path: string,
+	/**
+	 *  False when the folder no longer holds a project, so the person can be
+	 *  offered Locate project (FR-PRJ-03).
+	 */
+	available: boolean,
 };
 
 /**
  *  Why a chosen file cannot be captured. The `kind` is the key of the
  *  user-facing message; no path or system text is sent.
  */
-export type Refusal =
-  /**
-   *  Neither under the project folder nor under an external root set on
-   *  this machine, so the format cannot record where it came from.
-   */
-  | { kind: "outsideRoots" }
-  /**  Inside the project's own `_notebook/` folder. */
-  | { kind: "insideNotebook" }
-  /**  A folder, or something else that is not a regular file. */
-  | { kind: "notAFile" }
-  /**  A file, or something else that is not a folder. */
-  | { kind: "notAFolder" }
-  /**  It could not be read. */
-  | { kind: "unreadable" };
+export type Refusal = 
+/**
+ *  Neither under the project folder nor under an external root set on
+ *  this machine, so the format cannot record where it came from.
+ */
+{ kind: "outsideRoots" } | 
+/**  Inside the project's own `_notebook/` folder. */
+{ kind: "insideNotebook" } | 
+/**  A folder, or something else that is not a regular file. */
+{ kind: "notAFile" } | 
+/**  A file, or something else that is not a folder. */
+{ kind: "notAFolder" } | 
+/**  It could not be read. */
+{ kind: "unreadable" };
 
 /**
  *  One file found while looking for a missing link's new location (FR-EVD-08,
@@ -1393,16 +1005,16 @@ export type Refusal =
  *  read of the file.
  */
 export type RelinkCandidateDto = {
-  location: SourceLocation;
-  /**  The file's own name, for display. */
-  name: string;
-  sha256: string;
-  size: number | null;
-  /**  `YYYY-MM-DDTHH:MM:SSZ`. */
-  observedMtime: string;
-  nameMatches: boolean;
-  sizeMatches: boolean;
-  hashMatches: boolean;
+	location: SourceLocation,
+	/**  The file's own name, for display. */
+	name: string,
+	sha256: string,
+	size: number | null,
+	/**  `YYYY-MM-DDTHH:MM:SSZ`. */
+	observedMtime: string,
+	nameMatches: boolean,
+	sizeMatches: boolean,
+	hashMatches: boolean,
 };
 
 /**
@@ -1413,9 +1025,7 @@ export type RelinkCandidateDto = {
 export type RepoPath = string;
 
 /**  What a save did. */
-export type SaveResult =
-  | { kind: "saved"; snapshot: string | null }
-  | { kind: "changed"; current: string | null };
+export type SaveResult = { kind: "saved"; snapshot: string | null } | { kind: "changed"; current: string | null };
 
 /**
  *  A version's SHA-256 as `artefacts.yaml` records it: 64 lowercase
@@ -1424,21 +1034,21 @@ export type SaveResult =
 export type Sha256Hex = string;
 
 /**  What the person asked to open. */
-export type SourceLink =
-  /**  Show the item in Zotero. */
-  | { kind: "zoteroItem"; library: string; key: string }
-  /**  Open a PDF attachment in Zotero's reader. */
-  | { kind: "zoteroPdf"; library: string; attachmentKey: string }
-  /**  Open the DOI in the system browser. */
-  | { kind: "doi"; doi: string };
+export type SourceLink = 
+/**  Show the item in Zotero. */
+{ kind: "zoteroItem"; library: string; key: string } | 
+/**  Open a PDF attachment in Zotero's reader. */
+{ kind: "zoteroPdf"; library: string; attachmentKey: string } | 
+/**  Open the DOI in the system browser. */
+{ kind: "doi"; doi: string };
 
 /**
  *  Where a file the person chose sits, in the terms `artefacts.yaml`
  *  records (spec 5.8): a root and a path relative to it.
  */
 export type SourceLocation = {
-  root: SourceRoot;
-  path: SourcePath;
+	root: SourceRoot,
+	path: SourcePath,
 };
 
 /**
@@ -1456,20 +1066,20 @@ export type SourcePath = string;
 export type SourceRoot = string;
 
 export type TablePreview = {
-  header: string[];
-  rows: string[][];
-  encoding: Encoding;
-  complete: boolean;
-  moreRows: boolean;
-  moreColumns: boolean;
-  /**  Present only when the whole file was read (spec 8). */
-  dimensions: Dimensions | null;
+	header: string[],
+	rows: string[][],
+	encoding: Encoding,
+	complete: boolean,
+	moreRows: boolean,
+	moreColumns: boolean,
+	/**  Present only when the whole file was read (spec 8). */
+	dimensions: Dimensions | null,
 };
 
 export type TextPreview = {
-  lines: string[];
-  encoding: Encoding;
-  complete: boolean;
+	lines: string[],
+	encoding: Encoding,
+	complete: boolean,
 };
 
 /**
@@ -1480,7 +1090,7 @@ export type TrashTarget = string;
 
 /**  Where a trashed file or folder went. */
 export type TrashedItem = {
-  location: string;
+	location: string,
 };
 
 /**
@@ -1495,9 +1105,9 @@ export type Ulid = string;
  *  the position in the list the webview sent, so no path is sent back.
  */
 export type VersionFileProblem = {
-  index: number;
-  /**  Nothing is there; otherwise the file exists but cannot be opened. */
-  missing: boolean;
+	index: number,
+	/**  Nothing is there; otherwise the file exists but cannot be opened. */
+	missing: boolean,
 };
 
 /**
@@ -1505,17 +1115,11 @@ export type VersionFileProblem = {
  *  position, so no path or system text comes back. Sizes and times are
  *  numbers of the webview's own kind, exact below 2^53.
  */
-export type VersionObserved =
-  | {
-      kind: "observed";
-      size: number | null;
-      modifiedMs: number | null;
-      sha256: string;
-    }
-  /**  Nothing is there. */
-  | { kind: "missing" }
-  /**  Something is there that could not be read as a captured file. */
-  | { kind: "unreadable" };
+export type VersionObserved = { kind: "observed"; size: number | null; modifiedMs: number | null; sha256: string } | 
+/**  Nothing is there. */
+{ kind: "missing" } | 
+/**  Something is there that could not be read as a captured file. */
+{ kind: "unreadable" };
 
 /**
  *  The project-relative path of a captured version's file, such as
@@ -1525,18 +1129,14 @@ export type VersionObserved =
 export type VersionPath = string;
 
 /**  Zotero's local API connectivity, as reported to the webview (FR-CIT-01). */
-export type ZoteroConnection =
-  | {
-      kind: "connected";
-      /**
-       *  Present when Zotero's response carried a `Zotero-Server-ID`
-       *  header (FR-CIT-02); used to detect a different library later.
-       */
-      serverId: string | null;
-    }
-  /**  Zotero is running but its local API is off in preferences. */
-  | { kind: "disabled" }
-  | { kind: "notRunning" };
+export type ZoteroConnection = { kind: "connected"; 
+/**
+ *  Present when Zotero's response carried a `Zotero-Server-ID`
+ *  header (FR-CIT-02); used to detect a different library later.
+ */
+serverId: string | null } | 
+/**  Zotero is running but its local API is off in preferences. */
+{ kind: "disabled" } | { kind: "notRunning" };
 
 /**
  *  Why a search could not be completed. `Disabled` and `NotRunning` are the
@@ -1544,8 +1144,7 @@ export type ZoteroConnection =
  *  uses them to explain why search is unavailable rather than showing a
  *  generic error.
  */
-export type ZoteroSearchCommandError =
-  { kind: "disabled" } | { kind: "notRunning" } | { kind: "requestFailed" };
+export type ZoteroSearchCommandError = { kind: "disabled" } | { kind: "notRunning" } | { kind: "requestFailed" };
 
 /**
  *  One Zotero search result, as the citation picker shows it (FR-CIT-03).
@@ -1554,10 +1153,10 @@ export type ZoteroSearchCommandError =
  *  always `u`.
  */
 export type ZoteroSearchRow = {
-  citekey: string;
-  title: string;
-  creatorSummary: string | null;
-  itemType: string;
+	citekey: string,
+	title: string,
+	creatorSummary: string | null,
+	itemType: string,
 };
 
 /**
@@ -1565,11 +1164,7 @@ export type ZoteroSearchRow = {
  *  the webview treats the stored data as unconfirmed and asks before
  *  overwriting it (FR-CIT-07).
  */
-export type ZoteroSourceError =
-  | { kind: "disabled" }
-  | { kind: "notRunning" }
-  | { kind: "preconditionFailed" }
-  | { kind: "requestFailed" };
+export type ZoteroSourceError = { kind: "disabled" } | { kind: "notRunning" } | { kind: "preconditionFailed" } | { kind: "requestFailed" };
 
 /**
  *  One source as Zotero holds it now (FR-CIT-05, FR-CIT-07). `csl_json` is
@@ -1577,15 +1172,9 @@ export type ZoteroSourceError =
  *  boundary; `packages/format` is the only code that merges it into
  *  `bibliography.json`.
  */
-export type ZoteroSourceResult =
-  | {
-      kind: "found";
-      cslJson: string;
-      serverId: string | null;
-      trashed: boolean;
-    }
-  /**  Zotero no longer has the item. */
-  | { kind: "missing" };
+export type ZoteroSourceResult = { kind: "found"; cslJson: string; serverId: string | null; trashed: boolean } | 
+/**  Zotero no longer has the item. */
+{ kind: "missing" };
 
 /**
  *  Why a status check failed. Not-running and disabled are ordinary
@@ -1595,55 +1184,33 @@ export type ZoteroSourceResult =
 export type ZoteroStatusError = { kind: "requestFailed" };
 
 /* Tauri Specta runtime */
-async function typedError<T, E>(
-  result: Promise<T>,
-): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
-  try {
-    return { status: "ok", data: await result };
-  } catch (e) {
-    if (e instanceof Error) throw e;
-    return { status: "error", error: e as any };
-  }
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
 }
 
-type EventEmit<T> = [T] extends [null]
-  ? () => Promise<void>
-  : (payload: T) => Promise<void>;
+type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;
 
-function makeEvent<T>(
-  name: string,
-  serialize?: (payload: T) => unknown,
-  deserialize?: (payload: any) => T,
-) {
-  const mapEvent =
-    (cb: __TAURI_EVENT.EventCallback<T>) => (event: __TAURI_EVENT.Event<any>) =>
-      cb({
-        ...event,
-        payload: deserialize ? deserialize(event.payload) : event.payload,
-      });
-  const mapPayload = (payload: T) => (serialize ? serialize(payload) : payload);
+function makeEvent<T>(name: string, serialize?: (payload: T) => unknown, deserialize?: (payload: any) => T) {
+    const mapEvent = (cb: __TAURI_EVENT.EventCallback<T>) => (event: __TAURI_EVENT.Event<any>) => cb({ ...event, payload: deserialize ? deserialize(event.payload) : event.payload });
+    const mapPayload = (payload: T) => serialize ? serialize(payload) : payload;
 
-  const base = {
-    listen: (cb: __TAURI_EVENT.EventCallback<T>) =>
-      __TAURI_EVENT.listen(name, mapEvent(cb)),
-    once: (cb: __TAURI_EVENT.EventCallback<T>) =>
-      __TAURI_EVENT.once(name, mapEvent(cb)),
-    emit: ((payload: T) =>
-      __TAURI_EVENT.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>,
-  };
+    const base = {
+        listen: (cb: __TAURI_EVENT.EventCallback<T>) => __TAURI_EVENT.listen(name, mapEvent(cb)),
+        once: (cb: __TAURI_EVENT.EventCallback<T>) => __TAURI_EVENT.once(name, mapEvent(cb)),
+        emit: ((payload: T) => __TAURI_EVENT.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>
+    };
 
-  const fn = (
-    target:
-      | import("@tauri-apps/api/webview").Webview
-      | import("@tauri-apps/api/window").Window,
-  ) => ({
-    listen: (cb: __TAURI_EVENT.EventCallback<T>) =>
-      target.listen(name, mapEvent(cb)),
-    once: (cb: __TAURI_EVENT.EventCallback<T>) =>
-      target.once(name, mapEvent(cb)),
-    emit: ((payload: T) =>
-      target.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>,
-  });
+    const fn = (target: import("@tauri-apps/api/webview").Webview | import("@tauri-apps/api/window").Window) => ({
+        listen: (cb: __TAURI_EVENT.EventCallback<T>) => target.listen(name, mapEvent(cb)),
+        once: (cb: __TAURI_EVENT.EventCallback<T>) => target.once(name, mapEvent(cb)),
+        emit: ((payload: T) => target.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>
+    });
 
-  return Object.assign(fn, base);
+    return Object.assign(fn, base);
 }
+
