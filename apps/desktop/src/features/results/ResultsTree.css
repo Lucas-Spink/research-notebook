@@ -199,6 +199,10 @@
 /* Chosen artefacts: a tint plus aria-selected, so colour is not the only signal. */
 .results__row--chosen {
   background: var(--color-selected);
+.results__badge--missing {
+  color: var(--palette-warning);
+  border-color: var(--palette-warning);
+  font-weight: var(--weight-medium);
 }
 .results__badge--missing {
   color: var(--palette-warning);
