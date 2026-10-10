@@ -164,7 +164,7 @@ describe("NotebookView: the table", () => {
     );
     expect(separator?.getAttribute("role")).toBe("separator");
     expect(separator?.getAttribute("tabindex")).toBe("0");
-    expect(separator?.getAttribute("aria-valuenow")).toBe("260");
+    expect(separator?.getAttribute("aria-valuenow")).toBe("180");
     expect(separator?.getAttribute("aria-orientation")).toBe("vertical");
   });
 

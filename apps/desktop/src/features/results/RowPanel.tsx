@@ -1,12 +1,14 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { assertNever } from "../../shared/assertNever";
 import { classificationLabel, resultsMessages } from "./messages";
 import { pickedAction, rowMenu, type MenuEntry } from "./model/menu";
 import { batchAction } from "./model/selection";
 import { artefactDetails, formatSize } from "./model/details";
 import { deletionSummary, type TreeRow } from "./model/tree";
+import { MenuGlyph } from "./MenuGlyph";
 import { NameForm } from "./NameForm";
+import { Popover } from "./Popover";
 import type { Panel, ResultsTreeState } from "./useResultsTree";
 
 type Props = {
@@ -25,12 +27,7 @@ const rowName = (panel: Panel) =>
  * to the row.
  */
 export function RowPanel({ file, panel, disabled, tree }: Props) {
-  const box = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    box.current?.querySelector<HTMLElement>("button, input")?.focus();
-  }, [panel]);
-
+  const anchor = tree.rowRefs.current.get(panel.row.key);
   function choose(entry: MenuEntry) {
     const { run } = entry;
     if (run.kind === "open") tree.open?.(run.artefactId);
@@ -62,14 +59,14 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
       tree.setPanel({ kind: run.kind, row: panel.row });
   }
 
+  if (anchor === undefined) return null;
+  // The row's own actions button is the better anchor when it has one.
+  const button = anchor.querySelector<HTMLElement>(".results__actions");
   return (
-    <section
-      ref={box}
-      className="results__panel"
-      aria-label={resultsMessages.actionsFor(rowName(panel))}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") tree.closePanel();
-      }}
+    <Popover
+      anchor={button ?? anchor}
+      label={resultsMessages.actionsFor(rowName(panel))}
+      onClose={tree.closePanel}
     >
       <PanelBody
         file={file}
@@ -78,16 +75,12 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         tree={tree}
         choose={choose}
       />
-      {panel.kind !== "rename" &&
-        panel.kind !== "renameResult" &&
-        panel.kind !== "newSubgroup" && (
-          <button type="button" onClick={tree.closePanel}>
-            {panel.kind === "confirmDelete"
-              ? resultsMessages.cancel
-              : resultsMessages.close}
-          </button>
-        )}
-    </section>
+      {panel.kind === "confirmDelete" && (
+        <button type="button" onClick={tree.closePanel}>
+          {resultsMessages.cancel}
+        </button>
+      )}
+    </Popover>
   );
 }
 
@@ -101,7 +94,7 @@ function PanelBody({
   switch (panel.kind) {
     case "menu":
       return (
-        <ul className="results__menu">
+        <ul className="results__menu" role="menu">
           {rowMenu(file, panel.row, {
             canOpen: tree.open !== undefined,
             canOpenFiles: tree.fileAction !== undefined,
@@ -110,6 +103,7 @@ function PanelBody({
             <li key={entry.label}>
               <button
                 type="button"
+                role="menuitem"
                 // Opening and details only look, so they stay available read-only.
                 disabled={
                   disabled &&
@@ -118,7 +112,13 @@ function PanelBody({
                 }
                 onClick={() => choose(entry)}
               >
+                <MenuGlyph label={entry.label} />
                 {resultsMessages.menu[entry.label]}
+                {entry.run.kind === "pick" && (
+                  <span className="results-popover__more" aria-hidden="true">
+                    ›
+                  </span>
+                )}
               </button>
             </li>
           ))}
@@ -128,25 +128,7 @@ function PanelBody({
       return <DetailsList file={file} artefactId={panel.row.artefactId} />;
     case "pick":
       return (
-        <fieldset className="results__pick">
-          <legend>{resultsMessages.pick[panel.mode]}</legend>
-          {panel.targets.map((target) => {
-            const action = pickedFor(file, tree, panel, target.id);
-            return (
-              <button
-                key={target.id}
-                type="button"
-                disabled={disabled || action === null}
-                style={{ marginInlineStart: `${target.depth - 1}rem` }}
-                onClick={() => action !== null && void tree.run(action)}
-              >
-                {panel.mode === "classify"
-                  ? classificationLabel(target.id)
-                  : target.name}
-              </button>
-            );
-          })}
-        </fieldset>
+        <PickList file={file} panel={panel} disabled={disabled} tree={tree} />
       );
     case "rename":
       return (
@@ -290,4 +272,82 @@ function pickedFor(
   if (several.length > 0 && (panel.mode === "moveTo" || panel.mode === "addTo"))
     return batchAction(file, several, panel.mode, target);
   return pickedAction(panel.row, panel.mode, target);
+}
+
+/** More destinations than this get a filter box. */
+const FILTER_ABOVE = 8;
+
+/**
+ * The compact "Move to…" list: back to the menu, an optional filter for long
+ * lists, then the destinations, indented by depth and scrolling inside the
+ * popover rather than growing the table.
+ */
+function PickList({
+  file,
+  panel,
+  disabled,
+  tree,
+}: {
+  file: ArtefactsFileModel;
+  panel: Extract<Panel, { kind: "pick" }>;
+  disabled: boolean;
+  tree: ResultsTreeState;
+}) {
+  const [filter, setFilter] = useState("");
+  const wanted = filter.trim().toLowerCase();
+  const shown = panel.targets.filter(
+    (target) =>
+      wanted === "" ||
+      (panel.mode === "classify" ? classificationLabel(target.id) : target.name)
+        .toLowerCase()
+        .includes(wanted),
+  );
+  return (
+    <div
+      className="results__pick"
+      role="group"
+      aria-label={resultsMessages.pick[panel.mode]}
+    >
+      <button
+        type="button"
+        className="results-popover__back"
+        onClick={() => tree.setPanel({ kind: "menu", row: panel.row })}
+      >
+        <span aria-hidden="true">‹</span> {resultsMessages.pick[panel.mode]}
+      </button>
+      {panel.targets.length > FILTER_ABOVE && (
+        <input
+          type="search"
+          className="results-popover__filter"
+          aria-label={resultsMessages.filterTargets}
+          placeholder={resultsMessages.filterTargets}
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+      )}
+      <div className="results-popover__list">
+        {shown.map((target) => {
+          const action = pickedFor(file, tree, panel, target.id);
+          return (
+            <button
+              key={target.id}
+              type="button"
+              disabled={disabled || action === null}
+              style={{ paddingInlineStart: `${6 + (target.depth - 1) * 10}px` }}
+              onClick={() => action !== null && void tree.run(action)}
+            >
+              {panel.mode === "classify"
+                ? classificationLabel(target.id)
+                : target.name}
+            </button>
+          );
+        })}
+        {shown.length === 0 && (
+          <span className="results-popover__none">
+            {resultsMessages.noTargets}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }

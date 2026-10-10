@@ -1,10 +1,11 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
 import { positions, treeTotals } from "./model/tree";
 import { NameForm } from "./NameForm";
 import { RowPanel } from "./RowPanel";
+import { TreeMenu } from "./TreeMenu";
 import { TreeRowView } from "./TreeRowView";
 import { useResultsTree, type ActionOutcome } from "./useResultsTree";
 import "./ResultsTree.css";
@@ -41,6 +42,10 @@ type Props = {
    * off until focus is inside it, so the grid keeps one tab stop per cell.
    */
   tabStops?: boolean;
+  /** With `compact`: what the heading shows before the tree's own menu button. */
+  header?: ReactNode;
+  /** Hovering a result: its id and row, or `null` when the pointer leaves. */
+  onHover?: (artefactId: string | null, row?: HTMLElement) => void;
 };
 
 /**
@@ -58,67 +63,79 @@ export function ResultsTree({
   missing,
   compact = false,
   tabStops = true,
+  header,
+  onHover,
 }: Props) {
   const tree = useResultsTree({
     file,
     disabled,
     onAction,
+    hideEmptyUngrouped: compact,
     ...(onOpen === undefined ? {} : { onOpen }),
     ...(onFileAction === undefined ? {} : { onFileAction }),
   });
   const helpId = useId();
-  const [formOpen, setFormOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const places = useMemo(() => positions(tree.rows), [tree.rows]);
   const totals = useMemo(() => treeTotals(file), [file]);
 
   return (
     <div className="results">
-      {disabled ? (
-        <p>{resultsMessages.readOnly}</p>
-      ) : compact && !formOpen ? (
-        <button
-          type="button"
-          className="results__new"
-          tabIndex={tabStops ? undefined : -1}
-          onClick={() => setFormOpen(true)}
-        >
-          {resultsMessages.newGroupLabel}
-        </button>
+      {compact ? (
+        <div className="results__head">
+          <div className="results__head-main">{header}</div>
+          <button
+            ref={menuButton}
+            type="button"
+            className="results__tree-actions"
+            tabIndex={tabStops ? undefined : -1}
+            aria-label={resultsMessages.treeActions}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title={resultsMessages.treeActions}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <span className="results__actions-dots" aria-hidden="true" />
+          </button>
+          {menuOpen && menuButton.current !== null && (
+            <TreeMenu
+              anchor={menuButton.current}
+              disabled={disabled}
+              onNewFolder={(name) =>
+                tree.run({ kind: "createGroup", name, parent: null })
+              }
+              onExpandAll={() => tree.setAll(null, true)}
+              onCollapseAll={() => tree.setAll(null, false)}
+              onClose={() => setMenuOpen(false)}
+            />
+          )}
+        </div>
       ) : (
-        <NameForm
-          label={resultsMessages.newGroupLabel}
-          placeholder={resultsMessages.newGroupPlaceholder}
-          submitLabel={resultsMessages.create}
-          disabled={disabled}
-          focusOnShow={compact}
-          onSubmit={async (name) => {
-            const done = await tree.run({
-              kind: "createGroup",
-              name,
-              parent: null,
-            });
-            if (done) setFormOpen(false);
-            return done;
-          }}
-          {...(compact ? { onCancel: () => setFormOpen(false) } : {})}
-        />
+        <>
+          {disabled ? (
+            <p>{resultsMessages.readOnly}</p>
+          ) : (
+            <NameForm
+              label={resultsMessages.newGroupLabel}
+              placeholder={resultsMessages.newGroupPlaceholder}
+              submitLabel={resultsMessages.create}
+              disabled={disabled}
+              onSubmit={(name) =>
+                tree.run({ kind: "createGroup", name, parent: null })
+              }
+            />
+          )}
+          <div className="results__bulk">
+            <button type="button" onClick={() => tree.setAll(null, true)}>
+              {resultsMessages.expandAll}
+            </button>
+            <button type="button" onClick={() => tree.setAll(null, false)}>
+              {resultsMessages.collapseAll}
+            </button>
+          </div>
+        </>
       )}
-      <div className="results__bulk">
-        <button
-          type="button"
-          tabIndex={tabStops ? undefined : -1}
-          onClick={() => tree.setAll(null, true)}
-        >
-          {resultsMessages.expandAll}
-        </button>
-        <button
-          type="button"
-          tabIndex={tabStops ? undefined : -1}
-          onClick={() => tree.setAll(null, false)}
-        >
-          {resultsMessages.collapseAll}
-        </button>
-      </div>
       <p
         id={helpId}
         className={`results__help${compact ? " results__help--hidden" : ""}`}
@@ -146,6 +163,7 @@ export function ResultsTree({
               tabbable={tabStops && row.key === tree.tabKey}
               disabled={disabled}
               tree={tree}
+              {...(onHover === undefined ? {} : { onHover })}
               missing={
                 row.kind === "item" && (missing?.has(row.artefactId) ?? false)
               }

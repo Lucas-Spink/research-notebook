@@ -1,11 +1,12 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
 import { ResultsTree } from "../../results";
 import { addResultLabel, browseResultsLabel, tableMessages } from "../messages";
 import { CodeFolder } from "../workspace/CodeFolder";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
+import { ResultHoverPreview, type HoverTarget } from "./ResultHoverPreview";
 import { useResultsCellTree } from "./useResultsCellTree";
 
 type Props = {
@@ -55,48 +56,59 @@ export function ResultsCell({
     editing,
   );
 
+  const hover = useResultHover(artefacts);
+
+  const header = (
+    <>
+      <div
+        ref={head}
+        role="group"
+        tabIndex={tabbable ? 0 : -1}
+        data-grid-focus
+        className="wtable__results-title"
+        aria-label={browseResultsLabel(ref)}
+        onKeyDown={(event) => {
+          if (ENTER_KEYS.has(event.key)) {
+            event.preventDefault();
+            body.current
+              ?.querySelector<HTMLElement>('[role="treeitem"]')
+              ?.focus();
+          } else if (event.key === "+" && !readOnly) {
+            event.preventDefault();
+            editing.onAddResult(row);
+          }
+        }}
+      >
+        {tableMessages.resultsHeading}
+      </div>
+      {!readOnly && (
+        <button
+          type="button"
+          className="wtable__add-result wtable__add-result--inline"
+          // The grid has one tab stop per cell (ADR-0043): by keyboard, press + in the heading.
+          tabIndex={-1}
+          aria-label={addResultLabel(ref)}
+          title={addResultLabel(ref)}
+          onClick={() => editing.onAddResult(row)}
+        >
+          <span aria-hidden="true">+</span>
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className="wtable__results-wrap">
-      <div className="wtable__results-head">
-        <div
-          ref={head}
-          role="group"
-          tabIndex={tabbable ? 0 : -1}
-          data-grid-focus
-          className="wtable__results-title"
-          aria-label={browseResultsLabel(ref)}
-          onKeyDown={(event) => {
-            if (ENTER_KEYS.has(event.key)) {
-              event.preventDefault();
-              body.current
-                ?.querySelector<HTMLElement>('[role="treeitem"]')
-                ?.focus();
-            } else if (event.key === "+" && !readOnly) {
-              event.preventDefault();
-              editing.onAddResult(row);
-            }
-          }}
-        >
-          {tableMessages.resultsHeading}
-        </div>
-        {!readOnly && (
-          <button
-            type="button"
-            className="wtable__add-result wtable__add-result--inline"
-            // The grid has one tab stop per cell (ADR-0043): by keyboard, press + in the heading.
-            tabIndex={-1}
-            aria-label={addResultLabel(ref)}
-            title={addResultLabel(ref)}
-            onClick={() => editing.onAddResult(row)}
-          >
-            <span aria-hidden="true">+</span>
-          </button>
-        )}
-      </div>
       <div
         ref={body}
         className="wtable__results-open"
-        onFocus={() => setInside(true)}
+        onFocus={(event) => {
+          // The heading is the cell's own tab stop; only the tree counts as inside.
+          if (!(
+            event.target instanceof Node && head.current?.contains(event.target)
+          ))
+            setInside(true);
+        }}
         onBlur={(event) => {
           const to = event.relatedTarget;
           if (!(to instanceof Node) || !event.currentTarget.contains(to))
@@ -110,14 +122,21 @@ export function ResultsCell({
         }}
       >
         {artefacts === null ? (
-          <span className="wtable__muted">{tableMessages.resultsNone}</span>
+          <>
+            <div className="results__head">
+              <div className="results__head-main">{header}</div>
+            </div>
+            <span className="wtable__muted">{tableMessages.resultsNone}</span>
+          </>
         ) : (
           <>
             <ResultsTree
               compact
+              header={header}
               tabStops={inside}
               file={artefacts}
               disabled={readOnly}
+              onHover={hover.onHover}
               {...treeProps}
             />
             <CodeFolder
@@ -132,6 +151,71 @@ export function ResultsCell({
           </>
         )}
       </div>
+      {hover.shown !== null && (
+        <ResultHoverPreview
+          folder={folder}
+          experimentFolder={experiment.folder}
+          target={hover.shown.target}
+          anchor={hover.shown.anchor}
+          onEnter={hover.keep}
+          onLeave={hover.leave}
+        />
+      )}
     </div>
   );
+}
+
+/** The pointer may cross the gap between a row and its preview without the preview closing. */
+const HIDE_DELAY_MS = 150;
+
+/**
+ * Which result's larger preview is showing, if any (FR-TBL-06). A copied
+ * result has a captured file to show; a linked one has none, so it gets no
+ * preview. The preview stays a moment after the pointer leaves, so it can
+ * be reached.
+ */
+function useResultHover(artefacts: ArtefactsFileModel | null) {
+  const [shown, setShown] = useState<{
+    target: HoverTarget;
+    anchor: DOMRect;
+  } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const keep = () => {
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  const leave = () => {
+    keep();
+    timer.current = setTimeout(() => setShown(null), HIDE_DELAY_MS);
+  };
+  useEffect(() => keep, []);
+
+  function onHover(artefactId: string | null, row?: HTMLElement) {
+    if (artefactId === null || row === undefined) {
+      leave();
+      return;
+    }
+    keep();
+    const found = artefacts?.artefacts.find((a) => a.id === artefactId);
+    const latest =
+      found?.mode === "copy"
+        ? found.versions.reduce((best, v) => (v.v > best.v ? v : best))
+        : undefined;
+    if (found === undefined || latest === undefined) {
+      setShown(null);
+      return;
+    }
+    setShown({
+      target: {
+        name: found.name,
+        type: found.type,
+        file: latest.file,
+        sha256: latest.sha256,
+      },
+      anchor: row.getBoundingClientRect(),
+    });
+  }
+
+  return { shown, keep, leave, onHover };
 }

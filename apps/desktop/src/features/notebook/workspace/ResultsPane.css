@@ -14,23 +14,35 @@
   font-weight: 600;
 }
 
-/* The Code folder: the default home of linked scripts, under the result groups. */
+/* The Code folder: the default home of linked scripts, under the result
+   groups, in the same compact style as the tree above it. */
 .code-folder {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 2px solid var(--color-border);
+  margin-top: 4px;
+  padding-top: 2px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .code-folder__head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 4px;
+  font-weight: var(--weight-medium);
+}
+
+.code-folder__head .results__count {
+  margin-inline-start: 0;
 }
 
 .code-folder__link {
   margin-inline-start: auto;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 18px;
 }
 
 .code-folder__notes {
@@ -39,7 +51,13 @@
 
 .code-folder__notes p {
   margin: 0;
-  font-size: var(--text-small);
+  font-size: 10.5px;
+}
+
+.code-folder > .wtable__muted {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 10.5px;
 }
 
 .code-folder__list {
@@ -51,12 +69,15 @@
 .code-folder__script {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 4px;
   width: 100%;
-  padding: 0.25rem 0.5rem;
+  min-height: 22px;
+  padding: 0 4px 0 18px;
+  font-size: 12px;
   text-align: left;
   background: none;
   border-color: transparent;
+  border-radius: 3px;
 }
 
 .code-folder__script:hover:not(:disabled) {
@@ -64,19 +85,29 @@
   border-color: transparent;
 }
 
+.code-folder__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .code-folder__path {
   min-width: 0;
   margin-inline-start: auto;
+  overflow: hidden;
   color: var(--color-text-muted);
-  font-size: var(--text-meta);
-  overflow-wrap: anywhere;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .code-folder__tag {
   flex: none;
-  padding: 0 0.4rem;
-  color: var(--color-on-dark);
-  background: var(--palette-secondary);
+  padding: 0 4px;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  font-size: var(--text-meta);
+  font-size: 10px;
+  line-height: 14px;
 }

@@ -160,9 +160,13 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
       ...(treeIn(view, "EXP-001")?.querySelectorAll('[role="treeitem"]') ?? []),
     ].find((row) => row.textContent === "PCA plot");
     expect(file).toBeDefined();
+    // The icon comes first, as in a file explorer, and it is told by extension.
     const kids = [...(file?.children ?? [])];
     const name = kids.findIndex((k) => k.className === "results__name-text");
-    expect(kids[name + 1]?.querySelector("svg.artefact-icon")).not.toBeNull();
+    expect(kids[name - 1]?.querySelector("svg.artefact-icon")).not.toBeNull();
+    expect(
+      kids[name - 1]?.querySelector(".file-icon")?.getAttribute("data-kind"),
+    ).toBe("image");
     expect(
       file?.querySelector('button[aria-label="Actions for PCA plot"]'),
     ).not.toBeNull();
@@ -170,23 +174,15 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
 
   it("opens and closes a folder in place, and the folder's files follow it", () => {
     const { view } = mount(grouped());
-    expect(rowNames(view, "EXP-001")).toEqual([
-      "Main figures",
-      "PCA plot",
-      "Ungrouped",
-    ]);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "PCA plot"]);
     const folder = treeIn(view, "EXP-001")?.querySelector(
       '[aria-expanded="true"]',
     );
     if (!folder) throw new Error("no open folder");
     click(folder);
-    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "Ungrouped"]);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures"]);
     click(folder);
-    expect(rowNames(view, "EXP-001")).toEqual([
-      "Main figures",
-      "PCA plot",
-      "Ungrouped",
-    ]);
+    expect(rowNames(view, "EXP-001")).toEqual(["Main figures", "PCA plot"]);
   });
 
   it("moves from the heading into the tree with Enter, and back with Escape", () => {
@@ -209,12 +205,21 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
 
   it("makes a folder from the cell and saves it in artefacts.yaml", async () => {
     const { view, edits } = mount(withResults(figure));
+    const menu = cellOf(view, "EXP-001")?.querySelector(
+      'button[aria-label="Results actions"]',
+    );
+    if (!menu) throw new Error("no Results actions button");
+    click(menu);
+    // The menu floats over the table, outside the row.
+    expect(
+      cellOf(view, "EXP-001")?.querySelector(".results-popover"),
+    ).toBeNull();
     const open = [
-      ...(cellOf(view, "EXP-001")?.querySelectorAll("button") ?? []),
-    ].find((b) => b.textContent === "New group");
-    if (!open) throw new Error("no New group button");
+      ...document.body.querySelectorAll('.results-popover [role="menuitem"]'),
+    ].find((b) => b.textContent === "New folder");
+    if (!open) throw new Error("no New folder entry");
     click(open);
-    const form = cellOf(view, "EXP-001")?.querySelector("form");
+    const form = document.body.querySelector(".results-popover form");
     const input = form?.querySelector("input");
     if (!(input instanceof HTMLInputElement) || !form) {
       throw new Error("no New group form");

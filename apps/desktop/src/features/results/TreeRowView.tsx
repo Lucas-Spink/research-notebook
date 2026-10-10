@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArtefactTypeIcon, FolderIcon } from "../../shared/ArtefactTypeIcon";
+import { FileIcon, GroupFolderIcon } from "../../shared/FileIcons";
 import { classificationLabel, resultsMessages } from "./messages";
 import { hasChildren, type TreeRow } from "./model/tree";
 import type { ResultsTreeState } from "./useResultsTree";
@@ -14,17 +14,27 @@ type Props = {
   tree: ResultsTreeState;
   /** This result's linked file cannot be found. */
   missing: boolean;
+  /** Hovering a result: its id and row, or `null` when the pointer leaves. */
+  onHover?: (artefactId: string | null, row?: HTMLElement) => void;
 };
 
 function label(row: TreeRow): string {
   return row.kind === "ungrouped" ? resultsMessages.ungrouped : row.name;
 }
 
-function counts(row: TreeRow): string | null {
+/** What is in a folder, written out for the tooltip and screen readers. */
+function countsText(row: TreeRow): string | null {
   if (row.kind === "group") {
     return resultsMessages.counts(row.itemCount, row.groupCount);
   }
   if (row.kind === "ungrouped") return resultsMessages.counts(row.itemCount, 0);
+  return null;
+}
+
+/** The number shown beside a folder: the artefacts and folders directly in it. */
+function countShown(row: TreeRow): number | null {
+  if (row.kind === "group") return row.itemCount + row.groupCount;
+  if (row.kind === "ungrouped") return row.itemCount;
   return null;
 }
 
@@ -42,9 +52,10 @@ export function TreeRowView({
   disabled,
   tree,
   missing,
+  onHover,
 }: Props) {
   const expandable = row.kind !== "item" && hasChildren(row);
-  const count = counts(row);
+  const count = countShown(row);
   const chosen =
     row.kind === "item" && tree.chosen.some((c) => c.key === row.key);
   // A group or the Ungrouped area being dragged over, so it shows it will take the drop.
@@ -63,7 +74,7 @@ export function TreeRowView({
       aria-setsize={setSize}
       aria-expanded={expandable ? row.expanded : undefined}
       tabIndex={tabbable ? 0 : -1}
-      style={{ paddingInlineStart: `${row.depth - 1}rem` }}
+      style={{ paddingInlineStart: `${4 + (row.depth - 1) * 14}px` }}
       draggable={!disabled && row.kind !== "ungrouped"}
       onKeyDown={(event) => tree.onKeyDown(row, event)}
       onFocus={() => tree.noteFocus(row.key)}
@@ -82,7 +93,16 @@ export function TreeRowView({
         event.preventDefault();
         tree.setPanel({ kind: "menu", row });
       }}
-      onDragStart={(event) => tree.drag.start(row, event)}
+      onMouseEnter={(event) => {
+        if (row.kind === "item") onHover?.(row.artefactId, event.currentTarget);
+      }}
+      onMouseLeave={() => {
+        if (row.kind === "item") onHover?.(null);
+      }}
+      onDragStart={(event) => {
+        onHover?.(null);
+        tree.drag.start(row, event);
+      }}
       onDragOver={(event) => tree.drag.over(row, event)}
       onDragEnter={() => row.kind !== "item" && setOver(true)}
       onDragLeave={(event) => {
@@ -100,22 +120,35 @@ export function TreeRowView({
         tree.drag.end();
       }}
     >
-      {expandable && (
-        <span className="results__toggle" aria-hidden="true">
-          {row.expanded ? "▾" : "▸"}
-        </span>
-      )}
-      {row.kind !== "item" && (
-        <span className="results__icon results__icon--folder">
-          <FolderIcon />
-        </span>
-      )}
-      <span className="results__name-text">{label(row)}</span>
-      {row.kind === "item" && (
+      <span
+        className={`results__toggle${expandable && row.expanded ? " results__toggle--open" : ""}`}
+        aria-hidden="true"
+      >
+        {expandable && (
+          <svg viewBox="0 0 8 8" width="8" height="8" focusable="false">
+            <path
+              d="M2.5 1 5.5 4 2.5 7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </span>
+      {row.kind === "item" ? (
         <span className="results__icon" title={row.artefactType}>
-          <ArtefactTypeIcon type={row.artefactType} />
+          <FileIcon name={row.name} type={row.artefactType} />
+        </span>
+      ) : (
+        <span className="results__icon">
+          <GroupFolderIcon open={row.expanded && hasChildren(row)} />
         </span>
       )}
+      <span className="results__name-text" title={label(row)}>
+        {label(row)}
+      </span>
       {missing && (
         <span
           className="results__badge results__badge--missing"
@@ -132,7 +165,11 @@ export function TreeRowView({
           {classificationLabel(row.classification)}
         </span>
       )}
-      {count !== null && <span className="results__count">{count}</span>}
+      {count !== null && (
+        <span className="results__count" title={countsText(row) ?? undefined}>
+          {count}
+        </span>
+      )}
       {!disabled && row.kind !== "ungrouped" && (
         <button
           type="button"

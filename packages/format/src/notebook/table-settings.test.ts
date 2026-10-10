@@ -167,8 +167,8 @@ describe("changeTableSettings", () => {
         '  collapsed_questions: []\n  x_table: "kept"\n',
       )
       .replace(
-        '{key: "methods", width: 260, hidden: false}',
-        '{key: "methods", width: 260, hidden: false, x_col: 1}',
+        '{key: "methods", width: 180, hidden: false}',
+        '{key: "methods", width: 180, hidden: false, x_col: 1}',
       );
     const withUnknown = { ...state, project: must(parseProject(text)) };
     const plan = must(

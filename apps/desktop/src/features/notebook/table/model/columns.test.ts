@@ -25,9 +25,9 @@ describe("columnLayout", () => {
   it("lists every column in the order project.yaml stores them, with its width and visibility", () => {
     expect(columnLayout(table)).toEqual([
       { key: "motivation", width: 220, hidden: false },
-      { key: "methods", width: 260, hidden: false },
-      { key: "results", width: 280, hidden: false },
-      { key: "results_notes", width: 300, hidden: false },
+      { key: "methods", width: 180, hidden: false },
+      { key: "results", width: 520, hidden: false },
+      { key: "results_notes", width: 200, hidden: false },
       { key: "interpretation", width: 320, hidden: false },
       { key: "literature", width: 240, hidden: false },
     ]);
@@ -87,7 +87,7 @@ describe("gridColumns", () => {
   it("adds up the width of the experiment column and every column shown", () => {
     const columns = gridColumns(columnLayout(table));
     expect(gridWidth(columns)).toBe(
-      EXPERIMENT_COLUMN_WIDTH + 260 + 280 + 300 + 320,
+      EXPERIMENT_COLUMN_WIDTH + 180 + 520 + 200 + 320,
     );
     expect(gridWidth([])).toBe(EXPERIMENT_COLUMN_WIDTH);
   });
@@ -116,7 +116,7 @@ describe("withOverlay and mergeOverlay", () => {
     );
     expect(shown.collapsed_questions).toEqual([first]);
     expect(table.collapsed_questions).toEqual([]);
-    expect(table.columns.find((c) => c.key === "methods")?.width).toBe(260);
+    expect(table.columns.find((c) => c.key === "methods")?.width).toBe(180);
   });
 
   it("collapses and expands, listing a question once", () => {

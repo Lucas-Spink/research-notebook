@@ -78,7 +78,7 @@ describe("ResultsTree: opening a file", () => {
         new MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
       );
     });
-    const first = view.querySelector(".results__menu button");
+    const first = document.body.querySelector(".results__menu button");
     expect(first?.textContent).toBe("Preview");
     act(() => {
       first?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
