@@ -42,6 +42,8 @@ export function TreeRowView({
 }: Props) {
   const expandable = row.kind !== "item" && hasChildren(row);
   const count = counts(row);
+  const chosen =
+    row.kind === "item" && tree.chosen.some((c) => c.key === row.key);
   // A group or the Ungrouped area being dragged over, so it shows it will take the drop.
   const [over, setOver] = useState(false);
   return (
@@ -51,7 +53,8 @@ export function TreeRowView({
         else tree.rowRefs.current.set(row.key, element);
       }}
       role="treeitem"
-      className={`results__row results__row--${row.kind}${over ? " results__row--over" : ""}`}
+      className={`results__row results__row--${row.kind}${over ? " results__row--over" : ""}${chosen ? " results__row--chosen" : ""}`}
+      aria-selected={row.kind === "item" ? chosen : undefined}
       aria-level={row.depth}
       aria-posinset={position}
       aria-setsize={setSize}
@@ -61,7 +64,11 @@ export function TreeRowView({
       draggable={!disabled && row.kind !== "ungrouped"}
       onKeyDown={(event) => tree.onKeyDown(row, event)}
       onFocus={() => tree.noteFocus(row.key)}
-      onClick={() => {
+      onClick={(event) => {
+        tree.choose(row, {
+          ctrl: event.ctrlKey || event.metaKey,
+          shift: event.shiftKey,
+        });
         if (expandable) tree.toggle(row.key, !row.expanded);
       }}
       onDoubleClick={() => {

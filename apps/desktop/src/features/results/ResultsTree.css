@@ -195,3 +195,8 @@
   padding: 0 var(--space-2);
   font-size: var(--text-meta);
 }
+
+/* Chosen artefacts: a tint plus aria-selected, so colour is not the only signal. */
+.results__row--chosen {
+  background: var(--color-selected);
+}

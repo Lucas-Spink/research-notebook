@@ -3,6 +3,7 @@ import {
   type ArtefactsFileModel,
 } from "@research-notebook/format";
 import type { GroupAction } from "./actions";
+import { batchRemove, type ItemRow } from "./selection";
 import { stepAction } from "./keys";
 import {
   findGroup,
@@ -108,9 +109,28 @@ function classification(
 export function rowMenu(
   file: ArtefactsFileModel,
   row: TreeRow,
-  { canOpen = false }: { canOpen?: boolean } = {},
+  {
+    canOpen = false,
+    selected = [],
+  }: { canOpen?: boolean; selected?: readonly ItemRow[] } = {},
 ): MenuEntry[] {
   const all = groupTargets(file);
+  // Several chosen artefacts: only what makes sense for all of them at once.
+  if (row.kind === "item" && selected.length > 1) {
+    const remove = batchRemove(selected);
+    return [
+      ...pick("moveTo", all),
+      ...pick("addTo", all),
+      ...(remove === null
+        ? []
+        : [
+            {
+              label: "remove" as const,
+              run: { kind: "action" as const, action: remove },
+            },
+          ]),
+    ];
+  }
   if (row.kind === "ungrouped") return [];
   if (row.kind === "item") {
     const free = all.filter(

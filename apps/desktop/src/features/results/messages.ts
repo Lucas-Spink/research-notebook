@@ -9,7 +9,7 @@ const plural = (n: number, one: string, many: string) =>
 export const resultsMessages = {
   treeLabel: "Result groups",
   ungrouped: "Ungrouped",
-  help: "Use the arrow keys to move through groups, and Enter for actions. Alt+Up and Alt+Down reorder. Drag to move an artefact; hold Ctrl (Option on macOS) while dropping to add it instead.",
+  help: "Use the arrow keys to move through groups, and Enter for actions. Alt+Up and Alt+Down reorder. Ctrl-click, Shift-click or Space chooses several artefacts to move together. Drag to move an artefact; hold Ctrl (Option on macOS) while dropping to add it instead.",
   readOnly: "This project is read-only, so groups cannot be changed.",
   newGroupLabel: "New group",
   resultNameLabel: "Display name",

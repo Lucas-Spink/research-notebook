@@ -17,6 +17,12 @@ import { draggedFrom, dropAction, type Dragged } from "./model/drag";
 import { navigate, rowCommand } from "./model/keys";
 import type { PickMode } from "./model/menu";
 import {
+  ranged,
+  selectedRows,
+  toggled,
+  type Selection,
+} from "./model/selection";
+import {
   expansionFor,
   treeRows,
   type Expansion,
@@ -57,11 +63,18 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
   const [focus, setFocus] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [chosenKeys, setChosenKeys] = useState<Selection>(new Set());
+  const anchor = useRef<string | null>(null);
   const dragged = useRef<Dragged | null>(null);
   const rowRefs = useRef(new Map<string, HTMLElement>());
   const moveFocus = useRef(false);
 
   const rows = useMemo(() => treeRows(file, expansion), [file, expansion]);
+  // Rows hidden by collapsing a folder drop out of the selection.
+  const chosen = useMemo(
+    () => selectedRows(rows, chosenKeys),
+    [rows, chosenKeys],
+  );
   const tabKey = rows.some((row) => row.key === focus)
     ? focus
     : (rows[0]?.key ?? null);
@@ -104,15 +117,52 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
     [onAction],
   );
 
+  /**
+   * A click on a row: Ctrl or Command adds or removes an artefact, Shift
+   * chooses everything from the last one, and a plain click chooses just
+   * that one. Clicking a folder clears the choice.
+   */
+  const choose = useCallback(
+    (row: TreeRow, modifiers: { ctrl: boolean; shift: boolean }) => {
+      if (row.kind !== "item") {
+        setChosenKeys(new Set());
+        return;
+      }
+      if (modifiers.shift) {
+        setChosenKeys((current) =>
+          ranged(rows, current, anchor.current, row.key),
+        );
+        return;
+      }
+      anchor.current = row.key;
+      setChosenKeys((current) =>
+        modifiers.ctrl ? toggled(current, row.key) : new Set([row.key]),
+      );
+    },
+    [rows],
+  );
+
   const closePanel = useCallback(() => {
     setPanel(null);
     moveFocus.current = true;
   }, []);
 
   function onKeyDown(row: TreeRow, event: KeyboardEvent) {
+    if (event.key === " " && row.kind === "item") {
+      event.preventDefault();
+      choose(row, { ctrl: true, shift: false });
+      return;
+    }
     const next = navigate(rows, row.key, event.key);
     if (next !== null && !event.altKey) {
       event.preventDefault();
+      if ("focus" in next && event.shiftKey) {
+        // Shift with an arrow key grows the choice, as in a file manager.
+        setChosenKeys((current) =>
+          ranged(rows, current, anchor.current ?? row.key, next.focus),
+        );
+        anchor.current ??= row.key;
+      }
       if ("focus" in next) focusRow(next.focus);
       else toggle(next.expand, next.expanded);
       return;
@@ -136,7 +186,17 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
 
   const drag = {
     start(row: TreeRow, event: DragEvent) {
-      dragged.current = draggedFrom(row);
+      // Dragging one of several chosen artefacts takes them all.
+      dragged.current =
+        row.kind === "item" && chosen.length > 1 && chosenKeys.has(row.key)
+          ? {
+              kind: "items",
+              items: chosen.flatMap((item) => {
+                const one = draggedFrom(item);
+                return one?.kind === "item" ? [one] : [];
+              }),
+            }
+          : draggedFrom(row);
       event.dataTransfer.effectAllowed = "copyMove";
       if (row.kind !== "ungrouped")
         event.dataTransfer.setData("text/plain", row.name);
@@ -171,6 +231,8 @@ export function useResultsTree({ file, disabled, onAction, onOpen }: Options) {
     /** Records focus that arrived by mouse or Tab, without moving it again. */
     noteFocus: setFocus,
     toggle,
+    chosen,
+    choose,
     setAll,
     run,
     setPanel,

@@ -74,6 +74,7 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
       </p>
       <ul
         role="tree"
+        aria-multiselectable="true"
         className="results__tree"
         aria-label={resultsMessages.treeLabel}
         aria-describedby={helpId}

@@ -41,6 +41,11 @@ export type GroupAction =
     }
   | { kind: "removeFromGroup"; artefactId: string; groupId: string }
   | { kind: "reorderItem"; groupId: string; artefactId: string; index: number }
+  /**
+   * Several actions as one change (moving a selection): they are applied in
+   * order to the same file and saved once, and if any is refused none is kept.
+   */
+  | { kind: "batch"; actions: GroupAction[] }
   /** Changes a result's display name; the file it records is untouched. */
   | { kind: "renameArtefact"; artefactId: string; name: string }
   /** Sets a result's classification, or clears it with `null` (ADR-0059). */
@@ -82,6 +87,15 @@ export function applyGroupAction(
       return removeFromGroup(file, action.artefactId, action.groupId);
     case "reorderItem":
       return reorderItem(file, action.groupId, action.artefactId, action.index);
+    case "batch": {
+      let current = file;
+      for (const step of action.actions) {
+        const next = applyGroupAction(current, step, env);
+        if (!next.ok) return next;
+        current = next.value;
+      }
+      return { ok: true, value: current };
+    }
     case "renameArtefact":
       return renameArtefact(file, action.artefactId, action.name);
     case "setClassification":

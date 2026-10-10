@@ -3,8 +3,9 @@ import { useEffect, useRef } from "react";
 import { assertNever } from "../../shared/assertNever";
 import { classificationLabel, resultsMessages } from "./messages";
 import { pickedAction, rowMenu, type MenuEntry } from "./model/menu";
+import { batchAction } from "./model/selection";
 import { artefactDetails, formatSize } from "./model/details";
-import { deletionSummary } from "./model/tree";
+import { deletionSummary, type TreeRow } from "./model/tree";
 import { NameForm } from "./NameForm";
 import type { Panel, ResultsTreeState } from "./useResultsTree";
 
@@ -97,24 +98,25 @@ function PanelBody({
     case "menu":
       return (
         <ul className="results__menu">
-          {rowMenu(file, panel.row, { canOpen: tree.open !== undefined }).map(
-            (entry) => (
-              <li key={entry.label}>
-                <button
-                  type="button"
-                  // Opening and details only look, so they stay available read-only.
-                  disabled={
-                    disabled &&
-                    entry.run.kind !== "open" &&
-                    entry.run.kind !== "details"
-                  }
-                  onClick={() => choose(entry)}
-                >
-                  {resultsMessages.menu[entry.label]}
-                </button>
-              </li>
-            ),
-          )}
+          {rowMenu(file, panel.row, {
+            canOpen: tree.open !== undefined,
+            selected: chosenWith(tree, panel.row),
+          }).map((entry) => (
+            <li key={entry.label}>
+              <button
+                type="button"
+                // Opening and details only look, so they stay available read-only.
+                disabled={
+                  disabled &&
+                  entry.run.kind !== "open" &&
+                  entry.run.kind !== "details"
+                }
+                onClick={() => choose(entry)}
+              >
+                {resultsMessages.menu[entry.label]}
+              </button>
+            </li>
+          ))}
         </ul>
       );
     case "details":
@@ -124,7 +126,7 @@ function PanelBody({
         <fieldset className="results__pick">
           <legend>{resultsMessages.pick[panel.mode]}</legend>
           {panel.targets.map((target) => {
-            const action = pickedAction(panel.row, panel.mode, target.id);
+            const action = pickedFor(file, tree, panel, target.id);
             return (
               <button
                 key={target.id}
@@ -251,4 +253,26 @@ function DetailsList({
       ))}
     </dl>
   );
+}
+
+/** The chosen artefacts when `row` is one of several, else none: the menu then acts on all of them. */
+function chosenWith(tree: ResultsTreeState, row: TreeRow) {
+  return row.kind === "item" &&
+    tree.chosen.length > 1 &&
+    tree.chosen.some((c) => c.key === row.key)
+    ? tree.chosen
+    : [];
+}
+
+/** What choosing `target` in a picker does: for several chosen artefacts, one batch. */
+function pickedFor(
+  file: ArtefactsFileModel,
+  tree: ResultsTreeState,
+  panel: Extract<Panel, { kind: "pick" }>,
+  target: string,
+) {
+  const several = chosenWith(tree, panel.row);
+  if (several.length > 0 && (panel.mode === "moveTo" || panel.mode === "addTo"))
+    return batchAction(file, several, panel.mode, target);
+  return pickedAction(panel.row, panel.mode, target);
 }
