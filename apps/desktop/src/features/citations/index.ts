@@ -13,6 +13,7 @@ export {
 } from "./messages";
 export {
   bibliographyRows,
+  compactEntry,
   type BibliographyRow,
 } from "./model/bibliographyEntry";
 export type { SourcesApi } from "./model/syncSources";
