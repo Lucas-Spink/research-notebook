@@ -684,6 +684,7 @@ function NotebookViewBody({
     <CitationActionsProvider value={citationActions}>
       <section className="workspace" aria-labelledby="notebook-heading">
         <Ribbon
+          projectName={loadedProject?.name ?? null}
           projectControls={projectControls}
           archivable={onProjectFileChanged !== undefined}
           writable={writable}

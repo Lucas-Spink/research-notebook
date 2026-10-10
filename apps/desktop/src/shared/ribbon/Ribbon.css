@@ -225,3 +225,16 @@
 .workspace__banners:empty {
   display: none;
 }
+
+/* The project's name: the research context, larger than the controls around it. */
+.ribbon__project {
+  align-self: center;
+  max-width: 24rem;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-on-dark);
+  font-size: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -24,6 +24,8 @@ import { NewExperimentForm } from "./NewExperimentForm";
 import { SelectionCommands } from "./SelectionCommands";
 
 type Props = {
+  /** The open project's name, shown beside the application title so the research context is always visible. */
+  projectName?: string | null;
   /** The Project tab's controls, which belong to the projects feature. */
   projectControls: ReactNode;
   writable: boolean;
@@ -400,6 +402,11 @@ export function Ribbon(props: Props) {
     >
       <div className="ribbon__tabbar">
         <h1 className="ribbon__brand">{messages.appTitle}</h1>
+        {props.projectName !== undefined && props.projectName !== null && (
+          <p className="ribbon__project" title={props.projectName}>
+            {props.projectName}
+          </p>
+        )}
         <div
           role="tablist"
           aria-label={m.tabsLabel}
