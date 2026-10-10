@@ -107,6 +107,51 @@ fn scenario(project: &TestProject, root: &ProjectRoot) {
     preview_scenario(project, root);
     inbox_scenario(project, root);
     watch_scenario(project, root);
+    export_scenario(project, root);
+}
+
+/// S6-T08. A bundle reads the whole project and writes one new file in a
+/// folder beside it. The project, its analysis files and its links are not
+/// changed, and a destination inside the project is refused.
+fn export_scenario(project: &TestProject, root: &ProjectRoot) {
+    use nb_fs::{ArchiveScope, ExportError};
+    use std::io::Write;
+
+    for scope in [ArchiveScope::Notebook, ArchiveScope::Project] {
+        let listing = root.list_archive_files(scope).unwrap();
+        assert!(!listing.files.is_empty());
+        // The link into the analysis results is counted, never followed.
+        for file in &listing.files {
+            drop(root.open_archive_file(&file.path).unwrap());
+        }
+    }
+
+    let elsewhere = tempfile::Builder::new()
+        .prefix("nb-export-")
+        .tempdir()
+        .unwrap();
+    let exported = root
+        .write_new_outside(elsewhere.path(), "bundle.nbk", |file| {
+            file.write_all(b"zip")?;
+            Ok::<_, std::io::Error>(())
+        })
+        .unwrap();
+    assert_eq!(exported.name, "bundle.nbk");
+
+    // Refused: the project itself, an analysis folder, and `_notebook/`.
+    for inside in [
+        project.root().to_path_buf(),
+        project.on_disk("scripts"),
+        project.on_disk("results/pca"),
+        project.on_disk("_notebook"),
+    ] {
+        let refused =
+            root.write_new_outside(&inside, "bundle.nbk", |_| Ok::<_, std::io::Error>(()));
+        assert!(
+            matches!(refused, Err(ExportError::InsideProject)),
+            "{inside:?}"
+        );
+    }
 }
 
 /// S3-T05. Inbox import only ever touches `_notebook/inbox/` and the

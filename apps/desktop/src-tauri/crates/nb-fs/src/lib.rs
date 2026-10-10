@@ -4,11 +4,13 @@
 //!
 //! The functions block; callers run them on a blocking thread.
 //!
-//! Two kinds of write fall outside the rule that everything stays in
+//! Three kinds of write fall outside the rule that everything stays in
 //! `_notebook/`, each narrow and named: the repository hygiene entries in
-//! the project root's `.gitignore` and `.gitattributes` ([`hygiene`]), and
-//! the application's own settings file ([`settings`]), which is not part of
-//! any project. See ADR-0021.
+//! the project root's `.gitignore` and `.gitattributes` ([`hygiene`]), the
+//! application's own settings file ([`settings`]), which is not part of any
+//! project (ADR-0021), and one new bundle file in a folder the person chose,
+//! never inside the project and never over an existing file ([`export`],
+//! ADR-0057).
 
 // disallowed_methods: `clippy.toml` forbids the std::fs write calls
 // everywhere except here, where they are wrapped with path confinement,
@@ -23,7 +25,7 @@ mod clock;
 mod create;
 pub mod discovery;
 mod error;
-mod export;
+pub mod export;
 pub mod history;
 pub mod hygiene;
 pub mod inbox;
