@@ -91,6 +91,7 @@ import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
 import { ResultsPane } from "./workspace/ResultsPane";
 import { Ribbon } from "./workspace/Ribbon";
+import type { IntegrityStatus } from "./workspace/ProjectHeader";
 import { SourcesPane } from "./workspace/SourcesPane";
 import { useSourceAttach } from "./workspace/useSourceAttach";
 import type { NotebookModel } from "./useNotebook";
@@ -171,6 +172,8 @@ type NotebookViewProps = {
   viewportHeight?: number;
   /** The ribbon's Project group, which belongs to the projects feature. */
   projectControls?: ReactNode;
+  /** The ribbon's Settings tab project controls. */
+  settingsControls?: ReactNode;
   /** Notices from the project, kept under the ribbon. */
   projectBanners?: ReactNode;
 };
@@ -184,6 +187,7 @@ function NotebookViewBody({
   onCloseProject,
   viewportHeight,
   projectControls,
+  settingsControls,
   projectBanners,
 }: NotebookViewProps) {
   const {
@@ -271,6 +275,33 @@ function NotebookViewBody({
     arranged,
     bibliography: sources.items,
   });
+  // The figures in the project header: experiments and the results they hold.
+  const summary = useMemo(() => {
+    const items =
+      arranged === null
+        ? []
+        : [
+            ...arranged.questions.flatMap((group) => group.experiments),
+            ...arranged.unassigned,
+          ];
+    const results = items.reduce(
+      (total, item) =>
+        total +
+        (evidenceOf(item)?.artefacts.filter((a) => a.role === "result")
+          .length ?? 0),
+      0,
+    );
+    return { experiments: items.length, results };
+  }, [arranged]);
+  const integrityStatus: IntegrityStatus =
+    integrity.state === "done"
+      ? {
+          state: "done",
+          issues: integrity.findings.filter(
+            (f) => !integrity.acknowledged.has(f.key),
+          ).length,
+        }
+      : { state: integrity.state };
 
   const manifest = useManifest({ api: commands, folder, arranged, writable });
   const verify = useVerify({ api: commands, folder, arranged });
@@ -693,6 +724,10 @@ function NotebookViewBody({
           projectName={loadedProject?.name ?? null}
           {...(onCloseProject === undefined ? {} : { onCloseProject })}
           projectControls={projectControls}
+          {...(settingsControls === undefined ? {} : { settingsControls })}
+          summary={summary}
+          integrity={integrityStatus}
+          isArchived={archived !== null}
           archivable={onProjectFileChanged !== undefined}
           writable={writable}
           disabled={disabled}

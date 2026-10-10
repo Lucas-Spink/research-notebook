@@ -30,7 +30,12 @@ export function ProjectsStart() {
         archived={opened.summary.archived}
         onProjectFileChanged={() => void projects.refreshProjectFile()}
         onCloseProject={() => void projects.close()}
-        projectControls={<ProjectRibbonControls projects={projects} />}
+        projectControls={
+          <ProjectRibbonControls projects={projects} part="open" />
+        }
+        settingsControls={
+          <ProjectRibbonControls projects={projects} part="settings" />
+        }
         projectBanners={
           <>
             {opened.mode.kind === "readOnly" && (

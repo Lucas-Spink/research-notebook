@@ -18,9 +18,14 @@ import type { ColumnLayout } from "../table/model/columns";
 import type { FilterState, SortState } from "../table/model/rows";
 import { FilterControls, SortControls } from "../table/TableToolbar";
 import type { NotebookActions } from "../useNotebook";
-import { paneMessages, ribbonMessages as m } from "./messages";
+import { headerMessages, paneMessages, ribbonMessages as m } from "./messages";
 import type { ExportSection, PaneTab } from "./model/panes";
 import { NewExperimentForm } from "./NewExperimentForm";
+import {
+  ProjectHeader,
+  type Crumb,
+  type IntegrityStatus,
+} from "./ProjectHeader";
 import { SelectionCommands } from "./SelectionCommands";
 
 type Props = {
@@ -28,8 +33,15 @@ type Props = {
   projectName?: string | null;
   /** Closes the project and returns to the start page. */
   onCloseProject?: () => void;
-  /** The Project tab's controls, which belong to the projects feature. */
+  /** The Projects tab's controls (new, open, recent), which belong to the projects feature. */
   projectControls: ReactNode;
+  /** The Settings tab's project controls (settings, Zotero), which belong to the projects feature. */
+  settingsControls?: ReactNode;
+  /** Key figures for the project header. */
+  summary?: { experiments: number; results: number };
+  integrity?: IntegrityStatus;
+  /** The project was archived: it is shown read-only and says so. */
+  isArchived?: boolean;
   writable: boolean;
   /** Turns off one-shot actions while another is in flight, or the project is read-only. */
   disabled: boolean;
@@ -60,11 +72,10 @@ type Props = {
 
 const TAB_KEYS = [
   "home",
+  "projects",
   "experiments",
   "sources",
-  "view",
-  "project",
-  "export",
+  "settings",
 ] as const;
 type RibbonTab = (typeof TAB_KEYS)[number];
 
@@ -80,8 +91,8 @@ const exportTab = (section: ExportSection): PaneTab => ({
 });
 
 /**
- * The ribbon (S6-T01): a row of tabs, Home, Experiments, Sources, View,
- * Project and Export, and under it only the commands of the chosen tab, in labelled
+ * The ribbon (S6-T01): a row of tabs, Home, Projects, Experiments, Sources
+ * and Settings, and under it only the commands of the chosen tab, in labelled
  * groups, so nothing needs more width than a window has. Less common
  * actions sit in menus. It can be collapsed to its tabs alone to give the
  * table more height; choosing a tab then shows its commands over the table
@@ -166,24 +177,25 @@ export function Ribbon(props: Props) {
       )}
     </RibbonMenu>
   );
+  const newExperimentForm = (close: () => void) => (
+    <NewExperimentForm
+      questions={questions}
+      initial={selectedQuestion}
+      disabled={disabled}
+      onCreate={(id, title) =>
+        actions.createExperiment(id, title).then((done) => {
+          if (done) close();
+          return done;
+        })
+      }
+    />
+  );
   const newExperiment = (
     <RibbonMenu
       label={m.newExperiment}
       disabled={disabled || questions.length === 0}
     >
-      {(close) => (
-        <NewExperimentForm
-          questions={questions}
-          initial={selectedQuestion}
-          disabled={disabled}
-          onCreate={(id, title) =>
-            actions.createExperiment(id, title).then((done) => {
-              if (done) close();
-              return done;
-            })
-          }
-        />
-      )}
+      {newExperimentForm}
     </RibbonMenu>
   );
   const addResult = (
@@ -239,21 +251,44 @@ export function Ribbon(props: Props) {
     </>
   );
 
+  const allProjects = props.onCloseProject !== undefined && (
+    <button
+      type="button"
+      className="ribbon__button"
+      onClick={props.onCloseProject}
+    >
+      {m.allProjects}
+    </button>
+  );
+  const tableControls = (
+    <>
+      <RibbonMenu label={m.columns}>
+        <ColumnsMenu
+          layout={props.layout}
+          writable={props.writable}
+          onHide={props.onHide}
+          onWidth={props.onWidth}
+          onReset={props.onReset}
+        />
+      </RibbonMenu>
+      <button
+        type="button"
+        className="ribbon__button"
+        aria-pressed={props.compact}
+        onClick={() => props.onCompact(!props.compact)}
+      >
+        {props.compact ? m.compactOverview : m.detailedComparison}
+      </button>
+    </>
+  );
+
   function commands(): ReactNode {
     switch (tab) {
       case "home":
         return (
           <>
-            {props.onCloseProject !== undefined && (
-              <RibbonGroup label={m.groups.project}>
-                <button
-                  type="button"
-                  className="ribbon__button"
-                  onClick={props.onCloseProject}
-                >
-                  {m.allProjects}
-                </button>
-              </RibbonGroup>
+            {allProjects !== false && (
+              <RibbonGroup label={m.groups.project}>{allProjects}</RibbonGroup>
             )}
             <RibbonGroup label={m.groups.add}>
               {newQuestion}
@@ -274,6 +309,31 @@ export function Ribbon(props: Props) {
             </RibbonGroup>
           </>
         );
+      case "projects":
+        return (
+          <>
+            <RibbonGroup label={m.groups.project}>
+              {allProjects}
+              {props.projectControls}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.documents}>
+              {exportButton("pdf", m.exportPdf)}
+              {exportButton("html", m.exportHtml)}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.data}>
+              {exportButton("machine", m.exportMachine)}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.packages}>
+              {exportButton("bundles", m.exportBundles)}
+              {exportButton("gitBundle", m.exportGitBundle)}
+            </RibbonGroup>
+            {props.archivable && (
+              <RibbonGroup label={m.groups.preservation}>
+                {exportButton("archive", m.archiveProject)}
+              </RibbonGroup>
+            )}
+          </>
+        );
       case "experiments":
         return (
           <>
@@ -290,8 +350,9 @@ export function Ribbon(props: Props) {
                 {m.search}
               </button>
               {filters}
+              {sorting}
             </RibbonGroup>
-            <RibbonGroup label={m.groups.order}>{sorting}</RibbonGroup>
+            <RibbonGroup label={m.groups.table}>{tableControls}</RibbonGroup>
             <RibbonGroup label={m.groups.results}>
               {addResult}
               {details}
@@ -327,38 +388,11 @@ export function Ribbon(props: Props) {
             </RibbonGroup>
           </>
         );
-      case "view":
-        return (
-          <>
-            <RibbonGroup label={m.groups.table}>
-              <RibbonMenu label={m.columns}>
-                <ColumnsMenu
-                  layout={props.layout}
-                  writable={props.writable}
-                  onHide={props.onHide}
-                  onWidth={props.onWidth}
-                  onReset={props.onReset}
-                />
-              </RibbonMenu>
-              {filters}
-              {sorting}
-              <button
-                type="button"
-                className="ribbon__button"
-                aria-pressed={props.compact}
-                onClick={() => props.onCompact(!props.compact)}
-              >
-                {props.compact ? m.compactOverview : m.detailedComparison}
-              </button>
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.rows}>{rows}</RibbonGroup>
-          </>
-        );
-      case "project":
+      case "settings":
         return (
           <>
             <RibbonGroup label={m.groups.project}>
-              {props.projectControls}
+              {props.settingsControls}
             </RibbonGroup>
             <RibbonGroup label={m.groups.check}>
               <button
@@ -369,27 +403,6 @@ export function Ribbon(props: Props) {
                 {m.integrityCheck}
               </button>
             </RibbonGroup>
-          </>
-        );
-      case "export":
-        return (
-          <>
-            <RibbonGroup label={m.groups.documents}>
-              {exportButton("pdf", m.exportPdf)}
-              {exportButton("html", m.exportHtml)}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.data}>
-              {exportButton("machine", m.exportMachine)}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.packages}>
-              {exportButton("bundles", m.exportBundles)}
-              {exportButton("gitBundle", m.exportGitBundle)}
-            </RibbonGroup>
-            {props.archivable && (
-              <RibbonGroup label={m.groups.preservation}>
-                {exportButton("archive", m.archiveProject)}
-              </RibbonGroup>
-            )}
           </>
         );
     }
@@ -415,71 +428,151 @@ export function Ribbon(props: Props) {
       ?.focus();
   }
 
+  const crumbs: Crumb[] = [
+    {
+      label: headerMessages.projects,
+      ...(props.onCloseProject === undefined
+        ? {}
+        : { onSelect: props.onCloseProject }),
+    },
+    { label: props.projectName ?? "" },
+  ];
+  const nameOf = (front: { ref: string; title: string }) =>
+    `${front.ref} ${front.title}`;
+  if (selected?.kind === "question") {
+    crumbs.push({ label: nameOf(selected.group.question.file.frontmatter) });
+  } else if (selected?.kind === "experiment") {
+    const parent = questions.find((q) => q.id === selectedQuestion);
+    if (parent !== undefined) crumbs.push({ label: parent.label });
+    crumbs.push({ label: nameOf(selected.item.experiment.file.frontmatter) });
+  }
+
   return (
-    <div
-      ref={root}
-      className={`ribbon${collapsed ? " ribbon--collapsed" : ""}`}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" && peek && !event.defaultPrevented)
-          setPeek(false);
-      }}
-    >
-      <div className="ribbon__tabbar">
-        <h1 className="ribbon__brand">{messages.appTitle}</h1>
-        {props.projectName !== undefined && props.projectName !== null && (
-          <p className="ribbon__project" title={props.projectName}>
-            {props.projectName}
-          </p>
-        )}
-        <div
-          role="tablist"
-          aria-label={m.tabsLabel}
-          className="ribbon__tabs"
-          onKeyDown={onTabKeys}
-        >
-          {TAB_KEYS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              id={`${ids}-${key}`}
-              data-ribbon-tab={key}
-              aria-selected={tab === key}
-              aria-controls={`${ids}-panel`}
-              tabIndex={tab === key ? 0 : -1}
-              className="ribbon__tab"
-              onClick={() => choose(key)}
-            >
-              {m.tabs[key]}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="ribbon__collapse"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? m.expand : m.collapse}
-          title={collapsed ? m.expand : m.collapse}
-          onClick={() => {
-            setCollapsed(!collapsed);
+    <>
+      <div
+        ref={root}
+        className={`ribbon${collapsed ? " ribbon--collapsed" : ""}`}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && peek && !event.defaultPrevented)
             setPeek(false);
-          }}
-        >
-          <span aria-hidden="true">{collapsed ? "▾" : "▴"}</span>
-        </button>
-      </div>
-      {showing && (
-        <div
-          role="tabpanel"
-          id={`${ids}-panel`}
-          aria-labelledby={`${ids}-${tab}`}
-          className={`ribbon__commands${collapsed ? " ribbon__commands--peek" : ""}`}
-        >
-          <div role="toolbar" aria-label={m.label} className="ribbon__toolbar">
-            {commands()}
+        }}
+      >
+        <div className="ribbon__tabbar">
+          <p className="ribbon__brand">{messages.appTitle}</p>
+          <div
+            role="tablist"
+            aria-label={m.tabsLabel}
+            className="ribbon__tabs"
+            onKeyDown={onTabKeys}
+          >
+            {TAB_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                id={`${ids}-${key}`}
+                data-ribbon-tab={key}
+                aria-selected={tab === key}
+                aria-controls={`${ids}-panel`}
+                tabIndex={tab === key ? 0 : -1}
+                className="ribbon__tab"
+                onClick={() => choose(key)}
+              >
+                {m.tabs[key]}
+              </button>
+            ))}
           </div>
+          <button
+            type="button"
+            className="ribbon__collapse"
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? m.expand : m.collapse}
+            title={collapsed ? m.expand : m.collapse}
+            onClick={() => {
+              setCollapsed(!collapsed);
+              setPeek(false);
+            }}
+          >
+            <span aria-hidden="true">{collapsed ? "▾" : "▴"}</span>
+          </button>
         </div>
+        {showing && (
+          <div
+            role="tabpanel"
+            id={`${ids}-panel`}
+            aria-labelledby={`${ids}-${tab}`}
+            className={`ribbon__commands${collapsed ? " ribbon__commands--peek" : ""}`}
+          >
+            <div
+              role="toolbar"
+              aria-label={m.label}
+              className="ribbon__toolbar"
+            >
+              {commands()}
+            </div>
+          </div>
+        )}
+      </div>
+      {props.projectName !== undefined && props.projectName !== null && (
+        <ProjectHeader
+          projectName={props.projectName}
+          crumbs={crumbs}
+          experiments={props.summary?.experiments ?? 0}
+          results={props.summary?.results ?? 0}
+          references={sources.items.length}
+          integrity={props.integrity ?? { state: "idle" }}
+          readOnly={!props.writable}
+          archived={props.isArchived ?? false}
+          primary={
+            <RibbonMenu
+              label={headerMessages.addExperiment}
+              variant="primary"
+              disabled={disabled || questions.length === 0}
+            >
+              {newExperimentForm}
+            </RibbonMenu>
+          }
+          more={
+            <RibbonMenu
+              label={headerMessages.moreLabel}
+              trigger={<span aria-hidden="true">⋯</span>}
+              alignEnd
+            >
+              {(close) => (
+                <div className="menu-list">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      choose("settings");
+                    }}
+                  >
+                    {m.projectSettings}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      onOpenPane(INTEGRITY_TAB);
+                    }}
+                  >
+                    {m.integrityCheck}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      choose("settings");
+                    }}
+                  >
+                    {m.zoteroIntegration}
+                  </button>
+                </div>
+              )}
+            </RibbonMenu>
+          }
+        />
       )}
-    </div>
+    </>
   );
 }
