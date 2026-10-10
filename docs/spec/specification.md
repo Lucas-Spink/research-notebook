@@ -593,7 +593,9 @@ outside \_notebook/ besides the application settings (ADR-0021).
 
 5.13 Format versioning and migration
 
-1.  Every change to chapter 5 increments format_version.
+1.  Every change to chapter 5 increments format_version, except one that
+    only adds an optional key to an existing object, which builds without
+    the change preserve unchanged (ADR-0059).
 
 2.  An application opening a project with a higher format_version than
     it supports opens it read-only.
