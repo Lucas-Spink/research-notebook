@@ -5,3 +5,4 @@ export * from "./project";
 export * from "./question";
 export * from "./request";
 export * from "./new-project";
+export * from "./archived";

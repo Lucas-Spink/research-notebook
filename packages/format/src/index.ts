@@ -13,3 +13,4 @@ export * from "./result";
 export * from "./notebook";
 export * from "./editor";
 export type { JSONContent } from "@tiptap/core";
+export * from "./migrations";
