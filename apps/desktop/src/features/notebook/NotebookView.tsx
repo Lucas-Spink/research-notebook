@@ -443,7 +443,7 @@ function NotebookViewBody({
       }),
     onOpenResult: (experimentFolder, artefactId, version) =>
       dispatchPanes({
-        type: "open",
+        type: "toggle",
         tab: {
           id: resultTabId(experimentFolder, artefactId),
           kind: "result",

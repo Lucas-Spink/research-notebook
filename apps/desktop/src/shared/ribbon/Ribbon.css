@@ -56,6 +56,8 @@
   color: var(--color-text-strong);
   font-weight: var(--weight-semibold);
   background: var(--color-surface-alt);
+  /* The chosen tab has its own accent, apart from the one buttons use. */
+  box-shadow: inset 0 3px 0 var(--accent-tab);
 }
 
 .ribbon__tabbar :focus-visible {
@@ -361,14 +363,14 @@
 
 /* The ribbon's own button rule must not hide the main action's fill. */
 .ribbon__button.btn-primary {
-  color: var(--color-on-accent);
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  color: var(--action-fg);
+  background: var(--action-bg);
+  border-color: var(--action-bg);
 }
 
 .ribbon__button.btn-primary:hover:not(:disabled),
 .ribbon__button.btn-primary[aria-expanded="true"] {
-  color: var(--color-on-accent);
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  color: var(--action-fg);
+  background: var(--action-bg-hover);
+  border-color: var(--action-bg-hover);
 }

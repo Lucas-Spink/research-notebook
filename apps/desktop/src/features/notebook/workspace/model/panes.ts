@@ -35,6 +35,12 @@ export type PaneState = {
 
 export type PaneAction =
   | { type: "open"; tab: PaneTab }
+  /**
+   * Opens `tab`, except that when it is already the one showing, in an open
+   * pane, the pane folds away instead: a second double-click on a result
+   * hides what the first one showed.
+   */
+  | { type: "toggle"; tab: PaneTab }
   | { type: "activate"; id: string }
   | { type: "close"; id: string }
   | { type: "closeAll" }
@@ -98,6 +104,10 @@ export function panesReducer(state: PaneState, action: PaneAction): PaneState {
         minimised: false,
       };
     }
+    case "toggle":
+      return state.activeId === action.tab.id && !state.minimised
+        ? { ...state, minimised: true }
+        : panesReducer(state, { type: "open", tab: action.tab });
     case "activate":
       return state.tabs.some((tab) => tab.id === action.id)
         ? { ...state, activeId: action.id, minimised: false }
