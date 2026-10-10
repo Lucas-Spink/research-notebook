@@ -545,3 +545,25 @@
   width: 280px;
   height: 220px;
 }
+
+/* A reference to a result and a reference to a script are told apart by a
+   pale tint each: teal for results, violet for scripts. */
+.wtable__chip[data-role="result"],
+.expanded__artefact-ref--chip[data-role="result"] {
+  color: var(--chip-result-fg);
+  background: var(--chip-result-bg);
+  border-color: var(--chip-result-border);
+}
+
+.wtable__chip[data-role="method"],
+.expanded__artefact-ref--chip[data-role="method"] {
+  color: var(--chip-script-fg);
+  background: var(--chip-script-bg);
+  border-color: var(--chip-script-border);
+}
+
+.expanded__artefact-ref--chip[data-role] {
+  padding: 0 0.35rem;
+  border: 1px solid;
+  border-radius: 4px;
+}

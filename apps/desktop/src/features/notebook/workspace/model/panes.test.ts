@@ -140,4 +140,44 @@ describe("panesReducer", () => {
     ).toBe(false);
     expect(panesReducer(folded, { type: "closeAll" }).minimised).toBe(false);
   });
+
+  describe("toggle (a second double-click on a result)", () => {
+    it("opens a result that is not open, and shows it when another tab is showing", () => {
+      const opened = panesReducer(initialPanes, {
+        type: "toggle",
+        tab: figure("A"),
+      });
+      expect(opened.activeId).toBe(figure("A").id);
+      expect(opened.minimised).toBe(false);
+      const other = panesReducer(opened, { type: "open", tab: sources });
+      const again = panesReducer(other, { type: "toggle", tab: figure("A") });
+      expect(again.activeId).toBe(figure("A").id);
+      expect(again.minimised).toBe(false);
+    });
+
+    it("folds the pane away when that result is already showing", () => {
+      const opened = panesReducer(initialPanes, {
+        type: "toggle",
+        tab: figure("A"),
+      });
+      const folded = panesReducer(opened, { type: "toggle", tab: figure("A") });
+      expect(folded.minimised).toBe(true);
+      expect(folded.tabs).toEqual(opened.tabs);
+      expect(folded.activeId).toBe(opened.activeId);
+    });
+
+    it("unfolds a folded pane and shows the result again", () => {
+      const opened = panesReducer(initialPanes, {
+        type: "toggle",
+        tab: figure("A"),
+      });
+      const folded = panesReducer(opened, { type: "minimise" });
+      const unfolded = panesReducer(folded, {
+        type: "toggle",
+        tab: figure("A"),
+      });
+      expect(unfolded.minimised).toBe(false);
+      expect(unfolded.activeId).toBe(figure("A").id);
+    });
+  });
 });

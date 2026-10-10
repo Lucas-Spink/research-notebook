@@ -71,6 +71,19 @@
   --status-abandoned-fg: #b91c1c;
   --status-abandoned-bg: #fee2e2;
 
+  /* More than one accent, each for its own job: the main action, the chosen
+     ribbon tab, and the two kinds of file a reference can point to. */
+  --action-bg: #16a34a;
+  --action-bg-hover: #15803d;
+  --action-fg: #ffffff;
+  --accent-tab: #7c3aed;
+  --chip-result-bg: #ccfbf1;
+  --chip-result-fg: #0f766e;
+  --chip-result-border: #5eead4;
+  --chip-script-bg: #ede9fe;
+  --chip-script-fg: #6d28d9;
+  --chip-script-border: #c4b5fd;
+
   /* Shape. */
   /* The ribbon's tabs: grey on the navigation bar. The chosen tab takes the
      surface-alt colour so it joins the commands strip below it. */
@@ -132,6 +145,17 @@
   /* Abandoned is the failed state. */
   --status-abandoned-fg: #f44747;
   --status-abandoned-bg: #4d2a2a;
+
+  --action-bg: #a6e22e;
+  --action-bg-hover: #bef35a;
+  --action-fg: #272822;
+  --accent-tab: #f92672;
+  --chip-result-bg: #2a4640;
+  --chip-result-fg: #9fecdc;
+  --chip-result-border: #3f6b62;
+  --chip-script-bg: #3f3556;
+  --chip-script-fg: #d2b9ff;
+  --chip-script-border: #5f5085;
 
   --tab-fg: #f8f8f2;
   --tab-bg: #34352f;
