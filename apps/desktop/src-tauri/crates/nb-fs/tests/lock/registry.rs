@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use nb_fs::lock::{LockAttempt, LockEnv, LockHealth, LockRegistry, ReleaseOutcome, Timestamp};
 
 use crate::common::TestProject;
-use crate::{plant_lock, FakeEnv, LOCK, START};
+use crate::{plant_lock, take_over, FakeEnv, LOCK, START};
 
 /// One running application: a name, a pid and a clock the test moves.
 struct AppEnv {
@@ -162,12 +162,12 @@ fn a_lock_taken_over_meanwhile_is_reported_lost_and_asking_again_is_refused() {
 
     // Another instance decides ours is stale, and confirms a takeover.
     let intruder = FakeEnv::new("laptop", 200);
-    intruder.advance(3_600);
-    project.open().acquire_lock(&intruder, true).unwrap();
+    let theirs = take_over(&project, &intruder, 3_600, || {
+        registry.health(&project.open()) == LockHealth::Lost
+    });
     eventually("the lock to be reported lost", || {
         registry.health(&project.open()) == LockHealth::Lost
     });
-    let theirs = project.read(LOCK);
 
     let again = registry.acquire(&project.open(), false).unwrap();
 
