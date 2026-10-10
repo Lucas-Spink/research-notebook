@@ -29,6 +29,7 @@ export type ActionOutcome = { ok: true } | { ok: false; error: NotebookError };
 /** The panel open under the tree for one row: its actions, a picker, a name form or a delete confirmation. */
 export type Panel =
   | { kind: "menu"; row: TreeRow }
+  | { kind: "details"; row: Extract<TreeRow, { kind: "item" }> }
   | { kind: "pick"; row: TreeRow; mode: PickMode; targets: GroupTarget[] }
   | { kind: "rename"; row: Extract<TreeRow, { kind: "group" }> }
   | { kind: "newSubgroup"; row: Extract<TreeRow, { kind: "group" }> }

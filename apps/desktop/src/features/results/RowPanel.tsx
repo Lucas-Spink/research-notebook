@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { assertNever } from "../../shared/assertNever";
 import { classificationLabel, resultsMessages } from "./messages";
 import { pickedAction, rowMenu, type MenuEntry } from "./model/menu";
+import { artefactDetails, formatSize } from "./model/details";
 import { deletionSummary } from "./model/tree";
 import { NameForm } from "./NameForm";
 import type { Panel, ResultsTreeState } from "./useResultsTree";
@@ -32,6 +33,8 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
   function choose(entry: MenuEntry) {
     const { run } = entry;
     if (run.kind === "open") tree.open?.(run.artefactId);
+    else if (run.kind === "details" && panel.row.kind === "item")
+      tree.setPanel({ kind: "details", row: panel.row });
     else if (run.kind === "action") void tree.run(run.action);
     else if (run.kind === "pick")
       tree.setPanel({
@@ -40,7 +43,7 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         mode: run.mode,
         targets: run.targets,
       });
-    else if (panel.row.kind === "group")
+    else if (panel.row.kind === "group" && run.kind !== "details")
       tree.setPanel({ kind: run.kind, row: panel.row });
   }
 
@@ -87,8 +90,12 @@ function PanelBody({
               <li key={entry.label}>
                 <button
                   type="button"
-                  // Opening only looks, so it stays available read-only.
-                  disabled={disabled && entry.run.kind !== "open"}
+                  // Opening and details only look, so they stay available read-only.
+                  disabled={
+                    disabled &&
+                    entry.run.kind !== "open" &&
+                    entry.run.kind !== "details"
+                  }
                   onClick={() => choose(entry)}
                 >
                   {resultsMessages.menu[entry.label]}
@@ -98,6 +105,8 @@ function PanelBody({
           )}
         </ul>
       );
+    case "details":
+      return <DetailsList file={file} artefactId={panel.row.artefactId} />;
     case "pick":
       return (
         <fieldset className="results__pick">
@@ -170,4 +179,43 @@ function PanelBody({
     default:
       return assertNever(panel);
   }
+}
+
+function DetailsList({
+  file,
+  artefactId,
+}: {
+  file: ArtefactsFileModel;
+  artefactId: string;
+}) {
+  const m = resultsMessages.details;
+  const details = artefactDetails(file, artefactId);
+  if (details === null) return null;
+  const rows: [string, string][] = [
+    [m.type, details.type],
+    [m.storage, details.mode === "copy" ? m.copy : m.link],
+    [
+      m.classification,
+      details.classification === null
+        ? m.none
+        : classificationLabel(details.classification),
+    ],
+    [m.size, formatSize(details.size)],
+    [m.added, details.added],
+    [m.source, details.sourcePath],
+    [
+      m.folders,
+      details.folders.length === 0 ? m.ungrouped : details.folders.join("; "),
+    ],
+  ];
+  return (
+    <dl className="results__details">
+      {rows.map(([term, value]) => (
+        <div key={term}>
+          <dt>{term}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }

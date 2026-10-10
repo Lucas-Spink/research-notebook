@@ -25,6 +25,7 @@ describe("rowMenu", () => {
     const menu = rowMenu(file, item, { canOpen: true });
     expect(menu.map((entry) => entry.label)).toEqual([
       "preview",
+      "details",
       "moveTo",
       "addTo",
       "markMainFigure",
@@ -45,6 +46,7 @@ describe("rowMenu", () => {
   it("offers Move to and Add to as separate actions for an item (FR-GRP-02)", () => {
     const classify = ["markMainFigure", "classify"];
     expect(labels(row(3))).toEqual([
+      "details",
       "moveTo",
       "addTo",
       ...classify,
@@ -52,17 +54,18 @@ describe("rowMenu", () => {
       "remove",
     ]);
     expect(labels(row(4))).toEqual([
+      "details",
       "moveTo",
       "addTo",
       ...classify,
       "moveUp",
       "remove",
     ]);
-    expect(labels(row(8))).toEqual(["moveTo", "addTo", ...classify]);
+    expect(labels(row(8))).toEqual(["details", "moveTo", "addTo", ...classify]);
   });
 
   it("only offers groups that do not already hold the artefact", () => {
-    const moveTo = rowMenu(file, row(4))[0];
+    const moveTo = rowMenu(file, row(4)).find((e) => e.label === "moveTo");
     expect(moveTo?.run).toEqual({
       kind: "pick",
       mode: "moveTo",

@@ -23,10 +23,13 @@ export type MenuRun =
   | { kind: "newSubgroup" }
   | { kind: "confirmDelete" }
   /** Opens the artefact's preview; changes nothing, so it is offered read-only too. */
-  | { kind: "open"; artefactId: string };
+  | { kind: "open"; artefactId: string }
+  /** Shows what the file records about the artefact; changes nothing. */
+  | { kind: "details" };
 
 export type MenuLabel =
   | "preview"
+  | "details"
   | PickMode
   | "moveUp"
   | "moveDown"
@@ -125,6 +128,9 @@ export function rowMenu(
               },
             },
           ];
+    const details: MenuEntry[] = [
+      { label: "details", run: { kind: "details" } },
+    ];
     const preview: MenuEntry[] = canOpen
       ? [
           {
@@ -135,6 +141,7 @@ export function rowMenu(
       : [];
     return [
       ...preview,
+      ...details,
       ...pick("moveTo", free),
       ...pick("addTo", free),
       ...classification(file, row),
