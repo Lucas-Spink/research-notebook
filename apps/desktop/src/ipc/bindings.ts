@@ -161,6 +161,24 @@ export const commands = {
 	 */
 	writeManifest: (folder: FolderHandle, csv: string) => typedError<null, ProjectError>(__TAURI_INVOKE("write_manifest", { folder, csv })),
 	/**
+	 *  Counts what a bundle would hold, so the panel can say how large it is and
+	 *  warn about FAT32 before anything is written. Reads only.
+	 */
+	planBundle: (folder: FolderHandle, choice: BundleChoice) => typedError<BundleSummary, ProjectError>(__TAURI_INVOKE("plan_bundle", { folder, choice })),
+	/**
+	 *  Asks for a destination folder and writes the bundle there as
+	 *  `<stem>.nbk` (FR-ARC-08). `None` when the person cancels. Only reads the
+	 *  project, so it needs no lock; nothing in the project changes.
+	 */
+	writeBundle: (folder: FolderHandle, choice: BundleChoice, stem: string, extras: BundleExtraInput[]) => typedError<
+/**
+ *  Written, read back and checked. `name` is the file name in the folder
+ *  the person chose; `folder` is that folder, for display only.
+ */
+{ kind: "written"; name: string; folder: string; bytes: number | null; files: number | null } | { kind: "folderInvalid" } | { kind: "insideProject" } | { kind: "unsafeName" } | 
+/**  The destination refused a file this large: typically a FAT32 drive. */
+{ kind: "tooLargeForDestination" } | { kind: "noSpace" } | { kind: "sourceChanged" } | { kind: "failed" } | null, ProjectError>(__TAURI_INVOKE("write_bundle", { folder, choice, stem, extras })),
+	/**
 	 *  Writes a git bundle of each repository, into `_notebook/exports/git/`
 	 *  (FR-ARC-04). The repositories are only read. Refused, with nothing
 	 *  written, unless this application holds the project's lock. A repository
@@ -352,6 +370,45 @@ export type BackupMade = {
 	folder: string,
 	copied: number,
 	skipped: number,
+};
+
+/**  Which bundle to make. */
+export type BundleChoice = 
+/**  `_notebook/` only. */
+"notebook" | 
+/**  The whole project. */
+"archive";
+
+/**
+ *  An entry added beside the project's files, such as the list of linked
+ *  files, built by `packages/format`.
+ */
+export type BundleExtraInput = {
+	path: string,
+	text: string,
+};
+
+/**
+ *  How writing a bundle ended. Carries no system text, which can name paths
+ *  the person did not ask about.
+ */
+export type BundleResult = 
+/**
+ *  Written, read back and checked. `name` is the file name in the folder
+ *  the person chose; `folder` is that folder, for display only.
+ */
+{ kind: "written"; name: string; folder: string; bytes: number | null; files: number | null } | { kind: "folderInvalid" } | { kind: "insideProject" } | { kind: "unsafeName" } | 
+/**  The destination refused a file this large: typically a FAT32 drive. */
+{ kind: "tooLargeForDestination" } | { kind: "noSpace" } | { kind: "sourceChanged" } | { kind: "failed" };
+
+/**  What a bundle would hold. */
+export type BundleSummary = {
+	files: number | null,
+	bytes: number | null,
+	/**  Links and unreadable names left out. */
+	skipped: number | null,
+	/**  The files together may not fit in one file on a FAT32 drive. */
+	exceedsFat32Limit: boolean,
 };
 
 /**

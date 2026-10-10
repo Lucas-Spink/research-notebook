@@ -119,6 +119,7 @@ export {
   type VersionFileToCheck,
 } from "./integrity";
 export { gitRepositories, type GitRepository } from "./gitRepositories";
+export { LINKED_FILES_ENTRY, linkedFilesList } from "./linkedFiles";
 export {
   buildManifest,
   manifestCell,
