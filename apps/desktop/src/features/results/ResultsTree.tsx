@@ -2,7 +2,7 @@ import type { ArtefactsFileModel } from "@research-notebook/format";
 import { useId, useMemo } from "react";
 import { resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
-import { positions } from "./model/tree";
+import { positions, treeTotals } from "./model/tree";
 import { NameForm } from "./NameForm";
 import { RowPanel } from "./RowPanel";
 import { TreeRowView } from "./TreeRowView";
@@ -41,6 +41,7 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
   });
   const helpId = useId();
   const places = useMemo(() => positions(tree.rows), [tree.rows]);
+  const totals = useMemo(() => treeTotals(file), [file]);
 
   return (
     <div className="results">
@@ -84,6 +85,9 @@ export function ResultsTree({ file, disabled, onAction, onOpen }: Props) {
           );
         })}
       </ul>
+      <p className="results__totals">
+        {resultsMessages.totals(totals.results, totals.groups)}
+      </p>
       {tree.panel !== null && (
         <RowPanel
           file={file}

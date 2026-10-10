@@ -215,3 +215,16 @@ export function deletionSummary(
     );
   return count(group);
 }
+
+/** How many results an experiment has and how many groups hold them, at any depth. */
+export function treeTotals(file: ArtefactsFileModel): {
+  results: number;
+  groups: number;
+} {
+  const count = (groups: ArtefactsFileModel["groups"]): number =>
+    groups.reduce((sum, group) => sum + 1 + count(group.groups), 0);
+  return {
+    results: file.artefacts.filter((a) => a.role === "result").length,
+    groups: count(file.groups),
+  };
+}

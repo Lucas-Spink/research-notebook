@@ -138,3 +138,10 @@
   align-items: flex-start;
   gap: 0.25rem;
 }
+
+/* The footer: how many results and groups the experiment has. */
+.results__totals {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+}
