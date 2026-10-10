@@ -38,11 +38,10 @@ export const ribbonMessages = {
   expand: "Expand the ribbon",
   tabs: {
     home: "Home",
+    projects: "Projects",
     experiments: "Experiments",
     sources: "Sources",
-    view: "View",
-    project: "Project",
-    export: "Export",
+    settings: "Settings",
   },
   groups: {
     add: "Add",
@@ -59,6 +58,7 @@ export const ribbonMessages = {
     rows: "Rows",
     project: "Project",
     check: "Check",
+    appearance: "Appearance",
     documents: "Documents",
     data: "Data",
     packages: "Packages",
@@ -78,6 +78,10 @@ export const ribbonMessages = {
   columns: "Columns",
   compactOverview: "Compact overview",
   detailedComparison: "Detailed comparison",
+  allProjects: "‹ All projects",
+  darkMode: "Dark mode",
+  projectSettings: "Project settings",
+  zoteroIntegration: "Zotero integration",
   expandAll: "Expand all",
   collapseAll: "Collapse all",
   search: "Search",
@@ -129,4 +133,26 @@ export const resultsBrowserMessages = {
   linkScript: "Link script…",
   scriptOpen: (name: string) => `Open ${name}`,
   linked: "linked",
+};
+
+/** Text of the project header: breadcrumbs, key figures and the main action (issue #101). */
+export const headerMessages = {
+  breadcrumbs: "Where you are",
+  projects: "Projects",
+  summaryLabel: "Project summary",
+  experiments: (n: number) => (n === 1 ? "1 experiment" : `${n} experiments`),
+  results: (n: number) => (n === 1 ? "1 result" : `${n} results`),
+  references: (n: number) => (n === 1 ? "1 reference" : `${n} references`),
+  integrity: {
+    idle: "Integrity not checked",
+    running: "Checking integrity…",
+    failed: "Integrity check could not run",
+    clean: "Integrity OK",
+    issues: (n: number) =>
+      n === 1 ? "Integrity: 1 issue" : `Integrity: ${n} issues`,
+  },
+  readOnly: "Read-only",
+  archived: "Archived",
+  addExperiment: "Add experiment",
+  moreLabel: "Project menu",
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dropAction, type Dragged } from "./drag";
+import { dropAction, dropOnRoot, type Dragged } from "./drag";
 import { ids, sampleArtefacts } from "./sample";
 import { treeRows, type TreeRow } from "./tree";
 
@@ -99,5 +99,42 @@ describe("dropAction", () => {
     expect(dropAction(figures, row(0), false)).toBeNull();
     expect(dropAction(figures, row(3), false)).toBeNull();
     expect(dropAction(figures, row(7), false)).toBeNull();
+  });
+});
+
+describe("dropOnRoot", () => {
+  it("moves a nested folder to the top level, and has nothing to do for one already there", () => {
+    expect(
+      dropOnRoot({ kind: "group", groupId: ids.g(3), parent: ids.g(1) }),
+    ).toEqual({ kind: "moveGroup", groupId: ids.g(3), parent: null });
+    expect(
+      dropOnRoot({ kind: "group", groupId: ids.g(1), parent: null }),
+    ).toBeNull();
+    expect(dropOnRoot(figures)).toBeNull();
+  });
+
+  it("takes an artefact out of its folder, and has nothing to do for an ungrouped one", () => {
+    expect(dropOnRoot(r1FromFigures)).toEqual({
+      kind: "removeFromGroup",
+      artefactId: ids.r(1),
+      groupId: ids.g(1),
+    });
+    expect(dropOnRoot(r4Ungrouped)).toBeNull();
+  });
+
+  it("takes several artefacts out together, skipping the ungrouped ones", () => {
+    const action = dropOnRoot({
+      kind: "items",
+      items: [
+        { kind: "item", artefactId: ids.r(1), from: ids.g(1), index: 0 },
+        { kind: "item", artefactId: ids.r(4), from: null, index: 0 },
+      ],
+    });
+    expect(action).toEqual({
+      kind: "batch",
+      actions: [
+        { kind: "removeFromGroup", artefactId: ids.r(1), groupId: ids.g(1) },
+      ],
+    });
   });
 });

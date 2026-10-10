@@ -7,7 +7,14 @@ import { RecentList } from "./RecentList";
 import type { Projects } from "./useProjects";
 
 /** The ribbon's Project group (S6-T01): new, open and recent projects, the open project's settings and external roots, and Zotero's status. */
-export function ProjectRibbonControls({ projects }: { projects: Projects }) {
+export function ProjectRibbonControls({
+  projects,
+  part,
+}: {
+  projects: Projects;
+  /** `open` is new, open and recent projects; `settings` is the open project's settings and Zotero. */
+  part: "open" | "settings";
+}) {
   const [name, setName] = useState("");
   const zoteroStatus = useZoteroStatus();
   const { opened } = projects;
@@ -16,6 +23,37 @@ export function ProjectRibbonControls({ projects }: { projects: Projects }) {
     event.preventDefault();
     void projects.create(name);
     close();
+  }
+
+  if (part === "settings") {
+    return (
+      <>
+        {opened !== null && (
+          <RibbonMenu label={messages.settingsButton}>
+            <OpenedPanel
+              compact
+              project={opened}
+              roots={projects.roots}
+              busy={projects.busy}
+              onChooseRoot={(rootId) =>
+                void projects.chooseExternalRoot(rootId)
+              }
+              onTakeOver={() => void projects.takeOver()}
+              onRetry={() => void projects.retryLock()}
+              {...(opened.mode.kind === "writable"
+                ? {
+                    onAddRoot: (label: string) =>
+                      void projects.addExternalRoot(label),
+                  }
+                : {})}
+            />
+          </RibbonMenu>
+        )}
+        <RibbonMenu label={messages.zoteroButton}>
+          <ZoteroStatusIndicator state={zoteroStatus} />
+        </RibbonMenu>
+      </>
+    );
   }
 
   return (
@@ -56,28 +94,6 @@ export function ProjectRibbonControls({ projects }: { projects: Projects }) {
             onLocate={(id) => void projects.locate(id)}
           />
         )}
-      </RibbonMenu>
-      {opened !== null && (
-        <RibbonMenu label={messages.settingsButton}>
-          <OpenedPanel
-            compact
-            project={opened}
-            roots={projects.roots}
-            busy={projects.busy}
-            onChooseRoot={(rootId) => void projects.chooseExternalRoot(rootId)}
-            onTakeOver={() => void projects.takeOver()}
-            onRetry={() => void projects.retryLock()}
-            {...(opened.mode.kind === "writable"
-              ? {
-                  onAddRoot: (label: string) =>
-                    void projects.addExternalRoot(label),
-                }
-              : {})}
-          />
-        </RibbonMenu>
-      )}
-      <RibbonMenu label={messages.zoteroButton}>
-        <ZoteroStatusIndicator state={zoteroStatus} />
       </RibbonMenu>
     </>
   );

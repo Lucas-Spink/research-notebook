@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { FileIcon, GroupFolderIcon } from "../../shared/FileIcons";
 import { classificationLabel, resultsMessages } from "./messages";
 import { hasChildren, type TreeRow } from "./model/tree";
@@ -58,8 +57,8 @@ export function TreeRowView({
   const count = countShown(row);
   const chosen =
     row.kind === "item" && tree.chosen.some((c) => c.key === row.key);
-  // A group or the Ungrouped area being dragged over, so it shows it will take the drop.
-  const [over, setOver] = useState(false);
+  // The row a drag is over: it shows whether it will take the drop.
+  const dragOver = tree.dragState?.over === row.key ? tree.dragState : null;
   return (
     <li
       ref={(element) => {
@@ -67,7 +66,7 @@ export function TreeRowView({
         else tree.rowRefs.current.set(row.key, element);
       }}
       role="treeitem"
-      className={`results__row results__row--${row.kind}${over ? " results__row--over" : ""}${chosen ? " results__row--chosen" : ""}`}
+      className={`results__row results__row--${row.kind}${dragOver?.valid === true ? " results__row--over" : ""}${dragOver?.valid === false ? " results__row--no-drop" : ""}${chosen ? " results__row--chosen" : ""}`}
       aria-selected={row.kind === "item" ? chosen : undefined}
       aria-level={row.depth}
       aria-posinset={position}
@@ -75,10 +74,15 @@ export function TreeRowView({
       aria-expanded={expandable ? row.expanded : undefined}
       tabIndex={tabbable ? 0 : -1}
       style={{ paddingInlineStart: `${4 + (row.depth - 1) * 14}px` }}
-      draggable={!disabled && row.kind !== "ungrouped"}
+      data-row-key={row.key}
+      data-draggable={
+        !disabled && row.kind !== "ungrouped" ? "true" : undefined
+      }
+      onPointerDown={(event) => tree.drag.start(row, event)}
       onKeyDown={(event) => tree.onKeyDown(row, event)}
       onFocus={() => tree.noteFocus(row.key)}
       onClick={(event) => {
+        if (tree.drag.justEnded()) return;
         tree.choose(row, {
           ctrl: event.ctrlKey || event.metaKey,
           shift: event.shiftKey,
@@ -94,30 +98,11 @@ export function TreeRowView({
         tree.setPanel({ kind: "menu", row });
       }}
       onMouseEnter={(event) => {
-        if (row.kind === "item") onHover?.(row.artefactId, event.currentTarget);
+        if (row.kind === "item" && tree.dragState === null)
+          onHover?.(row.artefactId, event.currentTarget);
       }}
       onMouseLeave={() => {
         if (row.kind === "item") onHover?.(null);
-      }}
-      onDragStart={(event) => {
-        onHover?.(null);
-        tree.drag.start(row, event);
-      }}
-      onDragOver={(event) => tree.drag.over(row, event)}
-      onDragEnter={() => row.kind !== "item" && setOver(true)}
-      onDragLeave={(event) => {
-        // Moving onto a child of the row is still over the row.
-        const to = event.relatedTarget;
-        if (!(to instanceof Node) || !event.currentTarget.contains(to))
-          setOver(false);
-      }}
-      onDrop={(event) => {
-        setOver(false);
-        tree.drag.drop(row, event);
-      }}
-      onDragEnd={() => {
-        setOver(false);
-        tree.drag.end();
       }}
     >
       <span

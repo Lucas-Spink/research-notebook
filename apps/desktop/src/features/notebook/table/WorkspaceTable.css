@@ -24,7 +24,7 @@
   z-index: 2;
   transform: translateY(var(--head-offset, 0px));
   display: flex;
-  color: var(--palette-primary-dark);
+  color: var(--color-text-strong);
   background: var(--palette-light);
   border-bottom: 2px solid var(--palette-secondary);
 }
@@ -217,9 +217,9 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0 0.35rem;
-  border: 1px solid var(--palette-secondary);
+  border: 1px solid var(--color-border-control);
   border-radius: 4px;
-  color: var(--palette-secondary);
+  color: var(--color-text);
   font-size: var(--text-small);
 }
 
@@ -307,9 +307,45 @@
 }
 
 .wtable__status {
-  color: var(--color-text-muted);
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
+}
+
+/* An experiment's status: a mark, its name and a tint, so colour is one of
+   three signals. The tint is a pill around the mark and the status text. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 20px;
+  padding: 0 var(--space-2);
+  color: var(--status-planned-fg);
+  background: var(--status-planned-bg);
+  border-radius: 999px;
+}
+
+.status--running {
+  color: var(--status-running-fg);
+  background: var(--status-running-bg);
+}
+
+.status--complete {
+  color: var(--status-complete-fg);
+  background: var(--status-complete-bg);
+}
+
+.status--abandoned {
+  color: var(--status-abandoned-fg);
+  background: var(--status-abandoned-bg);
+}
+
+.status__mark {
+  font-size: var(--text-meta);
+  line-height: 1;
+}
+
+.status select {
+  color: inherit;
 }
 
 /* The title and status, edited in place (FR-TBL-11). */
@@ -327,11 +363,14 @@
 }
 
 .wtable__status-select {
+  min-height: 0;
+  padding: 0 var(--space-1);
   font: inherit;
   font-size: var(--text-meta);
   font-weight: var(--weight-medium);
-  padding: 0 var(--space-1);
   background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
 }
 
 .wtable__muted,
@@ -400,7 +439,7 @@
   width: 1.6rem;
   height: 1.6rem;
   padding: 0;
-  color: var(--color-on-dark);
+  color: var(--color-on-accent);
   background: var(--palette-accent);
   border: 0;
   border-radius: 50%;
@@ -409,7 +448,7 @@
 }
 
 .wtable__add-result:hover:not(:disabled) {
-  color: var(--color-on-dark);
+  color: var(--color-on-accent);
   background: var(--palette-accent-hover);
 }
 
@@ -448,9 +487,12 @@
   max-width: 100%;
 }
 
+/* No visible heading: the cell is the Results column. This empty strip is the
+   cell's tab stop and sits beside the plus and the menu. */
 .wtable__results-title {
-  font-size: 12.5px;
-  font-weight: var(--weight-semibold);
+  flex: 1;
+  min-height: 18px;
+  border-radius: 3px;
 }
 
 .wtable__results-open .results__head {
@@ -502,4 +544,26 @@
 .wtable__hover-image--thumb {
   width: 280px;
   height: 220px;
+}
+
+/* A reference to a result and a reference to a script are told apart by a
+   pale tint each: teal for results, violet for scripts. */
+.wtable__chip[data-role="result"],
+.expanded__artefact-ref--chip[data-role="result"] {
+  color: var(--chip-result-fg);
+  background: var(--chip-result-bg);
+  border-color: var(--chip-result-border);
+}
+
+.wtable__chip[data-role="method"],
+.expanded__artefact-ref--chip[data-role="method"] {
+  color: var(--chip-script-fg);
+  background: var(--chip-script-bg);
+  border-color: var(--chip-script-border);
+}
+
+.expanded__artefact-ref--chip[data-role] {
+  padding: 0 0.35rem;
+  border: 1px solid;
+  border-radius: 4px;
 }

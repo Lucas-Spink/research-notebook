@@ -8,12 +8,17 @@ import {
   useMemo,
   useRef,
   useState,
-  type DragEvent,
+  type PointerEvent as ReactPointerEvent,
   type KeyboardEvent,
 } from "react";
 import { refusalMessage, resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
-import { draggedFrom, dropAction, type Dragged } from "./model/drag";
+import {
+  draggedFrom,
+  dropAction,
+  dropOnRoot,
+  type Dragged,
+} from "./model/drag";
 import { navigate, rowCommand } from "./model/keys";
 import type { PickMode } from "./model/menu";
 import {
@@ -59,7 +64,27 @@ type Options = {
 };
 
 /** Copy rather than move: Ctrl on Windows, Option on macOS. */
-const copyKey = (event: DragEvent) => event.ctrlKey || event.altKey;
+const copyKey = (event: { ctrlKey: boolean; altKey: boolean }) =>
+  event.ctrlKey || event.altKey;
+
+/** The key the tree's background answers to as a drop target. */
+export const ROOT_KEY = "root";
+
+/** How far the pointer must travel with the button down before a press becomes a drag. */
+const DRAG_THRESHOLD = 5;
+
+/** A drag in progress: what is carried, where the pointer is, and what it is over. */
+export type DragState = {
+  label: string;
+  x: number;
+  y: number;
+  /** The key of the row the pointer is over, `"root"` for the tree's background, or `null`. */
+  over: string | null;
+  /** Whether dropping there would do anything. */
+  valid: boolean;
+  /** The copy key is held, so the drop adds rather than moves. */
+  copy: boolean;
+};
 
 /**
  * The state of the Results tree: which rows are open (in memory only, not
@@ -79,7 +104,10 @@ export function useResultsTree({
   const [status, setStatus] = useState<string | null>(null);
   const [chosenKeys, setChosenKeys] = useState<Selection>(new Set());
   const anchor = useRef<string | null>(null);
-  const dragged = useRef<Dragged | null>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const stopDrag = useRef<(() => void) | null>(null);
+  // A drag ends with a click on the row it started on, which must not also choose or open it.
+  const dragEnded = useRef(false);
   const rowRefs = useRef(new Map<string, HTMLElement>());
   const moveFocus = useRef(false);
 
@@ -203,10 +231,26 @@ export function useResultsTree({
     else if (row.kind === "group") setPanel({ kind: command.kind, row });
   }
 
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  useEffect(() => () => stopDrag.current?.(), []);
+
+  /**
+   * Drag and drop by pointer, not by the browser's drag events. The desktop
+   * window takes over drag and drop to receive files dropped from outside
+   * (ADR-0044 point 2), and on Windows that switches the page's own drag
+   * events off, so a drag between rows would never start.
+   */
   const drag = {
-    start(row: TreeRow, event: DragEvent) {
+    start(row: TreeRow, event: ReactPointerEvent) {
+      if (disabled || row.kind === "ungrouped" || event.button !== 0) return;
+      if (
+        event.target instanceof Element &&
+        event.target.closest("button, input, select, a") !== null
+      )
+        return;
       // Dragging one of several chosen artefacts takes them all.
-      dragged.current =
+      const source: Dragged | null =
         row.kind === "item" && chosen.length > 1 && chosenKeys.has(row.key)
           ? {
               kind: "items",
@@ -216,29 +260,90 @@ export function useResultsTree({
               }),
             }
           : draggedFrom(row);
-      event.dataTransfer.effectAllowed = "copyMove";
-      if (row.kind !== "ungrouped")
-        event.dataTransfer.setData("text/plain", row.name);
+      if (source === null) return;
+      stopDrag.current?.();
+      const label =
+        source.kind === "items" ? `${source.items.length} items` : row.name;
+      const origin = { x: event.clientX, y: event.clientY };
+      let started = false;
+
+      // The row under the pointer, or the tree's background, which is the top level.
+      const keyAt = (x: number, y: number): string | null =>
+        document
+          .elementFromPoint(x, y)
+          ?.closest("[data-row-key]")
+          ?.getAttribute("data-row-key") ?? null;
+      const actionAt = (e: PointerEvent) => {
+        const key = keyAt(e.clientX, e.clientY);
+        if (key === ROOT_KEY) return { key, action: dropOnRoot(source) };
+        const target = rowsRef.current.find((r) => r.key === key) ?? null;
+        return {
+          key: target?.key ?? null,
+          action:
+            target === null ? null : dropAction(source, target, copyKey(e)),
+        };
+      };
+      const cleanup = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", cancel);
+        window.removeEventListener("keydown", onKey, true);
+        document.body.classList.remove("results-dragging");
+        stopDrag.current = null;
+      };
+      const finish = () => {
+        cleanup();
+        setDragState(null);
+        if (started) {
+          dragEnded.current = true;
+          setTimeout(() => {
+            dragEnded.current = false;
+          }, 0);
+        }
+      };
+      function move(e: PointerEvent) {
+        if (!started) {
+          if (
+            Math.hypot(e.clientX - origin.x, e.clientY - origin.y) <
+            DRAG_THRESHOLD
+          )
+            return;
+          started = true;
+          document.body.classList.add("results-dragging");
+        }
+        const { key, action } = actionAt(e);
+        setDragState({
+          label,
+          x: e.clientX,
+          y: e.clientY,
+          over: key,
+          valid: action !== null,
+          copy: copyKey(e),
+        });
+      }
+      function up(e: PointerEvent) {
+        const wasDragging = started;
+        const { action } = actionAt(e);
+        finish();
+        if (wasDragging && action !== null) void run(action);
+      }
+      function cancel() {
+        finish();
+      }
+      function onKey(e: globalThis.KeyboardEvent) {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          finish();
+        }
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", cancel);
+      window.addEventListener("keydown", onKey, true);
+      stopDrag.current = cleanup;
     },
-    over(row: TreeRow, event: DragEvent) {
-      const source = dragged.current;
-      if (source === null || dropAction(source, row, copyKey(event)) === null)
-        return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = copyKey(event) ? "copy" : "move";
-    },
-    drop(row: TreeRow, event: DragEvent) {
-      const source = dragged.current;
-      dragged.current = null;
-      const action =
-        source === null ? null : dropAction(source, row, copyKey(event));
-      if (action === null) return;
-      event.preventDefault();
-      void run(action);
-    },
-    end() {
-      dragged.current = null;
-    },
+    /** Whether a click that just arrived is the end of a drag, and so is not a click. */
+    justEnded: () => dragEnded.current,
   };
 
   return {
@@ -258,6 +363,8 @@ export function useResultsTree({
     closePanel,
     onKeyDown,
     drag,
+    /** The drag in progress, for the row it is over and the label that follows the pointer. */
+    dragState,
     /** Opens an artefact's preview, or `undefined` when the tree has none to open. */
     open: onOpen,
     /** Opens or reveals a result's file; `undefined` when the tree cannot. */

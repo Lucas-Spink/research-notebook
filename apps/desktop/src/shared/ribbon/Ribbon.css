@@ -1,59 +1,88 @@
-/* The ribbon: a dark row of tabs over the commands of the chosen tab, whose
-   groups are named beneath their controls. Commands wrap rather than overflow. */
+/* Global navigation (a navy bar of tabs) over the commands of the chosen tab
+   (a light strip). Commands wrap rather than overflow. */
 .ribbon {
   position: sticky;
   top: 0;
   z-index: 20;
-  color: var(--color-on-dark);
-  background: var(--palette-primary-dark);
-  border-bottom: 3px solid var(--palette-accent);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .ribbon__tabbar {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   gap: var(--space-4);
-  padding: var(--space-1) var(--space-4) 0;
+  padding: 0 var(--space-4);
+  color: var(--color-on-dark);
+  background: var(--color-nav);
+}
+
+.ribbon__brand {
+  align-self: center;
+  margin: 0;
+  color: var(--color-on-dark);
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
 }
 
 .ribbon__tabs {
   display: flex;
-  gap: 2px;
+  align-items: flex-end;
+  gap: var(--space-1);
   min-width: 0;
+  padding-top: var(--space-1);
 }
 
+/* Grey tabs on the navy bar: each is visible on its own, and the chosen one
+   is the lightest, joining the strip of commands below it. */
 .ribbon__tab {
-  padding: var(--space-1) var(--space-4);
-  color: var(--color-on-dark);
-  background: none;
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  color: var(--tab-fg);
+  font-size: var(--text-small);
+  background: var(--tab-bg);
   border: 0;
-  border-radius: 6px 6px 0 0;
-  opacity: 0.85;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
 }
 
 .ribbon__tab:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--palette-secondary) 60%, transparent);
-  opacity: 1;
+  color: var(--tab-hover-fg);
+  background: var(--tab-hover-bg);
+  border-color: transparent;
 }
 
 .ribbon__tab[aria-selected="true"] {
-  background: var(--palette-secondary);
-  box-shadow: inset 0 -3px 0 var(--palette-accent);
-  opacity: 1;
+  color: var(--color-text-strong);
+  font-weight: var(--weight-semibold);
+  background: var(--color-surface-alt);
+  /* The chosen tab has its own accent, apart from the one buttons use. */
+  box-shadow: inset 0 3px 0 var(--accent-tab);
+}
+
+.ribbon__tabbar :focus-visible {
+  outline-color: var(--color-on-dark);
+  outline-offset: -2px;
 }
 
 .ribbon__collapse {
+  align-self: center;
   margin-inline-start: auto;
-  margin-bottom: var(--space-1);
+  min-height: 24px;
   padding: 0 var(--space-2);
   color: var(--color-on-dark);
   background: none;
-  border-color: color-mix(in srgb, var(--color-on-dark) 40%, transparent);
+  border-color: color-mix(in srgb, var(--color-on-dark) 35%, transparent);
+}
+
+.ribbon__collapse:hover:not(:disabled) {
+  background: var(--color-nav-hover);
+  border-color: color-mix(in srgb, var(--color-on-dark) 55%, transparent);
 }
 
 .ribbon__commands {
-  padding: var(--space-2) var(--space-4);
-  background: var(--palette-secondary);
+  padding: var(--space-1) var(--space-4);
+  background: var(--color-surface-alt);
 }
 
 /* A collapsed ribbon shows a tab's commands over the table, not above it. */
@@ -63,6 +92,7 @@
   right: 0;
   left: 0;
   z-index: 25;
+  border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-popover);
 }
 
@@ -75,17 +105,8 @@
 }
 
 .ribbon__hint {
+  color: var(--color-text-muted);
   font-size: var(--text-small);
-  opacity: 0.8;
-}
-
-.ribbon__brand {
-  align-self: center;
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--color-on-dark);
 }
 
 .ribbon__group {
@@ -94,8 +115,11 @@
   justify-content: space-between;
   gap: 2px;
   padding-inline-end: var(--space-4);
-  border-inline-end: 1px solid
-    color-mix(in srgb, var(--color-on-dark) 25%, transparent);
+  border-inline-end: 1px solid var(--color-border);
+}
+
+.ribbon__group:last-child {
+  border-inline-end: 0;
 }
 
 .ribbon__controls {
@@ -105,47 +129,40 @@
   gap: var(--space-2);
 }
 
+/* The name of a group of commands, centred under them in an easy-to-read size. */
 .ribbon__group-name {
+  align-self: stretch;
+  padding-top: 2px;
+  color: var(--color-text-muted);
   font-size: var(--text-meta);
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.75;
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  text-align: center;
 }
 
 .ribbon__button,
 .ribbon__toolbar select {
   padding: var(--space-1) var(--space-3);
-  color: var(--color-on-dark);
-  background: var(--palette-primary-dark);
-  border: 1px solid color-mix(in srgb, var(--color-on-dark) 25%, transparent);
-}
-
-.ribbon input {
-  padding: var(--space-1) var(--space-3);
   color: var(--color-text);
   background: var(--color-surface);
+  border: 1px solid var(--color-border-control);
 }
 
 .ribbon__button:hover:not(:disabled),
 .ribbon__toolbar select:hover:not(:disabled) {
-  background: var(--palette-accent-hover);
-  border-color: transparent;
+  background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 
 .ribbon__button[aria-expanded="true"],
 .ribbon__button[aria-pressed="true"] {
-  background: var(--palette-accent);
+  color: var(--palette-accent-hover);
+  background: var(--color-selected);
+  border-color: var(--color-accent);
 }
 
 .ribbon label {
   font-size: var(--text-small);
-}
-
-.ribbon button:focus-visible,
-.ribbon select:focus-visible,
-.ribbon input:focus-visible {
-  outline-color: var(--palette-light);
 }
 
 .ribbon__menu {
@@ -166,8 +183,7 @@
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-top: 3px solid var(--palette-accent);
-  border-radius: 6px;
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow-popover);
   text-align: left;
 }
@@ -226,15 +242,135 @@
   display: none;
 }
 
-/* The project's name: the research context, larger than the controls around it. */
-.ribbon__project {
-  align-self: center;
-  max-width: 24rem;
+.ribbon__menu--end .ribbon__panel {
+  right: 0;
+  left: auto;
+}
+
+/* A list of actions in a menu: one per row, the width of the menu. */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 11rem;
+  margin: calc(var(--space-2) * -1);
+}
+
+.menu-list button {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 30px;
+  text-align: start;
+  background: none;
+  border-color: transparent;
+  border-radius: 0;
+}
+
+/* The project header: where you are, the project, its figures, the main action. */
+.project-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.project-header__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.project-header__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+  list-style: none;
+}
+
+.project-header__crumbs li + li::before {
+  content: "›";
+  padding: 0 var(--space-1);
+}
+
+.project-header__crumbs button {
+  min-height: 0;
+  padding: 0;
+  color: var(--color-accent);
+  font-size: var(--text-meta);
+}
+
+.project-header__crumbs button:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
+.project-header__title {
   margin: 0;
   overflow: hidden;
-  color: var(--color-on-dark);
-  font-size: var(--text-heading);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-project);
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-header__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+  list-style: none;
+}
+
+.project-header__mark {
+  display: inline-block;
+  min-width: 1em;
+  margin-inline-end: var(--space-1);
+  font-weight: var(--weight-semibold);
+}
+
+.project-header__figures [data-integrity="done"] {
+  color: var(--status-complete-fg);
+}
+
+.project-header__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The title and the key figures share a line, to keep the header low. */
+.project-header__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-4);
+  min-width: 0;
+}
+
+.project-header__actions {
+  align-self: center;
+}
+
+/* The ribbon's own button rule must not hide the main action's fill. */
+.ribbon__button.btn-primary {
+  color: var(--action-fg);
+  background: var(--action-bg);
+  border-color: var(--action-bg);
+}
+
+.ribbon__button.btn-primary:hover:not(:disabled),
+.ribbon__button.btn-primary[aria-expanded="true"] {
+  color: var(--action-fg);
+  background: var(--action-bg-hover);
+  border-color: var(--action-bg-hover);
 }

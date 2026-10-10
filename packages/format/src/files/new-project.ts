@@ -35,6 +35,19 @@ export const DEFAULT_COLUMN_WIDTHS: Record<
   literature: 240,
 };
 
+/**
+ * The widths new projects got before the Results column was widened. A column
+ * still at its old default has not been adjusted by the person, so the table
+ * shows it at the new default instead (without writing anything).
+ */
+export const PREVIOUS_DEFAULT_COLUMN_WIDTHS: Partial<
+  Record<(typeof COLUMN_KEYS)[number], number>
+> = {
+  methods: 260,
+  results: 280,
+  results_notes: 300,
+};
+
 /** An empty CSL-JSON array in the JSON layout of format-v1.md 3.5. */
 const EMPTY_BIBLIOGRAPHY = "[]\n";
 

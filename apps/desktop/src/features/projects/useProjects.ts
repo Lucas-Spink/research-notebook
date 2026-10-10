@@ -225,6 +225,29 @@ export function useProjects() {
     [opened],
   );
 
+  /**
+   * Closes the open project and returns to the start page: gives up its lock
+   * so another window can take it at once, then forgets the project. If the
+   * lock cannot be given up the project still closes and the page says so; the
+   * lock then lapses on its own when its heartbeat stops.
+   */
+  const close = useCallback(async () => {
+    const current = openedRef.current;
+    if (current === null) return;
+    setBusy(true);
+    let released = true;
+    try {
+      await releaseFlow(commands, current);
+    } catch {
+      released = false;
+    } finally {
+      setBusy(false);
+    }
+    setOpened(null);
+    setRoots([]);
+    setNotices(released ? [] : [messages.closeLockNotReleased]);
+  }, []);
+
   const chooseExternalRoot = useCallback(
     async (rootId: string) => {
       if (opened === null || opened.summary === null) return;
@@ -305,6 +328,7 @@ export function useProjects() {
     open: () => run(() => openFlow(commands)),
     openRecent: (id: string) => run(() => openRecentFlow(commands, id)),
     locate: (id: string) => run(() => locateFlow(commands, id)),
+    close,
     chooseExternalRoot,
     addExternalRoot,
     dismissNotices: () => setNotices([]),

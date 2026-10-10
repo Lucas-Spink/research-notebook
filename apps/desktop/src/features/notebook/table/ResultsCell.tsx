@@ -7,6 +7,7 @@ import { CodeFolder } from "../workspace/CodeFolder";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
 import { ResultHoverPreview, type HoverTarget } from "./ResultHoverPreview";
+import { fileKindOf } from "../../../shared/FileIcons";
 import { useResultsCellTree } from "./useResultsCellTree";
 
 type Props = {
@@ -79,7 +80,7 @@ export function ResultsCell({
           }
         }}
       >
-        {tableMessages.resultsHeading}
+        <span className="wtable__sr">{tableMessages.resultsHeading}</span>
       </div>
       {!readOnly && (
         <button
@@ -202,7 +203,11 @@ function useResultHover(artefacts: ArtefactsFileModel | null) {
       found?.mode === "copy"
         ? found.versions.reduce((best, v) => (v.v > best.v ? v : best))
         : undefined;
-    if (found === undefined || latest === undefined) {
+    // Only what has something to look at gets a preview: tables and text do not.
+    const kind =
+      found === undefined ? null : fileKindOf(found.name, found.type);
+    const previewable = kind === "image" || kind === "vector" || kind === "pdf";
+    if (found === undefined || latest === undefined || !previewable) {
       setShown(null);
       return;
     }

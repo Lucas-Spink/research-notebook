@@ -264,4 +264,24 @@ describe("ArtefactRefChip", () => {
     expect(onUpdate).toHaveBeenCalledOnce();
     expect(onActivate).not.toHaveBeenCalled();
   });
+
+  it("marks a reference to a result and one to a script differently, so they can be tinted apart (#101)", () => {
+    const result = mount(RESOLVED_COPY);
+    expect(
+      result
+        .querySelector(".expanded__artefact-ref--chip")
+        ?.getAttribute("data-role"),
+    ).toBe("result");
+    act(() => root?.unmount());
+    container?.remove();
+    const script = mount({
+      ...RESOLVED_COPY,
+      artefact: { ...RESOLVED_COPY.artefact, role: "method" },
+    });
+    expect(
+      script
+        .querySelector(".expanded__artefact-ref--chip")
+        ?.getAttribute("data-role"),
+    ).toBe("method");
+  });
 });

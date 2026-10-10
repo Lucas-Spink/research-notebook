@@ -33,6 +33,9 @@ export const messages = {
   tryAgain: "Try again",
   readOnlyLabel: "Read-only",
   unnamedProject: "Project file could not be read",
+  closeLockNotReleased:
+    "The project was closed, but its lock could not be released. It will free itself shortly.",
+  darkMode: "Dark mode",
   unexpected: "Something unexpected happened. Try again.",
 } as const;
 

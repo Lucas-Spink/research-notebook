@@ -78,6 +78,7 @@ export function ArtefactRefChip({ resolved, onActivate, onUpdate }: Props) {
       <span
         ref={chip}
         className="expanded__artefact-ref expanded__artefact-ref--chip"
+        data-role={resolved.artefact.role}
         role="button"
         tabIndex={0}
         aria-describedby={detailAt === null ? undefined : detailId}

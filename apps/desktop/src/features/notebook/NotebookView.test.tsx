@@ -317,11 +317,10 @@ describe("NotebookView: controls", () => {
     ].map((tab) => tab.textContent);
     expect(tabs).toEqual([
       "Home",
+      "Projects",
       "Experiments",
       "Sources",
-      "View",
-      "Project",
-      "Export",
+      "Settings",
     ]);
   });
 

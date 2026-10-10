@@ -1,5 +1,6 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
 import { positions, treeTotals } from "./model/tree";
@@ -7,7 +8,7 @@ import { NameForm } from "./NameForm";
 import { RowPanel } from "./RowPanel";
 import { TreeMenu } from "./TreeMenu";
 import { TreeRowView } from "./TreeRowView";
-import { useResultsTree, type ActionOutcome } from "./useResultsTree";
+import { ROOT_KEY, useResultsTree, type ActionOutcome } from "./useResultsTree";
 import "./ResultsTree.css";
 
 type Props = {
@@ -81,7 +82,10 @@ export function ResultsTree({
   const totals = useMemo(() => treeTotals(file), [file]);
 
   return (
-    <div className="results">
+    <div
+      className={`results${tree.dragState?.over === ROOT_KEY ? (tree.dragState.valid ? " results--root-over" : " results--root-no-drop") : ""}`}
+      data-row-key={ROOT_KEY}
+    >
       {compact ? (
         <div className="results__head">
           <div className="results__head-main">{header}</div>
@@ -174,6 +178,17 @@ export function ResultsTree({
       <p className="results__totals">
         {resultsMessages.totals(totals.results, totals.groups)}
       </p>
+      {tree.dragState !== null &&
+        createPortal(
+          <div
+            className={`results__ghost${tree.dragState.valid ? "" : " results__ghost--no-drop"}`}
+            style={{ left: tree.dragState.x + 14, top: tree.dragState.y + 14 }}
+          >
+            {tree.dragState.copy ? "+ " : ""}
+            {tree.dragState.label}
+          </div>,
+          document.body,
+        )}
       {tree.panel !== null && (
         <RowPanel
           file={file}

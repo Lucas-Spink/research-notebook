@@ -1,75 +1,10 @@
+@import "./styles/tokens.css";
+
 :root {
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-
-  /* Type scale (issue #101, phase 1). Every component takes its size and
-     weight from here so the hierarchy stays consistent. The root size is
-     unchanged, so em-based sizes elsewhere keep their meaning. */
-  --text-meta: 0.75rem;
-  --text-small: 0.875rem;
-  --text-body: 1rem;
-  --text-title: 1.0625rem;
-  --text-heading: 1.125rem;
-  --text-project: 1.5rem;
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-
-  --radius-control: 6px;
-  --radius-panel: 8px;
-  --shadow-popover: 0 8px 24px rgb(31 41 55 / 28%);
-  --shadow-dialog: 0 16px 48px rgb(31 41 55 / 40%);
-
-  /* The notebook's palette (S6-T01): a dark slate for the ribbon and
-     headings, light slate for panels and table headings, and a blue accent,
-     with green and amber for success and warning. */
-  --palette-primary-dark: #1f2937;
-  --palette-secondary: #334155;
-  --palette-background: #f8fafc;
-  --palette-light: #e2e8f0;
-  --palette-accent: #2563eb;
-  --palette-accent-hover: #1d4ed8;
-  --palette-success: #16a34a;
-  --palette-warning: #d97706;
-
-  --color-text: var(--palette-primary-dark);
-  /* Secondary metadata: identifiers, dates, counts. */
-  --color-text-muted: color-mix(in srgb, var(--palette-secondary) 85%, #ffffff);
-  --color-bg: var(--palette-background);
-  --color-surface: #ffffff;
-  --color-surface-alt: color-mix(in srgb, var(--palette-light) 45%, #ffffff);
-  --color-border: color-mix(
-    in srgb,
-    var(--palette-primary-dark) 22%,
-    transparent
-  );
-  --color-accent: var(--palette-accent);
-  --color-accent-hover: var(--palette-accent-hover);
-  --color-on-dark: var(--palette-background);
-  --color-focus: var(--palette-accent);
-  /* One hover and one selected tint for every control and row. */
-  --color-hover: color-mix(
-    in srgb,
-    var(--palette-accent-hover) 10%,
-    var(--color-surface)
-  );
-  --color-selected: color-mix(
-    in srgb,
-    var(--palette-accent) 16%,
-    var(--color-surface)
-  );
-  /* A cell: quiet when chosen, a little stronger while it is being edited. */
-  --color-cell-selected: #94a3b8;
-  --color-cell-editing: #3b82f6;
-
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  /* The root stays 16px so rem means what it always did; the body sets the text size. */
   font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
+  font-weight: var(--weight-regular);
 
   color: var(--color-text);
   background-color: var(--color-bg);
@@ -84,6 +19,8 @@
 
 body {
   margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--line-body);
 }
 
 /* The page is an ordinary long page: ribbon, table, then Bibliography, and it scrolls. */
@@ -98,7 +35,7 @@ body {
 
 h1 {
   margin: 0 0 var(--space-5);
-  color: var(--palette-primary-dark);
+  color: var(--color-text-strong);
   font-size: var(--text-project);
   font-weight: var(--weight-semibold);
 }
@@ -106,7 +43,7 @@ h1 {
 h2,
 h3,
 h4 {
-  color: var(--palette-primary-dark);
+  color: var(--color-text-strong);
   font-size: var(--text-heading);
   font-weight: var(--weight-semibold);
 }
@@ -116,15 +53,19 @@ h4 {
   font-weight: var(--weight-medium);
 }
 
+/* Controls: one height, one edge, one hover and one focus ring everywhere. */
 button,
 input,
 select {
-  font: inherit;
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-3);
   color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-small);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-control);
-  padding: var(--space-2) var(--space-3);
 }
 
 button {
@@ -132,8 +73,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--color-accent-hover);
   background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 
 button:focus-visible,
@@ -141,12 +82,47 @@ input:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: default;
+}
+
+/* The one main action of a view: filled with the accent. */
+.btn-primary {
+  color: var(--action-fg);
+  font-weight: var(--weight-medium);
+  background: var(--action-bg);
+  border-color: var(--action-bg);
+}
+
+button.btn-primary:hover:not(:disabled) {
+  background: var(--action-bg-hover);
+  border-color: var(--action-bg-hover);
+}
+
+/* A dropdown's options are always read on the page's own colours, whatever
+   colour the closed control is showing (a status tint, say). */
+option {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+/* A control without a frame, for repeated or secondary actions. */
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* An empty state: what is missing and, where there is one, what to do about it. */
+.empty-state {
+  margin: 0;
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+  text-align: center;
 }
 
 /* A small rotating indicator for a busy action, paired with text for screen readers. */

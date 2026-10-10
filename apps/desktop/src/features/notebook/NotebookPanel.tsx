@@ -13,8 +13,12 @@ type Props = {
   archived?: string | null;
   /** The application wrote `project.yaml`: read it again to decide the mode. */
   onProjectFileChanged?: () => void;
+  /** Closes the project and returns to the start page. */
+  onCloseProject?: () => void;
   /** The ribbon's Project group. */
   projectControls?: ReactNode;
+  /** The ribbon's Settings tab project controls. */
+  settingsControls?: ReactNode;
   /** Project notices, kept under the ribbon. */
   projectBanners?: ReactNode;
 };
@@ -26,7 +30,9 @@ export function NotebookPanel({
   changes,
   archived = null,
   onProjectFileChanged,
+  onCloseProject,
   projectControls,
+  settingsControls,
   projectBanners,
 }: Props) {
   const notebook = useNotebook({ folder, writable, changes });
@@ -36,7 +42,9 @@ export function NotebookPanel({
       folder={folder}
       archived={archived}
       {...(onProjectFileChanged === undefined ? {} : { onProjectFileChanged })}
+      {...(onCloseProject === undefined ? {} : { onCloseProject })}
       {...(projectControls === undefined ? {} : { projectControls })}
+      {...(settingsControls === undefined ? {} : { settingsControls })}
       {...(projectBanners === undefined ? {} : { projectBanners })}
     />
   );

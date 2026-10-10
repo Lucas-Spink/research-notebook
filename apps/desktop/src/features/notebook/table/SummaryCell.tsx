@@ -41,7 +41,12 @@ function ReferenceChip({
   const newer =
     resolved.status === "resolved" && newerVersionUpdate(resolved) !== null;
   return (
-    <span className="wtable__chip">
+    <span
+      className="wtable__chip"
+      data-role={
+        resolved.status === "resolved" ? resolved.artefact.role : undefined
+      }
+    >
       {resolved.label}
       {newer && (
         <span className="wtable__chip-badge">

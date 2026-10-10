@@ -91,6 +91,7 @@ import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
 import { ResultsPane } from "./workspace/ResultsPane";
 import { Ribbon } from "./workspace/Ribbon";
+import type { IntegrityStatus } from "./workspace/ProjectHeader";
 import { SourcesPane } from "./workspace/SourcesPane";
 import { useSourceAttach } from "./workspace/useSourceAttach";
 import type { NotebookModel } from "./useNotebook";
@@ -165,10 +166,14 @@ type NotebookViewProps = {
   archived?: string | null;
   /** The application wrote `project.yaml`. Archiving is offered only when this is given. */
   onProjectFileChanged?: () => void;
+  /** Closes the project and returns to the start page; the ribbon's Home tab offers it when given. */
+  onCloseProject?: () => void;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
   /** The ribbon's Project group, which belongs to the projects feature. */
   projectControls?: ReactNode;
+  /** The ribbon's Settings tab project controls. */
+  settingsControls?: ReactNode;
   /** Notices from the project, kept under the ribbon. */
   projectBanners?: ReactNode;
 };
@@ -179,8 +184,10 @@ function NotebookViewBody({
   folder,
   archived = null,
   onProjectFileChanged,
+  onCloseProject,
   viewportHeight,
   projectControls,
+  settingsControls,
   projectBanners,
 }: NotebookViewProps) {
   const {
@@ -268,6 +275,33 @@ function NotebookViewBody({
     arranged,
     bibliography: sources.items,
   });
+  // The figures in the project header: experiments and the results they hold.
+  const summary = useMemo(() => {
+    const items =
+      arranged === null
+        ? []
+        : [
+            ...arranged.questions.flatMap((group) => group.experiments),
+            ...arranged.unassigned,
+          ];
+    const results = items.reduce(
+      (total, item) =>
+        total +
+        (evidenceOf(item)?.artefacts.filter((a) => a.role === "result")
+          .length ?? 0),
+      0,
+    );
+    return { experiments: items.length, results };
+  }, [arranged]);
+  const integrityStatus: IntegrityStatus =
+    integrity.state === "done"
+      ? {
+          state: "done",
+          issues: integrity.findings.filter(
+            (f) => !integrity.acknowledged.has(f.key),
+          ).length,
+        }
+      : { state: integrity.state };
 
   const manifest = useManifest({ api: commands, folder, arranged, writable });
   const verify = useVerify({ api: commands, folder, arranged });
@@ -409,7 +443,7 @@ function NotebookViewBody({
       }),
     onOpenResult: (experimentFolder, artefactId, version) =>
       dispatchPanes({
-        type: "open",
+        type: "toggle",
         tab: {
           id: resultTabId(experimentFolder, artefactId),
           kind: "result",
@@ -688,7 +722,12 @@ function NotebookViewBody({
       <section className="workspace" aria-labelledby="notebook-heading">
         <Ribbon
           projectName={loadedProject?.name ?? null}
+          {...(onCloseProject === undefined ? {} : { onCloseProject })}
           projectControls={projectControls}
+          {...(settingsControls === undefined ? {} : { settingsControls })}
+          summary={summary}
+          integrity={integrityStatus}
+          isArchived={archived !== null}
           archivable={onProjectFileChanged !== undefined}
           writable={writable}
           disabled={disabled}
@@ -725,7 +764,7 @@ function NotebookViewBody({
           {!writable && <p className="notebook__note">{messages.readOnly}</p>}
           <div role="status" aria-live="polite">
             {busy && (
-              <p>
+              <p className="notebook__working">
                 <span className="spinner" aria-hidden="true" />
                 {messages.working}
               </p>

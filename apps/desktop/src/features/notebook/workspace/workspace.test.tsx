@@ -80,10 +80,26 @@ const groupsOf = (view: HTMLElement) =>
   );
 
 describe("the workspace (S6-T01)", () => {
+  it("switches between dark and light from Settings, dark being the default", () => {
+    window.localStorage.clear();
+    const { view } = mountNotebook(state);
+    click(ribbonTab(view, "Settings"));
+    const toggle = ribbonButton(view, "Dark mode");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    click(toggle);
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(ribbonButton(view, "Dark mode").getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    click(ribbonButton(view, "Dark mode"));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    window.localStorage.clear();
+  });
+
   it("switches the table between Detailed comparison and Compact overview (#101)", () => {
     const { view } = mountNotebook(state);
     const table = view.querySelector(".wtable");
-    click(ribbonTab(view, "View"));
+    click(ribbonTab(view, "Experiments"));
     expect(table?.classList.contains("wtable--compact")).toBe(false);
     const toggle = ribbonButton(view, "Detailed comparison");
     act(() => toggle.click());
@@ -93,25 +109,66 @@ describe("the workspace (S6-T01)", () => {
     ).toBe("true");
   });
 
-  it("names the open project beside the application title (#101)", () => {
+  it("names the open project in the header, with where you are and the key figures (#101)", () => {
     const { view } = mountNotebook(state);
-    const name = view.querySelector(".ribbon__project");
-    expect(name?.textContent).toBe(state.project.name);
+    expect(view.querySelector(".project-header__title")?.textContent).toBe(
+      state.project.name,
+    );
+    expect(
+      [...view.querySelectorAll(".project-header__crumbs li")].map(
+        (li) => li.textContent,
+      ),
+    ).toEqual(["Projects", state.project.name]);
+    const figures = view.querySelector(".project-header__figures")?.textContent;
+    expect(figures).toContain("2 experiments");
+    expect(figures).toContain("0 results");
+    expect(figures).toContain("0 references");
+    expect(figures).toContain("Integrity not checked");
   });
 
-  it("has Home, Experiments, Sources, View, Project and Export tabs, and shows only the chosen tab's groups", () => {
+  it("makes Add experiment the header's main action, with the other project actions in a menu", () => {
+    const { view } = mountNotebook(state);
+    const main = view.querySelector(".project-header__actions .btn-primary");
+    expect(main?.textContent).toBe("Add experiment");
+    const more = view.querySelector(
+      '.project-header__actions button[aria-label="Project menu"]',
+    );
+    if (!(more instanceof HTMLElement)) throw new Error("no menu");
+    click(more);
+    expect(
+      [...view.querySelectorAll(".menu-list button")].map((b) => b.textContent),
+    ).toEqual(["Project settings", "Integrity check", "Zotero integration"]);
+  });
+
+  it("shows the selected experiment in the breadcrumbs", () => {
+    const { view } = mountNotebook(state);
+    const select = rowOf(view, "EXP-001").querySelector(
+      `button[aria-label="${selectLabel("EXP-001")}"]`,
+    );
+    if (select === null) throw new Error("no title");
+    click(select);
+    const crumbs = [...view.querySelectorAll(".project-header__crumbs li")].map(
+      (li) => li.textContent,
+    );
+    expect(crumbs.length).toBe(4);
+    expect(crumbs.at(-1)).toContain("EXP-001");
+  });
+
+  it("has Home, Projects, Experiments, Sources and Settings tabs, and shows only the chosen tab's groups", () => {
     const { view } = mountNotebook(state);
     expect(
       [...view.querySelectorAll('.ribbon [role="tab"]')].map(
         (t) => t.textContent,
       ),
-    ).toEqual(["Home", "Experiments", "Sources", "View", "Project", "Export"]);
+    ).toEqual(["Home", "Projects", "Experiments", "Sources", "Settings"]);
     expect(ribbonTab(view, "Home").getAttribute("aria-selected")).toBe("true");
     expect(groupsOf(view)).toEqual(["Add", "Selection", "Panes"]);
 
-    click(ribbonTab(view, "View"));
-    expect(ribbonTab(view, "View").getAttribute("aria-selected")).toBe("true");
-    expect(groupsOf(view)).toEqual(["Table", "Rows"]);
+    click(ribbonTab(view, "Experiments"));
+    expect(ribbonTab(view, "Experiments").getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(groupsOf(view)).toEqual(["Questions", "Find", "Table", "Results"]);
     expect(ribbonButton(view, "Columns").getAttribute("aria-expanded")).toBe(
       "false",
     );
@@ -119,8 +176,15 @@ describe("the workspace (S6-T01)", () => {
 
     click(ribbonTab(view, "Sources"));
     expect(groupsOf(view)).toEqual(["Library", "Attach", "Citations"]);
-    click(ribbonTab(view, "Experiments"));
-    expect(groupsOf(view)).toEqual(["Questions", "Find", "Order", "Results"]);
+    click(ribbonTab(view, "Projects"));
+    expect(groupsOf(view)).toEqual([
+      "Project",
+      "Documents",
+      "Data",
+      "Packages",
+    ]);
+    click(ribbonTab(view, "Settings"));
+    expect(groupsOf(view)).toEqual(["Project", "Check", "Appearance"]);
   });
 
   it("moves between ribbon tabs with the arrow keys", () => {
@@ -130,7 +194,7 @@ describe("the workspace (S6-T01)", () => {
         new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
       );
     });
-    expect(ribbonTab(view, "Experiments").getAttribute("aria-selected")).toBe(
+    expect(ribbonTab(view, "Projects").getAttribute("aria-selected")).toBe(
       "true",
     );
   });
@@ -142,9 +206,9 @@ describe("the workspace (S6-T01)", () => {
     click(toggle);
     expect(view.querySelector('[role="toolbar"]')).toBeNull();
 
-    click(ribbonTab(view, "View"));
+    click(ribbonTab(view, "Experiments"));
     expect(view.querySelector(".ribbon__commands--peek")).not.toBeNull();
-    expect(groupsOf(view)).toEqual(["Table", "Rows"]);
+    expect(groupsOf(view)).toEqual(["Questions", "Find", "Table", "Results"]);
     act(() => {
       view
         .querySelector(".ribbon")
@@ -185,9 +249,9 @@ describe("the workspace (S6-T01)", () => {
     expect(pane(view)).toBeNull();
   });
 
-  it("opens the integrity check from the Project tab, and does not run it until asked", () => {
+  it("opens the integrity check from the Settings tab, and does not run it until asked", () => {
     const { view } = mountNotebook(state);
-    click(ribbonTab(view, "Project"));
+    click(ribbonTab(view, "Settings"));
     click(ribbonButton(view, "Integrity check"));
     expect(pane(view)?.textContent).toContain("Integrity check");
     expect(pane(view)?.textContent).toContain("has not been run");
@@ -195,15 +259,20 @@ describe("the workspace (S6-T01)", () => {
 
   it("offers the manifest beside the integrity check, and does not write it until asked", () => {
     const { view } = mountNotebook(state);
-    click(ribbonTab(view, "Project"));
+    click(ribbonTab(view, "Settings"));
     click(ribbonButton(view, "Integrity check"));
     expect(pane(view)?.textContent).toContain("has not been generated");
   });
 
-  it("groups the export commands on the Export tab", () => {
+  it("groups the export commands on the Projects tab", () => {
     const { view } = mountNotebook(state);
-    click(ribbonTab(view, "Export"));
-    expect(groupsOf(view)).toEqual(["Documents", "Data", "Packages"]);
+    click(ribbonTab(view, "Projects"));
+    expect(groupsOf(view)).toEqual([
+      "Project",
+      "Documents",
+      "Data",
+      "Packages",
+    ]);
   });
 
   it.each([
@@ -213,10 +282,10 @@ describe("the workspace (S6-T01)", () => {
     ["Bundles", "Bundles", "bundles"],
     ["Git bundle", "Git bundles", "git-bundle"],
   ])(
-    "opens %s from the Export tab in its own pane tab, and writes nothing until asked",
+    "opens %s from the Projects tab in its own pane tab, and writes nothing until asked",
     (button, title, section) => {
       const { view } = mountNotebook(state);
-      click(ribbonTab(view, "Export"));
+      click(ribbonTab(view, "Projects"));
       click(ribbonButton(view, button));
       expect(
         [...view.querySelectorAll('aside.pane [role="tab"]')].map(
@@ -229,7 +298,7 @@ describe("the workspace (S6-T01)", () => {
 
   it("no longer lists the export panels in the Integrity check pane", () => {
     const { view } = mountNotebook(state);
-    click(ribbonTab(view, "Project"));
+    click(ribbonTab(view, "Settings"));
     click(ribbonButton(view, "Integrity check"));
     expect(pane(view)?.textContent).toContain("Manifest");
     expect(pane(view)?.textContent).not.toContain("PDF/A export");

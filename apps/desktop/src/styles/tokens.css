@@ -1,0 +1,167 @@
+/*
+ * The design tokens: the one place the application's spacing, type, colour,
+ * status and shape values are set. Components take what they need from
+ * here and never write their own values.
+ */
+:root {
+  /* Spacing: a 4px scale. 4-8 relates elements, controls and metadata; 12-16
+     spaces inside a component; 24 separates sections; 32 separates large
+     groups of content. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* Type: project titles 20-24, section headings 16-18, experiment titles
+     14-15, body 13-14, secondary metadata 11-12 (px). */
+  --text-meta: 0.75rem;
+  --text-small: 0.8125rem;
+  --text-body: 0.875rem;
+  --text-title: 0.9375rem;
+  --text-heading: 1.0625rem;
+  --text-project: 1.375rem;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --line-body: 1.45;
+
+  /* Palette: the accent, the navigation bar, the page, text and borders. */
+  --palette-accent: #2563eb;
+  --palette-accent-hover: #1d4ed8;
+  --palette-primary-dark: #1e293b;
+  --palette-secondary: #334155;
+  --palette-background: #f8fafc;
+  --palette-light: #e2e8f0;
+  --palette-success: #15803d;
+  --palette-warning: #b45309;
+
+  --color-text: #334155;
+  --color-text-strong: #1e293b;
+  --color-text-muted: #64748b;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f1f5f9;
+  --color-border: #e2e8f0;
+  /* Form controls need a firmer edge than a divider to be seen. */
+  --color-border-control: #cbd5e1;
+  --color-accent: var(--palette-accent);
+  --color-accent-hover: var(--palette-accent-hover);
+  --color-nav: #1e293b;
+  --color-nav-hover: #334155;
+  --color-on-dark: #f8fafc;
+  /* Text on a filled accent button or mark. */
+  --color-on-accent: #ffffff;
+  --color-focus: var(--palette-accent);
+  --color-hover: #f1f5f9;
+  --color-selected: #dbeafe;
+  --color-cell-selected: #94a3b8;
+  --color-cell-editing: #3b82f6;
+
+  /* Experiment status. Each has its own mark and its text label as well, so
+     colour is never the only signal. */
+  --status-planned-fg: #475569;
+  --status-planned-bg: #f1f5f9;
+  --status-running-fg: #1d4ed8;
+  --status-running-bg: #dbeafe;
+  --status-complete-fg: #15803d;
+  --status-complete-bg: #dcfce7;
+  /* Abandoned is the application's failed state. */
+  --status-abandoned-fg: #b91c1c;
+  --status-abandoned-bg: #fee2e2;
+
+  /* More than one accent, each for its own job: the main action, the chosen
+     ribbon tab, and the two kinds of file a reference can point to. */
+  --action-bg: #16a34a;
+  --action-bg-hover: #15803d;
+  --action-fg: #ffffff;
+  --accent-tab: #7c3aed;
+  --chip-result-bg: #ccfbf1;
+  --chip-result-fg: #0f766e;
+  --chip-result-border: #5eead4;
+  --chip-script-bg: #ede9fe;
+  --chip-script-fg: #6d28d9;
+  --chip-script-border: #c4b5fd;
+
+  /* Shape. */
+  /* The ribbon's tabs: grey on the navigation bar. The chosen tab takes the
+     surface-alt colour so it joins the commands strip below it. */
+  --tab-fg: #e2e8f0;
+  --tab-bg: #475569;
+  --tab-hover-fg: #ffffff;
+  --tab-hover-bg: #64748b;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --control-height: 28px;
+  --shadow-popover: 0 4px 14px rgb(30 41 59 / 16%);
+  --shadow-dialog: 0 12px 32px rgb(30 41 59 / 28%);
+}
+
+/* Dark mode, the default: the same tokens with dark values. Everything that
+   takes its colour from a token follows. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Monokai. Editor background #272822 and text #f8f8f2; the darker sidebar
+     #1e1f1c for navigation; #34352f for inactive tabs and raised panels;
+     #414339 for selection and focus. Cyan #66d9ef is the accent (Monokai's
+     class colour), green #a6e22e is success, yellow #e6db74 is warning and
+     #f44747 is an error. */
+  --palette-accent: #66d9ef;
+  --palette-accent-hover: #8be9f8;
+  --palette-primary-dark: #1e1f1c;
+  --palette-secondary: #414339;
+  --palette-background: #272822;
+  --palette-light: #34352f;
+  --palette-success: #a6e22e;
+  --palette-warning: #e6db74;
+
+  --color-text: #f8f8f2;
+  --color-text-strong: #f8f8f2;
+  /* The comment colour #75715e is too faint for reading, so secondary text is a lighter step of it. */
+  --color-text-muted: #a6a28c;
+  --color-bg: #272822;
+  --color-surface: #2f302a;
+  --color-surface-alt: #34352f;
+  --color-border: #414339;
+  --color-border-control: #75715e;
+  --color-nav: #1e1f1c;
+  --color-nav-hover: #34352f;
+  --color-on-dark: #f8f8f2;
+  --color-on-accent: #272822;
+  --color-hover: #3e3d32;
+  --color-selected: #49483e;
+  --color-cell-selected: #75715e;
+  --color-cell-editing: #66d9ef;
+
+  --status-planned-fg: #f8f8f2;
+  --status-planned-bg: #414339;
+  --status-running-fg: #66d9ef;
+  --status-running-bg: #2d4a52;
+  --status-complete-fg: #a6e22e;
+  --status-complete-bg: #3a4a21;
+  /* Abandoned is the failed state. */
+  --status-abandoned-fg: #f44747;
+  --status-abandoned-bg: #4d2a2a;
+
+  --action-bg: #a6e22e;
+  --action-bg-hover: #bef35a;
+  --action-fg: #272822;
+  --accent-tab: #f92672;
+  --chip-result-bg: #2a4640;
+  --chip-result-fg: #9fecdc;
+  --chip-result-border: #3f6b62;
+  --chip-script-bg: #3f3556;
+  --chip-script-fg: #d2b9ff;
+  --chip-script-border: #5f5085;
+
+  --tab-fg: #f8f8f2;
+  --tab-bg: #34352f;
+  --tab-hover-fg: #f8f8f2;
+  --tab-hover-bg: #414339;
+
+  --shadow-popover: 0 4px 14px rgb(0 0 0 / 50%);
+  --shadow-dialog: 0 12px 32px rgb(0 0 0 / 60%);
+}
