@@ -145,3 +145,42 @@
   color: var(--color-text-muted);
   font-size: var(--text-meta);
 }
+
+/* A result's classification, as text so colour is never the only signal. */
+.results__badge {
+  padding: 0 var(--space-2);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.results__badge--main {
+  color: var(--palette-accent-hover);
+  border-color: var(--palette-accent);
+  font-weight: var(--weight-medium);
+}
+
+.results__details {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-small);
+}
+
+.results__details div {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.results__details dt {
+  flex: none;
+  min-width: 7rem;
+  color: var(--color-text-muted);
+}
+
+.results__details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

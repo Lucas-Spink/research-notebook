@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   ArtefactMode,
   ArtefactRole,
+  Classification,
   Count,
   FormatVersion,
   Provenance,
@@ -56,6 +57,7 @@ const artefactBase = {
   type: z.enum(ARTEFACT_TYPES),
   source: Source,
   created: Timestamp,
+  classification: Classification.optional(),
 };
 
 // Versions ascend strictly but need not be contiguous: deleting a version

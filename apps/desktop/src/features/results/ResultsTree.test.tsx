@@ -26,6 +26,18 @@ const items = (root: HTMLElement) =>
   }));
 
 describe("ResultsTree", () => {
+  it("labels a classified result in words, whatever group it is in (ADR-0059)", () => {
+    const file = sampleArtefacts();
+    const target = file.artefacts.find((a) => a.name === "Heatmap");
+    if (target === undefined) throw new Error("sample");
+    target.classification = "main_figure";
+    const badges = [...render(file).querySelectorAll(".results__badge")].map(
+      (el) => el.textContent,
+    );
+    // Heatmap is in two groups, so it shows in both.
+    expect(badges).toEqual(["Main figure", "Main figure"]);
+  });
+
   it("renders groups, their artefacts and the Ungrouped area as an ARIA tree", () => {
     const root = render(sampleArtefacts());
     const tree = root.querySelector('[role="tree"]');

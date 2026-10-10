@@ -7,6 +7,7 @@ import {
   removeFromGroup,
   renameGroup,
   reorderItem,
+  setClassification,
   type ArtefactsFileModel,
   type NotebookEnv,
   type NotebookError,
@@ -38,7 +39,13 @@ export type GroupAction =
       index?: number;
     }
   | { kind: "removeFromGroup"; artefactId: string; groupId: string }
-  | { kind: "reorderItem"; groupId: string; artefactId: string; index: number };
+  | { kind: "reorderItem"; groupId: string; artefactId: string; index: number }
+  /** Sets a result's classification, or clears it with `null` (ADR-0059). */
+  | {
+      kind: "setClassification";
+      artefactId: string;
+      classification: string | null;
+    };
 
 /** Carries out `action` on a parsed `artefacts.yaml` with `packages/format`. Nothing is written here. */
 export function applyGroupAction(
@@ -72,6 +79,8 @@ export function applyGroupAction(
       return removeFromGroup(file, action.artefactId, action.groupId);
     case "reorderItem":
       return reorderItem(file, action.groupId, action.artefactId, action.index);
+    case "setClassification":
+      return setClassification(file, action.artefactId, action.classification);
     default:
       return assertNever(action);
   }

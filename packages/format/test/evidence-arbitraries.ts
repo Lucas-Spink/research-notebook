@@ -1,5 +1,9 @@
 import fc from "fast-check";
-import { ArtefactsFile, InboxRequest } from "../src/schema";
+import {
+  ArtefactsFile,
+  InboxRequest,
+  KNOWN_CLASSIFICATIONS,
+} from "../src/schema";
 import { sha256, timestamp, ulid } from "./arbitraries";
 import {
   fileName,
@@ -107,6 +111,10 @@ export function artefactsModel(): fc.Arbitrary<
     role: fc.constantFrom("result", "method"),
     type: fc.constantFrom(...ARTEFACT_TYPES),
     created: timestamp(),
+    classification: fc.option(
+      fc.constantFrom(...KNOWN_CLASSIFICATIONS, "custom_kind"),
+      { nil: undefined },
+    ),
     source: source(),
     isLink: fc.boolean(),
     versions: versions(),
@@ -136,6 +144,9 @@ export function artefactsModel(): fc.Arbitrary<
         type: spec.type,
         source: spec.source,
         created: spec.created,
+        ...(spec.classification === undefined
+          ? {}
+          : { classification: spec.classification }),
         ...(spec.isLink ? { link: spec.link } : { versions: spec.versions }),
         ...spec.extra,
       }));

@@ -119,10 +119,12 @@ describe("citations and the Bibliography (S6-T01)", () => {
     );
   });
 
-  it("is a plain section of the page: nothing collapses it, and every entry is always listed", () => {
+  it("is a section of the page that starts open and can be collapsed (#101)", () => {
     const { view } = mountNotebook(cited);
     const section = view.querySelector(".bibliography");
-    expect(section?.querySelector("button[aria-expanded]")).toBeNull();
+    const toggle = section?.querySelector("button[aria-expanded]");
+    if (!(toggle instanceof HTMLElement)) throw new Error("no toggle");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(section?.querySelector("h2")?.textContent).toContain("Bibliography");
     expect(entries(view)).toHaveLength(2);
     // After the whole table, in the page's flow: a sibling that follows it,
@@ -131,6 +133,33 @@ describe("citations and the Bibliography (S6-T01)", () => {
       view.querySelector(".workspace__main"),
     );
     expect(section?.closest(".pane, .wtable, .workspace__main")).toBeNull();
+
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(entries(view)).toHaveLength(0);
+    // The count stays visible while the list is hidden.
+    expect(section?.textContent).toContain("2");
+  });
+
+  it("opens a collapsed Bibliography to show the entry of a clicked citation", () => {
+    const { view } = mountNotebook(cited);
+    const toggle = view.querySelector(".bibliography button[aria-expanded]");
+    if (!(toggle instanceof HTMLElement)) throw new Error("no toggle");
+    act(() => toggle.click());
+    expect(entries(view)).toHaveLength(0);
+    const chip = view.querySelector(
+      '.wtable .citation-chip button[data-citekey="z:u:BBBB3333"]',
+    );
+    if (chip === null) throw new Error("no citation");
+    act(() => {
+      chip.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      view
+        .querySelector(".bibliography__entry--marked")
+        ?.getAttribute("data-citekey"),
+    ).toBe("z:u:BBBB3333");
   });
 
   it("scrolls the page to the entry of a clicked citation", () => {

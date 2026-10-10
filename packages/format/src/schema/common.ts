@@ -214,3 +214,21 @@ export const Provenance = z.looseObject({
 
 export const ArtefactRole = z.enum(["result", "method"]);
 export const ArtefactMode = z.enum(["copy", "link"]);
+
+/** The classifications the application offers; a file may hold others (spec 5.8 `classification`). */
+export const KNOWN_CLASSIFICATIONS = [
+  "main_figure",
+  "supplementary_figure",
+  "intermediate_output",
+  "quality_control",
+  "general",
+] as const;
+
+/**
+ * An optional label for a result, independent of its groups. Any lower-case
+ * slug is read and kept, so a later build can add values without older ones
+ * refusing the file (ADR-0059).
+ */
+export const Classification = z
+  .string()
+  .regex(/^[a-z][a-z0-9_]{0,39}$/, "expected a lower-case slug");

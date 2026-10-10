@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   bibliographyRows,
   compactEntry,
@@ -35,6 +35,9 @@ const MARK_MS = 2000;
 export function BibliographyPanel({ citekeys, target, onShowDetails }: Props) {
   const { items } = useSources();
   const [marked, setMarked] = useState<string | null>(null);
+  // View state only: it is not project data, so it is not saved.
+  const [open, setOpen] = useState(true);
+  const listId = useId();
   const list = useRef<HTMLOListElement>(null);
   const rows = useMemo(
     () => bibliographyRows(citekeys, items, m.notCached),
@@ -43,6 +46,11 @@ export function BibliographyPanel({ citekeys, target, onShowDetails }: Props) {
 
   useEffect(() => {
     if (target === null) return;
+    // A citation jumped to must be visible, so a collapsed list opens first.
+    if (!open) {
+      setOpen(true);
+      return;
+    }
     const entry = [...(list.current?.children ?? [])].find(
       (child) => child.getAttribute("data-citekey") === target.citekey,
     );
@@ -53,17 +61,26 @@ export function BibliographyPanel({ citekeys, target, onShowDetails }: Props) {
     setMarked(target.citekey);
     const timer = setTimeout(() => setMarked(null), MARK_MS);
     return () => clearTimeout(timer);
-  }, [target]);
+  }, [target, open]);
 
   return (
     <section className="bibliography" aria-labelledby="bibliography-heading">
       <h2 id="bibliography-heading" className="bibliography__heading">
-        {m.heading} <span className="bibliography__count">{rows.length}</span>
+        <button
+          type="button"
+          className="bibliography__toggle"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen(!open)}
+        >
+          <span aria-hidden="true">{open ? "▾" : "▸"}</span> {m.heading}{" "}
+          <span className="bibliography__count">{rows.length}</span>
+        </button>
       </h2>
-      {rows.length === 0 ? (
+      {!open ? null : rows.length === 0 ? (
         <p className="bibliography__empty">{m.empty}</p>
       ) : (
-        <ol ref={list} className="bibliography__list">
+        <ol ref={list} id={listId} className="bibliography__list">
           {rows.map((row) => (
             <li
               key={row.citekey}

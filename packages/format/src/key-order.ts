@@ -135,6 +135,7 @@ export const ARTEFACTS_SHAPE: Shape = {
         "type",
         "source",
         "created",
+        "classification",
         "versions",
         "link",
       ],

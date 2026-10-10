@@ -48,6 +48,7 @@ export {
   reorderItem,
   ungroupedArtefacts,
 } from "./groups";
+export { setClassification } from "./classification";
 export {
   editExperimentLiterature,
   editExperimentSection,

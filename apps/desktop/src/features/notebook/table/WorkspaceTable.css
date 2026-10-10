@@ -542,3 +542,13 @@
 .wtable__results-tools .wtable__results-close {
   float: none;
 }
+
+/* Compact overview: a section's text is cut after a few lines; the row's
+   expanded view and the cell editor still show all of it. */
+.wtable--compact .wtable__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
