@@ -155,6 +155,51 @@ export function deleteGroup(
   return checked(file, withoutGroup(file.groups, groupId));
 }
 
+/** The group that directly holds `id`: `null` at the top level, `undefined` if there is no such group. */
+function parentOf(
+  groups: Groups,
+  id: string,
+  parent: GroupModel | null = null,
+): GroupModel | null | undefined {
+  for (const group of groups) {
+    if (group.id === id) return parent;
+    const found = parentOf(group.groups, id, group);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/**
+ * Deletes only the group itself (issue #101, folder deletion): its subgroups
+ * take its place among its siblings, in order, and its artefacts become
+ * members of its parent group, or ungrouped at the top level. Nothing inside
+ * it is lost, unlike `deleteGroup`, which also removes the groups inside.
+ */
+export function dissolveGroup(
+  file: ArtefactsFileModel,
+  groupId: string,
+): Changed {
+  const node = findGroup(file.groups, groupId);
+  const parent = parentOf(file.groups, groupId);
+  if (node === undefined || parent === undefined) {
+    return fail(missingGroup(groupId));
+  }
+  const splice = (siblings: Groups): GroupModel[] =>
+    siblings.flatMap((group) => (group.id === groupId ? node.groups : [group]));
+  if (parent === null) return checked(file, splice(file.groups));
+  return checked(
+    file,
+    updateGroup(file.groups, parent.id, (group) => ({
+      ...group,
+      groups: splice(group.groups),
+      items: [
+        ...group.items,
+        ...node.items.filter((id) => !group.items.includes(id)),
+      ],
+    })),
+  );
+}
+
 /** Finds a group that must hold, or must not hold, `artefactId`. */
 function memberGroup(
   file: ArtefactsFileModel,

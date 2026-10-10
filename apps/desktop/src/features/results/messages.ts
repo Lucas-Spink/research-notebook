@@ -93,7 +93,10 @@ export const resultsMessages = {
         : ` and the ${plural(summary.groups, "group", "groups")} inside it`;
     return `Delete the group “${name}”${inside}? ${plural(summary.memberships, "membership is", "memberships are")} removed. No artefact or file is deleted.`;
   },
-  deleteGroup: "Delete group",
+  deleteGroup: "Delete group and everything inside",
+  dissolveGroup: "Delete group only, keep its contents",
+  dissolveNote:
+    "Its subgroups and artefacts move up to the group it was in, or to Ungrouped.",
 };
 
 /** Refusals from `packages/format`, by the field it named. */

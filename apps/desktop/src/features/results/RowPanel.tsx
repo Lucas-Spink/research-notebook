@@ -214,6 +214,16 @@ function PanelBody({
           >
             {resultsMessages.deleteGroup}
           </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() =>
+              void tree.run({ kind: "dissolveGroup", groupId: panel.row.id })
+            }
+          >
+            {resultsMessages.dissolveGroup}
+          </button>
+          <p className="wtable__muted">{resultsMessages.dissolveNote}</p>
         </>
       );
     default:

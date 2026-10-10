@@ -40,6 +40,7 @@ export {
   addToGroup,
   createGroup,
   deleteGroup,
+  dissolveGroup,
   groupLocationsOf,
   moveGroup,
   moveToGroup,

@@ -67,4 +67,18 @@ describe("applyGroupAction", () => {
     );
     expect(renamed.ok && renamed.value.groups).toEqual(file.groups);
   });
+
+  it("deletes a group only and keeps its artefacts and subgroups (#101)", () => {
+    const file = sampleArtefacts();
+    const result = applyGroupAction(
+      file,
+      { kind: "dissolveGroup", groupId: ids.g(1) },
+      env,
+    );
+    expect(result.ok && result.value.groups.map((g) => g.id)).toEqual([
+      ids.g(3),
+      ids.g(2),
+    ]);
+    expect(result.ok && result.value.artefacts).toEqual(file.artefacts);
+  });
 });

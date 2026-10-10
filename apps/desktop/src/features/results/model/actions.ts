@@ -2,6 +2,7 @@ import {
   addToGroup,
   createGroup,
   deleteGroup,
+  dissolveGroup,
   moveGroup,
   moveToGroup,
   removeFromGroup,
@@ -30,6 +31,8 @@ export type GroupAction =
       index?: number;
     }
   | { kind: "deleteGroup"; groupId: string }
+  /** Deletes the group only: its subgroups and artefacts move up to its parent. */
+  | { kind: "dissolveGroup"; groupId: string }
   | { kind: "addToGroup"; artefactId: string; groupId: string; index?: number }
   | {
       kind: "moveToGroup";
@@ -73,6 +76,8 @@ export function applyGroupAction(
       return moveGroup(file, action.groupId, action.parent, action.index);
     case "deleteGroup":
       return deleteGroup(file, action.groupId);
+    case "dissolveGroup":
+      return dissolveGroup(file, action.groupId);
     case "addToGroup":
       return addToGroup(file, action.artefactId, action.groupId, action.index);
     case "moveToGroup":
