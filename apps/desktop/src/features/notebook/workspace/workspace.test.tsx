@@ -80,6 +80,19 @@ const groupsOf = (view: HTMLElement) =>
   );
 
 describe("the workspace (S6-T01)", () => {
+  it("switches the table between Detailed comparison and Compact overview (#101)", () => {
+    const { view } = mountNotebook(state);
+    const table = view.querySelector(".wtable");
+    click(ribbonTab(view, "View"));
+    expect(table?.classList.contains("wtable--compact")).toBe(false);
+    const toggle = ribbonButton(view, "Detailed comparison");
+    act(() => toggle.click());
+    expect(table?.classList.contains("wtable--compact")).toBe(true);
+    expect(
+      ribbonButton(view, "Compact overview").getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
   it("names the open project beside the application title (#101)", () => {
     const { view } = mountNotebook(state);
     const name = view.querySelector(".ribbon__project");

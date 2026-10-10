@@ -199,6 +199,8 @@ function NotebookViewBody({
   const disabled = busy || !writable;
   const [filter, setFilter] = useState<FilterState>(NO_FILTER);
   const [sort, setSort] = useState<SortState>(null);
+  // Compact overview clamps long cell text; the default shows it all (S6-T01). View state only.
+  const [compact, setCompact] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   /** The row picked on purpose (its title, header or a search result): the only one highlighted. Choosing a cell selects its row for the ribbon's actions without highlighting it. */
   const [pickedKey, setPickedKey] = useState<string | null>(null);
@@ -696,6 +698,8 @@ function NotebookViewBody({
           onFilter={setFilter}
           sort={sort}
           onSort={setSort}
+          compact={compact}
+          onCompact={setCompact}
           layout={layout}
           onHide={(key, hidden) =>
             actions.changeSettings({ hidden: { [key]: hidden } })
@@ -781,6 +785,7 @@ function NotebookViewBody({
                 <p className="workspace__empty">{messages.empty}</p>
               ) : (
                 <WorkspaceTable
+                  compact={compact}
                   rows={rows}
                   layout={layout}
                   selectedKey={selectedKey}

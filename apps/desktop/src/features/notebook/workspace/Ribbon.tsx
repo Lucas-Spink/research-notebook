@@ -37,6 +37,9 @@ type Props = {
   filter: FilterState;
   onFilter: (filter: FilterState) => void;
   sort: SortState;
+  /** Whether the table clamps long text (Compact overview) or shows it all (Detailed comparison). */
+  compact: boolean;
+  onCompact: (compact: boolean) => void;
   onSort: (sort: SortState) => void;
   layout: readonly ColumnLayout[];
   onHide: (key: ColumnKey, hidden: boolean) => void;
@@ -326,6 +329,14 @@ export function Ribbon(props: Props) {
               </RibbonMenu>
               {filters}
               {sorting}
+              <button
+                type="button"
+                className="ribbon__button"
+                aria-pressed={props.compact}
+                onClick={() => props.onCompact(!props.compact)}
+              >
+                {props.compact ? m.compactOverview : m.detailedComparison}
+              </button>
             </RibbonGroup>
             <RibbonGroup label={m.groups.rows}>{rows}</RibbonGroup>
           </>

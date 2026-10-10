@@ -87,6 +87,8 @@ const definitions = columnHelper.columns([
 const NO_DATA: ExperimentRow[] = [];
 
 type Props = {
+  /** Compact overview: long cell text is clamped to a few lines. */
+  compact?: boolean;
   rows: readonly TableRow[];
   /** The columns from `project.yaml`, with changes not saved yet applied. */
   layout: readonly ColumnLayout[];
@@ -155,6 +157,7 @@ function editedRow(
  * row not yet mounted is reached.
  */
 export function WorkspaceTable({
+  compact,
   rows,
   layout,
   selectedKey,
@@ -286,7 +289,7 @@ export function WorkspaceTable({
   return (
     <div
       ref={scrollRef}
-      className="wtable"
+      className={`wtable${compact === true ? " wtable--compact" : ""}`}
       role="region"
       aria-label={tableMessages.tableLabel}
       tabIndex={0}

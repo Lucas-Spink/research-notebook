@@ -76,6 +76,8 @@ export const ribbonMessages = {
   filters: "Filters",
   sorting: "Sorting",
   columns: "Columns",
+  compactOverview: "Compact overview",
+  detailedComparison: "Detailed comparison",
   expandAll: "Expand all",
   collapseAll: "Collapse all",
   search: "Search",
