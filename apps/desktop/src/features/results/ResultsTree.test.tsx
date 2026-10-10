@@ -126,7 +126,7 @@ describe("ResultsTree", () => {
     const root = render(sampleArtefacts());
     expect(root.querySelector("form label")?.textContent).toBe("New folder");
     const draggable = root.querySelectorAll(
-      '[role="treeitem"][draggable="true"]',
+      '[role="treeitem"][data-draggable="true"]',
     );
     expect(draggable).toHaveLength(8);
   });
@@ -135,7 +135,7 @@ describe("ResultsTree", () => {
     const root = render(sampleArtefacts(), true);
     expect(root.querySelector("form")).toBeNull();
     expect(root.textContent).toContain("This project is read-only");
-    expect(root.querySelectorAll('[draggable="true"]')).toHaveLength(0);
+    expect(root.querySelectorAll('[data-draggable="true"]')).toHaveLength(0);
     expect(root.querySelector(`[role="tree"]`)).not.toBeNull();
   });
 });

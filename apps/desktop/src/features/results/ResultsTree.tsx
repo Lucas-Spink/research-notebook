@@ -1,5 +1,6 @@
 import type { ArtefactsFileModel } from "@research-notebook/format";
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { resultsMessages } from "./messages";
 import type { GroupAction } from "./model/actions";
 import { positions, treeTotals } from "./model/tree";
@@ -174,6 +175,17 @@ export function ResultsTree({
       <p className="results__totals">
         {resultsMessages.totals(totals.results, totals.groups)}
       </p>
+      {tree.dragState !== null &&
+        createPortal(
+          <div
+            className={`results__ghost${tree.dragState.valid ? "" : " results__ghost--no-drop"}`}
+            style={{ left: tree.dragState.x + 14, top: tree.dragState.y + 14 }}
+          >
+            {tree.dragState.copy ? "+ " : ""}
+            {tree.dragState.label}
+          </div>,
+          document.body,
+        )}
       {tree.panel !== null && (
         <RowPanel
           file={file}

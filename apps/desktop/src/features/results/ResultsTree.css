@@ -362,3 +362,39 @@
   padding: 0 var(--space-2);
   font-size: var(--text-meta);
 }
+
+/* Rows are dragged by pointer, so a press on one must not start a text selection. */
+.results__row {
+  user-select: none;
+}
+
+.results__row--no-drop {
+  cursor: not-allowed;
+}
+
+.results__ghost {
+  position: fixed;
+  z-index: 70;
+  max-width: 220px;
+  padding: 2px 8px;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  box-shadow: var(--shadow-popover);
+}
+
+.results__ghost--no-drop {
+  border-color: var(--color-border-control);
+  opacity: 0.7;
+}
+
+body.results-dragging,
+body.results-dragging * {
+  cursor: grabbing !important;
+}
