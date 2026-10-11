@@ -171,6 +171,23 @@ describe("applyEdits for notes and lines", () => {
     expect(noteNodes(file)[0]?.text).toBe("hello");
   });
 
+  it("joins two cards at the sides they were drawn from", () => {
+    const joined = applyEdits(base(), [
+      {
+        kind: "connect",
+        id: "01JAXD00000000000000000002",
+        from: "01JAXN00000000000000000001",
+        to: "01JAXN00000000000000000002",
+        fromHandle: "right",
+        toHandle: "left",
+      },
+    ]);
+    expect(joined.edges[0]).toMatchObject({
+      source_handle: "right",
+      target_handle: "left",
+    });
+  });
+
   it("joins two cards, and removes the line again", () => {
     const joined = applyEdits(base(), [
       {

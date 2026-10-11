@@ -67,10 +67,17 @@ export const CanvasNode = z.discriminatedUnion("type", [
   RegionNode,
 ]);
 
+/** The four sides of a card a line can be drawn from or to. */
+export const HANDLE_SIDES = ["top", "right", "bottom", "left"] as const;
+
 export const CanvasEdge = z.looseObject({
   id: Ulid,
   source: Ulid,
   target: Ulid,
+  // Which side of each card the line was drawn at, so it is drawn there again;
+  // left out, as in the first lines drawn, the application chooses.
+  source_handle: z.enum(HANDLE_SIDES).optional(),
+  target_handle: z.enum(HANDLE_SIDES).optional(),
   label: z.enum(EDGE_LABELS).optional(),
 });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { newCanvasFile } from "./canvasFiles";
-import { toFlowNodes } from "./flowNodes";
+import { toFlowEdges, toFlowNodes } from "./flowNodes";
 import { pinResults } from "./nodes";
 import type { ResultInfo } from "./results";
 
@@ -93,5 +93,89 @@ describe("toFlowNodes", () => {
     expect(nodes.map((n) => n.type)).toEqual(["artefact", "note", "region"]);
     expect(nodes[1]?.data).toMatchObject({ text: "Why flat?" });
     expect(nodes[2]?.data).toMatchObject({ label: "Dose" });
+  });
+});
+
+describe("toFlowEdges", () => {
+  it("draws a line from and to the sides it was drawn at", () => {
+    const edges = toFlowEdges({
+      ...file,
+      edges: [
+        {
+          id: "01JAXD00000000000000000001",
+          source: "a",
+          target: "b",
+          source_handle: "left",
+          target_handle: "bottom",
+        },
+      ],
+    });
+    expect(edges).toEqual([
+      {
+        id: "01JAXD00000000000000000001",
+        source: "a",
+        target: "b",
+        sourceHandle: "left",
+        targetHandle: "bottom",
+      },
+    ]);
+  });
+
+  it("draws a line that has no sides between the sides of the two cards that face each other", () => {
+    const at = (id: string, x: number, y: number) => ({
+      id,
+      type: "note" as const,
+      text: "",
+      position: { x, y },
+      size: { width: 200, height: 100 },
+    });
+    const withEdge = (b: { x: number; y: number }) =>
+      toFlowEdges({
+        ...file,
+        nodes: [at("a", 0, 0), at("b", b.x, b.y)],
+        edges: [{ id: "01JAXD00000000000000000001", source: "a", target: "b" }],
+      })[0];
+    expect(withEdge({ x: 600, y: 10 })).toMatchObject({
+      sourceHandle: "right",
+      targetHandle: "left",
+    });
+    expect(withEdge({ x: -600, y: 10 })).toMatchObject({
+      sourceHandle: "left",
+      targetHandle: "right",
+    });
+    expect(withEdge({ x: 10, y: 600 })).toMatchObject({
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    });
+    expect(withEdge({ x: 10, y: -600 })).toMatchObject({
+      sourceHandle: "top",
+      targetHandle: "bottom",
+    });
+  });
+
+  it("keeps the side that was drawn when only one end has one", () => {
+    const at = (id: string, x: number) => ({
+      id,
+      type: "note" as const,
+      text: "",
+      position: { x, y: 0 },
+      size: { width: 200, height: 100 },
+    });
+    const [edge] = toFlowEdges({
+      ...file,
+      nodes: [at("a", 0), at("b", 600)],
+      edges: [
+        {
+          id: "01JAXD00000000000000000001",
+          source: "a",
+          target: "b",
+          source_handle: "bottom",
+        },
+      ],
+    });
+    expect(edge).toMatchObject({
+      sourceHandle: "bottom",
+      targetHandle: "left",
+    });
   });
 });

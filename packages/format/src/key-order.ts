@@ -192,7 +192,16 @@ export const CANVAS_SHAPE: Shape = {
       ],
       children: { position: POSITION, size: SIZE },
     },
-    edges: { keys: ["id", "source", "target", "label"] },
+    edges: {
+      keys: [
+        "id",
+        "source",
+        "target",
+        "source_handle",
+        "target_handle",
+        "label",
+      ],
+    },
     viewport: { keys: ["x", "y", "zoom"] },
   },
 };

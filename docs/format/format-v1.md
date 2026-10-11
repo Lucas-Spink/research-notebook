@@ -432,6 +432,8 @@ Schema: `canvas.schema.json`. ADR-0064, ADR-0065. One JSON file per canvas at `c
 | `edges[].id`                | `ulid`              | Yes        |                                                                                       |
 | `edges[].source`            | `ulid`              | Yes        | A node id in this file.                                                               |
 | `edges[].target`            | `ulid`              | Yes        | A node id in this file.                                                               |
+| `edges[].source_handle`     | enum                | No         | `top`, `right`, `bottom` or `left`: the side of the source card the line was drawn from. Left out, the application chooses. |
+| `edges[].target_handle`     | enum                | No         | The side of the target card the line was drawn to; as `source_handle`.                |
 | `edges[].label`             | enum                | No         | `supports`, `contradicts`, `derived-from`, `related-to` or `requires-investigation`.  |
 | `viewport`                  | object              | Yes        | Last pan and zoom.                                                                    |
 | `viewport.x`, `viewport.y`  | number              | Yes        | Finite.                                                                               |

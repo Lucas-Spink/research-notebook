@@ -34,7 +34,7 @@ import {
   toFlowNodes,
   type CanvasFlowNode,
 } from "./model/flowNodes";
-import { connectNodes } from "./model/notes";
+import { connectNodes, type Side } from "./model/notes";
 import type { CardServices } from "./model/results";
 import { NoteCard, RegionCard } from "./OtherCards";
 import type { SurfaceBridge } from "./useCanvases";
@@ -51,6 +51,16 @@ const NODE_TYPES = {
   region: RegionCard,
 };
 const DELETE_KEYS = ["Backspace", "Delete"];
+
+/** The side of a card a handle is on: its id, if it is one of the four. */
+function sideOf(handle: string | null | undefined): Side | undefined {
+  return handle === "top" ||
+    handle === "right" ||
+    handle === "bottom" ||
+    handle === "left"
+    ? handle
+    : undefined;
+}
 
 /** Zoom as the whole percentage shown to the person. */
 function percent(zoom: number): number {
@@ -191,6 +201,8 @@ function Flow({
           id: newId(),
           from: connection.source,
           to: connection.target,
+          fromHandle: sideOf(connection.sourceHandle),
+          toHandle: sideOf(connection.targetHandle),
         },
       ]),
     [onEdits, newId],

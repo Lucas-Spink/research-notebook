@@ -1,7 +1,7 @@
 import type { CanvasFileModel } from "@research-notebook/format";
 import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { assertNever } from "../../../shared/assertNever";
-import { connectNodes, removeEdges, setNoteText } from "./notes";
+import { connectNodes, removeEdges, setNoteText, type Side } from "./notes";
 import {
   moveNode,
   removeNodes,
@@ -18,7 +18,15 @@ export type CanvasEdit =
   /** A note's text, exactly as typed. */
   | { kind: "noteText"; id: string; text: string }
   /** A line drawn between two cards; `id` is the new line's, made by the caller so this stays pure. */
-  | { kind: "connect"; id: string; from: string; to: string }
+  | {
+      kind: "connect";
+      id: string;
+      from: string;
+      to: string;
+      /** Which side of each card the line was drawn at. */
+      fromHandle?: Side | undefined;
+      toHandle?: Side | undefined;
+    }
   | { kind: "removeEdges"; ids: string[] };
 
 /**
@@ -88,7 +96,10 @@ export function applyEdits(
       case "noteText":
         return setNoteText(current, edit.id, edit.text);
       case "connect":
-        return connectNodes(current, edit.from, edit.to, () => edit.id);
+        return connectNodes(current, edit.from, edit.to, () => edit.id, {
+          from: edit.fromHandle,
+          to: edit.toHandle,
+        });
       case "removeEdges":
         return removeEdges(current, edit.ids);
       default:

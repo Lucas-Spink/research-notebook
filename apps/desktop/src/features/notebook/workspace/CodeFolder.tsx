@@ -2,12 +2,13 @@ import type {
   ArtefactModel,
   ArtefactsFileModel,
 } from "@research-notebook/format";
+import { useId, useState } from "react";
 import { commands, type FolderHandle } from "../../../ipc/bindings";
 import { FileIcon, GroupFolderIcon } from "../../../shared/FileIcons";
 import type { TableEditing } from "../table/EditableSectionCell";
 import type { EvidenceProject } from "../table/model/addEvidence";
-import { BinButton } from "../table/BinButton";
 import { useAddFiles } from "../table/useAddFiles";
+import { messages } from "../messages";
 import { resultsBrowserMessages as m } from "./messages";
 
 type Props = {
@@ -38,7 +39,9 @@ export function scriptsOf(file: ArtefactsFileModel): ArtefactModel[] {
  * linked method artefact, so text can refer to it with a chip, as it can to
  * a figure, and its preview opens in the pane. Method artefacts are never
  * members of result groups (spec 5.8), so this folder is fixed and is not
- * organised like them.
+ * organised like them. It folds away to its heading, and a script is removed
+ * from its context menu (right-click, or Delete from the keyboard) with a
+ * confirmation, as a figure is, so no button takes room beside each one.
  */
 export function CodeFolder({
   file,
@@ -52,14 +55,27 @@ export function CodeFolder({
   tabStops = true,
 }: Props) {
   const scripts = scriptsOf(file);
+  const listId = useId();
+  const [open, setOpen] = useState(true);
+  // The script being asked about, if any.
+  const [asking, setAsking] = useState<string | null>(null);
   return (
     <section className="code-folder" aria-label={m.codeFolder}>
       <header className="code-folder__head">
-        <span className="results__icon">
-          <GroupFolderIcon open={scripts.length > 0} />
-        </span>
-        <strong>{m.codeFolder}</strong>
-        <span className="results__count">{m.codeCount(scripts.length)}</span>
+        <button
+          type="button"
+          className="code-folder__toggle"
+          aria-expanded={open}
+          aria-controls={listId}
+          tabIndex={tabStops ? undefined : -1}
+          onClick={() => setOpen(!open)}
+        >
+          <span className="results__icon">
+            <GroupFolderIcon open={open && scripts.length > 0} />
+          </span>
+          <strong>{m.codeFolder}</strong>
+          <span className="results__count">{m.codeCount(scripts.length)}</span>
+        </button>
         {!readOnly &&
           editing.evidence !== null &&
           editing.projectId !== null && (
@@ -74,40 +90,79 @@ export function CodeFolder({
             />
           )}
       </header>
-      {scripts.length === 0 ? (
-        <p className="wtable__muted">{m.codeEmpty}</p>
-      ) : (
-        <ul className="code-folder__list">
-          {scripts.map((script) => (
-            <li key={script.id}>
-              <button
-                type="button"
-                className="code-folder__script"
-                tabIndex={tabStops ? undefined : -1}
-                aria-label={m.scriptOpen(script.name)}
-                onClick={() => onOpen(script.id)}
+      <div id={listId} hidden={!open}>
+        {scripts.length === 0 ? (
+          <p className="wtable__muted">{m.codeEmpty}</p>
+        ) : (
+          <ul className="code-folder__list">
+            {scripts.map((script) => (
+              <li
+                key={script.id}
+                onContextMenu={(event) => {
+                  if (readOnly) return;
+                  event.preventDefault();
+                  setAsking(script.id);
+                }}
               >
-                <span className="results__icon">
-                  <FileIcon name={script.name} type={script.type} />
-                </span>
-                <span className="code-folder__name">{script.name}</span>
-                <span className="code-folder__path">{script.source.path}</span>
-                {script.mode === "link" && (
-                  <span className="code-folder__tag">{m.linked}</span>
+                <button
+                  type="button"
+                  className="code-folder__script"
+                  tabIndex={tabStops ? undefined : -1}
+                  aria-label={m.scriptOpen(script.name)}
+                  onClick={() => onOpen(script.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Delete" && !readOnly) {
+                      event.preventDefault();
+                      setAsking(script.id);
+                    }
+                  }}
+                >
+                  <span className="results__icon">
+                    <FileIcon name={script.name} type={script.type} />
+                  </span>
+                  <span className="code-folder__name">{script.name}</span>
+                  <span className="code-folder__path">
+                    {script.source.path}
+                  </span>
+                  {script.mode === "link" && (
+                    <span className="code-folder__tag">{m.linked}</span>
+                  )}
+                </button>
+                {!readOnly && asking === script.id && (
+                  <span
+                    role="group"
+                    className="wtable__bin-ask"
+                    aria-label={messages.moveToBinLabel(script.name)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.stopPropagation();
+                        setAsking(null);
+                      }
+                    }}
+                  >
+                    <span>
+                      {m.removeScriptWarning} {removeWarning(script.id)}
+                    </span>{" "}
+                    <button
+                      type="button"
+                      autoFocus
+                      onClick={() => {
+                        setAsking(null);
+                        void onRemove(script.id);
+                      }}
+                    >
+                      {messages.confirmDelete}
+                    </button>{" "}
+                    <button type="button" onClick={() => setAsking(null)}>
+                      {messages.cancel}
+                    </button>
+                  </span>
                 )}
-              </button>
-              {!readOnly && (
-                <BinButton
-                  subject={script.name}
-                  warning={`${m.removeScriptWarning} ${removeWarning(script.id)}`}
-                  tabStop={tabStops}
-                  onConfirm={() => void onRemove(script.id)}
-                />
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

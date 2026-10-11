@@ -279,6 +279,33 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
     ).toBe(true);
   });
 
+  it("folds away to its heading and opens again, keeping the count either way", () => {
+    const { view } = mount(withScript());
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
+    const toggle = code?.querySelector<HTMLElement>(".code-folder__toggle");
+    const list = () =>
+      code?.querySelector<HTMLElement>(
+        `[id="${toggle?.getAttribute("aria-controls") ?? ""}"]`,
+      );
+    expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+    expect(list()?.hidden).toBe(false);
+    act(() => toggle?.click());
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+    expect(list()?.hidden).toBe(true);
+    expect(toggle?.textContent).toContain("1 script");
+    act(() => toggle?.click());
+    expect(list()?.hidden).toBe(false);
+  });
+
+  it("has no bin button taking room beside each script", () => {
+    const { view } = mount(withScript());
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
+    expect(code?.querySelector(".wtable__bin")).toBeNull();
+    expect(
+      code?.querySelector('button[aria-label="Move analysis.py to the bin"]'),
+    ).toBeNull();
+  });
+
   it("moves a linked script to the bin from the Code folder, keeping only its record", async () => {
     const binned = vi.spyOn(commands, "binArtefactFiles").mockResolvedValue({
       status: "ok",
@@ -286,11 +313,11 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
     });
     const { view, edits } = mount(withScript());
     const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
-    const open = code?.querySelector(
-      'button[aria-label="Move analysis.py to the bin"]',
-    );
+    const row = code?.querySelector("li");
     act(() => {
-      open?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      row?.dispatchEvent(
+        new MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+      );
     });
     expect(code?.textContent).toContain("not touched");
     const confirm = [...(code?.querySelectorAll("button") ?? [])].find(
@@ -313,9 +340,49 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
     binned.mockRestore();
   });
 
+  it("asks before removing, and Cancel leaves the script where it is", () => {
+    const { view, edits } = mount(withScript());
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
+    act(() => {
+      code
+        ?.querySelector("li")
+        ?.dispatchEvent(
+          new MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+        );
+    });
+    const cancel = [...(code?.querySelectorAll("button") ?? [])].find(
+      (b) => b.textContent === "Cancel",
+    );
+    act(() => cancel?.click());
+    expect(code?.textContent).not.toContain("not touched");
+    expect(code?.textContent).toContain("analysis.py");
+    expect(edits).toHaveLength(0);
+  });
+
+  it("asks from the keyboard too, with Delete on a script", () => {
+    const { view } = mount(withScript());
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
+    act(() => {
+      code
+        ?.querySelector(".code-folder__script")
+        ?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Delete", bubbles: true }),
+        );
+    });
+    expect(code?.textContent).toContain("not touched");
+  });
+
   it("offers no way to remove a script in a read-only project", () => {
     const { view } = mount(withScript(), { writable: false });
     const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
     expect(code?.querySelector(".wtable__bin")).toBeNull();
+    act(() => {
+      code
+        ?.querySelector("li")
+        ?.dispatchEvent(
+          new MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+        );
+    });
+    expect(code?.textContent).not.toContain("not touched");
   });
 });

@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import type { CanvasFileModel } from "../src/schema";
+import { HANDLE_SIDES, type CanvasFileModel } from "../src/schema";
 import { text } from "./file-arbitraries";
 import { ulid } from "./arbitraries";
 
@@ -65,11 +65,16 @@ export function canvasModel(): fc.Arbitrary<CanvasFileModel> {
           nodeIds.length === 0
             ? fc.constant([])
             : fc.uniqueArray(
-                fc.record({
-                  id: ulid(),
-                  source: fc.constantFrom(...nodeIds),
-                  target: fc.constantFrom(...nodeIds),
-                }),
+                fc.record(
+                  {
+                    id: ulid(),
+                    source: fc.constantFrom(...nodeIds),
+                    target: fc.constantFrom(...nodeIds),
+                    source_handle: fc.constantFrom(...HANDLE_SIDES),
+                    target_handle: fc.constantFrom(...HANDLE_SIDES),
+                  },
+                  { requiredKeys: ["id", "source", "target"] },
+                ),
                 { maxLength: 6, selector: (edge) => edge.id },
               ),
         viewport: fc.record({
