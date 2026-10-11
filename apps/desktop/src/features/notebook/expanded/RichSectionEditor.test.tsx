@@ -9,7 +9,7 @@ const ULID = "01JB0000000000000000000001";
 
 function artefactsFile(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: ULID,
@@ -42,7 +42,7 @@ const ULID2 = "01JB0000000000000000000002";
  * `TWO_REFERENCES` below are pinned to (FR-EDT-07). */
 function artefactsFileOutdated(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: ULID,

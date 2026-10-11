@@ -12,6 +12,7 @@ fn the_files_the_format_layer_parses_are_data_files() {
         "questions/Q-01.md",
         "experiments/EXP-042/experiment.md",
         "experiments/EXP-042/artefacts.yaml",
+        "canvases/01JAXC0000000000000000CNV1.canvas.json",
     ] {
         assert!(is_notebook_data_path(path), "{path}");
     }
@@ -41,6 +42,13 @@ fn nothing_else_is() {
         "experiments/EXP-042/.experiment.md.1.1.tmp",
         ".project.yaml.1.1.tmp",
         "project.yaml.tmp",
+        "canvases",
+        "canvases/notes.json",
+        "canvases/x.canvas.json.bak",
+        "canvases/.x.canvas.json",
+        "canvases/.x.canvas.json.1.1.tmp",
+        "canvases/sub/x.canvas.json",
+        "canvases/.canvas.json.1.1.tmp",
     ] {
         assert!(!is_notebook_data_path(path), "{path}");
     }
@@ -61,7 +69,12 @@ fn a_path_that_is_not_relative_is_not_a_data_file() {
 
 #[test]
 fn folders_that_hold_data_files_are_data_folders() {
-    for path in ["questions", "experiments", "experiments/EXP-042"] {
+    for path in [
+        "questions",
+        "experiments",
+        "experiments/EXP-042",
+        "canvases",
+    ] {
         assert!(is_notebook_data_folder(path), "{path}");
     }
 }
@@ -78,6 +91,7 @@ fn other_folders_are_not() {
         "experiments/EXP-042/evidence",
         "experiments/EXP-042/methods",
         "questions/sub",
+        "canvases/sub",
         "project.yaml",
     ] {
         assert!(!is_notebook_data_folder(path), "{path}");

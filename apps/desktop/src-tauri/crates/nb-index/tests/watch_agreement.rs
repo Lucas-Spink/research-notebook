@@ -16,7 +16,7 @@ use common::TestProject;
 use nb_fs::watch::is_notebook_data_path;
 use nb_index::ScanMode;
 
-const FILES: [&str; 26] = [
+const FILES: [&str; 33] = [
     "project.yaml",
     "bibliography.json",
     "questions/Q-01.md",
@@ -43,6 +43,13 @@ const FILES: [&str; 26] = [
     ".lock",
     "README.md",
     "styles/nature.csl",
+    "canvases/01JAXC0000000000000000CNV1.canvas.json",
+    "canvases/01JAXC0000000000000000CNV2.canvas.json",
+    "canvases/notes.json",
+    "canvases/.hidden.canvas.json",
+    "canvases/.01JAXC.canvas.json.1.1.tmp",
+    "canvases/sub/x.canvas.json",
+    "canvases/x.canvas.json.bak",
 ];
 
 #[test]

@@ -54,7 +54,7 @@ const GROUP_ID = "01JC000000000000000000000A";
 
 function sample(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: COPY_ID,

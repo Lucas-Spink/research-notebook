@@ -21,7 +21,7 @@ const LINK_ID = "01JB0000000000000000000002";
 
 function linked(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: LINK_ID,

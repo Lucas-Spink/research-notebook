@@ -1,4 +1,8 @@
-import { parseProject } from "@research-notebook/format";
+import {
+  FORMAT_VERSION,
+  parseProject,
+  projectFormatVersion,
+} from "@research-notebook/format";
 
 /** What the application needs from `project.yaml` to list and open a project. */
 export type ProjectSummary = {
@@ -11,26 +15,30 @@ export type ProjectSummary = {
 };
 
 /** Why `project.yaml` could not be used. Both are reported, never repaired. */
-export type OpenFailure = "newerFormat" | "invalidProject";
+export type OpenFailure = "newerFormat" | "olderFormat" | "invalidProject";
 
 export type SummaryResult =
   { ok: true; value: ProjectSummary } | { ok: false; error: OpenFailure };
 
 /**
- * Reads the text of `project.yaml` with `packages/format`, the only parser.
- * A format newer than this build is told apart from a file that is simply
- * invalid, because the remedy differs (spec 5.13).
+ * Why a `project.yaml` the schema rejected was rejected. A format newer than
+ * this build and one older than it are told apart from a file that is simply
+ * invalid, because the remedy differs: update the application, migrate the
+ * project, or correct the file (spec 5.13, ADR-0064).
  */
+function failureFor(text: string, kind: string): OpenFailure {
+  if (kind === "unsupported-version") return "newerFormat";
+  const version = projectFormatVersion(text);
+  return version !== null && version < FORMAT_VERSION
+    ? "olderFormat"
+    : "invalidProject";
+}
+
+/** Reads the text of `project.yaml` with `packages/format`, the only parser. */
 export function summariseProject(text: string): SummaryResult {
   const parsed = parseProject(text);
   if (!parsed.ok) {
-    return {
-      ok: false,
-      error:
-        parsed.error.kind === "unsupported-version"
-          ? "newerFormat"
-          : "invalidProject",
-    };
+    return { ok: false, error: failureFor(text, parsed.error.kind) };
   }
   const project = parsed.value;
   return {

@@ -27,7 +27,7 @@ function canonicalise<T>(
 describe("project.yaml written by hand", () => {
   const handWritten = `# my project
 locale: 'en-GB'
-format_version: 1
+format_version: 2
 name: 'Batch effects in treated organoids'
 id: 01JAX9Q2B7N4M8T6V3W5Y1Z0KC
 created: 2026-09-01T09:12:44Z
@@ -66,8 +66,8 @@ external_roots: []
   it("keeps unknown keys after the known keys of the same object, in their original order", () => {
     const text = readGolden("project.yaml")
       .replace(
-        "format_version: 1\n",
-        "format_version: 1\nx_second: 2\nx_first: 1\n",
+        "format_version: 2\n",
+        "format_version: 2\nx_second: 2\nx_first: 1\n",
       )
       .replace(
         "  evidence_in_git: false\n",

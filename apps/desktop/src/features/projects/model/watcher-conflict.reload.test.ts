@@ -89,8 +89,8 @@ describe("reloading project.yaml after an outside edit", () => {
   it("turns a writable project read-only when the file is now from a newer version", async () => {
     const { api, names } = fakeApi();
     const text = projectYaml().replace(
-      "format_version: 1",
       "format_version: 2",
+      "format_version: 3",
     );
     const result = await reloadProjectFlow(api, opened(writable), file(text));
     expect(result.mode).toEqual(readOnly({ kind: "newerFormat" }));
@@ -103,11 +103,35 @@ describe("reloading project.yaml after an outside edit", () => {
     const result = await reloadProjectFlow(
       api,
       opened(writable),
-      file("format_version: 1\nnot: a project\n"),
+      file("format_version: 2\nnot: a project\n"),
     );
     expect(result.mode).toEqual(readOnly({ kind: "invalidProject" }));
     expect(result.summary).toBeNull();
     expect(names()).toEqual(["releaseProjectLock"]);
+  });
+
+  it("shows an older project as one to update, read-only and without a lock", async () => {
+    const { api, names } = fakeApi();
+    const text = projectYaml().replace(
+      "format_version: 2",
+      "format_version: 1",
+    );
+    const result = await reloadProjectFlow(api, opened(writable), file(text));
+    expect(result.mode).toEqual(readOnly({ kind: "olderFormat" }));
+    expect(result.summary).toBeNull();
+    expect(names()).toEqual(["releaseProjectLock"]);
+  });
+
+  it("asks for the lock again once an older project has been updated", async () => {
+    const { api, names } = fakeApi();
+    const result = await reloadProjectFlow(
+      api,
+      { ...opened(readOnly({ kind: "olderFormat" })), summary: null },
+      file(projectYaml()),
+    );
+    expect(result.mode).toEqual(writable);
+    expect(result.summary?.name).toBe("Batch effects");
+    expect(names()).toEqual(["acquireProjectLock"]);
   });
 
   it("treats a removed file as an invalid project", async () => {
@@ -263,7 +287,7 @@ describe("starting to watch project.yaml", () => {
     const { api } = fakeApi({
       readNotebookFile: ok({
         kind: "text",
-        text: projectYaml().replace("format_version: 1", "format_version: 2"),
+        text: projectYaml().replace("format_version: 2", "format_version: 3"),
         sha256: "h8",
       }),
     });

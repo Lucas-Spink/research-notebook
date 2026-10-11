@@ -68,8 +68,8 @@ describe("malformed fixture: each file fails to parse as format-v1.md predicts",
   });
 });
 
-describe("future-format fixture: a newer format opens the whole project read-only (S2-G10)", () => {
-  const fixture = openFixture("future-format");
+describe("future-format-v3 fixture: a newer format opens the whole project read-only (S2-G10)", () => {
+  const fixture = openFixture("future-format-v3");
 
   it("is reported as unsupported-version, naming the version found, before anything else is checked", () => {
     const path = "_notebook/project.yaml";
@@ -79,7 +79,7 @@ describe("future-format fixture: a newer format opens the whole project read-onl
     if (!result.ok) {
       expect(result.error).toMatchObject({
         kind: "unsupported-version",
-        found: 2,
+        found: 3,
       });
     }
     expect(fixture.hash(path)).toBe(before);

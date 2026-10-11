@@ -47,7 +47,7 @@ function artefact(id: string, role: "result" | "method") {
 /** A with R1, R2 and nested C with R2; B with R3 and an unknown key; R1 also nowhere else. */
 function sample(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       artefact(R1, "result"),
       artefact(R2, "result"),

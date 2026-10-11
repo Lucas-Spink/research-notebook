@@ -3,14 +3,14 @@ import type { ArtefactsFileModel } from "../schema";
 import { checkSourceForUpdate } from "../index";
 
 const EMPTY: ArtefactsFileModel = {
-  format_version: 1,
+  format_version: 2,
   artefacts: [],
   groups: [],
 };
 
 function withCopyArtefact(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",
@@ -44,7 +44,7 @@ function withCopyArtefact(): ArtefactsFileModel {
 
 function withLinkArtefact(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",

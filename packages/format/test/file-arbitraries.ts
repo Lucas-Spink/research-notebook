@@ -156,7 +156,7 @@ export function projectModel(): fc.Arbitrary<
     );
   return fc
     .record({
-      format_version: fc.constant(1),
+      format_version: fc.constant(2),
       id: ulid(),
       name: text(),
       created: timestamp(),

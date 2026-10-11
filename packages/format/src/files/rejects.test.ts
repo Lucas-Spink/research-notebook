@@ -52,7 +52,7 @@ describe("project.yaml", () => {
       /tag/i,
     ],
     ["a duplicate key", `${project}name: "again"\n`, /duplicate/i],
-    ["a second document", `${project}---\nformat_version: 1\n`, /document/i],
+    ["a second document", `${project}---\nformat_version: 2\n`, /document/i],
     ["invalid YAML", "name: [unclosed\n", /./],
   ])("rejects %s as a syntax error", (_name, text, reason) => {
     expectReason(errorOf(parseProject(text)), "syntax", reason);
@@ -84,7 +84,7 @@ describe("project.yaml", () => {
   });
 
   it("rejects a format version that is a string", () => {
-    const text = project.replace("format_version: 1", 'format_version: "1"');
+    const text = project.replace("format_version: 2", 'format_version: "2"');
     expect(schemaPaths(errorOf(parseProject(text)))).toContain(
       "format_version",
     );
@@ -92,18 +92,18 @@ describe("project.yaml", () => {
 
   it("reports a newer format version before validating anything else", () => {
     const error = errorOf(
-      parseProject("format_version: 2\nsomething_new: true\n"),
+      parseProject("format_version: 3\nsomething_new: true\n"),
     );
-    expect(error).toMatchObject({ kind: "unsupported-version", found: 2 });
+    expect(error).toMatchObject({ kind: "unsupported-version", found: 3 });
   });
 });
 
 describe("artefacts.yaml", () => {
   it("reports a newer format version", () => {
-    const text = artefacts.replace("format_version: 1", "format_version: 2");
+    const text = artefacts.replace("format_version: 2", "format_version: 3");
     expect(errorOf(parseArtefacts(text))).toMatchObject({
       kind: "unsupported-version",
-      found: 2,
+      found: 3,
     });
   });
 
@@ -141,7 +141,7 @@ describe("request.json", () => {
   });
 
   it("reports a newer format version", () => {
-    const text = request.replace('"format_version": 1', '"format_version": 3');
+    const text = request.replace('"format_version": 2', '"format_version": 3');
     expect(errorOf(parseRequest(text))).toMatchObject({
       kind: "unsupported-version",
       found: 3,

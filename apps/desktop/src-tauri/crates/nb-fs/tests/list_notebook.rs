@@ -122,3 +122,39 @@ fn listing_changes_nothing_on_disk() {
     assert_eq!(project.read("_notebook/questions/Q-001.md"), inside_before);
     assert!(project.temp_files().is_empty());
 }
+
+#[test]
+fn lists_canvas_files_by_name_and_skips_everything_else_in_the_folder() {
+    let project = TestProject::new();
+    for path in [
+        "canvases/01JAXC0000000000000000CNV2.canvas.json",
+        "canvases/01JAXC0000000000000000CNV1.canvas.json",
+        "canvases/notes.json",
+        "canvases/.01JAXC.canvas.json.1.1.tmp",
+        "canvases/.hidden.canvas.json",
+        "canvases/nested/x.canvas.json",
+        ".trash/2026-09-21T10-15-00Z/canvases/y.canvas.json",
+    ] {
+        put(&project, path);
+    }
+    let listing = project.open().list_notebook().unwrap();
+    assert_eq!(
+        listing.canvas_files,
+        [
+            "01JAXC0000000000000000CNV1.canvas.json",
+            "01JAXC0000000000000000CNV2.canvas.json"
+        ]
+    );
+}
+
+#[test]
+fn a_project_without_canvases_lists_none() {
+    let project = TestProject::new();
+    put(&project, "questions/Q-001.md");
+    assert!(project
+        .open()
+        .list_notebook()
+        .unwrap()
+        .canvas_files
+        .is_empty());
+}

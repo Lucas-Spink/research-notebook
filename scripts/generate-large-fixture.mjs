@@ -15,7 +15,7 @@ const EXPERIMENTS_PER_QUESTION = 25; // 20 * 25 = 500 experiments (spec 12.3)
 const ARTEFACTS_PER_EXPERIMENT = 10; // 500 * 10 = 5,000 artefacts (spec 12.3)
 
 const outDir = new URL(
-  "../fixtures/projects/format-v1/large/",
+  "../fixtures/projects/format-v2/large/",
   import.meta.url,
 );
 
@@ -36,5 +36,5 @@ const artefactCount = [...built.artefactsByExperiment.values()].reduce(
 console.log(
   `Wrote ${built.state.questions.length} questions, ` +
     `${built.state.experiments.length} experiments and ` +
-    `${artefactCount} artefacts to fixtures/projects/format-v1/large/ (not committed).`,
+    `${artefactCount} artefacts to fixtures/projects/format-v2/large/ (not committed).`,
 );

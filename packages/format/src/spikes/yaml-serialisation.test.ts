@@ -11,7 +11,7 @@ const exampleFields = {
   created: "2026-09-01T09:12:44Z",
   name: "Batch effects in treated organoids",
   id: "01JAX9Q2B7N4M8T6V3W5Y1Z0KC",
-  format_version: 1,
+  format_version: 2,
   numbering: { next_experiment: 43, next_question: 4 },
   capture: { evidence_in_git: false, copy_threshold_mb: 100 },
   table: {
@@ -34,7 +34,7 @@ describe("YAML serialisation spike (spec 5.2, 5.3)", () => {
     expect(text).toContain('id: "01JAX9Q2B7N4M8T6V3W5Y1Z0KC"');
     expect(text).toContain('name: "Batch effects in treated organoids"');
     expect(text).toContain('key: "motivation"');
-    expect(text).toContain("format_version: 1");
+    expect(text).toContain("format_version: 2");
     expect(text).toContain("archived: null");
     expect(text).toContain("evidence_in_git: false");
   });
@@ -94,7 +94,7 @@ describe("YAML serialisation spike (spec 5.2, 5.3)", () => {
 
   it("preserves multiple unknown keys in their original relative order", () => {
     const source = [
-      "format_version: 1",
+      "format_version: 2",
       'id: "01JAX9Q2B7N4M8T6V3W5Y1Z0KC"',
       'second_unknown: "b"',
       'first_unknown: "a"',

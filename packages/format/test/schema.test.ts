@@ -240,7 +240,7 @@ describe("project.yaml", () => {
   });
 
   it.each([
-    ["future format_version", ["format_version"], 2],
+    ["future format_version", ["format_version"], 3],
     ["lowercase project id", ["id"], "01jax9q2b7n4m8t6v3w5y1z0kc"],
     ["empty name", ["name"], ""],
     ["multi-line name", ["name"], "two\nlines"],
@@ -437,7 +437,7 @@ describe("artefacts.yaml", () => {
 
   it("accepts an empty file for a new experiment", () => {
     expect(
-      accepts(ArtefactsFile, { format_version: 1, artefacts: [], groups: [] }),
+      accepts(ArtefactsFile, { format_version: 2, artefacts: [], groups: [] }),
     ).toBe(true);
   });
 
@@ -461,7 +461,7 @@ describe("artefacts.yaml", () => {
   });
 
   it.each([
-    ["future format_version", ["format_version"], 2],
+    ["future format_version", ["format_version"], 3],
     ["unknown role", ["artefacts", 1, "role"], "figure"],
     ["unknown mode", ["artefacts", 1, "mode"], "move"],
     ["unknown type", ["artefacts", 1, "type"], "spreadsheet"],
@@ -695,7 +695,7 @@ describe("inbox request.json", () => {
   });
 
   it.each([
-    ["future format_version", ["format_version"], 2],
+    ["future format_version", ["format_version"], 3],
     ["unknown role", ["role"], "figure"],
     ["null payload in copy mode", ["payload"], null],
     ["payload naming a subfolder", ["payload"], "sub/pca.pdf"],

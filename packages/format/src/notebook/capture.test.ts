@@ -4,14 +4,14 @@ import type { ArtefactsFileModel } from "../schema";
 import { applyCapture } from "../index";
 
 const EMPTY: ArtefactsFileModel = {
-  format_version: 1,
+  format_version: 2,
   artefacts: [],
   groups: [],
 };
 
 function withArtefact(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",
@@ -252,7 +252,7 @@ describe("applyCapture, existing artefact (FR-EVD-03, FR-EVD-04)", () => {
 
   it("refuses a link-mode artefact", () => {
     const file: ArtefactsFileModel = {
-      format_version: 1,
+      format_version: 2,
       artefacts: [
         {
           id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",

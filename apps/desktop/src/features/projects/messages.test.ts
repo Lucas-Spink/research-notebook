@@ -49,6 +49,7 @@ describe("read-only banners", () => {
   // One of every reason: a new reason without a banner fails to compile.
   const reasons: ReadOnlyReason[] = [
     { kind: "newerFormat" },
+    { kind: "olderFormat" },
     { kind: "invalidProject" },
     { kind: "archived", archived: "2026-09-01T09:00:00Z" },
     { kind: "liveLock", holder },

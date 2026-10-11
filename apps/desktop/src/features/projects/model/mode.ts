@@ -12,6 +12,8 @@ import type { OpenFailure, ProjectSummary } from "./summary";
  */
 export type ReadOnlyReason =
   | { kind: "newerFormat" }
+  /** Written by an older build; it can be migrated (spec 5.13, ADR-0064). */
+  | { kind: "olderFormat" }
   | { kind: "invalidProject" }
   | { kind: "archived"; archived: string }
   | { kind: "liveLock"; holder: LockHolder }
@@ -29,7 +31,7 @@ export type OpenMode =
   { kind: "writable" } | { kind: "readOnly"; reason: ReadOnlyReason };
 
 /** What the person can do about a read-only project, if anything. */
-export type LockAction = "retry" | "takeOver";
+export type LockAction = "retry" | "takeOver" | "migrate";
 
 const readOnly = (reason: ReadOnlyReason): OpenMode => ({
   kind: "readOnly",
@@ -93,6 +95,8 @@ export function lockAction(reason: ReadOnlyReason): LockAction | null {
     case "lockLost":
     case "lockUnavailable":
       return "retry";
+    case "olderFormat":
+      return "migrate";
     case "blockedLock":
     case "newerFormat":
     case "invalidProject":

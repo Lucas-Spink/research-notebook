@@ -11,6 +11,7 @@ fn the_data_files_readme_and_styles_are_in_scope() {
         "questions/Q-001.md",
         "experiments/EXP-001/experiment.md",
         "experiments/EXP-001/artefacts.yaml",
+        "canvases/01JAXC0000000000000000CNV1.canvas.json",
         "styles/nature.csl",
     ] {
         assert!(is_snapshot_scope(relative), "{relative}");
@@ -41,6 +42,9 @@ fn everything_else_is_out_of_scope() {
         "questions/.Q-001.md.4242.0.tmp",
         "README.md/extra",
         "Readme.md",
+        "canvases/notes.json",
+        "canvases/sub/x.canvas.json",
+        ".trash/2026-09-21T10-15-00Z/canvases/x.canvas.json",
     ] {
         assert!(!is_snapshot_scope(relative), "{relative:?}");
     }

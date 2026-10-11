@@ -1,5 +1,10 @@
 import { fail, ok, type FormatError, type Result } from "../result";
-import { COLUMN_KEYS, ProjectYaml, type ProjectYamlModel } from "../schema";
+import {
+  COLUMN_KEYS,
+  FORMAT_VERSION,
+  ProjectYaml,
+  type ProjectYamlModel,
+} from "../schema";
 import { zodFailure } from "../zod-error";
 import { serialiseProject } from "./project";
 
@@ -67,7 +72,7 @@ export function newProject(
   env: ProjectEnv,
 ): Result<NewProjectFiles, FormatError> {
   const candidate = {
-    format_version: 1,
+    format_version: FORMAT_VERSION,
     id: env.newId(),
     name: input.name.trim(),
     created: timestamp(env.now()),

@@ -1,4 +1,6 @@
-# Notebook format, version 1
+# Notebook format, versions 1 and 2
+
+Version 2 (ADR-0064) adds canvas files (section 4.9). It changes no other file except the `format_version` value in `project.yaml` and `artefacts.yaml`, which section 6 describes migrating. Everything below applies to both versions unless a section says otherwise; the file keeps its name so existing links hold.
 
 Status: merged with S2-T01 (PR #14). The parser and serialiser in `packages/format` implement it as of S2-T02; the interpretations that task added to section 4.3 (marked "S2-T02" below) were merged in PR #15. S2-T03 adds two YAML rules to sections 3.3 and 3.4 (marked "S2-T03"), recorded as rows 27 and 28 of section 8 and in ADR-0019, for maintainer review.
 
@@ -17,6 +19,7 @@ The machine-readable form is the Zod schema set in `packages/format/src/schema/`
 | Bibliography cache                        | `bibliography.json`                     | `bibliography.schema.json`   | 4.5     |
 | Inbox request                             | `inbox/<ULID>/request.json`             | `request.schema.json`        | 4.6     |
 | Lock                                      | `.lock`                                 | `lock.schema.json`           | 4.7     |
+| Canvas (version 2, ADR-0064)              | `canvases/<ULID>.canvas.json`           | `canvas.schema.json`         | 4.9     |
 | Everything else (README, styles, history) | see 4.8                                 | none                         | 4.8     |
 
 The `experiment.schema.json` file describes the frontmatter only. The body of an experiment file is Markdown and is specified by the grammar in section 4.3, not by JSON Schema.
@@ -84,7 +87,7 @@ The consequence for gate S2-G01 is that "every file in every fixture" can only m
 | Anchors, aliases, tags| Rejected on read. Nothing the application writes uses them, and they make round-tripping ambiguous.                                                                                                                                                                        |
 | Duplicate keys        | Rejected on read.                                                                                                                                                                                                                                                          |
 
-### 3.5 JSON layout (`bibliography.json`, `request.json`, `.lock`)
+### 3.5 JSON layout (`bibliography.json`, `request.json`, `.lock`, `*.canvas.json`)
 
 Two-space indentation, one array element or object member per line, keys in the documented order (unknown keys after known keys), a final LF. Empty arrays are `[]` and empty objects `{}`. Strings use the escapes `JSON.stringify` produces and are otherwise UTF-8.
 
@@ -404,6 +407,38 @@ Schema: `lock.schema.json`. Spec 5.11. JSON, present while a writer has the proj
 - `README.md` (generated guide, spec A.3), `styles/*.csl` (CSL XML), `.history/`, `backups/`, `.trash/`, `exports/` and captured files under `evidence/` and `methods/` are not notebook data files. They are written by `nb-fs` and the export code and are never parsed by `packages/format`, except `styles/*.csl` for validation in `packages/citations`.
 - `.gitignore` and `.gitattributes` entries follow spec 5.12.
 
+### 4.9 Canvas files (format version 2)
+
+Schema: `canvas.schema.json`. ADR-0064. One JSON file per canvas at `canvases/<ULID>.canvas.json`, where `<ULID>` equals `id`. A canvas holds presentation only: which result sits where, how large, and the viewport. It never holds experiment text or evidence bytes. Version 1 applications do not read canvases; they open a version 2 project read-only (section 6).
+
+| Key                         | Type                | Req.       | Notes                                                                                 |
+| --------------------------- | ------------------- | ---------- | ------------------------------------------------------------------------------------- |
+| `format_version`            | integer             | Yes        | `2`.                                                                                  |
+| `id`                        | `ulid`              | Yes        | Equals the file name.                                                                 |
+| `name`                      | `text`              | Yes        | Shown in the canvas picker. Renaming changes only this value.                         |
+| `nodes`                     | list                | Yes        | May be empty. Node ids are unique in the file.                                        |
+| `nodes[].id`                | `ulid`              | Yes        |                                                                                       |
+| `nodes[].type`              | enum                | Yes        | `artefact`, `note` or `region`.                                                       |
+| `nodes[].experiment_id`     | `ulid`              | `artefact` | The experiment that owns the result.                                                  |
+| `nodes[].artefact_id`       | `ulid`              | `artefact` | The pinned result.                                                                    |
+| `nodes[].version`           | integer, at least 1 | `artefact` | The pinned version number `v` of a copy-mode artefact; omitted for a link-mode one, which has no versions. Never advances automatically. |
+| `nodes[].text`              | string              | `note`     | Canvas-only text; may be empty or span lines.                                         |
+| `nodes[].label`             | `text`              | `region`   | The region's title.                                                                   |
+| `nodes[].position`          | object              | Yes        | Canvas coordinates of the top-left corner.                                            |
+| `position.x`, `position.y`  | number              | Yes        | Finite.                                                                               |
+| `nodes[].size`              | object              | Yes        |                                                                                       |
+| `size.width`, `size.height` | number, above 0     | Yes        | Finite.                                                                               |
+| `edges`                     | list                | Yes        | May be empty. Edge ids are unique in the file.                                        |
+| `edges[].id`                | `ulid`              | Yes        |                                                                                       |
+| `edges[].source`            | `ulid`              | Yes        | A node id in this file.                                                               |
+| `edges[].target`            | `ulid`              | Yes        | A node id in this file.                                                               |
+| `edges[].label`             | enum                | No         | `supports`, `contradicts`, `derived-from`, `related-to` or `requires-investigation`.  |
+| `viewport`                  | object              | Yes        | Last pan and zoom.                                                                    |
+| `viewport.x`, `viewport.y`  | number              | Yes        | Finite.                                                                               |
+| `viewport.zoom`             | number, above 0     | Yes        | `1` is 100 per cent.                                                                  |
+
+Unknown keys are accepted and kept, on the file and inside every object. Canonical key order is the order of the table; a node's keys run `id`, `type`, the type's own keys, `position`, `size`. A reference to an experiment, artefact or version that does not exist is not a schema error: the card is shown as missing and the file is not rewritten (section 5).
+
 ## 5. Constraints that a schema cannot check
 
 The Zod schemas check everything inside one file. The rules below span files or the filesystem; they belong to the project loader (S2-T05, S2-T10) and `nb-fs`. None is a schema error; each has a defined outcome so that behaviour is decided now.
@@ -419,13 +454,14 @@ The Zod schemas check everything inside one file. The rules below span files or 
 | `source.root` is a `ulid` not present in `external_roots`                                          | The artefact is marked unavailable; nothing is rewritten (FR-PRJ-07).                                |
 | A version's `file` is missing or its hash differs                                                  | Reported by verification; the record is never altered automatically (P4).                            |
 | `numbering.next_*` is not above every existing and trashed ref number                              | The application uses the larger value on allocation (FR-EXP-03).                                     |
+| A canvas node names an experiment, artefact or version that does not exist (ADR-0064)               | The card is shown as missing; the canvas file is not rewritten.                                      |
 | A path resolves outside the project root or a registered external root, including by symlink       | Rejected by `nb-fs` (spec 6.5).                                                                      |
 
 ## 6. Versioning and read-only behaviour
 
 - `packages/format` exports `FormatVersionProbe`, which reads only `format_version`. The project opener applies it to `project.yaml` first. A value above 1 opens the whole project read-only with the reason "newer format" and no further validation; the file is not touched (spec 5.13 rule 2, gate S2-G10).
 - Any file that fails its schema, or breaks a rule in section 4, opens read-only for that file and is never rewritten (AGENTS.md section 2, rule 5).
-- Migrations are pure functions in `packages/format/migrations`, one per version step, never deleted (spec 5.13). Version 1 has none.
+- Migrations are pure functions in `packages/format/src/migrations.ts`, one per version step, never deleted (spec 5.13). Version 2 (ADR-0064) adds canvas files. Its step from 1 changes only `format_version` in `project.yaml` and each `artefacts.yaml`, as a text edit that leaves every other byte alone. Inbox requests are not migrated; readers accept `format_version` 1 or 2 there. A project is migrated only after the version-change backup and the person's confirmation.
 
 ## 7. Inline syntax in Markdown sections
 

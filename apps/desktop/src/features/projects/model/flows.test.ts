@@ -233,7 +233,7 @@ describe("openFlow", () => {
   });
 
   it("opens a newer format read-only, with no lock and no recent-list entry", async () => {
-    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
+    const text = yamlFor(ID).replace("format_version: 2", "format_version: 3");
     const { api, names } = fakeApi({ openProject: opened(ID, text) });
     const outcome = await openFlow(api);
     expect(outcome).toEqual({
@@ -289,7 +289,7 @@ describe("openRecentFlow", () => {
   });
 
   it("opens a remembered project that has since become unreadable, read-only", async () => {
-    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
+    const text = yamlFor(ID).replace("format_version: 2", "format_version: 3");
     const { api, names } = fakeApi({ openRecentProject: opened(ID, text) });
     const outcome = await openRecentFlow(api, ID);
     expect(outcome.kind === "opened" && outcome.project.mode).toEqual({
@@ -322,7 +322,7 @@ describe("locateFlow", () => {
   });
 
   it("refuses a folder whose project cannot be identified, and locks nothing", async () => {
-    const text = yamlFor(ID).replace("format_version: 1", "format_version: 2");
+    const text = yamlFor(ID).replace("format_version: 2", "format_version: 3");
     const { api, names } = fakeApi({ locateProject: opened(ID, text) });
     expect(await locateFlow(api, ID)).toEqual({
       kind: "failed",

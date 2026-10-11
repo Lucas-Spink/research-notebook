@@ -253,6 +253,10 @@ layout travels with the project.
 >
 > │ │ └─ methods/ captured scripts and notebooks
 >
+> │ ├─ canvases/ canvas layouts (format version 2, ADR-0064)
+>
+> │ │ └─ 01JAX...CNV1.canvas.json
+>
 > │ ├─ inbox/ capture requests from VS Code
 >
 > │ ├─ exports/ HTML, PDF/A, manifest, notebook.json
@@ -612,6 +616,22 @@ outside \_notebook/ besides the application settings (ADR-0021).
 6.  Each released format version has fixture projects under
     fixtures/projects/format-v\<N\>/, and CI opens, edits, saves and
     re-reads every fixture with the current build.
+
+5.14 Canvas files (format version 2)
+
+A canvas is a second view of the notebook: a freeform arrangement of
+results from any experiment in the project, kept in
+canvases/\<ULID\>.canvas.json (ADR-0064). A project may have any number
+of canvases, each with a name. A canvas holds presentation only: node
+positions and sizes, the viewport, canvas-only notes and regions, and
+labelled connectors. A result card names its experiment and artefact by
+ULID and, for a copy-mode artefact, one version number; it never holds
+experiment text or evidence bytes, and a missing target is shown as
+missing and never rewritten. The file is specified in
+docs/format/format-v1.md section 4.9 and read and written only by
+packages/format. It is part of history, version-change backups and
+bundles; it is not part of the machine-readable export or verification,
+which cover evidence and the record, not presentation.
 
 6\. Architecture
 

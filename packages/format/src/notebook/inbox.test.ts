@@ -12,7 +12,7 @@ const REQUEST_ID = "01JAXT0C4D6E8F0G2H4J6K8M0N";
 
 function requestJson(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
-    format_version: 1,
+    format_version: 2,
     request_id: REQUEST_ID,
     created: "2026-09-22T11:00:00Z",
     created_by: "vscode-extension@0.1.0",
@@ -29,14 +29,14 @@ function requestJson(overrides: Record<string, unknown> = {}): string {
 }
 
 const EMPTY: ArtefactsFileModel = {
-  format_version: 1,
+  format_version: 2,
   artefacts: [],
   groups: [],
 };
 
 function withCopyArtefact(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",
@@ -70,7 +70,7 @@ function withCopyArtefact(): ArtefactsFileModel {
 
 function withLinkArtefact(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",

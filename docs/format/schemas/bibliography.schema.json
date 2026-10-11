@@ -59,6 +59,6 @@
     ],
     "additionalProperties": {}
   },
-  "title": "bibliography.json (format version 1)",
+  "title": "bibliography.json (format version 2)",
   "description": "Structural constraints only. Cross-entry and cross-file rules are listed in docs/format/format-v1.md."
 }

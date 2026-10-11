@@ -26,7 +26,7 @@ function parsed(file: object): ArtefactsFileModel {
 }
 
 const copy = parsed({
-  format_version: 1,
+  format_version: 2,
   artefacts: [
     {
       id: COPY_ID,
@@ -258,7 +258,7 @@ describe("restoring removed files", () => {
   it("moves the files back, then adds the record again", async () => {
     const { api, calls } = fakeApi({
       record: JSON.stringify({
-        format_version: 1,
+        format_version: 2,
         artefacts: [artefact(copy, COPY_ID)],
         groups: [],
       }),
@@ -307,7 +307,7 @@ describe("restoring removed files", () => {
     const { api } = fakeApi({
       restoreFails: "nameTaken",
       record: JSON.stringify({
-        format_version: 1,
+        format_version: 2,
         artefacts: [artefact(copy, COPY_ID)],
         groups: [],
       }),

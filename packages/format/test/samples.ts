@@ -24,7 +24,7 @@ export function hex64(seed: string): string {
 export const COMMIT = "3f9c1e2d3f9c1e2d3f9c1e2d3f9c1e2d3f9c1e2d";
 
 export const projectSample: Record<string, unknown> = {
-  format_version: 1,
+  format_version: 2,
   id: PROJECT_ID,
   name: "Batch effects in treated organoids",
   created: "2026-09-01T09:12:44Z",
@@ -71,7 +71,7 @@ export const experimentSample: Record<string, unknown> = {
 };
 
 export const artefactsSample: Record<string, unknown> = {
-  format_version: 1,
+  format_version: 2,
   artefacts: [
     {
       id: ARTEFACT_SCRIPT,
@@ -170,7 +170,7 @@ export const artefactsSample: Record<string, unknown> = {
 };
 
 export const requestCopySample: Record<string, unknown> = {
-  format_version: 1,
+  format_version: 2,
   request_id: REQUEST_ID,
   created: "2026-09-06T11:00:00Z",
   created_by: "vscode-extension@0.1.0",
@@ -192,7 +192,7 @@ export const requestCopySample: Record<string, unknown> = {
 };
 
 export const requestLinkSample: Record<string, unknown> = {
-  format_version: 1,
+  format_version: 2,
   request_id: REQUEST_ID,
   created: "2026-09-06T11:00:00Z",
   created_by: "vscode-extension@0.1.0",

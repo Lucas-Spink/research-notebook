@@ -61,16 +61,31 @@ describe("summariseProject", () => {
 
   it("reports a newer format version without reading anything else", () => {
     const text = projectYaml().replace(
-      "format_version: 1",
       "format_version: 2",
+      "format_version: 3",
     );
     expect(summariseProject(text)).toEqual({ ok: false, error: "newerFormat" });
+  });
+
+  it("reports an older format version as one that can be migrated, not as invalid", () => {
+    const text = projectYaml().replace(
+      "format_version: 2",
+      "format_version: 1",
+    );
+    expect(summariseProject(text)).toEqual({ ok: false, error: "olderFormat" });
+  });
+
+  it("still reports an older file that is damaged as older, since migration will say more", () => {
+    expect(summariseProject('format_version: 1\nname: "x"\n')).toEqual({
+      ok: false,
+      error: "olderFormat",
+    });
   });
 
   it.each([
     ["text that is not YAML", "{ this: is: not yaml"],
     ["an empty file", ""],
-    ["a file missing required keys", 'format_version: 1\nname: "x"\n'],
+    ["a file missing required keys", 'format_version: 2\nname: "x"\n'],
     [
       "a name that is empty",
       projectYaml().replace('name: "Batch effects"', 'name: ""'),
@@ -104,7 +119,7 @@ describe("locateOutcome", () => {
     expect(
       locateOutcome(
         ID,
-        projectYaml().replace("format_version: 1", "format_version: 9"),
+        projectYaml().replace("format_version: 2", "format_version: 9"),
       ),
     ).toEqual({ kind: "failed", error: "newerFormat" });
   });

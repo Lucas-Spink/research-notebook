@@ -1,5 +1,6 @@
 export * from "./artefacts";
 export * from "./bibliography";
+export * from "./canvas";
 export * from "./experiment";
 export * from "./project";
 export * from "./question";

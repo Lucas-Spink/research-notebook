@@ -10,7 +10,7 @@ use std::path::Path;
 use crate::error::ReadError;
 use crate::project::{ProjectRoot, NOTEBOOK_DIR};
 
-/// The question files and experiment folders found in `_notebook/`.
+/// The question files, experiment folders and canvas files found in `_notebook/`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NotebookListing {
     /// Names of the `.md` files in `questions/`, such as `Q-001.md`, sorted.
@@ -19,10 +19,13 @@ pub struct NotebookListing {
     /// folder is listed even if it holds no `experiment.md`, because its name
     /// still occupies a ref that must not be given out again (FR-EXP-03).
     pub experiment_folders: Vec<String>,
+    /// Names of the `.canvas.json` files in `canvases/`, such as
+    /// `01JAXC0000000000000000CNV1.canvas.json`, sorted (ADR-0064).
+    pub canvas_files: Vec<String>,
 }
 
 impl ProjectRoot {
-    /// Lists the question files and experiment folders, without reading them.
+    /// Lists the question files, experiment folders and canvas files, without reading them.
     ///
     /// Hidden names (the dot-prefixed temporary files of an atomic write), files
     /// that are not `.md`, and names that are not UTF-8 are skipped. A link is
@@ -38,9 +41,14 @@ impl ProjectRoot {
             names_in(&self.notebook.join("experiments"), "experiments", |kind| {
                 kind.is_dir()
             })?;
+        let mut canvas_files = names_in(&self.notebook.join("canvases"), "canvases", |kind| {
+            kind.is_file()
+        })?;
+        canvas_files.retain(|name| name.ends_with(".canvas.json"));
         Ok(NotebookListing {
             question_files,
             experiment_folders,
+            canvas_files,
         })
     }
 }

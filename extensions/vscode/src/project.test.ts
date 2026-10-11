@@ -29,7 +29,7 @@ describe("findProjectRoot", () => {
     mkdirSync(join(dir, "_notebook"), { recursive: true });
     writeFileSync(
       join(dir, "_notebook", "project.yaml"),
-      "format_version: 1\n",
+      "format_version: 2\n",
     );
     mkdirSync(join(dir, "scripts"), { recursive: true });
 
@@ -40,7 +40,7 @@ describe("findProjectRoot", () => {
     mkdirSync(join(dir, "_notebook"), { recursive: true });
     writeFileSync(
       join(dir, "_notebook", "project.yaml"),
-      "format_version: 1\n",
+      "format_version: 2\n",
     );
     const deep = join(dir, "results", "pca", "figures");
     mkdirSync(deep, { recursive: true });
@@ -52,7 +52,7 @@ describe("findProjectRoot", () => {
     mkdirSync(join(dir, "_notebook"), { recursive: true });
     writeFileSync(
       join(dir, "_notebook", "project.yaml"),
-      "format_version: 1\n",
+      "format_version: 2\n",
     );
 
     expect(findProjectRoot(dir, exists)).toBe(dir);

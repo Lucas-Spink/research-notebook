@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ArtefactsFile } from "./artefacts";
 import { BibliographyFile } from "./bibliography";
+import { CanvasFile } from "./canvas";
 import { ExperimentFrontmatter } from "./experiment";
 import { LockFile } from "./lock";
 import { ProjectYaml } from "./project";
@@ -11,25 +12,29 @@ import { InboxRequest } from "./request";
 const SCHEMAS = {
   artefacts: {
     schema: ArtefactsFile,
-    title: "artefacts.yaml (format version 1)",
+    title: "artefacts.yaml (format version 2)",
   },
   bibliography: {
     schema: BibliographyFile,
-    title: "bibliography.json (format version 1)",
+    title: "bibliography.json (format version 2)",
+  },
+  canvas: {
+    schema: CanvasFile,
+    title: "*.canvas.json (format version 2)",
   },
   experiment: {
     schema: ExperimentFrontmatter,
-    title: "experiment.md frontmatter (format version 1)",
+    title: "experiment.md frontmatter (format version 2)",
   },
-  lock: { schema: LockFile, title: ".lock (format version 1)" },
-  project: { schema: ProjectYaml, title: "project.yaml (format version 1)" },
+  lock: { schema: LockFile, title: ".lock (format version 2)" },
+  project: { schema: ProjectYaml, title: "project.yaml (format version 2)" },
   question: {
     schema: QuestionFrontmatter,
-    title: "question file frontmatter (format version 1)",
+    title: "question file frontmatter (format version 2)",
   },
   request: {
     schema: InboxRequest,
-    title: "inbox request.json (format version 1)",
+    title: "inbox request.json (format version 2)",
   },
 } as const;
 

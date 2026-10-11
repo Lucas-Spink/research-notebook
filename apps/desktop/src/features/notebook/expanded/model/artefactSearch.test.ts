@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { groupPathFor, searchArtefacts } from "./artefactSearch";
 
 const FILE: ArtefactsFileModel = {
-  format_version: 1,
+  format_version: 2,
   artefacts: [
     {
       id: "01PCA00000000000000000000",

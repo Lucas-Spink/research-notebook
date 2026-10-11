@@ -410,7 +410,7 @@ describe("perform: the application's own writes are not outside changes", () => 
   it("does not overwrite an artefacts.yaml changed on disk since it was read", async () => {
     const { sample, project, loaded, deps } = await setup();
     const elsewhere =
-      "format_version: 1\nartefacts: []\ngroups: []\n# edited elsewhere\n";
+      "format_version: 2\nartefacts: []\ngroups: []\n# edited elsewhere\n";
     project.disk[ARTEFACTS_1] = elsewhere;
     const done = await perform(deps(), loaded, (state) =>
       addGroup(state, "Figures", sample.env),

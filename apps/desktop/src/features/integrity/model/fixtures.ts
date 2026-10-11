@@ -7,7 +7,7 @@ const COPIED = ID(2);
 const HASH = "a".repeat(64);
 
 const artefacts = ArtefactsFile.parse({
-  format_version: 1,
+  format_version: 2,
   artefacts: [
     {
       id: COPIED,

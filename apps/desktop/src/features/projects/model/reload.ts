@@ -23,6 +23,7 @@ type Reloaded = { text: string } | null;
 function causedByFile(reason: ReadOnlyReason): boolean {
   switch (reason.kind) {
     case "newerFormat":
+    case "olderFormat":
     case "invalidProject":
     case "archived":
       return true;
@@ -114,7 +115,9 @@ function shownAs(project: OpenedProject): string | null {
   const mode = project.mode;
   if (mode.kind !== "readOnly") return null;
   const reason = mode.reason.kind;
-  return reason === "newerFormat" || reason === "invalidProject"
+  return reason === "newerFormat" ||
+    reason === "olderFormat" ||
+    reason === "invalidProject"
     ? describe(null, reason)
     : null;
 }

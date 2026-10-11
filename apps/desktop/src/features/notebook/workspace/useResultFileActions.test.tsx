@@ -15,7 +15,7 @@ const COPY = "01JB0000000000000000000001";
 const LINK = "01JB0000000000000000000002";
 
 const file: ArtefactsFileModel = {
-  format_version: 1,
+  format_version: 2,
   artefacts: [
     {
       id: COPY,

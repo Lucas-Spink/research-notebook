@@ -16,8 +16,8 @@ use super::folders::{FolderHandle, PickedFolders};
 use super::lock::with_root;
 use super::types::ProjectError;
 
-/// A project-relative path the trash command accepts: a question file, or the
-/// folder of an experiment.
+/// A project-relative path the trash command accepts: a question file, a
+/// canvas file (ADR-0064), or the folder of an experiment.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 pub struct TrashTarget(String);
 
@@ -28,6 +28,7 @@ impl TryFrom<String> for TrashTarget {
         let path = ProjectRelPath::parse(&text).map_err(|e| e.to_string())?;
         let allowed = match path.segments().collect::<Vec<_>>().as_slice() {
             ["_notebook", "questions", name] => is_notebook_data_path(&format!("questions/{name}")),
+            ["_notebook", "canvases", name] => is_notebook_data_path(&format!("canvases/{name}")),
             ["_notebook", "experiments", folder] => {
                 is_notebook_data_folder(&format!("experiments/{folder}"))
             }
@@ -36,7 +37,7 @@ impl TryFrom<String> for TrashTarget {
         if allowed {
             Ok(Self(path.to_string()))
         } else {
-            Err("expected a question file or an experiment folder".to_owned())
+            Err("expected a question file, a canvas file or an experiment folder".to_owned())
         }
     }
 }
@@ -226,6 +227,16 @@ mod tests {
     }
 
     #[test]
+    fn a_canvas_file_can_be_trashed() {
+        assert_eq!(
+            target("_notebook/canvases/01JAXC0000000000000000CNV1.canvas.json")
+                .unwrap()
+                .0,
+            "_notebook/canvases/01JAXC0000000000000000CNV1.canvas.json"
+        );
+    }
+
+    #[test]
     fn nothing_else_can_be_trashed() {
         for path in [
             "",
@@ -244,6 +255,10 @@ mod tests {
             "_notebook/experiments/.hidden",
             "_notebook/experiments/EXP-001/experiment.md",
             "_notebook/experiments/EXP-001/evidence",
+            "_notebook/canvases",
+            "_notebook/canvases/notes.json",
+            "_notebook/canvases/.x.canvas.json",
+            "_notebook/canvases/sub/x.canvas.json",
             "README.md",
             "scripts/run.R",
             "../outside",

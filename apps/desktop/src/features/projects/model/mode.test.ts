@@ -79,7 +79,7 @@ describe("modeForUnreadableProject", () => {
 });
 
 describe("lockAction", () => {
-  const reasons: [ReadOnlyReason, "retry" | "takeOver" | null][] = [
+  const reasons: [ReadOnlyReason, "retry" | "takeOver" | "migrate" | null][] = [
     [{ kind: "staleLock", holder }, "takeOver"],
     [{ kind: "unreadableLock" }, "takeOver"],
     [{ kind: "liveLock", holder }, "retry"],
@@ -87,6 +87,7 @@ describe("lockAction", () => {
     [{ kind: "lockLost" }, "retry"],
     [{ kind: "lockUnavailable" }, "retry"],
     [{ kind: "blockedLock" }, null],
+    [{ kind: "olderFormat" }, "migrate"],
     [{ kind: "newerFormat" }, null],
     [{ kind: "invalidProject" }, null],
     [{ kind: "archived", archived: "2026-09-01T09:00:00Z" }, null],

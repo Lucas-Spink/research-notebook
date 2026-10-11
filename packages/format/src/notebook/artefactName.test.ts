@@ -8,7 +8,7 @@ const R1 = "01JB0000000000000000000001";
 
 function sample(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: R1,

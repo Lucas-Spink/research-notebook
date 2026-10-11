@@ -1,6 +1,7 @@
 import { sep, relative } from "node:path";
 
 import {
+  FORMAT_VERSION,
   InboxRequest,
   type InboxRequestModel,
 } from "@research-notebook/format";
@@ -50,7 +51,7 @@ export interface BuildRequestInput {
  */
 export function buildInboxRequest(input: BuildRequestInput): InboxRequestModel {
   const candidate = {
-    format_version: 1,
+    format_version: FORMAT_VERSION,
     request_id: input.requestId,
     created: formatTimestamp(input.createdAt),
     created_by: `vscode-extension@${input.extensionVersion}`,

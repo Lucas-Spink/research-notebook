@@ -1,5 +1,6 @@
 import { assertNever } from "../../shared/assertNever";
 import type { FailureReason, Warning } from "./model/flows";
+import type { MigrateFailure } from "./model/migrateFlow";
 import type { ReadOnlyReason } from "./model/mode";
 
 /** User-facing text for the projects feature, in British English (AGENTS.md section 5). */
@@ -31,6 +32,14 @@ export const messages = {
   dismiss: "Dismiss",
   takeOver: "Take over the lock",
   tryAgain: "Try again",
+  migrate: "Update project…",
+  migrateConfirmHeading: "Update this project?",
+  migrateConfirmBody:
+    "A backup of the project is made first. Only the format version in _notebook/project.yaml and in each experiment's artefacts.yaml changes; no evidence file is touched. Older versions of the application will then open this project read-only.",
+  migrateConfirm: "Update project",
+  migrateCancel: "Cancel",
+  migrateSomeUntouched: (files: string[]) =>
+    `The project was updated, but ${files.length} file${files.length === 1 ? " was" : "s were"} not valid and ${files.length === 1 ? "was" : "were"} left as ${files.length === 1 ? "it was" : "they were"}: ${files.join(", ")}.`,
   readOnlyLabel: "Read-only",
   unnamedProject: "Project file could not be read",
   closeLockNotReleased:
@@ -71,6 +80,8 @@ const failureMessages: Record<FailureReason, string> = {
   internal: "Something went wrong inside the application. Try again.",
   newerFormat:
     "This project was written by a newer version of the application, so this version cannot open it.",
+  olderFormat:
+    "This project was written by an older version of the application. It must be updated before it can be opened for editing.",
   invalidProject:
     "The project file is not valid, so the project cannot be opened. Nothing was changed.",
   invalidName: "Enter a project name on a single line.",
@@ -84,6 +95,32 @@ const failureMessages: Record<FailureReason, string> = {
 
 export function failureMessage(reason: FailureReason): string {
   return failureMessages[reason];
+}
+
+/** One message for each reason migrating an older project can fail (ADR-0064). */
+const migrateFailureMessages: Record<MigrateFailure, string> = {
+  notConfirmed: "The project was not updated. Nothing was changed.",
+  lockUnavailable:
+    "The project could not be locked for updating, so nothing was changed. Close it in any other window and try again.",
+  backupFailed:
+    "A backup could not be made, so the project was not updated. Nothing was changed.",
+  unreadable:
+    "A project file could not be read, so the project was not updated. Nothing was changed.",
+  invalidProject:
+    "The project file is not valid, so the project was not updated. Nothing was changed.",
+  archived:
+    "This project is archived, so it is not updated in place. Open it in the version of the application that archived it and unarchive it first.",
+  newerFormat:
+    "This project was written by a newer version of the application, so it was not changed.",
+  alreadyCurrent: "This project is already up to date.",
+  changed:
+    "A project file changed while it was being updated. Try again; nothing is lost.",
+  writeFailed:
+    "A project file could not be written. The update stopped part-way; try again to finish it. Nothing has been deleted.",
+};
+
+export function migrateFailureMessage(failure: MigrateFailure): string {
+  return migrateFailureMessages[failure];
 }
 
 /** Text for something that went wrong after the project was created or opened. */
@@ -118,6 +155,13 @@ export function readOnlyBanner(reason: ReadOnlyReason): Banner {
           "This project was written by a newer version of the application, so it is open read-only.",
         action:
           "Update the application to edit it. Nothing in the project has been changed.",
+      };
+    case "olderFormat":
+      return {
+        reason:
+          "This project was written by an older version of the application, so it is open read-only.",
+        action:
+          "Update the project to edit it. A backup is made first, and no evidence file is touched.",
       };
     case "invalidProject":
       return {

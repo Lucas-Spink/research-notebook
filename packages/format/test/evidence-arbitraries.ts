@@ -167,7 +167,7 @@ export function artefactsModel(): fc.Arbitrary<
         groups: spec.children.map(build),
       });
       return ArtefactsFile.parse({
-        format_version: 1,
+        format_version: 2,
         artefacts,
         groups: groups.map(build),
         ...extra,
@@ -189,7 +189,7 @@ export function requestModel(): fc.Arbitrary<
     .chain(([isCopy, payload, prov, groupPath]) =>
       withUnknown(
         fc.record({
-          format_version: fc.constant(1),
+          format_version: fc.constantFrom(1, 2),
           request_id: ulid(),
           created: timestamp(),
           created_by: text(),

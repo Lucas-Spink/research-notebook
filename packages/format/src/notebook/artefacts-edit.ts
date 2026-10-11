@@ -1,6 +1,6 @@
 import { serialiseArtefacts } from "../files/artefacts";
 import { fail, ok, type Result } from "../result";
-import type { ArtefactsFileModel } from "../schema";
+import { FORMAT_VERSION, type ArtefactsFileModel } from "../schema";
 import { withWriterStamp } from "./edit";
 import { invalid, missingExperiment, noChange } from "./project-edit";
 import {
@@ -13,7 +13,7 @@ import {
 
 /** An experiment's evidence before anything has been added: what a new experiment's artefacts.yaml holds. */
 export const EMPTY_ARTEFACTS: ArtefactsFileModel = {
-  format_version: 1,
+  format_version: FORMAT_VERSION,
   artefacts: [],
   groups: [],
 };

@@ -170,3 +170,29 @@ export const REQUEST_SHAPE: Shape = {
   ],
   children: { source: SOURCE, provenance: PROVENANCE },
 };
+
+const POSITION: Shape = { keys: ["x", "y"] };
+const SIZE: Shape = { keys: ["width", "height"] };
+
+/** Canvas files (ADR-0064). One node shape lists the keys of every node type, in order. */
+export const CANVAS_SHAPE: Shape = {
+  keys: ["format_version", "id", "name", "nodes", "edges", "viewport"],
+  children: {
+    nodes: {
+      keys: [
+        "id",
+        "type",
+        "experiment_id",
+        "artefact_id",
+        "version",
+        "text",
+        "label",
+        "position",
+        "size",
+      ],
+      children: { position: POSITION, size: SIZE },
+    },
+    edges: { keys: ["id", "source", "target", "label"] },
+    viewport: { keys: ["x", "y", "zoom"] },
+  },
+};

@@ -40,6 +40,7 @@ export function ProjectRibbonControls({
               }
               onTakeOver={() => void projects.takeOver()}
               onRetry={() => void projects.retryLock()}
+              onMigrate={() => void projects.migrate()}
               {...(opened.mode.kind === "writable"
                 ? {
                     onAddRoot: (label: string) =>

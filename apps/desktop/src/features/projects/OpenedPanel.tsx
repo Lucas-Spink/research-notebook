@@ -13,6 +13,7 @@ type Props = {
   onAddRoot?: (label: string) => void;
   onTakeOver: () => void;
   onRetry: () => void;
+  onMigrate: () => void;
   /** In the ribbon's settings panel: no heading, banner or Zotero status, which the ribbon and the workspace show themselves. */
   compact?: boolean;
 };
@@ -29,6 +30,7 @@ export function OpenedPanel({
   onAddRoot,
   onTakeOver,
   onRetry,
+  onMigrate,
   compact = false,
 }: Props) {
   const [label, setLabel] = useState("");
@@ -54,6 +56,7 @@ export function OpenedPanel({
           busy={busy}
           onTakeOver={onTakeOver}
           onRetry={onRetry}
+          onMigrate={onMigrate}
         />
       )}
       <p>

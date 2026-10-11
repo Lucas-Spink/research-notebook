@@ -8,6 +8,7 @@ const formatDoc = new URL("../../../docs/format/format-v1.md", import.meta.url);
 const EXPECTED_FILES = [
   "artefacts.schema.json",
   "bibliography.schema.json",
+  "canvas.schema.json",
   "experiment.schema.json",
   "lock.schema.json",
   "project.schema.json",
