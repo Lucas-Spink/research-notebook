@@ -37,3 +37,11 @@
   height: 100%;
   background: var(--color-surface-alt);
 }
+
+.canvas-notes-pane__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}

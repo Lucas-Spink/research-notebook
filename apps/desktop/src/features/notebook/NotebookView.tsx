@@ -104,7 +104,8 @@ import {
   questionsOf,
   reconcileQuestion,
 } from "./workspace/model/canvasQuestions";
-import { questionKeyOf } from "./workspace/model/resultsOrder";
+import { questionKeyOf, selectionOfKey } from "./workspace/model/resultsOrder";
+import { CanvasNotesPane } from "./workspace/CanvasNotesPane";
 import { PaneHost } from "./workspace/PaneHost";
 import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
@@ -125,16 +126,6 @@ function sharedRefs(problems: readonly Problem[]): ReadonlySet<string> {
   return new Set(
     problems.flatMap((p) => (p.kind === "duplicateRef" ? [p.ref] : [])),
   );
-}
-
-/** What the table has selected, as far as finding its question needs. */
-function selectionOf(
-  selected: Selected | null,
-): Parameters<typeof questionKeyOf>[1] {
-  if (selected === null) return null;
-  return selected.kind === "question"
-    ? { kind: "question", fileName: selected.group.question.fileName }
-    : { kind: "experiment", folder: selected.item.experiment.folder };
 }
 
 /** What a table row key selects, looked up each time so a deleted item just stops being selected. */
@@ -279,16 +270,28 @@ function NotebookViewBody({
     [arranged],
   );
   const canvasKey = reconcileQuestion(canvasChoice, canvasTabs);
-  const canvasTab = canvasTabs.find((tab) => tab.key === canvasKey);
+  // The Canvas notes pane in the table view: it follows the table's selection until a question is chosen in it.
+  const [panes, dispatchPanes] = useReducer(panesReducer, initialPanes);
+  const [notesChoice, setNotesChoice] = useState<string | null>(null);
+  const heldQuestion =
+    arranged === null
+      ? null
+      : questionKeyOf(arranged, selectionOfKey(selectedKey));
+  const notesKey = reconcileQuestion(
+    notesChoice ?? (heldQuestion === "unassigned" ? null : heldQuestion),
+    canvasTabs,
+  );
+  const notesOpen = panes.tabs.some((tab) => tab.kind === "canvasNotes");
+  // One canvas is read at a time: the canvas view's question, or else the pane's.
+  const shownKey = viewMode === "canvas" ? canvasKey : notesKey;
+  const shownTab = canvasTabs.find((tab) => tab.key === shownKey);
   const canvases = useCanvases({
     api: canvasApi,
     folder,
     writable,
-    enabled: viewMode === "canvas",
+    enabled: viewMode === "canvas" || notesOpen,
     question:
-      canvasTab === undefined
-        ? null
-        : { id: canvasTab.id, name: canvasTab.label },
+      shownTab === undefined ? null : { id: shownTab.id, name: shownTab.label },
   });
   /** Shows a question's canvas, and the table's selection follows, so going back lands on the same question. */
   function chooseCanvasQuestion(key: string) {
@@ -297,14 +300,11 @@ function NotebookViewBody({
     setPickedKey(`question:${key}`);
   }
   /** Whatever is being typed in the table is saved before the table goes away; if that fails, the table stays. */
-  async function changeView(next: ViewMode) {
+  async function changeView(next: ViewMode, question?: string) {
     if (!(await live.activate(null))) return;
     if (next === "canvas") {
-      // The canvas opens on the question the table had selected.
-      const held =
-        arranged === null
-          ? null
-          : questionKeyOf(arranged, selectionOf(selected));
+      // The canvas opens on the question asked for, else the one the table had selected.
+      const held = question ?? heldQuestion;
       if (held !== null && held !== "unassigned") setCanvasChoice(held);
     } else {
       // Layout changes still waiting for their quiet moment are written before the table takes over.
@@ -313,7 +313,6 @@ function NotebookViewBody({
     setViewMode(next);
   }
 
-  const [panes, dispatchPanes] = useReducer(panesReducer, initialPanes);
   const syncInserted = useSourceSync();
   const sources = useSources();
   // A citation in the text asks for its entry in the Bibliography below the table.
@@ -676,6 +675,8 @@ function NotebookViewBody({
         return paneMessages.integrityTab;
       case "bin":
         return paneMessages.binTab;
+      case "canvasNotes":
+        return paneMessages.canvasNotesTab;
       case "export":
         return paneMessages.exportTabs[tab.section];
       case "addResult":
@@ -760,6 +761,32 @@ function NotebookViewBody({
             />
             <VerifyPanel model={verify} />
           </>
+        );
+      case "canvasNotes":
+        return (
+          <CanvasNotesPane
+            questions={canvasTabs}
+            question={shownKey}
+            onChooseQuestion={(key) =>
+              viewMode === "canvas"
+                ? chooseCanvasQuestion(key)
+                : setNotesChoice(key)
+            }
+            file={canvases.current?.file ?? null}
+            state={
+              canvases.status !== "ready"
+                ? "loading"
+                : canvases.current !== null && canvases.current.file === null
+                  ? "unreadable"
+                  : "ready"
+            }
+            resolve={cards.resolve}
+            onOpenCanvas={() => {
+              if (shownKey === null) return;
+              chooseCanvasQuestion(shownKey);
+              void changeView("canvas", shownKey);
+            }}
+          />
         );
       case "bin":
         return (

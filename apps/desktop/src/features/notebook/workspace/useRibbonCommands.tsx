@@ -19,6 +19,7 @@ const CITATIONS_TAB: PaneTab = { id: "citations", kind: "citations" };
 const DETAILS_TAB: PaneTab = { id: "details", kind: "details" };
 const INTEGRITY_TAB: PaneTab = { id: "integrity", kind: "integrity" };
 const BIN_TAB: PaneTab = { id: "bin", kind: "bin" };
+const CANVAS_NOTES_TAB: PaneTab = { id: "canvasNotes", kind: "canvasNotes" };
 const exportTab = (section: ExportSection): PaneTab => ({
   id: `export:${section}`,
   kind: "export",
@@ -142,6 +143,7 @@ export function useRibbonCommands(
     integrityCheck: paneButton(m.integrityCheck, INTEGRITY_TAB),
     sourcesPane: paneButton(m.sourcesPane, SOURCES_TAB),
     binPane: paneButton(m.binPane, BIN_TAB),
+    canvasNotesPane: paneButton(m.canvasNotesPane, CANVAS_NOTES_TAB),
     search: paneButton(m.search, SEARCH_TAB),
     filters: (
       <RibbonMenu label={m.filters}>

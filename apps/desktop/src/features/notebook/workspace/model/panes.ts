@@ -12,6 +12,8 @@ export type PaneTab =
   | { id: string; kind: "details" }
   | { id: string; kind: "integrity" }
   | { id: string; kind: "bin" }
+  /** A question's canvas notes and the figures they refer to (ADR-0065). */
+  | { id: string; kind: "canvasNotes" }
   | { id: string; kind: "export"; section: ExportSection }
   | { id: string; kind: "addResult"; experimentFolder: string }
   | { id: string; kind: "results"; experimentFolder: string }

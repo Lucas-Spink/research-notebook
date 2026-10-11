@@ -26,6 +26,18 @@ export type SelectionLike =
   | { kind: "experiment"; folder: string }
   | null;
 
+/** What a table row key selects (`question:<file>` or `experiment:<folder>`), or `null` for no key or one that is neither. */
+export function selectionOfKey(key: string | null): SelectionLike {
+  if (key === null) return null;
+  if (key.startsWith("question:")) {
+    return { kind: "question", fileName: key.slice("question:".length) };
+  }
+  if (key.startsWith("experiment:")) {
+    return { kind: "experiment", folder: key.slice("experiment:".length) };
+  }
+  return null;
+}
+
 /** The group the selection belongs to: its question's file name, `unassigned`, or `null`. */
 export function questionKeyOf(
   arranged: ArrangedLike,

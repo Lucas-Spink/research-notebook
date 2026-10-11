@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentFirst, questionKeyOf } from "./resultsOrder";
+import { currentFirst, questionKeyOf, selectionOfKey } from "./resultsOrder";
 
 /** The results list opens on the question being worked on. */
 
@@ -65,5 +65,23 @@ describe("questionKeyOf", () => {
     expect(
       questionKeyOf(arranged, { kind: "experiment", folder: "EXP-777" }),
     ).toBeNull();
+  });
+});
+
+describe("selectionOfKey", () => {
+  it("reads the key a table row selects", () => {
+    expect(selectionOfKey("question:Q-001.md")).toEqual({
+      kind: "question",
+      fileName: "Q-001.md",
+    });
+    expect(selectionOfKey("experiment:EXP-004")).toEqual({
+      kind: "experiment",
+      folder: "EXP-004",
+    });
+  });
+
+  it("is nothing for no key or one it does not know", () => {
+    expect(selectionOfKey(null)).toBeNull();
+    expect(selectionOfKey("row:7")).toBeNull();
   });
 });

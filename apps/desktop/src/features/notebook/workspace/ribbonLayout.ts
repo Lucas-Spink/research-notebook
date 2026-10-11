@@ -21,6 +21,7 @@ export type CommandId =
   | "integrityCheck"
   | "sourcesPane"
   | "binPane"
+  | "canvasNotesPane"
   | "search"
   | "filters"
   | "sorting"
@@ -73,7 +74,7 @@ export const RIBBON_LAYOUT: Record<RibbonTab, readonly RibbonGroupSpec[]> = {
     { group: "project", commands: ["allProjects", "projectControls"] },
     { group: "new", commands: ["newQuestion", "newExperiment", "addResult"] },
     { group: "selection", commands: ["moveToBin", "details"] },
-    { group: "panes", commands: ["sourcesPane", "binPane"] },
+    { group: "panes", commands: ["sourcesPane", "binPane", "canvasNotesPane"] },
   ],
   view: [
     { group: "find", commands: ["search", "filters", "sorting"] },
