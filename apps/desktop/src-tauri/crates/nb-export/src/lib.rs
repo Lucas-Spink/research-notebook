@@ -27,10 +27,15 @@ use typst::foundations::Datetime;
 use typst_layout::PagedDocument;
 use typst_pdf::{PdfOptions, PdfStandard, PdfStandards, Timestamp};
 
+mod figures;
 mod project;
 mod world;
 
-pub use project::{compile_project, export_project_pdf, to_pdf_a_3b, ProjectPdf};
+pub use figures::{FigureContent, ImageKind, Omission, PdfFigure};
+pub use project::{
+    compile_project, export_project_pdf, export_project_pdf_reporting, to_pdf_a_3b, ExportedPdf,
+    ProjectPdf,
+};
 use world::FixedWorld;
 
 /// The fixed export template. Committed source, reviewed like any other
@@ -47,6 +52,8 @@ pub enum ExportError {
     Standards(typst::diag::HintedString),
     #[error("failed to export the compiled document to PDF: {0:?}")]
     Pdf(typst::ecow::EcoVec<SourceDiagnostic>),
+    #[error("a figure id is not letters and digits only (at most 16)")]
+    InvalidFigureId,
     #[error("the input has no valid `generated` time (UTC, YYYY-MM-DDTHH:MM:SSZ)")]
     BadGenerated,
 }

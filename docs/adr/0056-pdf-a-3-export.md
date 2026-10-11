@@ -172,3 +172,45 @@ Keeping the argument true:
   count** in the PDF's numbering and bibliography, although an experiment's own
   Literature block (FR-CIT-09) still leaves them out. A citation whose source
   is not in `bibliography.json` shows as `[key?]` and is named after the export.
+
+## Update from issue #102, figures (2026-10-11)
+
+Point 7 is superseded: the PDF now shows the captured figures.
+
+- **Which.** Each copied artefact of type `image` or `svg` gets a figure: its
+  newest version, with a caption naming the artefact, the file and the version.
+  `packages/format` gives it an id (`f1`, `f2`, ...) in `pdf-input.json`
+  (`schemaVersion` 2, field `figure` on each artefact) and lists the files in
+  `PdfExportFiles.figures`. PDFs, tables, scripts and linked files are listed as
+  before and get no figure.
+- **Reading.** `nb-archive::prepare_pdf_figures` reads the files through
+  `nb-fs` (`open_version_file`: captured version files only) and never writes.
+  PNG, JPEG, GIF and WebP up to 8 MiB are embedded exactly as captured, so no
+  resolution is lost; a larger one, or a TIFF or BMP, is decoded and re-encoded
+  as a PNG of at most 1024 px on its longest edge (`nb-preview`'s limit), with
+  its proportions kept. SVG up to 5 MiB is passed through. A PDF is
+  unsupported (ADR-0015). No image bytes cross the IPC boundary: the command
+  receives ids and paths and reads the files itself.
+- **Showing.** `nb-export` serves each figure as `/figures/<id>` and generates
+  `/figures.json` (`ok` with a format, or `missing`, `unsupported`,
+  `unavailable`). The template places an image at its natural size, never wider
+  than the text or taller than 20 cm, so proportions are kept and a small
+  image is not enlarged. Ids are letters and digits only (at most 16), checked
+  at the IPC boundary and again in `nb-export`; the image format is named by
+  the exporter from a fixed list, never by the researcher.
+- **Failures are visible.** Each image is test-compiled alone before it is
+  embedded, so a corrupt or unsupported file costs one figure, not the PDF. A
+  figure that is not shown is named in the document, in the place it would have
+  been, with the reason ("Figure not included: the captured file is missing"),
+  and the export reports how many there were.
+- **The template guard is narrowed, not removed.** `template_surface.rs` forbade
+  `read(` and `image(` outright. It now allows exactly one `image(` and one
+  `read("/figures/" + ...)` (as bytes, `encoding: none`), exactly two `json(`
+  (`/data.json`, `/figures.json`), and still forbids every other loader. The
+  ignored advisories in `deny.toml` concern CSL XML, syntect and fonts, not image
+  decoders, so they are unchanged. SVG is the one format that reaches an XML
+  parser from a researcher's file; it is limited in size and test-compiled first.
+- **Verified.** A PDF with an RGB PNG, a PNG with transparency and an SVG was
+  checked with veraPDF 1.30.3 against PDF/A-3b: compliant, 146 rules passed, 0
+  failed. JPEG, GIF and WebP figures were not run through veraPDF. The nightly
+  job's fixture has no figure files, so it still validates a PDF without images.

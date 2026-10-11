@@ -1,4 +1,8 @@
-import { pdfExportMessages, unresolvedCitationsNote } from "./messages";
+import {
+  figuresOmittedNote,
+  pdfExportMessages,
+  unresolvedCitationsNote,
+} from "./messages";
 import type { PdfExportModel } from "./usePdfExport";
 
 /**
@@ -38,6 +42,9 @@ export function PdfExportPanel({ model }: { model: PdfExportModel }) {
         outcome.unresolved.length > 0 && (
           <p role="alert">{unresolvedCitationsNote(outcome.unresolved)}</p>
         )}
+      {state === "done" && outcome !== null && outcome.figuresOmitted > 0 && (
+        <p role="alert">{figuresOmittedNote(outcome.figuresOmitted)}</p>
+      )}
       {state === "failed" && failure !== null && (
         <p role="alert">{pdfExportMessages.failures[failure]}</p>
       )}

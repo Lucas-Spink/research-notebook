@@ -72,7 +72,7 @@ describe("buildPdfExport (FR-ARC-06)", () => {
 
   it("dates the input by the clock it is given, to the second", () => {
     expect(inputOf().generated).toBe("2026-10-09T12:00:00Z");
-    expect(inputOf().schemaVersion).toBe(1);
+    expect(inputOf().schemaVersion).toBe(2);
   });
 
   it("writes the questions, experiments, sections and artefacts the template reads", () => {
@@ -169,5 +169,83 @@ describe("buildPdfExport citations (issue #102)", () => {
       { key: "results_notes", body: "Seen [@z:u:3HJ4MN8R]." },
     ];
     expect(projectCitationClusters(arranged)).toHaveLength(1);
+  });
+});
+
+describe("buildPdfExport figures (issue #102)", () => {
+  type Figured = {
+    experiments: {
+      artefacts: {
+        name: string;
+        figure: { id: string; caption: string } | null;
+      }[];
+    }[];
+  };
+  const figured = (arranged = machineSample()) => inputOf(arranged) as Figured;
+
+  it("names a figure for each captured image or SVG, from its newest version", () => {
+    const artefacts = figured().experiments[0]?.artefacts ?? [];
+    const named = artefacts.filter((a) => a.figure !== null);
+
+    expect(named.map((a) => a.name)).toEqual(["Volcano plot", "Diagram"]);
+    expect(named[0]?.figure).toEqual({
+      id: "f1",
+      caption: "Volcano plot (evidence/volcano.v2.png, version 2)",
+    });
+    expect(named[1]?.figure?.id).toBe("f2");
+  });
+
+  it("names none for PDFs, tables, scripts or linked files", () => {
+    const artefacts = figured().experiments[0]?.artefacts ?? [];
+    const plain = artefacts.filter((a) => a.figure === null).map((a) => a.name);
+
+    expect(plain).toContain("PCA by treatment");
+    expect(plain).toContain("Counts");
+    expect(plain).toContain("Raw counts");
+  });
+
+  it("asks the filesystem for exactly the files it named, by project path", () => {
+    expect(build().figures).toEqual([
+      {
+        id: "f1",
+        file: "_notebook/experiments/EXP-001/evidence/volcano.v2.png",
+      },
+      {
+        id: "f2",
+        file: "_notebook/experiments/EXP-001/evidence/diagram.svg",
+      },
+    ]);
+  });
+
+  it("gives every figure of the whole project its own id", () => {
+    const arranged = machineSample();
+    const second = structuredClone(arranged.questions[0]?.experiments[0]);
+    if (second === undefined) throw new Error("fixture");
+    second.experiment.file.frontmatter.ref = "EXP-002";
+    second.experiment.folder = "EXP-002";
+    arranged.questions[0]?.experiments.push(second);
+
+    const ids = build(arranged).figures.map((f) => f.id);
+
+    expect(ids).toEqual(["f1", "f2", "f3", "f4"]);
+    expect(build(arranged).figures[2]?.file).toContain("/EXP-002/");
+  });
+
+  it("names no figure for an experiment the export leaves out", () => {
+    const arranged = machineSample();
+    const item = arranged.questions[0]?.experiments[0];
+    if (item === undefined) throw new Error("fixture");
+    arranged.questions[0]?.experiments.push({ ...item, readOnly: true });
+
+    expect(build(arranged).figures).toHaveLength(2);
+  });
+
+  it("names none when the artefacts could not be read", () => {
+    const arranged = machineSample();
+    const item = arranged.questions[0]?.experiments[0];
+    if (item === undefined) throw new Error("fixture");
+    item.artefacts = { kind: "unreadable" } as never;
+
+    expect(build(arranged).figures).toEqual([]);
   });
 });

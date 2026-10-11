@@ -64,7 +64,10 @@ async function pdfInput(): Promise<string> {
       input: { inputJson: string },
     ) => {
       sent = input.inputJson;
-      return Promise.resolve({ status: "ok", data: "written" });
+      return Promise.resolve({
+        status: "ok",
+        data: { kind: "written", figuresOmitted: 0 },
+      });
     },
   } as unknown as PdfExportApi;
   await exportPdf({

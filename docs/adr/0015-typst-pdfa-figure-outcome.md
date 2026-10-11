@@ -62,3 +62,9 @@ Embed the figure as SVG, not PDF. Evidence, in
 - Pinned versions in `nb-export/Cargo.toml`: `typst`, `typst-pdf`,
   `typst-layout`, `typst-kit` all exact-pinned at `=0.15.1`, embedded-fonts
   only (no network/system font access).
+
+## Update from issue #102 (2026-10-11)
+
+The project PDF (ADR-0056) now embeds raster and SVG figures, and reports a PDF
+figure as not included, which is this ADR's finding applied. See ADR-0056,
+"Update from issue #102, figures".
