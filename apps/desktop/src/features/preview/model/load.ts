@@ -8,7 +8,13 @@ import type {
   TextPreview,
 } from "../../../ipc/bindings";
 import { assertNever } from "../../../shared/assertNever";
+import {
+  parseNotebook,
+  type NotebookProblem,
+  type NotebookResult,
+} from "./notebook";
 import type { PreviewPlan } from "./plan";
+import type { HighlightLanguage } from "./scriptFormats";
 
 /** The commands previews use, so tests can supply a fake with their shape. */
 export type PreviewApi = Pick<
@@ -18,6 +24,8 @@ export type PreviewApi = Pick<
   | "previewTable"
   | "previewText"
   | "previewNotebook"
+  | "previewScript"
+  | "previewNotebookBody"
 >;
 
 /** Which version to preview. */
@@ -34,7 +42,18 @@ export type PreviewContent =
   | { kind: "image" | "pdf" | "svg"; url: string }
   | { kind: "table"; table: TablePreview; expanded: boolean }
   | { kind: "text"; text: TextPreview }
+  | {
+      kind: "script";
+      text: TextPreview;
+      language: HighlightLanguage | null;
+    }
   | { kind: "notebook"; notebook: NotebookPreview }
+  | {
+      kind: "notebookCells";
+      info: NotebookPreview;
+      /** The cells to draw, or why they cannot be (`tooLarge` for a notebook above the read bound). */
+      notebook: NotebookResult | { ok: false; error: "tooLarge" };
+    }
   | { kind: "html" }
   | { kind: "other"; reason: "type" | "linked" };
 
@@ -82,6 +101,50 @@ async function asset(
   return toState(answer, ({ url }) => ({ kind, url }));
 }
 
+const UNKNOWN_NOTEBOOK: NotebookPreview = {
+  kind: "jupyter",
+  language: null,
+  kernel: null,
+};
+
+/**
+ * A Jupyter notebook's cells and details. The notebook is only read as text
+ * and checked here; nothing in it runs. A notebook above the read bound
+ * still shows its details, and one that is not a valid notebook says why.
+ */
+async function notebookCells(
+  api: PreviewApi,
+  { folder, file }: PreviewTarget,
+): Promise<PreviewState> {
+  const [body, info] = await Promise.all([
+    settle(() => api.previewNotebookBody(folder, file)),
+    settle(() => api.previewNotebook(folder, file)),
+  ]);
+  const details = info.status === "ok" ? info.data : UNKNOWN_NOTEBOOK;
+  if (body.status === "error") {
+    if (body.error.kind !== "tooLarge") {
+      return { status: "failed", failure: body.error.kind };
+    }
+    const tooLarge: NotebookProblem | "tooLarge" = "tooLarge";
+    return {
+      status: "ready",
+      content: {
+        kind: "notebookCells",
+        info: details,
+        notebook: { ok: false, error: tooLarge },
+      },
+    };
+  }
+  return {
+    status: "ready",
+    content: {
+      kind: "notebookCells",
+      info: details,
+      notebook: parseNotebook(body.data.text),
+    },
+  };
+}
+
 /**
  * Loads what a preview needs (spec 8). HTML and other files are never read:
  * they show details only, and HTML opens in the browser (spec 6.7).
@@ -105,10 +168,16 @@ export async function loadPreview(
       return toState(answer, (table) => ({ kind: "table", table, expanded }));
     }
     case "text": {
+      if (plan.script !== undefined) {
+        const { language } = plan.script;
+        const answer = await settle(() => api.previewScript(folder, file));
+        return toState(answer, (text) => ({ kind: "script", text, language }));
+      }
       const answer = await settle(() => api.previewText(folder, file));
       return toState(answer, (text) => ({ kind: "text", text }));
     }
     case "notebook": {
+      if (plan.cells === true) return notebookCells(api, target);
       const answer = await settle(() => api.previewNotebook(folder, file));
       return toState(answer, (notebook) => ({ kind: "notebook", notebook }));
     }

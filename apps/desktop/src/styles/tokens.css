@@ -97,6 +97,15 @@
   --control-height: 28px;
   --shadow-popover: 0 4px 14px rgb(30 41 59 / 16%);
   --shadow-dialog: 0 12px 32px rgb(30 41 59 / 28%);
+
+  /* Source code (issue #104); each colour reads at 4.5:1 or more on the surface. */
+  --syntax-keyword: #a21caf;
+  --syntax-string: #15803d;
+  --syntax-comment: #526077;
+  --syntax-number: #b45309;
+  --syntax-function: #1d4ed8;
+  --syntax-builtin: #0e7490;
+  --syntax-match: #fde68a;
 }
 
 /* Dark mode, the default: the same tokens with dark values. Everything that
@@ -164,4 +173,13 @@
 
   --shadow-popover: 0 4px 14px rgb(0 0 0 / 50%);
   --shadow-dialog: 0 12px 32px rgb(0 0 0 / 60%);
+
+  /* Source code (issue #104): Monokai's own token colours. */
+  --syntax-keyword: #f92672;
+  --syntax-string: #e6db74;
+  --syntax-comment: #b0ac96;
+  --syntax-number: #ae81ff;
+  --syntax-function: #a6e22e;
+  --syntax-builtin: #66d9ef;
+  --syntax-match: #6b5d1a;
 }

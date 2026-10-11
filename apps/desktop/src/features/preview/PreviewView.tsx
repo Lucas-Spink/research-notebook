@@ -1,4 +1,5 @@
 import { assertNever } from "../../shared/assertNever";
+import { CodeView } from "./CodeView";
 import { ImageView, SvgView, TableView, TextView } from "./ContentViews";
 import {
   FailedView,
@@ -10,6 +11,7 @@ import {
 import { previewMessages as m } from "./messages";
 import type { PreviewContent, PreviewState } from "./model/load";
 import type { PreviewPlan } from "./model/plan";
+import { NotebookCells, NotebookProblemView } from "./NotebookCells";
 import { PdfView } from "./PdfViews";
 import "./Preview.css";
 
@@ -71,6 +73,31 @@ function Content({
       );
     case "text":
       return <TextView name={name} text={content.text} />;
+    case "script":
+      return (
+        <CodeView
+          name={p.details.fileName}
+          text={content.text}
+          language={content.language}
+          onOpenExternally={p.onOpenExternally}
+        />
+      );
+    case "notebookCells":
+      return content.notebook.ok ? (
+        <NotebookCells
+          details={p.details}
+          info={content.info}
+          notebook={content.notebook.value}
+          onOpenExternally={p.onOpenExternally}
+        />
+      ) : (
+        <NotebookProblemView
+          details={p.details}
+          info={content.info}
+          problem={content.notebook.error}
+          onOpenInVsCode={p.onOpenInVsCode}
+        />
+      );
     case "notebook":
       return (
         <NotebookView

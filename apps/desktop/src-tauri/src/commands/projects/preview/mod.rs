@@ -21,8 +21,8 @@ use tauri::{AppHandle, Manager, State};
 
 use super::folders::{FolderHandle, PickedFolders};
 pub use types::{
-    AssetFile, AssetKind, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview, TextPreview,
-    VersionFileProblem, VersionPath,
+    AssetFile, AssetKind, NotebookBody, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview,
+    TextPreview, VersionFileProblem, VersionPath,
 };
 
 /// The thumbnail cache of this run, or `None` if its folder could not be
@@ -162,6 +162,33 @@ pub async fn preview_text(
     file: VersionPath,
 ) -> Result<TextPreview, PreviewFailure> {
     in_project(&folders, folder, move |root| read::text(&root, &file)).await
+}
+
+/// A script version for the viewer: up to 20,000 lines, from at most 4 MiB.
+/// The file is only read, never run.
+#[tauri::command]
+#[specta::specta]
+pub async fn preview_script(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    file: VersionPath,
+) -> Result<TextPreview, PreviewFailure> {
+    in_project(&folders, folder, move |root| read::script(&root, &file)).await
+}
+
+/// A Jupyter notebook version's whole text, up to 16 MiB, for the webview to
+/// validate and draw. It is data only: nothing is executed.
+#[tauri::command]
+#[specta::specta]
+pub async fn preview_notebook_body(
+    folders: State<'_, PickedFolders>,
+    folder: FolderHandle,
+    file: VersionPath,
+) -> Result<NotebookBody, PreviewFailure> {
+    in_project(&folders, folder, move |root| {
+        read::notebook_text(&root, &file)
+    })
+    .await
 }
 
 /// The language and kernel of a notebook version, from at most 1 MiB.

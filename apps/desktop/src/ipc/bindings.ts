@@ -145,6 +145,16 @@ export const commands = {
 	/**  The language and kernel of a notebook version, from at most 1 MiB. */
 	previewNotebook: (folder: FolderHandle, file: VersionPath) => typedError<NotebookPreview, PreviewFailure>(__TAURI_INVOKE("preview_notebook", { folder, file })),
 	/**
+	 *  A script version for the viewer: up to 20,000 lines, from at most 4 MiB.
+	 *  The file is only read, never run.
+	 */
+	previewScript: (folder: FolderHandle, file: VersionPath) => typedError<TextPreview, PreviewFailure>(__TAURI_INVOKE("preview_script", { folder, file })),
+	/**
+	 *  A Jupyter notebook version's whole text, up to 16 MiB, for the webview to
+	 *  validate and draw. It is data only: nothing is executed.
+	 */
+	previewNotebookBody: (folder: FolderHandle, file: VersionPath) => typedError<NotebookBody, PreviewFailure>(__TAURI_INVOKE("preview_notebook_body", { folder, file })),
+	/**
 	 *  Which of an experiment's captured version files are missing or cannot be
 	 *  opened (FR-ARC-01). Answers by position in `files`, so no path comes back.
 	 */
@@ -831,6 +841,15 @@ export type ManifestText = { kind: "found"; text: string } |
 { kind: "missing" } | 
 /**  There is something at the manifest's place that cannot be read as text. */
 { kind: "unreadable" };
+
+/**
+ *  The whole text of a Jupyter notebook, for the webview to validate and draw.
+ *  Nothing in it is parsed or run on this side.
+ */
+export type NotebookBody = {
+	text: string,
+	encoding: Encoding,
+};
 
 /**  The question files and experiment folders a project has, by name, sorted. */
 export type NotebookFiles = {

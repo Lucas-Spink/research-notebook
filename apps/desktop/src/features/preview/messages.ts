@@ -40,6 +40,59 @@ export const previewMessages = {
     label: (name: string) => `Contents of ${name}`,
     truncated: "Only the first 500 lines are shown.",
   },
+  code: {
+    label: (name: string) => `Source of ${name}`,
+    languages: { python: "Python", r: "R", plain: "Script" },
+    readOnly: "Read only",
+    lines: (count: number) =>
+      count === 1 ? "1 line" : `${count.toLocaleString("en-GB")} lines`,
+    openExternally: "Open externally",
+    wrap: "Wrap lines",
+    search: "Search in script",
+    searchPlaceholder: "Find…",
+    next: "Next match",
+    previous: "Previous match",
+    noMatches: "No matches",
+    matches: (current: number, total: number, capped: boolean) =>
+      `${current} of ${total.toLocaleString("en-GB")}${capped ? "+" : ""}`,
+    truncated: (lines: number) =>
+      `Only the first ${lines.toLocaleString("en-GB")} lines are shown. Open the script externally to read the rest.`,
+    empty: "This script is empty.",
+  },
+  cells: {
+    label: (name: string) => `Cells of ${name}`,
+    summary: (count: number) =>
+      count === 0
+        ? "No cells"
+        : count === 1
+          ? "1 cell"
+          : `${count.toLocaleString("en-GB")} cells`,
+    readOnly: "Saved output only; nothing is run",
+    collapseAll: "Collapse all cells",
+    expandAll: "Expand all cells",
+    collapse: (n: number) => `Collapse cell ${n}`,
+    expand: (n: number) => `Expand cell ${n}`,
+    kinds: { markdown: "Markdown", code: "Code", raw: "Raw" },
+    input: (count: number | null) => `In [${count ?? " "}]:`,
+    output: "Output",
+    errorOutput: "Error",
+    stderr: "Messages",
+    cut: "Output cut short.",
+    image: (mime: string) =>
+      `A saved image (${mime}) is not shown here. Open the notebook in its own application to see it.`,
+    html: "A saved HTML output is not shown here, because it could contain scripts.",
+    unsupported: (mime: string) => `An output of type ${mime} is not shown.`,
+    link: (href: string) => `Link to ${href}`,
+    image_alt: (alt: string) => (alt === "" ? "[image]" : `[image: ${alt}]`),
+    problems: {
+      notJson:
+        "This file is not valid notebook JSON, so its cells cannot be shown.",
+      notNotebook:
+        "This file does not have the structure of a Jupyter notebook, so its cells cannot be shown.",
+      unsupportedVersion: "Only notebook format 4 can be shown as cells.",
+      tooLarge: "This notebook is too large to show as cells (over 16 MB).",
+    },
+  },
   notebook: {
     kinds: {
       jupyter: "Jupyter notebook",

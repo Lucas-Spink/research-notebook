@@ -132,7 +132,7 @@ function LinkScripts({
         disabled={add.busy}
         onClick={() => void add.pickScripts()}
       >
-        {m.linkScript}
+        {m.addScript}
       </button>
       <div role="status" aria-live="polite" className="code-folder__notes">
         {add.notes.map((note, index) => (

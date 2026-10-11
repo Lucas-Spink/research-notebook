@@ -198,6 +198,15 @@ pub struct TextPreview {
     pub complete: bool,
 }
 
+/// The whole text of a Jupyter notebook, for the webview to validate and draw.
+/// Nothing in it is parsed or run on this side.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct NotebookBody {
+    pub text: String,
+    pub encoding: Encoding,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum NotebookKind {

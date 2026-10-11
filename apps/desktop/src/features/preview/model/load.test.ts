@@ -46,14 +46,88 @@ describe("loadPreview", () => {
     ]);
   });
 
-  it("reads text and notebooks through their own commands", async () => {
+  it("reads plain text through the text command", async () => {
     const api = fakePreviewApi();
-    await loadPreview(api, TARGET, plan("a.py"), false);
-    await loadPreview(api, TARGET, plan("a.ipynb"), false);
+    const state = await loadPreview(api, TARGET, plan("notes.txt"), false);
+    expect(api.calls.map((c) => c.command)).toEqual(["previewText"]);
+    expect(state).toMatchObject({
+      status: "ready",
+      content: { kind: "text" },
+    });
+  });
+
+  it("reads an approved script through the script command, with its language", async () => {
+    const api = fakePreviewApi();
+    const py = await loadPreview(api, TARGET, plan("a.py"), false);
+    const r = await loadPreview(api, TARGET, plan("a.R"), false);
+    const sh = await loadPreview(api, TARGET, plan("a.sh"), false);
     expect(api.calls.map((c) => c.command)).toEqual([
-      "previewText",
-      "previewNotebook",
+      "previewScript",
+      "previewScript",
+      "previewScript",
     ]);
+    expect([py, r, sh]).toMatchObject([
+      { content: { kind: "script", language: "python" } },
+      { content: { kind: "script", language: "r" } },
+      { content: { kind: "script", language: null } },
+    ]);
+  });
+
+  it("reads a Jupyter notebook's cells, and its details beside them", async () => {
+    const api = fakePreviewApi();
+    const state = await loadPreview(api, TARGET, plan("a.ipynb"), false);
+    expect(api.calls.map((c) => c.command).sort()).toEqual([
+      "previewNotebook",
+      "previewNotebookBody",
+    ]);
+    expect(state).toMatchObject({
+      status: "ready",
+      content: {
+        kind: "notebookCells",
+        info: { kind: "jupyter" },
+        notebook: { ok: true },
+      },
+    });
+  });
+
+  it("reports a damaged notebook without failing the preview", async () => {
+    const api = fakePreviewApi({ notebookText: "{ not json" });
+    expect(
+      await loadPreview(api, TARGET, plan("a.ipynb"), false),
+    ).toMatchObject({
+      status: "ready",
+      content: {
+        kind: "notebookCells",
+        notebook: { ok: false, error: "notJson" },
+      },
+    });
+  });
+
+  it("falls back to the notebook's details when it is too large to draw", async () => {
+    const api = fakePreviewApi({ notebookFail: { kind: "tooLarge" } });
+    expect(
+      await loadPreview(api, TARGET, plan("a.ipynb"), false),
+    ).toMatchObject({
+      status: "ready",
+      content: {
+        kind: "notebookCells",
+        notebook: { ok: false, error: "tooLarge" },
+      },
+    });
+  });
+
+  it("fails the preview when the notebook cannot be read at all", async () => {
+    const api = fakePreviewApi({ notebookFail: { kind: "fileMissing" } });
+    expect(await loadPreview(api, TARGET, plan("a.ipynb"), false)).toEqual({
+      status: "failed",
+      failure: "fileMissing",
+    });
+  });
+
+  it("shows an R Markdown document's details only, without reading its cells", async () => {
+    const api = fakePreviewApi();
+    await loadPreview(api, TARGET, plan("a.Rmd"), false);
+    expect(api.calls.map((c) => c.command)).toEqual(["previewNotebook"]);
   });
 
   it("never asks for the content of HTML or other files (spec 6.7, 8)", async () => {
