@@ -7,7 +7,7 @@ const AGREED = {
     project: ["allProjects", "projectControls"],
     new: ["newQuestion", "newExperiment", "addResult"],
     selection: ["moveToBin", "details"],
-    panes: ["sourcesPane", "binPane"],
+    panes: ["sourcesPane", "binPane", "canvasNotesPane"],
   },
   view: {
     find: ["search", "filters", "sorting"],

@@ -67,6 +67,13 @@ export function PaneTabIcon({ tab, artefactType }: Props) {
           <path d="M5.8 8.2l1.6 1.6 3-3.2" />
         </Glyph>
       );
+    case "canvasNotes":
+      return (
+        <Glyph>
+          <path d="M3 3h6.5v5H3zM6.5 10.5h6.5v2.5H6.5z" />
+          <path d="M9 8l1.5 2.5" />
+        </Glyph>
+      );
     case "bin":
       return (
         <Glyph>
