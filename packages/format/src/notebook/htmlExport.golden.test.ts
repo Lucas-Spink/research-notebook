@@ -43,6 +43,7 @@ describe("export golden files (S6-G02)", () => {
     arranged: sample(),
     projectName: "Yeast study",
     locale: "en-GB",
+    generated: "2026-10-11T14:30:05Z",
     assets: exportAssets(),
   });
 

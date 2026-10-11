@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AUTHOR_DATE_STYLE, EN_US_LOCALE, NUMERIC_STYLE } from "./bundled";
+import {
+  AUTHOR_DATE_STYLE,
+  DEFAULT_STYLE_XML,
+  EN_US_LOCALE,
+  NUMERIC_STYLE,
+} from "./bundled";
 import {
   renderLiterature,
   type CitationCluster,
@@ -132,5 +137,116 @@ describe("renderLiterature (FR-CIT-10)", () => {
     const before = JSON.stringify(literature);
     renderLiterature(literature);
     expect(JSON.stringify(literature)).toBe(before);
+  });
+});
+
+describe("renderLiterature clusterTexts (in-text citations for exports)", () => {
+  function texts(literature: LiteratureInput) {
+    const result = renderLiterature(literature);
+    if (!result.ok) throw new Error(result.error.message);
+    return result.value.clusterTexts;
+  }
+
+  it("gives one in-text string per cluster, numbered by first appearance", () => {
+    expect(
+      texts(
+        input([
+          cite("z:u:SMIT2222"),
+          cite("z:u:LOVE2222"),
+          cite("z:u:SMIT2222"),
+        ]),
+      ),
+    ).toEqual(["[1]", "[2]", "[1]"]);
+  });
+
+  it("renders author-date citations from the style", () => {
+    expect(texts(input([cite("z:u:SMIT2222")], AUTHOR_DATE_STYLE))).toEqual([
+      "(Smith 2020)",
+    ]);
+  });
+
+  it("keeps the items of one cluster together", () => {
+    const [only] = texts(input([cite("z:u:SMIT2222", "z:u:LOVE2222")]));
+    expect(only).toContain("1");
+    expect(only).toContain("2");
+  });
+
+  it("stays aligned with the clusters when one cannot be resolved", () => {
+    expect(
+      texts(
+        input([
+          cite("z:u:GONE2222"),
+          cite("z:u:SMIT2222"),
+          cite("z:u:ADAM2222"),
+        ]),
+      ),
+    ).toEqual([null, "[1]", "[2]"]);
+  });
+
+  it("is plain text: no markup or entities from the engine", () => {
+    const [text] = texts(input([cite("z:u:SMIT2222")], AUTHOR_DATE_STYLE));
+    expect(text).not.toMatch(/[<>]|&#?\w+;/u);
+  });
+});
+
+describe("the default style", () => {
+  it("is author-date, so a project that has chosen nothing cites (Smith 2020)", () => {
+    expect(DEFAULT_STYLE_XML).toBe(AUTHOR_DATE_STYLE);
+    const result = renderLiterature(
+      input([cite("z:u:SMIT2222")], DEFAULT_STYLE_XML),
+    );
+    expect(result.ok && result.value.clusterTexts).toEqual(["(Smith 2020)"]);
+  });
+});
+
+describe("author-date in-text citations of many authors", () => {
+  const authors = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      family: `Author${i + 1}`,
+      given: "A.",
+    }));
+  const many = (id: string, n: number): LiteratureSource => ({
+    id,
+    type: "article-journal",
+    title: "A study",
+    author: authors(n),
+    issued: { "date-parts": [[2025]] },
+  });
+  const texts = (items: LiteratureSource[], clusters: CitationCluster[]) => {
+    const result = renderLiterature({
+      clusters,
+      items,
+      styleXml: AUTHOR_DATE_STYLE,
+      localeXml: EN_US_LOCALE,
+    });
+    if (!result.ok) throw new Error(result.error.message);
+    return result.value;
+  };
+
+  it("names the first author and 'et al.' from three authors up, not all of them", () => {
+    const out = texts(
+      [many("z:u:BIGG2222", 45), many("z:u:SIX22222", 6)],
+      [cite("z:u:BIGG2222"), cite("z:u:SIX22222")],
+    );
+    expect(out.clusterTexts).toEqual([
+      "(Author1 et al. 2025)",
+      "(Author1 et al. 2025)",
+    ]);
+  });
+
+  it("keeps one and two authors in full", () => {
+    const out = texts(
+      [many("z:u:ONE22222", 1), many("z:u:TWO22222", 2)],
+      [cite("z:u:ONE22222"), cite("z:u:TWO22222")],
+    );
+    expect(out.clusterTexts).toEqual([
+      "(Author1 2025)",
+      "(Author1 & Author2 2025)",
+    ]);
+  });
+
+  it("still lists every author in the bibliography entry", () => {
+    const out = texts([many("z:u:SIX22222", 6)], [cite("z:u:SIX22222")]);
+    expect(out.entries[0]).toContain("Author6");
   });
 });

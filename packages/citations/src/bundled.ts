@@ -25,7 +25,7 @@ const SHARED_MACROS = `
   </macro>
   <macro name="author-short">
     <names variable="author">
-      <name form="short" and="symbol" delimiter=", " delimiter-precedes-last="never"/>
+      <name form="short" and="symbol" delimiter=", " delimiter-precedes-last="never" et-al-min="3" et-al-use-first="1"/>
     </names>
   </macro>
   <macro name="container">
@@ -104,8 +104,12 @@ export const EN_US_LOCALE = `<?xml version="1.0" encoding="utf-8"?>
   </terms>
 </locale>`;
 
-/** What a project falls back to when its `citation_style` file is not in `styles/`. */
-export const DEFAULT_STYLE_XML = NUMERIC_STYLE;
+/**
+ * What a project falls back to when its `citation_style` file is not in
+ * `styles/`: author-date, so in-text citations name the source, such as
+ * (Smith 2020). A project that chose numeric keeps it.
+ */
+export const DEFAULT_STYLE_XML = AUTHOR_DATE_STYLE;
 
 /** The styles a project can adopt without importing one, with the file each is copied to in `styles/`. */
 export const BUNDLED_STYLES: readonly {

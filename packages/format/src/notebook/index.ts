@@ -137,6 +137,7 @@ export {
   type ManifestEntry,
   type ManifestParseError,
 } from "./manifestParse";
+export { EXPORT_STAMP, exportInstant, exportStamp } from "./exportStamp";
 export {
   htmlAssetRequests,
   renderHtmlExport,

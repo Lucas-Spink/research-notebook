@@ -3,7 +3,7 @@ import type { GitBundleOutcome } from "../../ipc/bindings";
 import type { ManifestFailure } from "./model/generate";
 import type { GitBundleFailure } from "./model/gitBundle";
 import type { HtmlExportFailure, HtmlExportOutcome } from "./model/htmlExport";
-import type { PdfExportFailure } from "./model/pdfExport";
+import type { PdfExportFailure, PdfExportOutcome } from "./model/pdfExport";
 import type {
   MachineExportFailure,
   MachineExportOutcome,
@@ -168,7 +168,7 @@ export function describeBundle(
 export const htmlExportMessages = {
   heading: "HTML export",
   intro:
-    "Writes a set of static web pages into exports/html/: one for each question and experiment, with figures reduced to 800 pixels, the first rows of tables, and links to the original files. Open index.html in any browser. The pages hold no scripts and load nothing from the internet. Your captured files are not changed. Pages from an earlier export that are no longer needed are left in place.",
+    "Writes a set of static web pages into a new dated folder in exports/html/: one for each question and experiment, one listing every source cited, with citations formatted in the project's citation style, figures reduced to 800 pixels, the first rows of tables, and links to the original files. Each export is kept in its own folder named for the date and time it was made (UTC), so earlier exports are never replaced. Open index.html in the folder in any browser. The pages hold no scripts and load nothing from the internet. Your captured files are not changed. Pages from an earlier export that are no longer needed are left in place.",
   write: "Write HTML export",
   writing: "Writingâ€¦",
   again: "Write again",
@@ -178,6 +178,8 @@ export const htmlExportMessages = {
   failures: {
     filesNotPrepared:
       "The figures and tables could not be read, so nothing was written. Try again.",
+    bibliographyFailed:
+      "The HTML export was not written because the citations could not be formatted with the project's citation style.",
     notWritable:
       "The HTML export was not written because this project is not open for writing.",
     writeFailed:
@@ -187,7 +189,7 @@ export const htmlExportMessages = {
 
 export function exported(outcome: HtmlExportOutcome): string {
   const pages = plural(outcome.pages, "page", "pages");
-  return `${pages} written to exports/html/. Open index.html to start.`;
+  return `${pages} written to ${outcome.location.replace(/\/index\.html$/u, "/")}. Open index.html there to start.`;
 }
 
 export function notPreparedNote(count: number): string {
@@ -196,6 +198,11 @@ export function notPreparedNote(count: number): string {
 
 export function failedPagesNote(names: readonly string[]): string {
   return `These pages could not be written and are as they were before: ${names.join(", ")}.`;
+}
+
+/** What is said when a citation names a source that is not in the project's bibliography. */
+export function unresolvedCitationsNote(citekeys: readonly string[]): string {
+  return `${plural(citekeys.length, "source is", "sources are")} cited but not in the project's bibliography, so ${citekeys.length === 1 ? "its citations are" : "their citations are"} marked with a question mark: ${citekeys.join(", ")}.`;
 }
 
 /** Text of the machine-readable export (FR-ARC-07, ADR-0055). */
@@ -231,14 +238,15 @@ export function failedFilesNote(names: readonly string[]): string {
 export const pdfExportMessages = {
   heading: "PDF/A export",
   intro:
-    "Writes exports/pdf/project.pdf, a single archival PDF/A-3b document with every question, experiment, section and artefact listed, and one bibliography of every source cited anywhere in the project. notebook.json and bibliography.json are attached inside it. Figures are not included; artefacts are listed with their versions and checksums. Your captured files are not changed.",
+    "Writes a new dated file in exports/pdf/ (project-DATE.pdf, the date and time in UTC), so earlier PDFs are never replaced. It is a single archival PDF/A-3b document with every question, experiment, section and artefact listed, and one bibliography of every source cited anywhere in the project. notebook.json and bibliography.json are attached inside it. Figures are not included; artefacts are listed with their versions and checksums. Your captured files are not changed.",
   write: "Write PDF/A export",
   writing: "Writing…",
   again: "Write again",
   notWritten: "The PDF/A export has not been written yet.",
   readOnly: "This project is read-only, so the PDF/A export cannot be written.",
   notLoaded: "The project is still loading.",
-  exported: "PDF written to exports/pdf/project.pdf.",
+  exported: (outcome: PdfExportOutcome): string =>
+    `PDF written to ${outcome.location}.`,
   failures: {
     filesNotRead:
       "The PDF/A export was not written because the project's sources could not be read. Try again.",

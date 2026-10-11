@@ -3,8 +3,8 @@ import type { Arranged, ArrangedExperiment, ArrangedQuestion } from "./arrange";
 import {
   artefactsHtml,
   latestVersion,
-  linkedHref,
-  versionHref,
+  runLinkedHref,
+  runVersionHref,
   versionKey,
   type ExportAsset,
 } from "./htmlArtefacts";
@@ -12,8 +12,20 @@ import { HTML_EXPORT_TEXT as T } from "./htmlExportText";
 import { escapeHtml, renderMarkdownHtml, type RefLinks } from "./htmlMarkdown";
 import { HTML_EXPORT_STYLE } from "./htmlExportStyle";
 import { experimentsOf } from "./manifest";
+import {
+  motivationKey,
+  preambleKey,
+  sectionCitations,
+  sectionKey,
+  type Exported,
+} from "./exportSections";
+import type { CitationCursor } from "./exportCitations";
 
 export type { ExportAsset } from "./htmlArtefacts";
+export type { Exported } from "./exportSections";
+
+/** The page that lists the sources cited, so no question or experiment may take its name. */
+const BIBLIOGRAPHY_PAGE = "bibliography";
 
 /** One file of the export, named relative to `_notebook/exports/html/`. */
 export interface HtmlPage {
@@ -26,9 +38,24 @@ export interface HtmlExportInput {
   projectName: string;
   /** BCP 47, from `project.yaml`; becomes the pages' `lang`. */
   locale: string;
+  /** When the export was made, UTC to the second (`2026-10-11T14:30:05Z`); shown on every page. */
+  generated: string;
   /** By project-relative path of the version file, as `htmlAssetRequests` listed them. */
   assets: ReadonlyMap<string, ExportAsset>;
+  /**
+   * The project's citations as the citation engine formatted them: the in-text
+   * form of each citation of `projectCitationClusters` (`null` where a source
+   * could not be resolved), and the bibliography entries as Markdown. Without
+   * it, citations are shown as written and there is no bibliography page.
+   */
+  citations?: {
+    texts: readonly (string | null)[];
+    bibliography: readonly string[];
+  };
 }
+
+/** Draws one section's citation texts; `undefined` where citations are shown as written. */
+type Cites = ((key: string) => CitationCursor) | undefined;
 
 /** A figure or table the filesystem helper should prepare. */
 export interface HtmlAssetRequest {
@@ -39,20 +66,13 @@ export interface HtmlAssetRequest {
   kind: "image" | "table";
 }
 
-/** What the exports include and what they name as left out. */
-export type Exported = {
-  questions: ArrangedQuestion[];
-  experiments: ArrangedExperiment[];
-  skipped: string[];
-};
-
 /**
  * What is exported: everything except a question or experiment that shares an
  * ID with an earlier one (spec P6) or whose page name an earlier one took.
  * Those are named on the index, never dropped silently.
  */
 export function selectExported(arranged: Arranged): Exported {
-  const taken = new Set<string>(["index"]);
+  const taken = new Set<string>(["index", BIBLIOGRAPHY_PAGE]);
   const skipped: string[] = [];
   const free = (ref: string, readOnly: boolean): boolean => {
     if (readOnly || taken.has(ref)) {
@@ -116,7 +136,7 @@ function shell(input: HtmlExportInput, title: string, body: string): string {
 <main>
 ${body}
 </main>
-<footer>${T.generated}</footer>
+<footer>${T.generated} ${T.exportedAt} <time datetime="${escapeHtml(input.generated)}">${escapeHtml(input.generated)}</time>.</footer>
 </body>
 </html>
 `;
@@ -124,6 +144,10 @@ ${body}
 
 function pageLink(ref: string, title: string): string {
   return `<a href="${escapeHtml(ref)}.html">${escapeHtml(ref)}</a> ${escapeHtml(title)}`;
+}
+
+function hasBibliography(input: HtmlExportInput): boolean {
+  return (input.citations?.bibliography.length ?? 0) > 0;
 }
 
 function indexPage(input: HtmlExportInput, shown: Exported): HtmlPage {
@@ -148,6 +172,11 @@ function indexPage(input: HtmlExportInput, shown: Exported): HtmlPage {
       `<h2>${T.noQuestion}</h2><ul>${loose.map(experimentItem).join("")}</ul>`,
     );
   }
+  if (hasBibliography(input)) {
+    parts.push(
+      `<p><a href="${BIBLIOGRAPHY_PAGE}.html">${T.bibliography}</a></p>`,
+    );
+  }
   if (shown.skipped.length > 0) {
     const items = shown.skipped
       .map((r) => `<li>${escapeHtml(r)}</li>`)
@@ -166,9 +195,14 @@ function questionPage(
   input: HtmlExportInput,
   q: ArrangedQuestion,
   refs: RefLinks,
+  cites: Cites,
 ): HtmlPage {
   const { ref, title } = q.question.file.frontmatter;
-  const motivation = renderMarkdownHtml(q.question.file.body, refs);
+  const motivation = renderMarkdownHtml(
+    q.question.file.body,
+    refs,
+    cites?.(motivationKey(ref)),
+  );
   const items = q.experiments
     .map((e) => {
       const f = e.experiment.file.frontmatter;
@@ -206,6 +240,7 @@ function experimentPage(
   item: ArrangedExperiment,
   questionRef: string | null,
   refs: RefLinks,
+  cites: Cites,
 ): HtmlPage {
   const { frontmatter: f, body } = item.experiment.file;
   const facts = [
@@ -223,10 +258,14 @@ function experimentPage(
       ? ""
       : `<p>${T.question}: <a href="${escapeHtml(questionRef)}.html">${escapeHtml(questionRef)}</a></p>`,
     `<dl>${facts}</dl>`,
-    renderMarkdownHtml(body.preamble, refs),
+    renderMarkdownHtml(body.preamble, refs, cites?.(preambleKey(f.ref))),
   ];
-  for (const section of body.sections) {
-    const html = renderMarkdownHtml(section.body, refs);
+  for (const [index, section] of body.sections.entries()) {
+    const html = renderMarkdownHtml(
+      section.body,
+      refs,
+      cites?.(sectionKey(f.ref, index)),
+    );
     if (html === "") continue;
     const heading =
       section.key === "unknown" ? section.heading : SECTION_TITLES[section.key];
@@ -257,6 +296,24 @@ function experimentPage(
   };
 }
 
+/** A formatted entry as Markdown; a leading number such as `1.` stays text instead of starting a list. */
+function entryHtml(entry: string): string {
+  const escaped = entry.replace(/^(\d+)\.(\s)/u, "$1\\.$2");
+  return renderMarkdownHtml(escaped, () => null);
+}
+
+function bibliographyPage(input: HtmlExportInput): HtmlPage {
+  const entries = input.citations?.bibliography ?? [];
+  const body = [
+    `<h1>${T.bibliography}</h1>`,
+    ...entries.map((entry) => entryHtml(entry)),
+  ].join("\n");
+  return {
+    name: `${BIBLIOGRAPHY_PAGE}.html`,
+    html: shell(input, T.bibliography, body),
+  };
+}
+
 /** Where a reference to an artefact leads, project-wide: references may name another experiment's artefact. */
 function referenceLinks(shown: Exported): RefLinks {
   const found = new Map<string, { artefact: ArtefactModel; folder: string }>();
@@ -270,12 +327,12 @@ function referenceLinks(shown: Exported): RefLinks {
     const hit = found.get(ulid);
     if (hit === undefined) return null;
     const { artefact, folder } = hit;
-    if (artefact.mode === "link") return linkedHref(artefact.source);
+    if (artefact.mode === "link") return runLinkedHref(artefact.source);
     const chosen =
       version === null
         ? latestVersion(artefact)
         : artefact.versions.find((v) => v.v === version);
-    return chosen === undefined ? null : versionHref(folder, chosen.file);
+    return chosen === undefined ? null : runVersionHref(folder, chosen.file);
   };
 }
 
@@ -289,6 +346,10 @@ function referenceLinks(shown: Exported): RefLinks {
 export function renderHtmlExport(input: HtmlExportInput): HtmlPage[] {
   const shown = selectExported(input.arranged);
   const refs = referenceLinks(shown);
+  const cites: Cites =
+    input.citations === undefined
+      ? undefined
+      : sectionCitations(shown, input.citations.texts);
   const questionOf = new Map<ArrangedExperiment, string>();
   for (const q of shown.questions) {
     for (const e of q.experiments) {
@@ -297,14 +358,17 @@ export function renderHtmlExport(input: HtmlExportInput): HtmlPage[] {
   }
   const pages: HtmlPage[] = [indexPage(input, shown)];
   for (const q of shown.questions) {
-    pages.push(questionPage(input, q, refs));
+    pages.push(questionPage(input, q, refs, cites));
     for (const e of q.experiments) {
-      pages.push(experimentPage(input, e, questionOf.get(e) ?? null, refs));
+      pages.push(
+        experimentPage(input, e, questionOf.get(e) ?? null, refs, cites),
+      );
     }
   }
   for (const e of experimentsOf(input.arranged)) {
     if (questionOf.has(e) || !shown.experiments.includes(e)) continue;
-    pages.push(experimentPage(input, e, null, refs));
+    pages.push(experimentPage(input, e, null, refs, cites));
   }
+  if (hasBibliography(input)) pages.push(bibliographyPage(input));
   return pages;
 }

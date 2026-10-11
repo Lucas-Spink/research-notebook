@@ -1,13 +1,13 @@
 import {
   buildPdfExport,
+  exportStamp,
   projectCitationClusters,
   type Arranged,
-  type CitationCluster,
-  type PdfBibliography,
   type ProjectYamlModel,
   type Result,
 } from "@research-notebook/format";
 import type { commands } from "../../../ipc/bindings";
+import type { FormatBibliography } from "./citations";
 
 /** The commands the PDF export is made through; it writes `exports/pdf/project.pdf`. */
 export type PdfExportApi = Pick<
@@ -16,7 +16,13 @@ export type PdfExportApi = Pick<
 >;
 
 /** What the person is told after the PDF was written. */
-export type PdfExportOutcome = { written: true };
+export type PdfExportOutcome = {
+  written: true;
+  /** Citekeys cited but not in `bibliography.json`; the PDF marks each citation of them. */
+  unresolved: readonly string[];
+  /** Where to open the PDF, relative to `_notebook/`: this run's own, dated, file. */
+  location: string;
+};
 
 /** Why no PDF was written. Nothing is claimed in any case. */
 export type PdfExportFailure =
@@ -25,14 +31,6 @@ export type PdfExportFailure =
   | "notBuilt"
   | "notWritable"
   | "writeFailed";
-
-/**
- * Formats the sources cited anywhere in the project as one bibliography, with
- * a fresh citation context (FR-ARC-06). `null` when it could not be formatted.
- */
-export type FormatBibliography = (
-  clusters: readonly CitationCluster[],
-) => Promise<PdfBibliography | null>;
 
 type Input = {
   api: PdfExportApi;
@@ -75,19 +73,25 @@ export async function exportPdf(
   const clusters = projectCitationClusters(input.arranged);
   const bibliography =
     clusters.length === 0
-      ? { entries: [] }
+      ? { entries: [], clusterTexts: [], unresolved: [] }
       : await input.formatBibliography(clusters).catch(() => null);
   if (bibliography === null) return { ok: false, error: "bibliographyFailed" };
 
+  // One reading of the clock: the file name and the date inside the PDF agree.
+  const instant = input.now();
+  const stamp = exportStamp(instant);
   const built = buildPdfExport({
     arranged: input.arranged,
     project: input.project,
     appVersion: version,
-    bibliography,
-    now: input.now,
+    bibliography: {
+      entries: bibliography.entries,
+      clusterTexts: bibliography.clusterTexts,
+    },
+    now: () => instant,
   });
   const written = await input.api
-    .writePdfExport(input.folder, {
+    .writePdfExport(input.folder, stamp, {
       inputJson: built.input,
       notebookJson: built.notebookJson,
       bibliographyJson,
@@ -103,7 +107,14 @@ export async function exportPdf(
   }
   switch (written.data) {
     case "written":
-      return { ok: true, value: { written: true } };
+      return {
+        ok: true,
+        value: {
+          written: true,
+          unresolved: bibliography.unresolved,
+          location: `exports/pdf/project-${stamp}.pdf`,
+        },
+      };
     case "notBuilt":
       return { ok: false, error: "notBuilt" };
     case "writeFailed":

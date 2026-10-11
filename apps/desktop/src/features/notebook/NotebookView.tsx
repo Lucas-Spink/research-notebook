@@ -313,6 +313,10 @@ function NotebookViewBody({
     arranged,
     projectName: loadedProject?.name ?? null,
   });
+  const formatBibliography = useProjectBibliography({
+    folder,
+    styleFile: notebook.citationStyle,
+  });
   const htmlExport = useHtmlExport({
     api: commands,
     folder,
@@ -322,6 +326,8 @@ function NotebookViewBody({
         ? null
         : { name: loadedProject.name, locale: loadedProject.locale },
     writable,
+    formatBibliography,
+    now: () => new Date(),
   });
   const archive = useArchiveProject({
     api: commands,
@@ -338,10 +344,6 @@ function NotebookViewBody({
     project: loadedProject ?? null,
     writable,
     now: () => new Date(),
-  });
-  const formatBibliography = useProjectBibliography({
-    folder,
-    styleFile: notebook.citationStyle,
   });
   const pdfExport = usePdfExport({
     api: commands,

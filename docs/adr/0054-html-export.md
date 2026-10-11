@@ -112,3 +112,22 @@ rule 2) and only `nb-fs` writes (rule 1).
   structure, not their look); multi-page TIFF, CMYK and 16-bit images beyond
   what `nb-preview` already covers; a very large project (page size grows with
   the number of artefacts); Windows only.
+
+## Update from issue #102 (2026-10-11)
+
+- **Points 1 and 3 and 10 and 11, dated runs.** Each export is written to its
+  own folder, `_notebook/exports/html/<stamp>/`, where `<stamp>` is the UTC
+  instant of the run, such as `2026-10-11T14-30-05Z` (no colons, so it is a
+  valid Windows name, and it sorts in time order). An earlier export is kept
+  whole and never touched; a run in the same second replaces only itself. Each
+  page's footer says when it was made. Reduced figures are in the run's
+  `assets/`. Because pages sit one level deeper, links to originals are
+  `../../../experiments/...` and to linked project files `../../../../...`. The
+  stamp is a validated `ExportStamp` in `nb-archive`, so it cannot carry a
+  separator or a dot-dot into a path. Exports made before this change, directly
+  in `exports/html/`, are left in place.
+- **Point 8, citations.** Superseded: citations are resolved by the citation
+  engine and shown as formatted text, in the same order and wording as the PDF
+  (ADR-0056, update), and a `bibliography.html` page lists the sources cited.
+  A citation whose source is not in `bibliography.json` shows as `[key?]` and
+  is named after the export.

@@ -36,3 +36,9 @@ S5-T06 lets a person choose the project's citation style. FR-CIT-11 asks for bun
 - **Locale.** Styles render with the bundled `en-US` locale; the project locale setting is FR-PRJ-08 and not part of this task.
 - **Limits.** The style picker lists the bundled styles and the current style only. The interrupted-plan case (a stop after some blocks were written) leaves blocks in the new style under the old name until the style is chosen again; choosing it again regenerates them.
 - **Not measured.** Regenerating a large project's blocks renders each experiment once in the worker; no timing was taken.
+
+## Update from issue #102 (2026-10-11)
+
+The fallback for a project with no style file is now the bundled author-date
+style (see ADR-0045, update). The two bundled styles and their files in
+`styles/` are unchanged.

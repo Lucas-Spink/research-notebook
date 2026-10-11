@@ -1,6 +1,6 @@
 import {
   EN_US_LOCALE,
-  NUMERIC_STYLE,
+  DEFAULT_STYLE_XML,
   renderLiterature,
 } from "@research-notebook/citations";
 import {
@@ -76,7 +76,7 @@ function blockFor(items: BibliographyFileModel, citekey: string): string {
       { items: [{ prefix: "", suppressAuthor: false, citekey, suffix: "" }] },
     ],
     items,
-    styleXml: NUMERIC_STYLE,
+    styleXml: DEFAULT_STYLE_XML,
     localeXml: EN_US_LOCALE,
   });
   if (!result.ok) throw new Error(result.error.message);

@@ -50,7 +50,11 @@ function citing(): Arranged {
   return arranged;
 }
 
-function input(api: PdfExportApi, overrides: { arranged?: Arranged } = {}) {
+function input(
+  api: PdfExportApi,
+  overrides: { arranged?: Arranged; unresolved?: string[] } = {},
+) {
+  const unresolved = overrides.unresolved ?? [];
   const asked: CitationCluster[][] = [];
   return {
     asked,
@@ -61,7 +65,11 @@ function input(api: PdfExportApi, overrides: { arranged?: Arranged } = {}) {
       project: projectYaml(),
       formatBibliography: (clusters: readonly CitationCluster[]) => {
         asked.push([...clusters]);
-        return Promise.resolve({ entries: ["1. Smith J. *A study*."] });
+        return Promise.resolve({
+          entries: ["1. Smith J. *A study*."],
+          clusterTexts: clusters.map(() => "[1]"),
+          unresolved: unresolved,
+        });
       },
       now: () => new Date("2026-10-09T12:00:00Z"),
     },
@@ -73,7 +81,7 @@ type Sent = {
   notebookJson: string;
   bibliographyJson: string;
 };
-const sentOf = (call: unknown[] | undefined): Sent => call?.[1] as Sent;
+const sentOf = (call: unknown[] | undefined): Sent => call?.[2] as Sent;
 
 describe("exportPdf (FR-ARC-06)", () => {
   it("formats the whole project's citations as one context and sends the three texts", async () => {
@@ -82,7 +90,14 @@ describe("exportPdf (FR-ARC-06)", () => {
 
     const result = await exportPdf(value);
 
-    expect(result).toEqual({ ok: true, value: { written: true } });
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        written: true,
+        unresolved: [],
+        location: "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+      },
+    });
     expect(asked).toHaveLength(1);
     expect(asked[0]?.flatMap((c) => c.items.map((i) => i.citekey))).toEqual([
       "z:u:7XK2PQ9M",
@@ -92,6 +107,41 @@ describe("exportPdf (FR-ARC-06)", () => {
     expect(sent.bibliographyJson).toBe('[{"id":"z:u:7XK2PQ9M"}]\n');
     expect(sent.inputJson).toContain("A study");
     expect(sent.notebookJson).toContain('"generatedBy": "0.2.0"');
+  });
+
+  it("names the PDF by the instant it was made, which is also the date inside it", async () => {
+    const { api, writes } = fakeApi();
+
+    await exportPdf(input(api).value);
+
+    expect(writes[0]?.[1]).toBe("2026-10-09T12-00-00Z");
+    expect(sentOf(writes[0]).inputJson).toContain(
+      '"generated": "2026-10-09T12:00:00Z"',
+    );
+  });
+
+  it("writes the citations as the engine formatted them, not as keys", async () => {
+    const { api, writes } = fakeApi();
+
+    await exportPdf(input(api).value);
+
+    const sent = sentOf(writes[0]);
+    expect(sent.inputJson).toContain('"s": "[1]"');
+    expect(sent.inputJson).not.toContain("@z:u:7XK2PQ9M");
+  });
+
+  it("reports the citekeys that are not in the bibliography", async () => {
+    const { api } = fakeApi();
+    const { value } = input(api, { unresolved: ["z:u:GONE2222"] });
+
+    expect(await exportPdf(value)).toEqual({
+      ok: true,
+      value: {
+        written: true,
+        unresolved: ["z:u:GONE2222"],
+        location: "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+      },
+    });
   });
 
   it("does not ask for a bibliography when nothing is cited", async () => {

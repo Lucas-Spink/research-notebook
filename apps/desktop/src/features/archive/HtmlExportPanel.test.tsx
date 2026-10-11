@@ -38,18 +38,39 @@ function fakeApi(written: Written) {
   return { api, writes };
 }
 
+/** The sample project with one citation whose source is not in the bibliography. */
+function citingProject() {
+  const arranged = arrangedWithFigures();
+  const body = arranged.unassigned[0]?.experiment.file.body;
+  if (body === undefined) throw new Error("fixture");
+  body.sections = [{ key: "methods", body: "As before [@z:u:GONE2222]." }];
+  return arranged;
+}
+
 function Harness(props: {
   api: HtmlExportApi;
   writable?: boolean;
   loaded?: boolean;
+  citing?: boolean;
 }) {
   const loaded = props.loaded ?? true;
   const model = useHtmlExport({
     api: props.api,
     folder: 1,
-    arranged: loaded ? arrangedWithFigures() : null,
+    arranged: loaded
+      ? props.citing === true
+        ? citingProject()
+        : arrangedWithFigures()
+      : null,
     project: loaded ? { name: "Yeast", locale: "en-GB" } : null,
     writable: props.writable ?? true,
+    now: () => new Date("2026-10-11T14:30:05Z"),
+    formatBibliography: () =>
+      Promise.resolve({
+        entries: [],
+        clusterTexts: [null],
+        unresolved: ["z:u:GONE2222"],
+      }),
   });
   return <HtmlExportPanel model={model} />;
 }
@@ -92,7 +113,9 @@ describe("HtmlExportPanel", () => {
     await flush();
 
     expect(writes).toHaveLength(1);
-    expect(view.textContent).toContain("2 pages written to exports/html/");
+    expect(view.textContent).toContain(
+      "2 pages written to exports/html/2026-10-11T14-30-05Z/",
+    );
     expect(view.textContent).toContain(
       "1 figure or table could not be reduced",
     );
@@ -145,5 +168,16 @@ describe("HtmlExportPanel", () => {
     const loading = await show({ api, loaded: false });
     expect(button(loading).disabled).toBe(true);
     expect(loading.textContent).toContain("still loading");
+  });
+
+  it("names a cited source that is not in the bibliography", async () => {
+    const { api } = fakeApi({ status: "ok", data: ["written", "written"] });
+    const view = await show({ api, citing: true });
+
+    act(() => button(view).click());
+    await flush();
+
+    expect(view.textContent).toContain("z:u:GONE2222");
+    expect(view.textContent).toContain("not in the project's bibliography");
   });
 });

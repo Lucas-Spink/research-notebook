@@ -1,6 +1,7 @@
 import {
   AUTHOR_DATE_STYLE,
   EN_US_LOCALE,
+  DEFAULT_STYLE_XML,
   NUMERIC_STYLE,
   renderLiterature,
 } from "@research-notebook/citations";
@@ -58,7 +59,7 @@ function numericBlock(): string {
       },
     ],
     items: [smith],
-    styleXml: NUMERIC_STYLE,
+    styleXml: DEFAULT_STYLE_XML,
     localeXml: EN_US_LOCALE,
   });
   if (!result.ok) throw new Error(result.error.message);

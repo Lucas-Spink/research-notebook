@@ -123,3 +123,51 @@ describe("buildPdfExport (FR-ARC-06)", () => {
     expect(build()).toEqual(build());
   });
 });
+
+describe("buildPdfExport citations (issue #102)", () => {
+  function citedInput(texts: readonly (string | null)[] | undefined) {
+    const arranged = machineSample("One", "First [@z:u:7XK2PQ9M].");
+    const item = arranged.questions[0]?.experiments[0];
+    if (item === undefined) throw new Error("fixture");
+    item.experiment.file.body.sections = [
+      { key: "methods", body: "First [@z:u:7XK2PQ9M]." },
+      {
+        key: "results_notes",
+        body: "Seen again [@z:u:7XK2PQ9M; @z:u:3HJ4MN8R].",
+      },
+    ];
+    const built = buildPdfExport({
+      arranged,
+      project: machineProject,
+      appVersion: "0.2.0",
+      bibliography:
+        texts === undefined
+          ? { entries: [] }
+          : { entries: [], clusterTexts: texts },
+      now: fixedNow,
+    });
+    return built.input;
+  }
+
+  it("writes the formatted citations, in Methods and Results notes alike", () => {
+    const input = citedInput(["[1]", "[1, 2]"]);
+    expect(input).toContain('"s": "[1]"');
+    expect(input).toContain('"s": "[1, 2]"');
+    expect(input).not.toContain("@z:u:");
+  });
+
+  it("marks a citation it could not resolve instead of inventing one", () => {
+    const input = citedInput(["[1]", null]);
+    expect(input).toContain("[z:u:7XK2PQ9M; z:u:3HJ4MN8R?]");
+  });
+
+  it("projectCitationClusters lists the Results notes citations too", () => {
+    const arranged = machineSample("One", "First [@z:u:7XK2PQ9M].");
+    const item = arranged.questions[0]?.experiments[0];
+    if (item === undefined) throw new Error("fixture");
+    item.experiment.file.body.sections = [
+      { key: "results_notes", body: "Seen [@z:u:3HJ4MN8R]." },
+    ];
+    expect(projectCitationClusters(arranged)).toHaveLength(1);
+  });
+});

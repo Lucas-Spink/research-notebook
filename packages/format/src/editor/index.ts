@@ -11,6 +11,7 @@ export {
   Citation,
   CitationInText,
   buildCitationNode,
+  scanCitations,
   type CitationItem,
 } from "./citation";
 export {

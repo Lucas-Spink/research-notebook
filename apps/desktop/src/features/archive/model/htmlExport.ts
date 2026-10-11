@@ -1,11 +1,15 @@
 import {
+  exportInstant,
+  exportStamp,
   htmlAssetRequests,
+  projectCitationClusters,
   renderHtmlExport,
   type Arranged,
   type ExportAsset,
   type Result,
 } from "@research-notebook/format";
 import type { commands, HtmlAssetOutcome } from "../../../ipc/bindings";
+import type { FormatBibliography, FormattedCitations } from "./citations";
 
 /** The two commands the HTML export is made through; both write under `exports/html/`. */
 export type HtmlExportApi = Pick<
@@ -21,11 +25,15 @@ export type HtmlExportOutcome = {
   failedPages: readonly string[];
   /** Figures and tables that are only linked because they could not be prepared. */
   notPrepared: number;
+  /** Citekeys cited but not in `bibliography.json`; the pages mark each citation of them. */
+  unresolved: readonly string[];
+  /** Where to open the export, relative to `_notebook/`: this run's own, dated, folder. */
+  location: string;
 };
 
 /** Why no export was written. Nothing is claimed in either case. */
 export type HtmlExportFailure =
-  "filesNotPrepared" | "notWritable" | "writeFailed";
+  "filesNotPrepared" | "bibliographyFailed" | "notWritable" | "writeFailed";
 
 type Input = {
   api: HtmlExportApi;
@@ -33,19 +41,23 @@ type Input = {
   arranged: Arranged;
   projectName: string;
   locale: string;
+  formatBibliography: FormatBibliography;
+  /** The clock; read once, so the folder name and the date on every page agree. */
+  now: () => Date;
 };
 
-/** Where reduced figures are written, which the pages refer to relative to themselves. */
-const HTML_FOLDER = "_notebook/exports/html/";
+/** Where one run's pages and reduced figures are written, which the pages refer to relative to themselves. */
+const htmlFolder = (stamp: string): string =>
+  `_notebook/exports/html/${stamp}/`;
 
-function assetOf(outcome: HtmlAssetOutcome): ExportAsset {
+function assetOf(outcome: HtmlAssetOutcome, folder: string): ExportAsset {
   switch (outcome.kind) {
     case "image":
       // A path outside the export folder is not one the pages should point at.
-      return outcome.file.startsWith(HTML_FOLDER)
+      return outcome.file.startsWith(folder)
         ? {
             kind: "image",
-            src: outcome.file.slice(HTML_FOLDER.length),
+            src: outcome.file.slice(folder.length),
             width: outcome.width,
             height: outcome.height,
           }
@@ -71,6 +83,7 @@ function assetOf(outcome: HtmlAssetOutcome): ExportAsset {
 
 async function prepare(
   input: Input,
+  stamp: string,
 ): Promise<Result<Map<string, ExportAsset>, HtmlExportFailure>> {
   const { api, folder, arranged } = input;
   const requests = htmlAssetRequests(arranged);
@@ -79,6 +92,7 @@ async function prepare(
   const asked = await api
     .prepareHtmlAssets(
       folder,
+      stamp,
       requests.map((r) => ({ file: r.path, sha256: r.sha256, kind: r.kind })),
     )
     .catch(() => null);
@@ -95,9 +109,28 @@ async function prepare(
   }
   requests.forEach((request, index) => {
     const outcome = asked.data[index];
-    if (outcome !== undefined) assets.set(request.path, assetOf(outcome));
+    if (outcome !== undefined)
+      assets.set(request.path, assetOf(outcome, htmlFolder(stamp)));
   });
   return { ok: true, value: assets };
+}
+
+const NO_CITATIONS: FormattedCitations = {
+  entries: [],
+  clusterTexts: [],
+  unresolved: [],
+};
+
+/**
+ * Formats the project's citations once, in the order the exports show them, so
+ * the pages and the PDF word and number every citation alike (issue #102).
+ */
+async function formatCitations(
+  input: Input,
+): Promise<FormattedCitations | null> {
+  const clusters = projectCitationClusters(input.arranged);
+  if (clusters.length === 0) return NO_CITATIONS;
+  return input.formatBibliography(clusters).catch(() => null);
 }
 
 /**
@@ -110,20 +143,29 @@ async function prepare(
 export async function exportHtml(
   input: Input,
 ): Promise<Result<HtmlExportOutcome, HtmlExportFailure>> {
-  const prepared = await prepare(input);
+  const instant = input.now();
+  const stamp = exportStamp(instant);
+  const prepared = await prepare(input, stamp);
   if (!prepared.ok) return prepared;
+  const citations = await formatCitations(input);
+  if (citations === null) return { ok: false, error: "bibliographyFailed" };
   const rendered = renderHtmlExport({
     arranged: input.arranged,
     projectName: input.projectName,
     locale: input.locale,
+    generated: exportInstant(instant),
     assets: prepared.value,
+    citations: {
+      texts: citations.clusterTexts,
+      bibliography: citations.entries,
+    },
   });
   const pages = [
     ...rendered.filter((p) => p.name !== "index.html"),
     ...rendered.filter((p) => p.name === "index.html"),
   ];
   const written = await input.api
-    .writeHtmlPages(input.folder, pages)
+    .writeHtmlPages(input.folder, stamp, pages)
     .catch(() => null);
   if (written === null) return { ok: false, error: "writeFailed" };
   if (written.status !== "ok") {
@@ -148,6 +190,8 @@ export async function exportHtml(
       pages: pages.length - failedPages.length,
       failedPages,
       notPrepared,
+      unresolved: citations.unresolved,
+      location: `exports/html/${stamp}/index.html`,
     },
   };
 }

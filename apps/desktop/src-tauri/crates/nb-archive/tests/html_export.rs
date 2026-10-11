@@ -1,5 +1,6 @@
 //! FR-ARC-05 (ADR-0054): downscaled figures, sampled tables and the pages
-//! themselves, written only under `_notebook/exports/html/`.
+//! themselves, written only under `_notebook/exports/html/<stamp>/`, one
+//! folder per run so an earlier export is never replaced (issue #102).
 #![allow(clippy::unwrap_used, clippy::panic, clippy::disallowed_methods)]
 
 use std::collections::BTreeMap;
@@ -7,13 +8,23 @@ use std::fs;
 use std::path::Path;
 
 use nb_archive::{
-    prepare_html_assets, write_html_pages, AssetKind, AssetRequest, AssetVerdict, PageVerdict,
+    prepare_html_assets, write_html_pages, AssetKind, AssetRequest, AssetVerdict, ExportStamp,
+    PageVerdict,
 };
 use nb_fs::ProjectRoot;
 use tempfile::TempDir;
 
 const EVIDENCE: &str = "_notebook/experiments/EXP-001/evidence";
-const HTML: &str = "_notebook/exports/html";
+const HTML: &str = "_notebook/exports/html/2026-10-11T14-30-05Z";
+const HTML_ROOT: &str = "_notebook/exports/html";
+
+fn stamp() -> ExportStamp {
+    ExportStamp::parse("2026-10-11T14-30-05Z").unwrap()
+}
+
+fn later_stamp() -> ExportStamp {
+    ExportStamp::parse("2026-10-11T15-00-00Z").unwrap()
+}
 
 fn hash(seed: char) -> String {
     seed.to_string().repeat(64)
@@ -75,7 +86,7 @@ fn a_large_figure_is_reduced_to_800_pixels_and_keeps_its_proportions() {
     let (dir, root) = project();
     let file = put(&dir, "big.png", &png(2000, 1000));
 
-    let verdicts = prepare_html_assets(&root, &[request(&file, AssetKind::Image, 'a')]);
+    let verdicts = prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Image, 'a')]);
 
     let AssetVerdict::Image {
         file: out,
@@ -95,7 +106,7 @@ fn a_small_figure_is_not_enlarged() {
     let (dir, root) = project();
     let file = put(&dir, "small.png", &png(120, 60));
 
-    let verdicts = prepare_html_assets(&root, &[request(&file, AssetKind::Image, 'b')]);
+    let verdicts = prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Image, 'b')]);
 
     assert!(matches!(
         verdicts[0],
@@ -113,7 +124,7 @@ fn the_original_is_left_exactly_as_it_was() {
     let bytes = png(1600, 900);
     let file = put(&dir, "orig.png", &bytes);
 
-    prepare_html_assets(&root, &[request(&file, AssetKind::Image, 'c')]);
+    prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Image, 'c')]);
 
     assert_eq!(fs::read(dir.path().join(&file)).unwrap(), bytes);
 }
@@ -123,7 +134,7 @@ fn a_table_is_sampled_with_its_header_and_first_rows() {
     let (dir, root) = project();
     let file = put(&dir, "counts.csv", b"gene,count\nA,1\nB,2\n");
 
-    let verdicts = prepare_html_assets(&root, &[request(&file, AssetKind::Table, 'd')]);
+    let verdicts = prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Table, 'd')]);
 
     let AssetVerdict::Table(table) = &verdicts[0] else {
         panic!("expected a table, got {:?}", verdicts[0]);
@@ -143,7 +154,7 @@ fn a_long_table_is_cut_and_says_so() {
     }
     let file = put(&dir, "long.csv", text.as_bytes());
 
-    let verdicts = prepare_html_assets(&root, &[request(&file, AssetKind::Table, 'e')]);
+    let verdicts = prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Table, 'e')]);
 
     let AssetVerdict::Table(table) = &verdicts[0] else {
         panic!("expected a table");
@@ -157,7 +168,7 @@ fn a_table_in_another_format_is_only_linked() {
     let (dir, root) = project();
     let file = put(&dir, "book.xlsx", b"PK");
 
-    let verdicts = prepare_html_assets(&root, &[request(&file, AssetKind::Table, 'f')]);
+    let verdicts = prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Table, 'f')]);
 
     assert_eq!(verdicts, [AssetVerdict::Unsupported]);
 }
@@ -169,6 +180,7 @@ fn a_missing_file_and_an_undecodable_image_are_reported_not_skipped() {
 
     let verdicts = prepare_html_assets(
         &root,
+        &stamp(),
         &[
             request(&format!("{EVIDENCE}/gone.png"), AssetKind::Image, '1'),
             request(&broken, AssetKind::Image, '2'),
@@ -186,6 +198,7 @@ fn only_captured_version_files_can_be_asked_for() {
 
     let verdicts = prepare_html_assets(
         &root,
+        &stamp(),
         &[
             request("_notebook/project.yaml", AssetKind::Table, '3'),
             request("analysis.R", AssetKind::Table, '4'),
@@ -206,7 +219,10 @@ fn a_hash_that_is_not_a_sha256_is_refused_before_it_names_a_file() {
         kind: AssetKind::Image,
     };
 
-    assert_eq!(prepare_html_assets(&root, &[bad]), [AssetVerdict::Refused]);
+    assert_eq!(
+        prepare_html_assets(&root, &stamp(), &[bad]),
+        [AssetVerdict::Refused]
+    );
     assert!(!dir.path().join(HTML).exists());
 }
 
@@ -219,6 +235,7 @@ fn preparing_assets_changes_nothing_outside_exports_html() {
 
     prepare_html_assets(
         &root,
+        &stamp(),
         &[
             request(&image, AssetKind::Image, '6'),
             request(&table, AssetKind::Table, '7'),
@@ -244,6 +261,7 @@ fn pages_are_written_under_exports_html() {
 
     let verdicts = write_html_pages(
         &root,
+        &stamp(),
         &[
             page("index.html", "<p>i</p>"),
             page("EXP-001.html", "<p>e</p>"),
@@ -265,6 +283,7 @@ fn a_page_name_that_is_not_a_plain_html_file_name_is_refused() {
 
     let verdicts = write_html_pages(
         &root,
+        &stamp(),
         &[
             page("../x.html", "x"),
             page("a/b.html", "x"),
@@ -283,9 +302,13 @@ fn a_page_name_that_is_not_a_plain_html_file_name_is_refused() {
 #[test]
 fn one_refused_page_does_not_stop_the_others_and_a_rerun_replaces_a_page() {
     let (dir, root) = project();
-    write_html_pages(&root, &[page("index.html", "old")]);
+    write_html_pages(&root, &stamp(), &[page("index.html", "old")]);
 
-    let verdicts = write_html_pages(&root, &[page("bad.txt", "x"), page("index.html", "new")]);
+    let verdicts = write_html_pages(
+        &root,
+        &stamp(),
+        &[page("bad.txt", "x"), page("index.html", "new")],
+    );
 
     assert_eq!(verdicts, [PageVerdict::Refused, PageVerdict::Written]);
     assert_eq!(
@@ -299,7 +322,7 @@ fn writing_pages_changes_nothing_outside_exports_html() {
     let (dir, root) = project();
     let before = snapshot(&dir);
 
-    write_html_pages(&root, &[page("index.html", "<p>i</p>")]);
+    write_html_pages(&root, &stamp(), &[page("index.html", "<p>i</p>")]);
 
     let after = snapshot(&dir);
     for (path, bytes) in &before {
@@ -307,4 +330,55 @@ fn writing_pages_changes_nothing_outside_exports_html() {
     }
     let new: Vec<_> = after.keys().filter(|p| !before.contains_key(*p)).collect();
     assert_eq!(new, [&format!("{HTML}/index.html")]);
+}
+
+#[test]
+fn a_second_run_is_kept_beside_the_first_and_neither_changes() {
+    let (dir, root) = project();
+    let file = put(&dir, "a.png", &png(100, 100));
+    prepare_html_assets(&root, &stamp(), &[request(&file, AssetKind::Image, 'a')]);
+    write_html_pages(&root, &stamp(), &[page("index.html", "first")]);
+    let first = snapshot(&dir);
+
+    prepare_html_assets(
+        &root,
+        &later_stamp(),
+        &[request(&file, AssetKind::Image, 'a')],
+    );
+    write_html_pages(&root, &later_stamp(), &[page("index.html", "second")]);
+
+    let after = snapshot(&dir);
+    for (path, bytes) in &first {
+        assert_eq!(after.get(path), Some(bytes), "{path} changed");
+    }
+    assert_eq!(
+        fs::read_to_string(
+            dir.path()
+                .join(HTML_ROOT)
+                .join("2026-10-11T15-00-00Z")
+                .join("index.html")
+        )
+        .unwrap(),
+        "second"
+    );
+    assert!(dir
+        .path()
+        .join(HTML_ROOT)
+        .join("2026-10-11T15-00-00Z/assets")
+        .is_dir());
+}
+
+#[test]
+fn a_rerun_with_the_same_stamp_replaces_only_that_run() {
+    let (dir, root) = project();
+    write_html_pages(&root, &later_stamp(), &[page("index.html", "kept")]);
+    write_html_pages(&root, &stamp(), &[page("index.html", "old")]);
+
+    write_html_pages(&root, &stamp(), &[page("index.html", "new")]);
+
+    let read = |name: &str| {
+        fs::read_to_string(dir.path().join(HTML_ROOT).join(name).join("index.html")).unwrap()
+    };
+    assert_eq!(read("2026-10-11T14-30-05Z"), "new");
+    assert_eq!(read("2026-10-11T15-00-00Z"), "kept");
 }

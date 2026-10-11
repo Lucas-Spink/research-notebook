@@ -21,6 +21,7 @@ function render(arranged = project(), found = assets()) {
     arranged,
     projectName: "Yeast study",
     locale: "en-GB",
+    generated: "2026-10-11T14:30:05Z",
     assets: found,
   });
   const byName = new Map(pages.map((p) => [p.name, p.html]));
@@ -103,7 +104,7 @@ describe("renderHtmlExport (FR-ARC-05)", () => {
   it("downscales figures and links to the original beside them", () => {
     const html = render().page("EXP-001.html");
     expect(html).toContain(
-      '<a href="../../experiments/EXP-001/evidence/volcano.v2.png"><img src="assets/abc-800.png" width="800" height="600" alt="Volcano plot"></a>',
+      '<a href="../../../experiments/EXP-001/evidence/volcano.v2.png"><img src="assets/abc-800.png" width="800" height="600" alt="Volcano plot"></a>',
     );
   });
 
@@ -113,30 +114,30 @@ describe("renderHtmlExport (FR-ARC-05)", () => {
     expect(html).toContain("<td>A&lt;1&gt;</td>");
     expect(html).toContain('class="more"');
     expect(html).toContain(
-      'href="../../experiments/EXP-001/evidence/counts.csv"',
+      'href="../../../experiments/EXP-001/evidence/counts.csv"',
     );
   });
 
   it("lists every version of an artefact with a link to each file", () => {
     const html = render().page("EXP-001.html");
     expect(html).toContain(
-      'href="../../experiments/EXP-001/evidence/pca_by_treatment.pdf"',
+      'href="../../../experiments/EXP-001/evidence/pca_by_treatment.pdf"',
     );
     expect(html).toContain(
-      'href="../../experiments/EXP-001/evidence/pca_by_treatment.v2.pdf"',
+      'href="../../../experiments/EXP-001/evidence/pca_by_treatment.v2.pdf"',
     );
   });
 
   it("shows a vector figure from its original, as an image only", () => {
     const html = render().page("EXP-001.html");
     expect(html).toContain(
-      '<img src="../../experiments/EXP-001/evidence/diagram.svg"',
+      '<img src="../../../experiments/EXP-001/evidence/diagram.svg"',
     );
   });
 
   it("links a linked project file from the project folder and only names an external one", () => {
     const html = render().page("EXP-001.html");
-    expect(html).toContain('href="../../../data/counts.h5"');
+    expect(html).toContain('href="../../../../data/counts.h5"');
 
     const external = project();
     const item = external.unassigned[0];
@@ -145,7 +146,7 @@ describe("renderHtmlExport (FR-ARC-05)", () => {
     if (raw === undefined) throw new Error("fixture");
     raw.source = { root: "01JAXR7R7R7R7R7R7R7R7R7R7R", path: "data/counts.h5" };
     const text = render(external).page("EXP-001.html");
-    expect(text).not.toContain('href="../../../data/counts.h5"');
+    expect(text).not.toContain('href="../../../../data/counts.h5"');
     expect(text).toContain("data/counts.h5");
   });
 
@@ -184,5 +185,67 @@ describe("renderHtmlExport (FR-ARC-05)", () => {
 
   it("is the same on every run", () => {
     expect(render().pages).toEqual(render().pages);
+  });
+});
+
+describe("renderHtmlExport date (issue #102)", () => {
+  it("says on every page when the export was made", () => {
+    const { pages } = render();
+    for (const page of pages) {
+      expect(page.html).toContain(
+        '<time datetime="2026-10-11T14:30:05Z">2026-10-11T14:30:05Z</time>',
+      );
+    }
+  });
+});
+
+describe("renderHtmlExport citations (issue #102)", () => {
+  function cited(citations: {
+    texts: (string | null)[];
+    bibliography: string[];
+  }) {
+    const arranged = project("PCA run", "Method [@z:u:7XK2PQ9M].");
+    const item = arranged.unassigned[0];
+    if (item === undefined) throw new Error("fixture");
+    item.experiment.file.body.sections.push({
+      key: "results_notes",
+      body: "Result [@z:u:7XK2PQ9M; @z:u:3HJ4MN8R].",
+    });
+    const pages = renderHtmlExport({
+      arranged,
+      projectName: "Yeast study",
+      locale: "en-GB",
+      generated: "2026-10-11T14:30:05Z",
+      assets: assets(),
+      citations,
+    });
+    return new Map(pages.map((p) => [p.name, p.html]));
+  }
+
+  it("shows formatted citations, not citekeys, in every section", () => {
+    const html = cited({
+      texts: ["[1]", "[1, 2]"],
+      bibliography: ["1. Smith J. *Yeast*. 2020.", "2. Jones K. Growth. 2021."],
+    }).get("EXP-001.html");
+    expect(html).toContain("<cite>[1]</cite>");
+    expect(html).toContain("<cite>[1, 2]</cite>");
+    expect(html).not.toContain("@z:u:");
+  });
+
+  it("writes a bibliography page, linked from the index", () => {
+    const pages = cited({
+      texts: ["[1]", "[1, 2]"],
+      bibliography: ["1. Smith J. *Yeast*. 2020.", "2. Jones K. Growth. 2021."],
+    });
+    const bibliography = pages.get("bibliography.html");
+    expect(bibliography).toContain("Smith J. <em>Yeast</em>. 2020.");
+    expect(bibliography).toContain("1. Smith");
+    expect(pages.get("index.html")).toContain('href="bibliography.html"');
+  });
+
+  it("writes no bibliography page when nothing is cited", () => {
+    const pages = cited({ texts: [], bibliography: [] });
+    expect(pages.has("bibliography.html")).toBe(false);
+    expect(pages.get("index.html")).not.toContain("bibliography.html");
   });
 });
