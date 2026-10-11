@@ -37,13 +37,12 @@ const header: HeaderRow = {
   readOnly: false,
 };
 
-function headerView(row: HeaderRow, motivationWidth: number | null = 220) {
+function headerView(row: HeaderRow) {
   return html(
     <QuestionHeaderRowView
       row={row}
       place={place}
       columnCount={6}
-      motivationWidth={motivationWidth}
       selected={false}
       picked={false}
       sharesRef={false}
@@ -64,18 +63,11 @@ describe("QuestionHeaderRowView", () => {
     );
   });
 
-  it("shows the Motivation summary, limited to the width of its column", () => {
-    const summary = headerView(header, 220).querySelector<HTMLElement>(
-      ".wtable__motivation",
-    );
-    expect(summary?.textContent).toBe("Why do batch effects matter?");
-    expect(summary?.style.maxWidth).toBe("220px");
-  });
-
-  it("leaves the Motivation out when its column is hidden", () => {
-    expect(
-      headerView(header, null).querySelector(".wtable__motivation"),
-    ).toBeNull();
+  it("shows no Motivation summary, and no prompt to write one", () => {
+    const view = headerView(header);
+    expect(view.querySelector(".wtable__motivation")).toBeNull();
+    expect(view.textContent).not.toContain("Why do batch effects matter?");
+    expect(view.textContent).not.toContain("motivation");
   });
 
   it("marks a question that is read-only because another file has its ID", () => {
@@ -131,19 +123,18 @@ describe("ColumnsMenu", () => {
     );
   }
 
-  it("lists every column but Literature, which has no column of its own, with a show control and a width, each named", () => {
+  it("lists every column but Literature and Motivation, which have no column of their own, with a show control and a width, each named", () => {
     const view = menu(true);
     const items = [...view.querySelectorAll("li")];
-    expect(items).toHaveLength(5);
-    expect(items[1]?.textContent).toContain("Show Methods");
+    expect(items).toHaveLength(4);
+    expect(items[0]?.textContent).toContain("Show Methods");
     const checks = items.map(
       (li) =>
         li.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked,
     );
-    expect(checks).toEqual([true, true, true, true, true]);
-    const width = view.querySelector<HTMLInputElement>('input[type="number"]');
-    expect(width?.value).toBe("220");
-    expect(view.textContent).toContain("Width of Motivation (pixels)");
+    expect(checks).toEqual([true, true, true, true]);
+    expect(view.textContent).not.toContain("Motivation");
+    expect(view.textContent).toContain("Width of Methods (pixels)");
   });
 
   it("gives every field a label", () => {
