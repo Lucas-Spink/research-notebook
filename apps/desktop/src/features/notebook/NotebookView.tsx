@@ -48,6 +48,7 @@ import {
   VerifyPanel,
 } from "../archive";
 import { BinPanel } from "../bin";
+import { CanvasView, ViewSwitch, useCanvases, type ViewMode } from "../canvas";
 import {
   IntegrityPanel,
   useIntegrityCheck,
@@ -239,6 +240,20 @@ function NotebookViewBody({
     save: (id, section, text) =>
       actions.editExperimentSection(id, section, text, literature.plan),
   });
+
+  // Table or Canvas: two views of the same notebook (ADR-0064). View state only.
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const canvases = useCanvases({
+    api: commands,
+    folder,
+    writable,
+    enabled: viewMode === "canvas",
+  });
+  /** Whatever is being typed in the table is saved before the table goes away; if that fails, the table stays. */
+  async function changeView(next: ViewMode) {
+    if (next === "canvas" && !(await live.activate(null))) return;
+    setViewMode(next);
+  }
 
   const [panes, dispatchPanes] = useReducer(panesReducer, initialPanes);
   const syncInserted = useSourceSync();
@@ -844,9 +859,19 @@ function NotebookViewBody({
           )}
         </div>
         {arranged !== null && (
+          <div className="workspace__views">
+            <ViewSwitch
+              mode={viewMode}
+              onChange={(next) => void changeView(next)}
+            />
+          </div>
+        )}
+        {arranged !== null && (
           <div className="workspace__main">
             <div className="workspace__table">
-              {rows.length === 0 ? (
+              {viewMode === "canvas" ? (
+                <CanvasView canvases={canvases} />
+              ) : rows.length === 0 ? (
                 <p className="workspace__empty">{messages.empty}</p>
               ) : (
                 <WorkspaceTable
@@ -876,7 +901,7 @@ function NotebookViewBody({
             </PaneHost>
           </div>
         )}
-        {arranged !== null && (
+        {arranged !== null && viewMode === "table" && (
           <BibliographyPanel
             citekeys={citedSources}
             target={bibliographyTarget}

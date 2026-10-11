@@ -1,0 +1,141 @@
+/* The canvas view (ADR-0064). Colours come from the shared tokens, so it follows the light and dark themes. */
+
+.view-switch {
+  display: inline-flex;
+  border: 1px solid var(--color-border-control);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-switch__button {
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: var(--space-1) var(--space-3);
+}
+
+.view-switch__button[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.workspace__views {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+}
+
+.canvas-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  /* The canvas needs a definite height to draw into. */
+  height: calc(100vh - var(--ribbon-height, 8rem) - 8rem);
+  min-height: 24rem;
+}
+
+.canvas-view__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.canvas-view__toggles,
+.canvas-picker,
+.canvas-name-form,
+.canvas-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.canvas-view__notices {
+  padding: 0 var(--space-4);
+}
+
+.canvas-view__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-view__panel {
+  flex: none;
+  overflow: auto;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+}
+
+.canvas-view__panel h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.95rem;
+}
+
+.canvas-view__placeholder {
+  color: var(--color-text-muted);
+}
+
+.canvas-view__centre {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: var(--color-surface-alt);
+}
+
+.canvas-view__empty {
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.canvas-splitter {
+  flex: none;
+  width: 6px;
+  cursor: col-resize;
+  background: var(--color-border);
+  touch-action: none;
+}
+
+.canvas-splitter:hover,
+.canvas-splitter:focus-visible {
+  background: var(--color-accent);
+  outline: none;
+}
+
+.canvas-surface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.canvas-surface .react-flow {
+  flex: 1;
+  min-height: 0;
+  --xy-background-color: var(--color-surface-alt);
+  --xy-controls-button-background-color: var(--color-surface);
+  --xy-controls-button-color: var(--color-text);
+  --xy-controls-button-border-color: var(--color-border-control);
+}
+
+.canvas-viewbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+}
+
+.canvas-viewbar__credit {
+  margin-left: auto;
+  color: var(--color-text-muted);
+}

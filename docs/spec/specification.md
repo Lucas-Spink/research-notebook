@@ -958,6 +958,19 @@ schema version; any mismatch triggers a full rebuild.
 | FR-ARC-10 | Unarchive after confirmation, performing any migration with a backup first. | Must |
 | FR-ARC-11 | Optionally include Zotero PDFs of cited sources, off by default, with a warning about sharing publishers' files. | Could |
 
+7.13 Canvas view
+
+| **ID** | **Requirement** | **Priority** |
+|----|----|----|
+| FR-CNV-01 | Offer a Table and a Canvas view of the same notebook, switching without leaving the project and without losing text being typed. | Must |
+| FR-CNV-02 | Keep any number of named, project-wide canvases in canvases/\<ULID\>.canvas.json; create, rename and delete them (delete moves the file to the trash). A canvas that does not parse is shown as it is, never rewritten, and can still be deleted. | Must |
+| FR-CNV-03 | Lay the canvas view out as a results browser, a pannable and zoomable canvas and a writing panel, the side panels resizable from pointer and keyboard and collapsible, the canvas keeping a minimum width. | Must |
+| FR-CNV-04 | Pin results from any experiment as cards that reference the artefact (and, for a copy-mode artefact, a version) without copying or moving it, never advancing the version without being asked. | Must |
+| FR-CNV-05 | Edit Methods, Results Notes and Interpretation of the active experiment in the canvas view with the same editor, references and citations as the table, under the single live editor rule (ADR-0043). | Must |
+| FR-CNV-06 | Keep canvas-only notes, connectors and regions beside the cards. | Should |
+
+FR-CNV-01 to FR-CNV-03 are met by the canvas view's first release (ADR-0064); FR-CNV-04 to FR-CNV-06 follow in later releases. Panning and zooming are not yet saved with the canvas, because each save is also a history snapshot.
+
 8\. Preview behaviour
 
 | **Type** | **Extensions** | **Thumbnail** | **Preview** | **Bounds** |
