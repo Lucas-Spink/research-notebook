@@ -4,6 +4,7 @@ import { selectLabel } from "../messages";
 import { sampleNotebook } from "../model/fakeApi";
 import { stubActions } from "../model/testModel";
 import {
+  detailsOf,
   mountNotebook,
   prepareInteractiveTable,
   tableOf,
@@ -135,5 +136,30 @@ describe("Move to bin in the Experiments tab", () => {
     const { view } = mount(false);
     select(view, "EXP-001");
     expect(binCommand(view).disabled).toBe(true);
+  });
+
+  it("is the only way to move a question or experiment to the bin", () => {
+    const { view } = mount();
+    select(view, "EXP-001");
+    // Not in the Details panel, for the experiment...
+    const details = detailsOf(view).textContent ?? "";
+    expect(details).not.toMatch(/Move to bin|Delete/);
+    // ...nor for the question.
+    const header = tableOf(view).querySelector(".wtable__question strong");
+    click(header?.closest("button"));
+    expect(detailsOf(view).textContent ?? "").not.toMatch(/Move to bin|Delete/);
+    // And not under More actions in the Home tab.
+    click(
+      [...view.querySelectorAll('[role="tab"]')].find(
+        (tab) => tab.textContent === "Home",
+      ),
+    );
+    select(view, "EXP-001");
+    const more = [...(toolbar(view)?.querySelectorAll("button") ?? [])].find(
+      (b) => b.textContent === "More actions",
+    );
+    click(more);
+    expect(more).toBeDefined();
+    expect(document.body.textContent ?? "").not.toMatch(/Move to bin|Delete/);
   });
 });

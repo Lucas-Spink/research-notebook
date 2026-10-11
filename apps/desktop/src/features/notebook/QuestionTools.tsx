@@ -1,11 +1,6 @@
 import type { ArrangedQuestion } from "@research-notebook/format";
 import { useId, useState, type FormEvent } from "react";
-import { ConfirmDelete } from "./ConfirmDelete";
-import {
-  deleteQuestionWarning,
-  messages,
-  newExperimentLabel,
-} from "./messages";
+import { messages, newExperimentLabel } from "./messages";
 import { NewTitleForm } from "./NewTitleForm";
 import type { NotebookActions } from "./useNotebook";
 
@@ -57,7 +52,6 @@ function RenameForm(props: {
 export function QuestionTools({ group, actions, disabled }: Props) {
   const [renaming, setRenaming] = useState(false);
   const front = group.question.file.frontmatter;
-  const count = group.experiments.length;
 
   if (group.readOnly) return <p>{messages.readOnlyItem}</p>;
   return (
@@ -75,12 +69,6 @@ export function QuestionTools({ group, actions, disabled }: Props) {
         >
           {messages.edit}
         </button>
-        <ConfirmDelete
-          subject={front.ref}
-          warning={deleteQuestionWarning(front.ref, count)}
-          disabled={disabled}
-          onConfirm={() => void actions.removeQuestion(front.id)}
-        />
       </div>
       {renaming && (
         <RenameForm
