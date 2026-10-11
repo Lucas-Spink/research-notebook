@@ -168,7 +168,13 @@ describe("the workspace (S6-T01)", () => {
     expect(ribbonTab(view, "Experiments").getAttribute("aria-selected")).toBe(
       "true",
     );
-    expect(groupsOf(view)).toEqual(["Questions", "Find", "Table", "Results"]);
+    expect(groupsOf(view)).toEqual([
+      "Questions",
+      "Find",
+      "Table",
+      "Results",
+      "Remove",
+    ]);
     expect(ribbonButton(view, "Columns").getAttribute("aria-expanded")).toBe(
       "false",
     );
@@ -208,7 +214,13 @@ describe("the workspace (S6-T01)", () => {
 
     click(ribbonTab(view, "Experiments"));
     expect(view.querySelector(".ribbon__commands--peek")).not.toBeNull();
-    expect(groupsOf(view)).toEqual(["Questions", "Find", "Table", "Results"]);
+    expect(groupsOf(view)).toEqual([
+      "Questions",
+      "Find",
+      "Table",
+      "Results",
+      "Remove",
+    ]);
     act(() => {
       view
         .querySelector(".ribbon")
