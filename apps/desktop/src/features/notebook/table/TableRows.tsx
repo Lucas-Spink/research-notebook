@@ -181,8 +181,6 @@ type HeaderProps = {
   row: HeaderRow;
   place: RowPlace;
   columnCount: number;
-  /** The Motivation column's width while it is shown, or `null` when hidden. */
-  motivationWidth: number | null;
   selected: boolean;
   picked: boolean;
   sharesRef: boolean;
@@ -192,12 +190,11 @@ type HeaderProps = {
   onMoveToBin?: (row: HeaderRow) => void;
 };
 
-/** A question's full-width header (FR-TBL-02): collapse control, title, count and Motivation summary. */
+/** A question's full-width header (FR-TBL-02): collapse control, title and count. */
 export function QuestionHeaderRowView({
   row,
   place,
   columnCount,
-  motivationWidth,
   selected,
   picked,
   sharesRef,
@@ -258,16 +255,6 @@ export function QuestionHeaderRowView({
         )}
         {row.readOnly && (
           <span className="wtable__flag">{messages.readOnlyItem}</span>
-        )}
-        {motivationWidth !== null && row.questionId !== null && (
-          <span
-            className="wtable__motivation"
-            style={{ maxWidth: motivationWidth }}
-          >
-            {row.motivation === ""
-              ? tableMessages.noMotivation
-              : row.motivation}
-          </span>
         )}
       </div>
     </div>

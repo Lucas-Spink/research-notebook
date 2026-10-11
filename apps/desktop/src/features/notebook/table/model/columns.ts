@@ -76,20 +76,12 @@ export function columnLayout(table: Table): ColumnLayout[] {
 
 /**
  * The columns that have a cell in each experiment row: those that are shown,
- * except Motivation, which is shown once per question in its header row
- * (spec 4.3).
+ * except Motivation and Literature, which have no cell of their own.
  */
 export function gridColumns(layout: readonly ColumnLayout[]): ColumnLayout[] {
   return layout.filter(
     (c) => !c.hidden && c.key !== "motivation" && c.key !== "literature",
   );
-}
-
-/** The Motivation column while it is shown; its width limits the summary in each question header. */
-export function motivationColumn(
-  layout: readonly ColumnLayout[],
-): ColumnLayout | undefined {
-  return layout.find((c) => c.key === "motivation" && !c.hidden);
 }
 
 /** The width of a row: the experiment column and every column shown. */

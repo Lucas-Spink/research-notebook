@@ -34,7 +34,8 @@ export function BinButton({
         title={messages.moveToBin}
         onClick={() => setAsking(true)}
       >
-        <span aria-hidden="true">🗑</span> {messages.moveToBin}
+        <span aria-hidden="true">🗑</span>
+        <span className="wtable__bin-text">{messages.moveToBin}</span>
       </button>
     );
   }

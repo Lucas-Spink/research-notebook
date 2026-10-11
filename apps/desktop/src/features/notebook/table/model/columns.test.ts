@@ -10,7 +10,6 @@ import {
   gridWidth,
   keyboardWidth,
   mergeOverlay,
-  motivationColumn,
   spareShares,
   withOverlay,
   type ColumnLayout,
@@ -104,12 +103,6 @@ describe("gridColumns", () => {
     expect(
       gridColumns(columnLayout(table)).some((c) => c.key === "literature"),
     ).toBe(false);
-  });
-
-  it("finds the Motivation column only while it is shown", () => {
-    expect(motivationColumn(columnLayout(table))?.width).toBe(220);
-    const hidden = withOverlay(table, { hidden: { motivation: true } });
-    expect(motivationColumn(columnLayout(hidden))).toBeUndefined();
   });
 
   it("adds up the width of the experiment column and every column shown", () => {

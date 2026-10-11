@@ -272,12 +272,6 @@
   padding: 0.5rem;
 }
 
-.wtable__motivation {
-  font-style: italic;
-  opacity: 0.9;
-  overflow-wrap: anywhere;
-}
-
 .wtable__none {
   padding: 0.5rem;
 }
@@ -568,19 +562,40 @@
   border-radius: 4px;
 }
 
-/* Move to bin on a question or experiment row. */
+/* Move to bin on a question or experiment row: small and quiet, and set well
+   apart from the status control so a click meant for one never lands on the
+   other. The words are kept for screen readers and the tooltip. */
+.wtable__bin-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
 .wtable__bin {
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border-control);
+  padding: 0 var(--space-1);
+  border: 1px solid transparent;
   border-radius: var(--radius-control);
-  background: var(--color-surface);
+  background: none;
   color: var(--color-text-muted);
   font: inherit;
   font-size: var(--text-meta);
+  line-height: 1.2;
+  opacity: 0.6;
   cursor: pointer;
 }
 
-.wtable__bin:hover {
+.wtable__bin-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wtable__bin:hover,
+.wtable__bin:focus-visible {
+  opacity: 1;
   color: var(--status-abandoned-fg);
   border-color: var(--status-abandoned-fg);
 }
