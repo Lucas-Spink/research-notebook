@@ -42,3 +42,13 @@ S5-T05 makes each experiment's Literature block a generated part of `experiment.
 - **A type-declaration exception.** `citeproc` ships no types, so its hand-written declaration is pulled into every program that compiles the engine with a triple-slash reference and one line-level ESLint exception, because `apps/desktop/tsconfig.json` is protected and an `import` cannot load an ambient module declaration.
 - **A new workspace link.** `apps/desktop` now depends on `packages/citations` (`workspace:*`); `packages/citations` exports its source like `packages/format` does.
 - **Documents.** format-v1.md open question 1 can be closed as option (a). Style change and source refresh call the same planning function (`planRegeneration`); the UI that triggers them is S5-T06.
+
+## Update from issue #102 (2026-10-11)
+
+Point 7 is superseded in part: a project whose `citation_style` file is not in
+`styles/` now renders with the bundled **author-date** style, not numeric, so
+in-text citations read (Smith 2020). A project that chose a style keeps it. No
+format change: `citation_style` is untouched, and new projects still name
+`nature.csl`. A stored Literature block is derived text, so for a project on the
+fallback it is rewritten in the new style the next time its experiment's
+citations are saved.

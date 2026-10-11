@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AUTHOR_DATE_STYLE, EN_US_LOCALE, NUMERIC_STYLE } from "./bundled";
+import {
+  AUTHOR_DATE_STYLE,
+  DEFAULT_STYLE_XML,
+  EN_US_LOCALE,
+  NUMERIC_STYLE,
+} from "./bundled";
 import {
   renderLiterature,
   type CitationCluster,
@@ -181,5 +186,15 @@ describe("renderLiterature clusterTexts (in-text citations for exports)", () => 
   it("is plain text: no markup or entities from the engine", () => {
     const [text] = texts(input([cite("z:u:SMIT2222")], AUTHOR_DATE_STYLE));
     expect(text).not.toMatch(/[<>]|&#?\w+;/u);
+  });
+});
+
+describe("the default style", () => {
+  it("is author-date, so a project that has chosen nothing cites (Smith 2020)", () => {
+    expect(DEFAULT_STYLE_XML).toBe(AUTHOR_DATE_STYLE);
+    const result = renderLiterature(
+      input([cite("z:u:SMIT2222")], DEFAULT_STYLE_XML),
+    );
+    expect(result.ok && result.value.clusterTexts).toEqual(["(Smith 2020)"]);
   });
 });
