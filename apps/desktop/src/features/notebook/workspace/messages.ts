@@ -131,6 +131,8 @@ export const resultsBrowserMessages = {
   codeEmpty:
     "No scripts yet. Add one here to preview it, and text can refer to it as it can to a figure.",
   addScript: "Add script…",
+  removeScriptWarning:
+    "This script is moved to the bin and can be restored. A file stored outside the notebook is not touched.",
   scriptOpen: (name: string) => `Open ${name}`,
   linked: "linked",
 };

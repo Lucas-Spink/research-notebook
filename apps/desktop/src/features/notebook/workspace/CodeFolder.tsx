@@ -6,6 +6,7 @@ import { commands, type FolderHandle } from "../../../ipc/bindings";
 import { FileIcon, GroupFolderIcon } from "../../../shared/FileIcons";
 import type { TableEditing } from "../table/EditableSectionCell";
 import type { EvidenceProject } from "../table/model/addEvidence";
+import { BinButton } from "../table/BinButton";
 import { useAddFiles } from "../table/useAddFiles";
 import { resultsBrowserMessages as m } from "./messages";
 
@@ -18,6 +19,10 @@ type Props = {
   readOnly: boolean;
   /** Opens a script's preview in the side pane. */
   onOpen: (artefactId: string) => void;
+  /** Removes a script to the bin; resolves whether it was. */
+  onRemove: (artefactId: string) => Promise<boolean>;
+  /** What to say before a script is removed. */
+  removeWarning: (artefactId: string) => string;
   /** Whether its buttons are tab stops; a table cell turns them off until focus is inside it. */
   tabStops?: boolean;
 };
@@ -42,6 +47,8 @@ export function CodeFolder({
   editing,
   readOnly,
   onOpen,
+  onRemove,
+  removeWarning,
   tabStops = true,
 }: Props) {
   const scripts = scriptsOf(file);
@@ -89,6 +96,14 @@ export function CodeFolder({
                   <span className="code-folder__tag">{m.linked}</span>
                 )}
               </button>
+              {!readOnly && (
+                <BinButton
+                  subject={script.name}
+                  warning={`${m.removeScriptWarning} ${removeWarning(script.id)}`}
+                  tabStop={tabStops}
+                  onConfirm={() => void onRemove(script.id)}
+                />
+              )}
             </li>
           ))}
         </ul>

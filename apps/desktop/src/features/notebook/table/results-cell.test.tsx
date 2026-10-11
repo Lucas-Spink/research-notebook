@@ -5,7 +5,8 @@ import {
   type NotebookState,
 } from "@research-notebook/format";
 import { act } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { commands } from "../../../ipc/bindings";
 import { browseResultsLabel } from "../messages";
 import { sampleNotebook, testEnv } from "../model/fakeApi";
 import { stubActions } from "../model/testModel";
@@ -276,5 +277,45 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
         (b) => b.textContent === "Add script…",
       ),
     ).toBe(true);
+  });
+
+  it("moves a linked script to the bin from the Code folder, keeping only its record", async () => {
+    const binned = vi.spyOn(commands, "binArtefactFiles").mockResolvedValue({
+      status: "ok",
+      data: { stamp: "2026-09-21T10-15-00Z", moved: 0, missing: 0 },
+    });
+    const { view, edits } = mount(withScript());
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
+    const open = code?.querySelector(
+      'button[aria-label="Move analysis.py to the bin"]',
+    );
+    act(() => {
+      open?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(code?.textContent).toContain("not touched");
+    const confirm = [...(code?.querySelectorAll("button") ?? [])].find(
+      (b) => b.textContent === "Move to bin",
+    );
+    await act(async () => {
+      confirm?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    // The record is kept in the bin; no file is named, so none is moved.
+    expect(binned).toHaveBeenCalledTimes(1);
+    expect(binned.mock.calls[0]?.[1]).toBe("EXP-001");
+    expect(binned.mock.calls[0]?.[2]).toEqual([]);
+    expect(edits.at(-1)?.file.artefacts.map((a) => a.name)).toEqual([
+      "PCA plot",
+    ]);
+    expect(cellOf(view, "EXP-001")?.textContent).toContain(
+      "was moved to the bin",
+    );
+    binned.mockRestore();
+  });
+
+  it("offers no way to remove a script in a read-only project", () => {
+    const { view } = mount(withScript(), { writable: false });
+    const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
+    expect(code?.querySelector(".wtable__bin")).toBeNull();
   });
 });

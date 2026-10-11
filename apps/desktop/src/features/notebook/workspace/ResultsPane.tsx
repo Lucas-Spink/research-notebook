@@ -10,6 +10,7 @@ import { evidenceOf } from "../model/evidence";
 import type { TableEditing } from "../table/EditableSectionCell";
 import { previewVersion } from "../table/model/resultVersion";
 import { CodeFolder } from "./CodeFolder";
+import { useRemoveFiles } from "./useRemoveFiles";
 import { paneMessages, resultsBrowserMessages as m } from "./messages";
 import type { PaneTab } from "./model/panes";
 import { useMissingLinks } from "./useMissingLinks";
@@ -47,6 +48,15 @@ export function ResultsPane({
   ].find((candidate) => candidate.experiment.folder === tab.experimentFolder);
   const file = item === undefined ? null : evidenceOf(item);
   const missing = useMissingLinks(commands, folder, projectId, file);
+  const removal = useRemoveFiles({
+    api: commands,
+    folder,
+    experimentFolder: tab.experimentFolder,
+    file,
+    references: editing.references,
+    writable: editing.writable && item?.readOnly !== true,
+    editArtefacts: editing.editArtefacts,
+  });
   if (item === undefined || file === null) {
     return <p>{paneMessages.resultUnavailable}</p>;
   }
@@ -92,6 +102,12 @@ export function ResultsPane({
         onAction={onAction}
         onOpen={open}
         missing={missing}
+        {...(readOnly
+          ? {}
+          : {
+              onRemoveFile: removal.removeFile,
+              removeWarning: removal.removeWarning,
+            })}
       />
       <CodeFolder
         file={file}
@@ -100,7 +116,14 @@ export function ResultsPane({
         editing={editing}
         readOnly={readOnly}
         onOpen={open}
+        onRemove={removal.removeFile}
+        removeWarning={removal.removeWarning}
       />
+      <div role="status" aria-live="polite" className="code-folder__notes">
+        {removal.notes.map((note, index) => (
+          <p key={index}>{note}</p>
+        ))}
+      </div>
     </div>
   );
 }
