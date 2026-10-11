@@ -39,6 +39,7 @@ fn reads_each_kind_of_data_file_with_the_hash_of_its_bytes() {
         "questions/Q-01.md",
         "experiments/EXP-001/experiment.md",
         "experiments/EXP-001/artefacts.yaml",
+        "canvases/01JAXC0000000000000000CNV1.canvas.json",
     ] {
         let text = format!("contents of {path}\n");
         write(&project, path, text.as_bytes());

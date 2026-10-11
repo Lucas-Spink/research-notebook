@@ -312,3 +312,23 @@ fn what_is_in_the_bin_is_kept_in_both_archive_scopes() {
         }
     }
 }
+
+#[test]
+fn canvas_files_are_part_of_a_bundle_in_both_scopes() {
+    // ADR-0064: a canvas is notebook data, so a bundle carries it with the rest.
+    let project = project_with_notebook_files();
+    fs::create_dir_all(project.on_disk("_notebook/canvases")).unwrap();
+    fs::write(
+        project.on_disk("_notebook/canvases/01JAXC0000000000000000CNV1.canvas.json"),
+        b"{}\n",
+    )
+    .unwrap();
+
+    for scope in [ArchiveScope::Notebook, ArchiveScope::Project] {
+        assert!(
+            paths(&project, scope)
+                .contains(&"_notebook/canvases/01JAXC0000000000000000CNV1.canvas.json".to_owned()),
+            "{scope:?}"
+        );
+    }
+}

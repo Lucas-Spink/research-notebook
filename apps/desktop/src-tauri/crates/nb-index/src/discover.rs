@@ -23,8 +23,9 @@ pub(crate) struct DiskFile {
     pub mtime_ns: i64,
 }
 
-/// Lists `project.yaml`, `bibliography.json`, `questions/*.md` and, in each
-/// folder of `experiments/`, `experiment.md` and `artefacts.yaml`.
+/// Lists `project.yaml`, `bibliography.json`, `questions/*.md`,
+/// `canvases/*.canvas.json` and, in each folder of `experiments/`,
+/// `experiment.md` and `artefacts.yaml`.
 pub(crate) fn list(notebook: &Path) -> Result<Vec<DiskFile>, IndexError> {
     let mut found = Vec::new();
     for name in ["project.yaml", "bibliography.json"] {
@@ -33,6 +34,11 @@ pub(crate) fn list(notebook: &Path) -> Result<Vec<DiskFile>, IndexError> {
     for (name, _) in entries(&notebook.join("questions"), "questions")? {
         if name.ends_with(".md") {
             add(&mut found, notebook, &format!("questions/{name}"));
+        }
+    }
+    for (name, _) in entries(&notebook.join("canvases"), "canvases")? {
+        if name.ends_with(".canvas.json") {
+            add(&mut found, notebook, &format!("canvases/{name}"));
         }
     }
     for (name, _) in entries(&notebook.join("experiments"), "experiments")? {

@@ -109,6 +109,7 @@ export function fakeProject(initial: Record<string, string> = {}) {
       return succeed({
         questionFiles: [...questionFiles].sort(),
         experimentFolders: [...folders].sort(),
+        canvasFiles: [],
       });
     },
     readNotebookFile: (_folder, path) => {

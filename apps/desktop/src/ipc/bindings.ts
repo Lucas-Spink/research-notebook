@@ -89,7 +89,7 @@ export const commands = {
 	/**  Stops the heartbeat and removes the lock if it is still ours. */
 	releaseProjectLock: (folder: FolderHandle) => typedError<null, ProjectError>(__TAURI_INVOKE("release_project_lock", { folder })),
 	/**
-	 *  Lists which question files and experiment folders the project has, so the
+	 *  Lists which question files, experiment folders and canvas files the project has, so the
 	 *  webview can read each with `read_notebook_file`. Only names are returned,
 	 *  never paths outside the notebook. Nothing is written.
 	 */
@@ -900,12 +900,14 @@ export type NotebookBody = {
 	encoding: Encoding,
 };
 
-/**  The question files and experiment folders a project has, by name, sorted. */
+/**  The question files, experiment folders and canvas files a project has, by name, sorted. */
 export type NotebookFiles = {
 	/**  File names in `questions/`, such as `Q-001.md`. */
 	questionFiles: string[],
 	/**  Folder names in `experiments/`, such as `EXP-001`. */
 	experimentFolders: string[],
+	/**  File names in `canvases/`, such as `01JAXC0000000000000000CNV1.canvas.json`. */
+	canvasFiles: string[],
 };
 
 export type NotebookKind = "jupyter" | "rMarkdown" | "quarto";

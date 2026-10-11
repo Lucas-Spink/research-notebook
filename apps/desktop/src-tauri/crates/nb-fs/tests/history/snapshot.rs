@@ -424,3 +424,42 @@ fn a_new_experiment_folder_is_made_file_by_file_and_can_be_trashed_whole() {
         b"new"
     );
 }
+
+#[test]
+fn a_canvas_file_is_created_in_a_new_folder_and_its_previous_content_is_kept() {
+    // ADR-0064: canvases are notebook data files, so they get history like any other.
+    const CANVAS: &str = "_notebook/canvases/01JAXC0000000000000000CNV1.canvas.json";
+    let project = TestProject::new();
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+    let outside = snapshot_outside_notebook(project.root());
+
+    let first = save(&root, CANVAS, b"{}\n", &Expected::Absent, &clock).unwrap();
+    assert_eq!(first, SaveOutcome::Saved { snapshot: None });
+    assert_eq!(project.read(CANVAS), b"{}\n");
+
+    let second = save(&root, CANVAS, b"{\"a\":1}\n", &expect(b"{}\n"), &clock).unwrap();
+    let snapshot = "_notebook/.history/canvases/01JAXC0000000000000000CNV1.canvas.json/2026-09-21T10-15-00Z.json".to_owned();
+    assert_eq!(
+        second,
+        SaveOutcome::Saved {
+            snapshot: Some(snapshot.clone())
+        }
+    );
+    assert_eq!(project.read(&snapshot), b"{}\n");
+    assert_eq!(project.read(CANVAS), b"{\"a\":1}\n");
+    assert_eq!(snapshot_outside_notebook(project.root()), outside);
+}
+
+#[test]
+fn a_canvas_save_never_overwrites_an_outside_edit() {
+    const CANVAS: &str = "_notebook/canvases/01JAXC0000000000000000CNV1.canvas.json";
+    let project = TestProject::new();
+    plant(&project, CANVAS, b"edited elsewhere\n");
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+
+    let outcome = save(&root, CANVAS, b"mine\n", &expect(b"what I read\n"), &clock).unwrap();
+    assert!(matches!(outcome, SaveOutcome::Changed { .. }));
+    assert_eq!(project.read(CANVAS), b"edited elsewhere\n");
+}

@@ -1,4 +1,6 @@
-# Notebook format, version 1
+# Notebook format, versions 1 and 2
+
+Version 2 (ADR-0064) adds canvas files (section 4.9). It changes no other file except the `format_version` value in `project.yaml` and `artefacts.yaml`, which section 6 describes migrating. Everything below applies to both versions unless a section says otherwise; the file keeps its name so existing links hold.
 
 Status: merged with S2-T01 (PR #14). The parser and serialiser in `packages/format` implement it as of S2-T02; the interpretations that task added to section 4.3 (marked "S2-T02" below) were merged in PR #15. S2-T03 adds two YAML rules to sections 3.3 and 3.4 (marked "S2-T03"), recorded as rows 27 and 28 of section 8 and in ADR-0019, for maintainer review.
 

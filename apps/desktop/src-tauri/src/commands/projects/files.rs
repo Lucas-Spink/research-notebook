@@ -62,7 +62,7 @@ pub enum FileRead {
     Missing,
 }
 
-/// The question files and experiment folders a project has, by name, sorted.
+/// The question files, experiment folders and canvas files a project has, by name, sorted.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct NotebookFiles {
@@ -70,6 +70,8 @@ pub struct NotebookFiles {
     pub question_files: Vec<String>,
     /// Folder names in `experiments/`, such as `EXP-001`.
     pub experiment_folders: Vec<String>,
+    /// File names in `canvases/`, such as `01JAXC0000000000000000CNV1.canvas.json`.
+    pub canvas_files: Vec<String>,
 }
 
 impl From<NotebookListing> for NotebookFiles {
@@ -77,11 +79,12 @@ impl From<NotebookListing> for NotebookFiles {
         Self {
             question_files: listing.question_files,
             experiment_folders: listing.experiment_folders,
+            canvas_files: listing.canvas_files,
         }
     }
 }
 
-/// Lists which question files and experiment folders the project has, so the
+/// Lists which question files, experiment folders and canvas files the project has, so the
 /// webview can read each with `read_notebook_file`. Only names are returned,
 /// never paths outside the notebook. Nothing is written.
 #[tauri::command]
@@ -164,10 +167,11 @@ mod tests {
         let files = NotebookFiles::from(NotebookListing {
             question_files: vec!["Q-001.md".to_owned()],
             experiment_folders: vec!["EXP-001".to_owned(), "EXP-002".to_owned()],
+            canvas_files: vec!["01JAXC0000000000000000CNV1.canvas.json".to_owned()],
         });
         assert_eq!(
             serde_json::to_string(&files).unwrap(),
-            r#"{"questionFiles":["Q-001.md"],"experimentFolders":["EXP-001","EXP-002"]}"#
+            r#"{"questionFiles":["Q-001.md"],"experimentFolders":["EXP-001","EXP-002"],"canvasFiles":["01JAXC0000000000000000CNV1.canvas.json"]}"#
         );
     }
 
