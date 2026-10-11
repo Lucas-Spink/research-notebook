@@ -36,8 +36,10 @@ export const messages = {
   cancel: "Cancel",
   move: "Move",
   moveLabel: "Move to question",
-  delete: "Delete",
-  confirmDelete: "Move to trash",
+  delete: "Move to bin",
+  confirmDelete: "Move to bin",
+  moveToBin: "Move to bin",
+  moveToBinLabel: (ref: string) => `Move ${ref} to the bin`,
   titleLabel: "Title",
   statusLabel: "Status",
   startedLabel: "Started",
@@ -247,19 +249,21 @@ export function countLabel(
   return filtered ? `${shown} of ${total} ${noun}` : `${total} ${noun}`;
 }
 
-/** Warning shown before an experiment is moved to the trash. */
+/** Warning shown before an experiment is moved to the bin. */
 export function deleteExperimentWarning(ref: string): string {
-  return `${ref} and its folder will be moved to the trash.`;
+  return `${ref} and its folder will be moved to the bin. You can restore it from the Bin.`;
 }
 
-/** Warning shown before a question is moved to the trash; its experiments stay. */
+/** Warning shown before a question is moved to the bin; its experiments stay. */
 export function deleteQuestionWarning(
   ref: string,
   experiments: number,
 ): string {
-  if (experiments === 0) return `${ref} will be moved to the trash.`;
+  if (experiments === 0) {
+    return `${ref} will be moved to the bin. You can restore it from the Bin.`;
+  }
   const noun = experiments === 1 ? "experiment" : "experiments";
-  return `${ref} will be moved to the trash. Its ${experiments} ${noun} will be kept and shown as unassigned.`;
+  return `${ref} will be moved to the bin. You can restore it from the Bin. Its ${experiments} ${noun} will be kept and shown as unassigned.`;
 }
 
 /** Label of the field that adds an experiment to the question `ref`. */

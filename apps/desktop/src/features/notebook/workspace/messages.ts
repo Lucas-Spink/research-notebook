@@ -12,6 +12,7 @@ export const paneMessages = {
   citationsTab: "Citation style",
   detailsTab: "Details",
   integrityTab: "Integrity check",
+  binTab: "Bin",
   exportTabs: {
     pdf: "PDF/A export",
     html: "HTML export",
@@ -89,6 +90,7 @@ export const ribbonMessages = {
   refreshSources: "Refresh Zotero sources",
   citationStyle: "Citation style",
   integrityCheck: "Integrity check",
+  binPane: "Bin",
   exportPdf: "PDF/A",
   exportHtml: "HTML",
   exportMachine: "Machine-readable",
@@ -131,6 +133,8 @@ export const resultsBrowserMessages = {
   codeEmpty:
     "No scripts yet. Add one here to preview it, and text can refer to it as it can to a figure.",
   addScript: "Add script…",
+  removeScriptWarning:
+    "This script is moved to the bin and can be restored. A file stored outside the notebook is not touched.",
   scriptOpen: (name: string) => `Open ${name}`,
   linked: "linked",
 };

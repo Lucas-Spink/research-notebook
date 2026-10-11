@@ -26,6 +26,10 @@ type Props = {
    * actions, or by Enter when read-only. Left out, no file can be opened.
    */
   onOpen?: (artefactId: string) => void;
+  /** Removes a result's file from the notebook, to the bin; resolves whether it was. Left out, the menu has no such entry. */
+  onRemoveFile?: (artefactId: string) => Promise<boolean>;
+  /** What to say before a file is removed, such as how many places refer to it. */
+  removeWarning?: (artefactId: string) => string;
   /** Opens a result's file outside the application; resolves whether it worked. */
   onFileAction?: (
     artefactId: string,
@@ -60,6 +64,8 @@ export function ResultsTree({
   disabled,
   onAction,
   onOpen,
+  onRemoveFile,
+  removeWarning,
   onFileAction,
   missing,
   compact = false,
@@ -73,6 +79,8 @@ export function ResultsTree({
     onAction,
     hideEmptyUngrouped: compact,
     ...(onOpen === undefined ? {} : { onOpen }),
+    ...(onRemoveFile === undefined ? {} : { onRemoveFile }),
+    ...(removeWarning === undefined ? {} : { removeWarning }),
     ...(onFileAction === undefined ? {} : { onFileAction }),
   });
   const helpId = useId();

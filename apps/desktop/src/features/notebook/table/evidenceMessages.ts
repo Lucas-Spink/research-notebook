@@ -3,6 +3,7 @@ import type { EvidenceFailure, Refusal } from "../../../ipc/bindings";
 import { assertNever } from "../../../shared/assertNever";
 import { approvedExtensionsText } from "../../preview";
 import type { AddOutcome } from "./model/addEvidence";
+import type { RemoveOutcome } from "./model/binArtefact";
 
 /** Text of adding files in the Results cell (FR-EVD-01 to FR-EVD-05, ADR-0044). */
 export const evidenceMessages = {
@@ -149,4 +150,34 @@ export function outcomeText(outcome: AddOutcome): string {
     default:
       return assertNever(outcome);
   }
+}
+
+/** The sentence about references in the warning before a file is removed. */
+export function referenceCountText(count: number): string {
+  if (count === 0) return "Nothing in the notebook refers to it.";
+  const places =
+    count === 1 ? "1 place refers to it" : `${count} places refer to it`;
+  return `${places}, and will show it as missing until it is restored.`;
+}
+
+/** What to say after a file was removed from an experiment, or could not be. */
+export function removeOutcomeText(outcome: RemoveOutcome): string {
+  if (outcome.kind === "removed") {
+    return `${outcome.name} was moved to the bin. You can restore it from the Bin.`;
+  }
+  if (outcome.reason === "notRecorded") {
+    return `${outcome.name} is in the bin, but the notebook could not be updated, so it is still listed. Restore it from the Bin or try again.`;
+  }
+  return `${outcome.name} was not removed: ${binReasonText(outcome.reason)}.`;
+}
+
+/** Why the bin refused or failed; the few reasons a person can act on, and one for the rest. */
+export function binReasonText(reason: string): string {
+  if (reason === "notWritable") return "this project is read-only";
+  if (reason === "nameTaken") {
+    return "something with the same name is already in the project";
+  }
+  if (reason === "unreadable")
+    return "the record kept in the bin could not be read";
+  return "it could not be moved";
 }

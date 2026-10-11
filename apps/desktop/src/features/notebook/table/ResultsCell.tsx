@@ -50,12 +50,8 @@ export function ResultsCell({
   const body = useRef<HTMLDivElement>(null);
   // The tree's controls are tab stops only once focus is inside it.
   const [inside, setInside] = useState(false);
-  const treeProps = useResultsCellTree(
-    folder,
-    experiment.folder,
-    artefacts,
-    editing,
-  );
+  const { onRemoveFile, removeWarning, removalNotes, ...treeProps } =
+    useResultsCellTree(folder, experiment.folder, artefacts, editing);
 
   const hover = useResultHover(artefacts);
 
@@ -139,6 +135,7 @@ export function ResultsCell({
               disabled={readOnly}
               onHover={hover.onHover}
               {...treeProps}
+              {...(readOnly ? {} : { onRemoveFile, removeWarning })}
             />
             <CodeFolder
               file={artefacts}
@@ -147,8 +144,17 @@ export function ResultsCell({
               editing={editing}
               readOnly={readOnly}
               onOpen={treeProps.onOpen}
+              onRemove={onRemoveFile}
+              removeWarning={removeWarning}
               tabStops={inside}
             />
+            <div role="status" aria-live="polite">
+              {removalNotes.map((note, index) => (
+                <p key={index} className="wtable__muted">
+                  {note}
+                </p>
+              ))}
+            </div>
           </>
         )}
       </div>

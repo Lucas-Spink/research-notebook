@@ -71,6 +71,8 @@ export function useTableEditing({
     references,
     onEdit,
     onEditExperiment: (id, changes) => actions.editExperiment(id, changes),
+    onMoveExperimentToBin: (id) => actions.removeExperiment(id),
+    onMoveQuestionToBin: (id) => actions.removeQuestion(id),
     onOpenResults,
     onOpenResult,
     onAddResult,

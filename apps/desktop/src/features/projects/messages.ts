@@ -56,6 +56,8 @@ const failureMessages: Record<FailureReason, string> = {
     "This project is read-only in this window, so nothing was saved. Nothing was changed.",
   lockFailed:
     "The project lock could not be read or changed, so the project was not opened for editing.",
+  nameTaken:
+    "Something with that name is already in the project, so nothing was restored.",
   fileUnavailable: "That file could not be read.",
   watchFailed:
     "Changes made outside the application may not appear until the project is reopened.",

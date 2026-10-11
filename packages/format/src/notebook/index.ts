@@ -71,6 +71,7 @@ export {
 } from "./citedBy";
 export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { artefactsOf, editArtefacts, EMPTY_ARTEFACTS } from "./artefacts-edit";
+export { removeArtefact, restoreArtefact } from "./artefact-bin";
 export {
   artefactsPath,
   PROJECT_PATH,

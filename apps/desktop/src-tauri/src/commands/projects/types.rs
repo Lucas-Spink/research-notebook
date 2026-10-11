@@ -27,6 +27,8 @@ pub enum ProjectError {
     /// Nothing was written: this application does not hold the project's
     /// lock, so the project is read-only.
     NotWritable,
+    /// A restore found something already using the name, so nothing was moved.
+    NameTaken,
     /// The project lock could not be read, written or removed.
     LockFailed,
     /// A notebook data file could not be read: it is not one that may be read,

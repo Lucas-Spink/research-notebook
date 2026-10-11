@@ -11,6 +11,7 @@ export type PaneTab =
   | { id: string; kind: "citations" }
   | { id: string; kind: "details" }
   | { id: string; kind: "integrity" }
+  | { id: string; kind: "bin" }
   | { id: string; kind: "export"; section: ExportSection }
   | { id: string; kind: "addResult"; experimentFolder: string }
   | { id: string; kind: "results"; experimentFolder: string }

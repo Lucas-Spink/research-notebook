@@ -8,6 +8,7 @@
 //! `packages/format`; this crate never parses a notebook file.
 
 pub mod archive;
+pub mod bin;
 pub mod bundle;
 pub mod evidence;
 pub mod export_run;

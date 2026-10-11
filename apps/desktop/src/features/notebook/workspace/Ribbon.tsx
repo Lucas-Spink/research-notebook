@@ -85,6 +85,7 @@ const SEARCH_TAB: PaneTab = { id: "search", kind: "search" };
 const CITATIONS_TAB: PaneTab = { id: "citations", kind: "citations" };
 const DETAILS_TAB: PaneTab = { id: "details", kind: "details" };
 const INTEGRITY_TAB: PaneTab = { id: "integrity", kind: "integrity" };
+const BIN_TAB: PaneTab = { id: "bin", kind: "bin" };
 const exportTab = (section: ExportSection): PaneTab => ({
   id: `export:${section}`,
   kind: "export",
@@ -222,6 +223,11 @@ export function Ribbon(props: Props) {
       {m.details}
     </button>
   );
+  const binPane = (
+    <button type="button" className="ribbon__button" {...pane(BIN_TAB)}>
+      {m.binPane}
+    </button>
+  );
   const sourcesPane = (
     <button type="button" className="ribbon__button" {...pane(SOURCES_TAB)}>
       {m.sourcesPane}
@@ -308,6 +314,7 @@ export function Ribbon(props: Props) {
             <RibbonGroup label={m.groups.panes}>
               {details}
               {sourcesPane}
+              {binPane}
             </RibbonGroup>
           </>
         );

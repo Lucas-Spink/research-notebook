@@ -6,6 +6,7 @@ import {
 } from "../../results";
 import { commands, type FolderHandle } from "../../../ipc/bindings";
 import { useMissingLinks } from "../workspace/useMissingLinks";
+import { useRemoveFiles } from "../workspace/useRemoveFiles";
 import { useResultFileActions } from "../workspace/useResultFileActions";
 import type { TableEditing } from "./EditableSectionCell";
 import { previewVersion } from "./model/resultVersion";
@@ -31,6 +32,16 @@ export function useResultsCellTree(
     file,
   );
 
+  const removal = useRemoveFiles({
+    api: commands,
+    folder,
+    experimentFolder,
+    file,
+    references: editing.references,
+    writable: editing.writable,
+    editArtefacts: editing.editArtefacts,
+  });
+
   async function onAction(action: GroupAction): Promise<ActionOutcome> {
     const outcome = await editing.editArtefacts(
       experimentFolder,
@@ -51,5 +62,13 @@ export function useResultsCellTree(
     );
   };
 
-  return { missing, onFileAction: fileAction, onAction, onOpen };
+  return {
+    missing,
+    onFileAction: fileAction,
+    onAction,
+    onOpen,
+    onRemoveFile: removal.removeFile,
+    removeWarning: removal.removeWarning,
+    removalNotes: removal.notes,
+  };
 }

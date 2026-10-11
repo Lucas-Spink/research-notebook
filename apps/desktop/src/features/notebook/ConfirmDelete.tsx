@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * Deleting moves to the trash and can be undone by hand, but is still asked
+ * Deleting moves to the bin and can be restored from it, but is still asked
  * twice: the first press only shows what will happen.
  */
 export function ConfirmDelete({

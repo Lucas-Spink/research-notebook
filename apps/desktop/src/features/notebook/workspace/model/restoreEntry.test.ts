@@ -1,0 +1,133 @@
+import { describe, expect, it, vi } from "vitest";
+import type { BinItem } from "../../../../ipc/bindings";
+import { restoreEntry } from "./restoreEntry";
+
+const question: BinItem = {
+  stamp: "2026-09-21T10-15-00Z",
+  kind: "question",
+  name: "Q-001.md",
+  original: "_notebook/questions/Q-001.md",
+};
+const experiment: BinItem = {
+  ...question,
+  kind: "experiment",
+  name: "EXP-001",
+};
+const files: BinItem = { ...question, kind: "files", name: "EXP-001" };
+
+function setup(
+  options: {
+    restore?: "ok" | "nameTaken" | "notWritable";
+    record?: string;
+  } = {},
+) {
+  const restoreFromBin = vi.fn(() =>
+    Promise.resolve(
+      options.restore === undefined || options.restore === "ok"
+        ? { status: "ok" as const, data: null }
+        : { status: "error" as const, error: { kind: options.restore } },
+    ),
+  );
+  const readBinnedRecord = vi.fn(() =>
+    Promise.resolve({ status: "ok" as const, data: options.record ?? "" }),
+  );
+  const refresh = vi.fn(() => Promise.resolve());
+  const editArtefacts = vi.fn((...args: [string, unknown]) => {
+    void args;
+    return Promise.resolve({ ok: true as const });
+  });
+  return {
+    request: {
+      api: {
+        restoreFromBin,
+        readBinnedRecord,
+        binArtefactFiles: vi.fn(),
+      },
+      folder: 1,
+      refresh,
+      editArtefacts,
+    },
+    restoreFromBin,
+    readBinnedRecord,
+    refresh,
+    editArtefacts,
+  };
+}
+
+describe("restoring an entry from the bin", () => {
+  it("puts a question back, then reloads the notebook so it appears", async () => {
+    const s = setup();
+    const result = await restoreEntry({ ...s.request, entry: question });
+    expect(s.restoreFromBin).toHaveBeenCalledWith(
+      1,
+      question.stamp,
+      "question",
+      "Q-001.md",
+    );
+    expect(s.refresh).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ok: true, text: "Q-001 was restored." });
+  });
+
+  it("puts an experiment back and reloads", async () => {
+    const s = setup();
+    const result = await restoreEntry({ ...s.request, entry: experiment });
+    expect(s.restoreFromBin).toHaveBeenCalledWith(
+      1,
+      experiment.stamp,
+      "experiment",
+      "EXP-001",
+    );
+    expect(result).toEqual({ ok: true, text: "EXP-001 was restored." });
+  });
+
+  it("says a name is in the way, and reloads nothing", async () => {
+    const s = setup({ restore: "nameTaken" });
+    const result = await restoreEntry({ ...s.request, entry: question });
+    expect(result.ok).toBe(false);
+    expect(result.text).toContain("already in the project");
+    expect(s.refresh).not.toHaveBeenCalled();
+  });
+
+  it("says when the project is read-only", async () => {
+    const s = setup({ restore: "notWritable" });
+    const result = await restoreEntry({ ...s.request, entry: experiment });
+    expect(result.text).toContain("read-only");
+  });
+
+  it("restores removed files through the experiment's artefacts.yaml", async () => {
+    const record = JSON.stringify({
+      format_version: 1,
+      artefacts: [
+        {
+          id: "01JB0000000000000000000001",
+          name: "Volcano",
+          role: "result",
+          mode: "link",
+          type: "image",
+          source: { root: "project", path: "out/v.png" },
+          created: "2026-09-01T09:00:00Z",
+          link: {
+            sha256: "c".repeat(64),
+            size: 1,
+            observed_mtime: "2026-09-01T09:00:00Z",
+            checked: "2026-09-01T09:00:00Z",
+          },
+        },
+      ],
+      groups: [],
+    });
+    const s = setup({ record });
+    const result = await restoreEntry({ ...s.request, entry: files });
+    expect(result).toEqual({ ok: true, text: "Volcano was restored." });
+    expect(s.editArtefacts).toHaveBeenCalledTimes(1);
+    expect(s.editArtefacts.mock.calls[0]?.[0]).toBe("EXP-001");
+  });
+
+  it("explains a record that cannot be read, and moves nothing", async () => {
+    const s = setup({ record: "not: [valid" });
+    const result = await restoreEntry({ ...s.request, entry: files });
+    expect(result.ok).toBe(false);
+    expect(result.text).toContain("could not be read");
+    expect(s.restoreFromBin).not.toHaveBeenCalled();
+  });
+});

@@ -345,6 +345,17 @@ export function WorkspaceTable({
                   sharesRef={row.ref !== null && sharedRefs.has(row.ref)}
                   onToggle={onToggle}
                   onSelect={onSelectQuestion}
+                  {...(editing.writable &&
+                  !row.readOnly &&
+                  row.questionId !== null
+                    ? {
+                        onMoveToBin: (header) => {
+                          if (header.questionId !== null) {
+                            void editing.onMoveQuestionToBin(header.questionId);
+                          }
+                        },
+                      }
+                    : {})}
                 />
               );
             }
