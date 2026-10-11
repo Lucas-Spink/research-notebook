@@ -100,6 +100,10 @@ import { AddResultPane } from "./workspace/AddResultPane";
 import { CanvasResultPreview } from "./workspace/CanvasResultPreview";
 import { CanvasResultsPanel } from "./workspace/CanvasResultsPanel";
 import { resolveResult } from "./workspace/model/canvasResults";
+import {
+  questionsOf,
+  reconcileQuestion,
+} from "./workspace/model/canvasQuestions";
 import { questionKeyOf } from "./workspace/model/resultsOrder";
 import { PaneHost } from "./workspace/PaneHost";
 import { PaneTabIcon } from "./workspace/PaneTabIcon";
@@ -121,6 +125,16 @@ function sharedRefs(problems: readonly Problem[]): ReadonlySet<string> {
   return new Set(
     problems.flatMap((p) => (p.kind === "duplicateRef" ? [p.ref] : [])),
   );
+}
+
+/** What the table has selected, as far as finding its question needs. */
+function selectionOf(
+  selected: Selected | null,
+): Parameters<typeof questionKeyOf>[1] {
+  if (selected === null) return null;
+  return selected.kind === "question"
+    ? { kind: "question", fileName: selected.group.question.fileName }
+    : { kind: "experiment", folder: selected.item.experiment.folder };
 }
 
 /** What a table row key selects, looked up each time so a deleted item just stops being selected. */
@@ -258,17 +272,44 @@ function NotebookViewBody({
 
   // Table or Canvas: two views of the same notebook (ADR-0064). View state only.
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  // The canvas shows one question's canvas at a time (ADR-0065).
+  const [canvasChoice, setCanvasChoice] = useState<string | null>(null);
+  const canvasTabs = useMemo(
+    () => (arranged === null ? [] : questionsOf(arranged)),
+    [arranged],
+  );
+  const canvasKey = reconcileQuestion(canvasChoice, canvasTabs);
+  const canvasTab = canvasTabs.find((tab) => tab.key === canvasKey);
   const canvases = useCanvases({
     api: canvasApi,
     folder,
     writable,
     enabled: viewMode === "canvas",
+    question:
+      canvasTab === undefined
+        ? null
+        : { id: canvasTab.id, name: canvasTab.label },
   });
+  /** Shows a question's canvas, and the table's selection follows, so going back lands on the same question. */
+  function chooseCanvasQuestion(key: string) {
+    setCanvasChoice(key);
+    setSelectedKey(`question:${key}`);
+    setPickedKey(`question:${key}`);
+  }
   /** Whatever is being typed in the table is saved before the table goes away; if that fails, the table stays. */
   async function changeView(next: ViewMode) {
-    if (next === "canvas" && !(await live.activate(null))) return;
-    // Layout changes still waiting for their quiet moment are written before the table takes over.
-    if (next === "table") await canvases.flush();
+    if (!(await live.activate(null))) return;
+    if (next === "canvas") {
+      // The canvas opens on the question the table had selected.
+      const held =
+        arranged === null
+          ? null
+          : questionKeyOf(arranged, selectionOf(selected));
+      if (held !== null && held !== "unassigned") setCanvasChoice(held);
+    } else {
+      // Layout changes still waiting for their quiet moment are written before the table takes over.
+      await canvases.flush();
+    }
     setViewMode(next);
   }
 
@@ -917,6 +958,9 @@ function NotebookViewBody({
                 <CanvasView
                   canvases={canvases}
                   cards={cards}
+                  questions={canvasTabs}
+                  question={canvasKey}
+                  onChooseQuestion={chooseCanvasQuestion}
                   resultsPanel={
                     <CanvasResultsPanel
                       arranged={arranged}
@@ -924,20 +968,7 @@ function NotebookViewBody({
                       editing={editing}
                       pinned={canvases.pinned}
                       onPin={(refs, screen) => canvases.pinAt(refs, screen)}
-                      currentQuestion={questionKeyOf(
-                        arranged,
-                        selected === null
-                          ? null
-                          : selected.kind === "question"
-                            ? {
-                                kind: "question",
-                                fileName: selected.group.question.fileName,
-                              }
-                            : {
-                                kind: "experiment",
-                                folder: selected.item.experiment.folder,
-                              },
-                      )}
+                      currentQuestion={canvasKey}
                     />
                   }
                 />

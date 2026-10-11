@@ -49,9 +49,16 @@ export function buttonNamed(
 }
 
 /** Types into a controlled input the way a person would. */
-export function type(input: HTMLInputElement, text: string): void {
+export function type(
+  input: HTMLInputElement | HTMLTextAreaElement,
+  text: string,
+): void {
+  const prototype =
+    input instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
   act(() => {
-    Reflect.set(HTMLInputElement.prototype, "value", text, input);
+    Reflect.set(prototype, "value", text, input);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }

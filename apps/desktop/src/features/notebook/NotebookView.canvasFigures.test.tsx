@@ -2,7 +2,6 @@ import {
   ArtefactsFile,
   EMPTY_ARTEFACTS,
   parseCanvas,
-  serialiseCanvas,
   type NotebookState,
 } from "@research-notebook/format";
 import { act } from "react";
@@ -23,7 +22,7 @@ import { prepareInteractiveTable } from "./table/tableTesting";
  * result, its groups or its experiment changes.
  */
 
-const { state, one } = sampleNotebook();
+const { state, one, first } = sampleNotebook();
 prepareInteractiveTable();
 beforeAll(stubFlowEnvironment);
 
@@ -63,22 +62,12 @@ const withFigure: NotebookState = {
   artefacts: { ...state.artefacts, "EXP-001": { kind: "file", file: figure } },
 };
 
-const CANVAS_ID = "01JAXC0000000000000000CNV1";
+// A question's canvas is named by the question's own id (ADR-0065).
+const CANVAS_ID = first;
 const CANVAS_PATH = `_notebook/canvases/${CANVAS_ID}.canvas.json`;
 
-function canvasText(): string {
-  return serialiseCanvas({
-    format_version: 2,
-    id: CANVAS_ID,
-    name: "Compare",
-    nodes: [],
-    edges: [],
-    viewport: { x: 0, y: 0, zoom: 1 },
-  });
-}
-
-function fakeCanvasApi(initial: string) {
-  const disk: Record<string, string> = { [CANVAS_PATH]: initial };
+function fakeCanvasApi() {
+  const disk: Record<string, string> = {};
   const writes: string[] = [];
   const api = {
     listNotebookFiles: () =>
@@ -87,7 +76,9 @@ function fakeCanvasApi(initial: string) {
         data: {
           questionFiles: [],
           experimentFolders: [],
-          canvasFiles: [`${CANVAS_ID}.canvas.json`],
+          canvasFiles: Object.keys(disk).map((path) =>
+            path.slice("_notebook/canvases/".length),
+          ),
         },
       }),
     readNotebookFile: (_f: unknown, path: string) =>
@@ -127,7 +118,7 @@ const flush = () =>
 
 async function openCanvas(selectFirst?: string) {
   const editArtefacts = vi.fn(stubActions.editArtefacts);
-  const canvas = fakeCanvasApi(canvasText());
+  const canvas = fakeCanvasApi();
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   place = document.createElement("div");
   document.body.append(place);
@@ -172,7 +163,9 @@ const click = (el: Element) =>
     el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 
+/** The current question's experiments open by themselves; this opens one that is not. */
 async function expandExperiment(view: HTMLElement) {
+  if (view.querySelector('[role="tree"]') !== null) return;
   click(button(view, "EXP-001"));
   await flush();
 }
@@ -208,10 +201,9 @@ describe("the results beside the canvas", () => {
     expect(panel?.textContent).toContain("0 results");
   });
 
-  it("shows an experiment's results as the same tree the table uses, once opened", async () => {
+  it("shows an experiment's results as the same tree the table uses, for the question being worked on", async () => {
     const { view } = await openCanvas();
-    expect(view.querySelector('[role="tree"]')).toBeNull();
-    await expandExperiment(view);
+    expect(view.querySelector('[role="tree"]')).not.toBeNull();
     expect(rowNamed(view, "PCA plot")).toBeDefined();
   });
 
@@ -250,9 +242,12 @@ describe("thumbnails and order in the list", () => {
     expect(headings[0]).toBe("Q-001 First");
   });
 
-  it("leaves experiments closed when nothing is selected", async () => {
+  it("keeps the experiments of other questions closed", async () => {
     const { view } = await openCanvas();
-    expect(view.querySelector('[role="tree"]')).toBeNull();
+    const second = [...view.querySelectorAll(".canvas-results__question")].find(
+      (q) => q.querySelector("h4")?.textContent?.includes("Q-002"),
+    );
+    expect(second?.querySelector('[role="tree"]') ?? null).toBeNull();
   });
 });
 

@@ -1,6 +1,7 @@
 import type { CanvasFileModel } from "@research-notebook/format";
-import type { NodeChange } from "@xyflow/react";
+import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { assertNever } from "../../../shared/assertNever";
+import { connectNodes, removeEdges, setNoteText } from "./notes";
 import {
   moveNode,
   removeNodes,
@@ -13,7 +14,12 @@ import {
 export type CanvasEdit =
   | { kind: "move"; id: string; to: Point }
   | { kind: "resize"; id: string; to: Extent }
-  | { kind: "remove"; ids: string[] };
+  | { kind: "remove"; ids: string[] }
+  /** A note's text, exactly as typed. */
+  | { kind: "noteText"; id: string; text: string }
+  /** A line drawn between two cards; `id` is the new line's, made by the caller so this stays pure. */
+  | { kind: "connect"; id: string; from: string; to: string }
+  | { kind: "removeEdges"; ids: string[] };
 
 /**
  * What of a batch of React Flow's changes belongs in the file. The library
@@ -58,6 +64,14 @@ export function editsFrom(
     : [...edits, { kind: "remove", ids: removed }];
 }
 
+/** The removal of lines is all of React Flow's changes to them that belongs in the file. */
+export function edgeEditsFrom(changes: readonly EdgeChange[]): CanvasEdit[] {
+  const ids = changes.flatMap((change) =>
+    change.type === "remove" ? [change.id] : [],
+  );
+  return ids.length === 0 ? [] : [{ kind: "removeEdges", ids }];
+}
+
 /** The file after the edits, in order; the same file if none changed anything. */
 export function applyEdits(
   file: CanvasFileModel,
@@ -71,6 +85,12 @@ export function applyEdits(
         return resizeNode(current, edit.id, edit.to);
       case "remove":
         return removeNodes(current, edit.ids);
+      case "noteText":
+        return setNoteText(current, edit.id, edit.text);
+      case "connect":
+        return connectNodes(current, edit.from, edit.to, () => edit.id);
+      case "removeEdges":
+        return removeEdges(current, edit.ids);
       default:
         return assertNever(edit);
     }

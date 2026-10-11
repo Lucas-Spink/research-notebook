@@ -268,3 +268,137 @@
   background: transparent;
   color: var(--color-text-muted);
 }
+
+/* One tab for each question. */
+.canvas-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.canvas-tabs [role="tab"] {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--color-border-control);
+  border-radius: 6px 6px 0 0;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  padding: var(--space-1) var(--space-2);
+}
+
+.canvas-tabs [role="tab"][aria-selected="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* A note is a card of its own; its text fills it. */
+.canvas-note {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border-control);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.react-flow__node.selected .canvas-note {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+}
+
+.canvas-note__text {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  width: 100%;
+  resize: none;
+  border: 0;
+  padding: var(--space-2);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.canvas-note__remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 1;
+  padding: 0 var(--space-2);
+}
+
+/* The points a line is drawn from, shown on a selected or hovered card. */
+.canvas-handle {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--color-accent);
+  background: var(--color-surface);
+  opacity: 0;
+}
+
+.react-flow__node:hover .canvas-handle,
+.react-flow__node.selected .canvas-handle {
+  opacity: 1;
+}
+
+.canvas-surface .react-flow__edge-path {
+  stroke: var(--color-text-muted);
+  stroke-width: 2;
+}
+
+.canvas-surface .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-accent);
+  stroke-width: 3;
+}
+
+/* The summary of a question's notes. */
+.canvas-summary {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.canvas-summary__note {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  white-space: pre-wrap;
+}
+
+.canvas-summary__select {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  cursor: pointer;
+}
+
+.canvas-summary__blank,
+.canvas-summary__empty {
+  color: var(--color-text-muted);
+}
+
+.canvas-summary__refs {
+  margin-top: var(--space-1);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.canvas-summary__refs ul {
+  margin: 0;
+  padding-inline-start: var(--space-4);
+}

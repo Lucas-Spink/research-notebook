@@ -37,6 +37,10 @@ const EXP = "01JAXE000000000000000000A1";
 const ART = "01JAXA000000000000000000A1";
 const ART_2 = "01JAXA000000000000000000A2";
 
+/** The question whose canvas is shown: its id names the canvas file. */
+const QUESTION = { id: A, name: "Q-001 First" };
+const TABS = [{ key: "Q-001.md", label: "Q-001 First" }];
+
 let model: CanvasesModel | null = null;
 
 function Harness({
@@ -53,10 +57,19 @@ function Harness({
     folder: FOLDER,
     writable,
     enabled: true,
+    question: QUESTION,
     saveDelayMs: 0,
   });
   model = canvases;
-  return <CanvasView canvases={canvases} cards={cards} />;
+  return (
+    <CanvasView
+      canvases={canvases}
+      cards={cards}
+      questions={TABS}
+      question={TABS[0]?.key ?? null}
+      onChooseQuestion={() => undefined}
+    />
+  );
 }
 
 async function open(
@@ -162,14 +175,30 @@ describe("pinning results", () => {
     expect(writes).toEqual([]);
   });
 
-  it("pins nothing, and says so, when there is no canvas to pin to", async () => {
-    const { view, writes } = await open({}, { [ART]: foundResult() });
+  it("makes the question's canvas file by the first pin, when it had none", async () => {
+    const { disk, writes } = await open({}, { [ART]: foundResult() });
+    expect(writes).toEqual([]);
+    act(() => {
+      model?.pinAt([{ experimentId: EXP, artefactId: ART, version: 1 }], null);
+    });
+    await flush();
+    expect(Object.keys(disk)).toEqual([pathOf(A)]);
+    expect(saved(disk)).toMatchObject({ id: A, name: "Q-001 First" });
+    expect(saved(disk).nodes).toHaveLength(1);
+  });
+
+  it("pins nothing, and says so, when the canvas file could not be read", async () => {
+    const { view, writes, disk } = await open(
+      { [pathOf(A)]: "{ not json" },
+      { [ART]: foundResult() },
+    );
     act(() => {
       model?.pinAt([{ experimentId: EXP, artefactId: ART }], null);
     });
     await flush();
-    expect(view.textContent).toContain("Nothing was pinned");
+    expect(view.textContent).toContain("Nothing was added");
     expect(writes).toEqual([]);
+    expect(disk[pathOf(A)]).toBe("{ not json");
   });
 });
 
@@ -212,7 +241,7 @@ describe("result cards", () => {
   });
 
   it("can be removed from the canvas, which changes only the canvas file", async () => {
-    const { view, disk, trashed } = await open(
+    const { view, disk } = await open(
       { [pathOf(A)]: withCard(1) },
       { [ART]: foundResult() },
     );
@@ -221,7 +250,6 @@ describe("result cards", () => {
     await flush();
     expect(saved(disk).nodes).toEqual([]);
     expect(view.textContent).not.toContain("picture of PCA plot");
-    expect(trashed).toEqual([]);
     expect(Object.keys(disk)).toEqual([pathOf(A)]);
   });
 
@@ -276,10 +304,19 @@ describe("saving the layout", () => {
         folder: FOLDER,
         writable: true,
         enabled: true,
+        question: QUESTION,
         saveDelayMs: 60_000,
       });
       model = canvases;
-      return <CanvasView canvases={canvases} cards={cards} />;
+      return (
+        <CanvasView
+          canvases={canvases}
+          cards={cards}
+          questions={TABS}
+          question="Q-001.md"
+          onChooseQuestion={() => undefined}
+        />
+      );
     }
     mount(<Slow />);
     await flush();
