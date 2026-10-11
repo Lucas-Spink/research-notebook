@@ -8,16 +8,16 @@ use std::path::PathBuf;
 
 use nb_fs::{ProjectRoot, ReadError};
 use nb_preview::cache::{ThumbnailCache, ThumbnailKey, DEFAULT_THUMBNAIL_SIZE};
-use nb_preview::notebook::{notebook_info, NotebookFormat};
+use nb_preview::notebook::{notebook_body, notebook_info, NotebookFormat};
 use nb_preview::raster::cached_raster_thumbnail;
 use nb_preview::table::{sample_table_file, TableExtent, TableFormat};
-use nb_preview::text::sample_text;
+use nb_preview::text::{sample_script, sample_text};
 use nb_preview::webview::{check_webview_file, WebviewKind};
 use nb_preview::PreviewError;
 
 use super::types::{
-    AssetKind, Dimensions, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview, TextPreview,
-    VersionFileProblem, VersionPath,
+    AssetKind, Dimensions, NotebookBody, NotebookPreview, PreviewFailure, Sha256Hex, TablePreview,
+    TextPreview, VersionFileProblem, VersionPath,
 };
 
 /// The cached thumbnail of a raster image version, made if needed.
@@ -91,6 +91,37 @@ pub(super) fn text(root: &ProjectRoot, file: &VersionPath) -> Result<TextPreview
         lines: sample.lines,
         encoding: sample.encoding.into(),
         complete: sample.complete,
+    })
+}
+
+/// A script for the viewer: more lines than [`text`], same safeguards.
+pub(super) fn script(
+    root: &ProjectRoot,
+    file: &VersionPath,
+) -> Result<TextPreview, PreviewFailure> {
+    let opened = root.open_version_file(&file.to_rel()?)?;
+    let sample = sample_script(opened.file)?;
+    Ok(TextPreview {
+        lines: sample.lines,
+        encoding: sample.encoding.into(),
+        complete: sample.complete,
+    })
+}
+
+/// A Jupyter notebook's whole text. Only `.ipynb` files are accepted.
+pub(super) fn notebook_text(
+    root: &ProjectRoot,
+    file: &VersionPath,
+) -> Result<NotebookBody, PreviewFailure> {
+    match NotebookFormat::from_file_name(file.file_name()) {
+        Some(NotebookFormat::Jupyter) => {}
+        _ => return Err(PreviewFailure::NotPreviewable),
+    }
+    let opened = root.open_version_file(&file.to_rel()?)?;
+    let body = notebook_body(opened.file, opened.len)?;
+    Ok(NotebookBody {
+        text: body.text,
+        encoding: body.encoding.into(),
     })
 }
 

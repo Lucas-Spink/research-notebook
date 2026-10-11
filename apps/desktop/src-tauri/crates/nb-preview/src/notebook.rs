@@ -7,11 +7,15 @@ use std::io::{Read, Seek, SeekFrom};
 
 use serde_json::Value;
 
-use crate::encoding::read_bounded;
+use crate::encoding::{decode_text, read_bounded, TextEncoding};
 use crate::PreviewError;
 
 /// Bytes of a notebook read at most (1 MiB).
 pub const NOTEBOOK_METADATA_READ: u64 = 1024 * 1024;
+/// Bytes of a notebook read whole, to show its cells (16 MiB). A notebook
+/// above this is refused rather than cut, since half a JSON document is not
+/// a notebook.
+pub const NOTEBOOK_BODY_READ: u64 = 16 * 1024 * 1024;
 /// Longest language or kernel name kept, in characters.
 const MAX_NAME_CHARS: usize = 200;
 /// `"metadata"` keys tried, from the end, before giving up.
@@ -139,4 +143,26 @@ fn describe(metadata: &Value) -> (Option<String>, Option<String>) {
     let kernel = text(kernelspec.and_then(|k| k.get("display_name")))
         .or_else(|| text(kernelspec.and_then(|k| k.get("name"))));
     (language, kernel)
+}
+
+/// The text of a whole notebook, for the webview to validate and draw. Nothing
+/// is parsed or run here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotebookBody {
+    pub text: String,
+    pub encoding: TextEncoding,
+}
+
+/// Reads a notebook of `len` bytes whole, refusing one above
+/// [`NOTEBOOK_BODY_READ`] before reading any of it.
+pub fn notebook_body<R: Read>(reader: R, len: u64) -> Result<NotebookBody, PreviewError> {
+    if len > NOTEBOOK_BODY_READ {
+        return Err(PreviewError::FileTooLarge {
+            bytes: len,
+            limit: NOTEBOOK_BODY_READ,
+        });
+    }
+    let read = read_bounded(reader, NOTEBOOK_BODY_READ, Some(len))?;
+    let (text, encoding) = decode_text(&read.bytes, read.complete);
+    Ok(NotebookBody { text, encoding })
 }
