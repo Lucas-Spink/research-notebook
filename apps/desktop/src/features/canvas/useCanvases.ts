@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { canvasMessages } from "./messages";
+import { notesCitekeys } from "./model/cite";
 import { addNote } from "./model/notes";
 import { pinResults, pinnedIds, type PinRef, type Point } from "./model/nodes";
 import { createCanvasSaver, type SaveReport } from "./model/saver";
@@ -51,6 +52,8 @@ export type CanvasesModel = {
   notice: string | null;
   /** The results that have a card on the canvas being shown. */
   pinned: ReadonlySet<string>;
+  /** The sources cited in the notes of every question's canvas, for the project Bibliography. */
+  noteCitekeys: ReadonlySet<string>;
   /** Makes an id for a new card or line. */
   newId: () => string;
   /** Changes the canvas being shown and saves it after a short quiet. Does nothing when it cannot be changed. */
@@ -246,9 +249,15 @@ export function useCanvases({
     [shown],
   );
 
+  const noteCitekeys = useMemo(
+    () => notesCitekeys(entries.map((entry) => entry.file)),
+    [entries],
+  );
+
   return {
     status,
     current: shown,
+    noteCitekeys,
     writable,
     notice,
     pinned,

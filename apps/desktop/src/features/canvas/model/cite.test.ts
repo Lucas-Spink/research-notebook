@@ -1,5 +1,12 @@
+import type { CanvasFileModel } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
-import { citeTrigger, readableCitations, spliceCitation } from "./cite";
+import { newCanvasFile } from "./canvasFiles";
+import {
+  citeTrigger,
+  notesCitekeys,
+  readableCitations,
+  spliceCitation,
+} from "./cite";
 
 /**
  * Typing /cite in a note opens the citation picker where the words were, as in
@@ -93,5 +100,27 @@ describe("readableCitations", () => {
   it("leaves text without a citation exactly as it is", () => {
     const text = "An email a@b.c and [a link](x) and [not a citation].";
     expect(readableCitations(text, label)).toBe(text);
+  });
+});
+
+describe("notesCitekeys", () => {
+  const note = (text: string) =>
+    ({
+      id: "n",
+      type: "note",
+      position: { x: 0, y: 0 },
+      size: { width: 1, height: 1 },
+      text,
+    }) as unknown as CanvasFileModel["nodes"][number];
+  const file = (...texts: string[]) =>
+    ({ ...newCanvasFile("Q", "Q"), nodes: texts.map(note) }) as CanvasFileModel;
+
+  it("collects the keys cited in notes of every canvas, once", () => {
+    const keys = notesCitekeys([
+      file("a [@z:u:7XK2PQ9M] b", "none"),
+      file("[@z:u:7XK2PQ9M; @z:u:ABCDEFGH]"),
+      null,
+    ]);
+    expect([...keys].sort()).toEqual(["z:u:7XK2PQ9M", "z:u:ABCDEFGH"]);
   });
 });

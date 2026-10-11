@@ -233,12 +233,15 @@ describe("the Canvas notes pane in the table view", () => {
     expect(calls).not.toContain("write");
   });
 
-  it("reads no canvas until it is opened", async () => {
+  // Canvases are read with the project so notes' citations reach the
+  // Bibliography (ADR-0065); reading never writes.
+  it("reads the canvases for the Bibliography without writing anything", async () => {
     const { calls } = await mount(
       { [pathOf(first)]: seeded() },
       { open: false },
     );
-    expect(calls).toEqual([]);
+    expect(calls).toContain("list");
+    expect(calls).not.toContain("write");
   });
 
   it("opens the question's canvas on a button", async () => {
