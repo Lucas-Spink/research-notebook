@@ -6,6 +6,10 @@ import { ResultsTree } from "../../results";
 import { evidenceOf } from "../model/evidence";
 import type { TableEditing } from "../table/EditableSectionCell";
 import { previewVersion } from "../table/model/resultVersion";
+import { LazyMount } from "../../../shared/LazyMount";
+import { CanvasResultPreview } from "./CanvasResultPreview";
+import { resolveInItem } from "./model/canvasResults";
+import { currentFirst } from "./model/resultsOrder";
 import { useResultsCellTree } from "../table/useResultsCellTree";
 import { canvasResultsMessages as m } from "./messages";
 import "./CanvasResultsPanel.css";
@@ -18,9 +22,15 @@ type Props = {
   pinned: ReadonlySet<string>;
   /** Pins results at a point of the window (a drop) or, with `null`, in the middle of the canvas. */
   onPin: (refs: PinRef[], screen: { x: number; y: number } | null) => void;
+  /** The question being worked on, listed first with its experiments open; `null` for none. */
+  currentQuestion: string | null;
 };
 
-type ExperimentProps = Omit<Props, "arranged"> & { item: ArrangedExperiment };
+type ExperimentProps = Omit<Props, "arranged" | "currentQuestion"> & {
+  item: ArrangedExperiment;
+  /** Opens with its results showing, as for the question being worked on. */
+  startOpen: boolean;
+};
 
 /** The refs for pinning `artefactIds` of one experiment: its id, the result and, for a copy, its newest version. */
 function refsFor(
@@ -57,8 +67,9 @@ function ExperimentResults({
   editing,
   pinned,
   onPin,
+  startOpen,
 }: ExperimentProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const file = evidenceOf(item);
   const experimentFolder = item.experiment.folder;
   const tree = useResultsCellTree(folder, experimentFolder, file, editing);
@@ -93,6 +104,20 @@ function ExperimentResults({
             missing={tree.missing}
             pinned={pinned}
             onPin={(ids) => onPin(refsFor(item, ids), null)}
+            renderThumbnail={(artefactId) => {
+              const found = resolveInItem(item, { artefactId });
+              return found.status === "found" ? (
+                <LazyMount
+                  placeholder={<span className="results__thumb-wait" />}
+                >
+                  <CanvasResultPreview
+                    folder={folder}
+                    result={found}
+                    detail="thumbnail"
+                  />
+                </LazyMount>
+              ) : null;
+            }}
             outside={{
               zone: "canvas",
               onDrop: ({ artefactIds, x, y }) =>
@@ -112,16 +137,23 @@ function ExperimentResults({
  * so groups, icons and the actions menu are the same, and a result dragged out
  * of it stays where it is. A box narrows the list by experiment or result name.
  */
-export function CanvasResultsPanel({ arranged, ...rest }: Props) {
+export function CanvasResultsPanel({
+  arranged,
+  currentQuestion,
+  ...rest
+}: Props) {
   const [text, setText] = useState("");
-  const groups = [
-    ...arranged.questions.map((group) => ({
-      key: group.question.fileName,
-      title: `${group.question.file.frontmatter.ref} ${group.question.file.frontmatter.title}`,
-      items: group.experiments,
-    })),
-    { key: "unassigned", title: m.unassigned, items: arranged.unassigned },
-  ]
+  const groups = currentFirst(
+    [
+      ...arranged.questions.map((group) => ({
+        key: group.question.fileName,
+        title: `${group.question.file.frontmatter.ref} ${group.question.file.frontmatter.title}`,
+        items: group.experiments,
+      })),
+      { key: "unassigned", title: m.unassigned, items: arranged.unassigned },
+    ],
+    currentQuestion,
+  )
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => matches(item, text)),
@@ -149,6 +181,7 @@ export function CanvasResultsPanel({ arranged, ...rest }: Props) {
             <ExperimentResults
               key={item.experiment.folder}
               item={item}
+              startOpen={group.key === currentQuestion}
               {...rest}
             />
           ))}

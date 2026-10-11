@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { FileIcon, GroupFolderIcon } from "../../shared/FileIcons";
 import { classificationLabel, resultsMessages } from "./messages";
 import { hasChildren, type TreeRow } from "./model/tree";
@@ -15,6 +16,8 @@ type Props = {
   missing: boolean;
   /** Hovering a result: its id and row, or `null` when the pointer leaves. */
   onHover?: (artefactId: string | null, row?: HTMLElement) => void;
+  /** The picture beside a result, if the tree draws them. */
+  renderThumbnail?: (artefactId: string) => ReactNode;
 };
 
 function label(row: TreeRow): string {
@@ -52,11 +55,16 @@ export function TreeRowView({
   tree,
   missing,
   onHover,
+  renderThumbnail,
 }: Props) {
   const expandable = row.kind !== "item" && hasChildren(row);
   const count = countShown(row);
   const chosen =
     row.kind === "item" && tree.chosen.some((c) => c.key === row.key);
+  const thumbnail =
+    row.kind === "item" && renderThumbnail !== undefined
+      ? renderThumbnail(row.artefactId)
+      : null;
   // The row a drag is over: it shows whether it will take the drop.
   const dragOver = tree.dragState?.over === row.key ? tree.dragState : null;
   return (
@@ -66,7 +74,7 @@ export function TreeRowView({
         else tree.rowRefs.current.set(row.key, element);
       }}
       role="treeitem"
-      className={`results__row results__row--${row.kind}${dragOver?.valid === true ? " results__row--over" : ""}${dragOver?.valid === false ? " results__row--no-drop" : ""}${chosen ? " results__row--chosen" : ""}`}
+      className={`results__row results__row--${row.kind}${dragOver?.valid === true ? " results__row--over" : ""}${dragOver?.valid === false ? " results__row--no-drop" : ""}${chosen ? " results__row--chosen" : ""}${thumbnail !== null ? " results__row--with-thumb" : ""}`}
       aria-selected={row.kind === "item" ? chosen : undefined}
       aria-level={row.depth}
       aria-posinset={position}
@@ -130,6 +138,9 @@ export function TreeRowView({
         <span className="results__icon">
           <GroupFolderIcon open={row.expanded && hasChildren(row)} />
         </span>
+      )}
+      {thumbnail !== null && (
+        <span className="results__thumb">{thumbnail}</span>
       )}
       <span className="results__name-text" title={label(row)}>
         {label(row)}
