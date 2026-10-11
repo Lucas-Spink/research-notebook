@@ -79,12 +79,20 @@ const saved = (disk: Record<string, string>) => {
   return parsed.value;
 };
 
-const withCard = (version: number | undefined) =>
-  textWithCard(A, "Compare", {
-    experimentId: EXP,
-    artefactId: ART,
-    ...(version === undefined ? {} : { version }),
-  });
+const withCard = (
+  version: number | undefined,
+  size?: { width: number; height: number },
+) =>
+  textWithCard(
+    A,
+    "Compare",
+    {
+      experimentId: EXP,
+      artefactId: ART,
+      ...(version === undefined ? {} : { version }),
+    },
+    size,
+  );
 
 describe("pinning results", () => {
   it("puts a card on the canvas where the result was dropped, and saves the canvas after a pause", async () => {
@@ -287,5 +295,72 @@ describe("saving the layout", () => {
       await model?.flush();
     });
     expect(fake.writes).toEqual([pathOf(A)]);
+  });
+});
+
+describe("the picture on a card", () => {
+  it("is drawn from the file itself when the card is big enough to read it", async () => {
+    const { cards } = await open(
+      { [pathOf(A)]: withCard(1, { width: 480, height: 360 }) },
+      { [ART]: foundResult() },
+    );
+    await flush();
+    expect(cards.details.at(-1)).toBe("full");
+  });
+
+  it("is the cached thumbnail when the card is small", async () => {
+    const { cards } = await open(
+      { [pathOf(A)]: withCard(1, { width: 160, height: 120 }) },
+      { [ART]: foundResult() },
+    );
+    await flush();
+    expect(cards.details.at(-1)).toBe("thumbnail");
+  });
+});
+
+describe("resizing a card", () => {
+  const select = async (view: HTMLElement) => {
+    const node = view.querySelector(".react-flow__node");
+    if (node === null) throw new Error("no card");
+    click(node);
+    await flush();
+  };
+
+  it("shows its handles outside the card when it is selected, where nothing clips them", async () => {
+    const { view } = await open(
+      { [pathOf(A)]: withCard(1) },
+      { [ART]: foundResult() },
+    );
+    await flush();
+    expect(view.querySelector(".react-flow__resize-control")).toBeNull();
+    await select(view);
+    const handle = view.querySelector(".react-flow__resize-control");
+    expect(handle).not.toBeNull();
+    expect(handle?.closest(".canvas-card")).toBeNull();
+  });
+
+  it("shows no handles when the project is read-only", async () => {
+    const { view } = await open(
+      { [pathOf(A)]: withCard(1) },
+      { [ART]: foundResult() },
+      false,
+    );
+    await flush();
+    await select(view);
+    expect(view.querySelector(".react-flow__resize-control")).toBeNull();
+  });
+});
+
+describe("the canvas grid", () => {
+  it("has a faint fine grid and a stronger coarse one", async () => {
+    const { view } = await open({ [pathOf(A)]: textOf(A, "Compare") });
+    const grids = view.querySelectorAll(".react-flow__background");
+    expect(grids).toHaveLength(2);
+    expect(
+      view.querySelector(".react-flow__background.canvas-grid--fine"),
+    ).not.toBeNull();
+    expect(
+      view.querySelector(".react-flow__background.canvas-grid--coarse"),
+    ).not.toBeNull();
   });
 });

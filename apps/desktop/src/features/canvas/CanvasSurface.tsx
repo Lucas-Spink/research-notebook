@@ -1,4 +1,6 @@
 import {
+  Background,
+  BackgroundVariant,
   Controls,
   ReactFlow,
   ReactFlowProvider,
@@ -30,6 +32,9 @@ import "@xyflow/react/dist/style.css";
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 4;
+/** Grid spacing in canvas units: a faint fine grid, and a stronger one every fifth line of it. */
+const FINE_GRID = 40;
+const COARSE_GRID = FINE_GRID * 5;
 const NODE_TYPES = {
   artefact: ArtefactCard,
   note: NoteCard,
@@ -169,6 +174,20 @@ function Flow({
           deleteKeyCode={editable ? DELETE_KEYS : null}
           onlyRenderVisibleElements
         >
+          <Background
+            id="fine"
+            className="canvas-grid canvas-grid--fine"
+            variant={BackgroundVariant.Lines}
+            gap={FINE_GRID}
+            lineWidth={1}
+          />
+          <Background
+            id="coarse"
+            className="canvas-grid canvas-grid--coarse"
+            variant={BackgroundVariant.Lines}
+            gap={COARSE_GRID}
+            lineWidth={1.25}
+          />
           <Controls showInteractive={false} />
         </ReactFlow>
         {nodes.length === 0 && (

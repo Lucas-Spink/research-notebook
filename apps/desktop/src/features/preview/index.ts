@@ -1,5 +1,6 @@
 export { PreviewView, type PreviewViewProps } from "./PreviewView";
 export { PreviewThumbnail } from "./PreviewThumbnail";
+export { PreviewPicture, type PictureDetail } from "./PreviewPicture";
 export type { FileDetails } from "./DetailViews";
 export { formatSize } from "./messages";
 export { approvedExtensionsText, scriptFormatOf } from "./model/scriptFormats";

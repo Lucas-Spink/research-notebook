@@ -29,13 +29,19 @@ export type MissingResult = {
   reason: "experiment" | "artefact" | "version";
 };
 
+/** How much of the file a card's picture is drawn from: small cards use the cached thumbnail, large ones the file itself. */
+export type PictureDetail = "thumbnail" | "full";
+
 export type ResultInfo = FoundResult | MissingResult;
 
 /** What the rest of the application provides so a card can be drawn (the canvas knows nothing of experiments or previews). */
 export type CardServices = {
   resolve: (node: ArtefactNode) => ResultInfo;
   /** The picture of a result. */
-  renderPreview: (result: FoundResult) => React.ReactNode;
+  renderPreview: (
+    result: FoundResult,
+    detail: PictureDetail,
+  ) => React.ReactNode;
   /** Opens the original in the preview pane. */
   onOpen: (result: FoundResult, node: ArtefactNode) => void;
 };

@@ -3,22 +3,25 @@ import { commands, type FolderHandle } from "../../../ipc/bindings";
 import type { FoundResult } from "../../canvas";
 import {
   planPreview,
-  PreviewThumbnail,
-  useThumbnail,
+  PreviewPicture,
   versionPath,
+  type PictureDetail,
 } from "../../preview";
 
 type Props = {
   folder: FolderHandle;
   result: FoundResult;
+  /** The cached thumbnail for something small on screen, the file itself for something large. */
+  detail: PictureDetail;
 };
 
 /**
- * The picture on a canvas card: the result's thumbnail (spec 8), from the
- * cache that the table's previews use, never the full-size file. A linked
- * result outside the notebook shows its type icon.
+ * The picture on a canvas card. A small card shows the result's cached
+ * thumbnail (spec 8), the same one the table uses; a card big enough to read
+ * shows the file itself, which the application serves to the window directly.
+ * A linked result outside the notebook shows its type icon.
  */
-export function CanvasResultPreview({ folder, result }: Props) {
+export function CanvasResultPreview({ folder, result, detail }: Props) {
   const plan = useMemo(
     () =>
       planPreview({
@@ -28,14 +31,17 @@ export function CanvasResultPreview({ folder, result }: Props) {
       }),
     [result.fileName, result.type, result.captured],
   );
-  const thumbnail = useThumbnail({
-    api: commands,
-    target: {
-      folder,
-      file: versionPath(result.experimentFolder, result.fileName),
-      sha256: result.sha256,
-    },
-    plan,
-  });
-  return <PreviewThumbnail name={result.name} thumbnail={thumbnail} />;
+  return (
+    <PreviewPicture
+      api={commands}
+      target={{
+        folder,
+        file: versionPath(result.experimentFolder, result.fileName),
+        sha256: result.sha256,
+      }}
+      plan={plan}
+      name={result.name}
+      detail={detail}
+    />
+  );
 }

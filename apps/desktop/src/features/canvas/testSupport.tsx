@@ -79,13 +79,21 @@ export function foundResult(over: Partial<FoundResult> = {}): FoundResult {
 /** Card services over a fixed answer for each artefact, recording what was opened. */
 export function fakeCards(
   answers: Record<string, ResultInfo> = {},
-): CardServices & { opened: [string, number | null][] } {
+): CardServices & {
+  opened: [string, number | null][];
+  details: string[];
+} {
   const opened: [string, number | null][] = [];
+  const details: string[] = [];
   return {
     opened,
+    details,
     resolve: (node: ArtefactNode) =>
       answers[node.artefact_id] ?? { status: "missing", reason: "artefact" },
-    renderPreview: (result) => <span>picture of {result.name}</span>,
+    renderPreview: (result, detail) => {
+      details.push(detail);
+      return <span>picture of {result.name}</span>;
+    },
     onOpen: (result) => opened.push([result.artefactId, result.shownVersion]),
   };
 }

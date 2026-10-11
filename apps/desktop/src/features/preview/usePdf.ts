@@ -58,7 +58,7 @@ export function usePdfPages(url: string, onFailed: () => void) {
  * longest edge (spec 8). `failed` turns true if it cannot, so the caller can
  * show the type icon instead.
  */
-export function usePdfThumbnail(url: string) {
+export function usePdfThumbnail(url: string, maxEdge = THUMBNAIL_EDGE) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -70,7 +70,7 @@ export function usePdfThumbnail(url: string) {
         open = doc;
         const canvas = canvasRef.current;
         if (canvas !== null) {
-          await doc.draw(1, canvas, { maxEdge: THUMBNAIL_EDGE });
+          await doc.draw(1, canvas, { maxEdge });
         }
       })
       .catch(() => setFailed(true));
@@ -78,7 +78,7 @@ export function usePdfThumbnail(url: string) {
       loading.cancel();
       open?.close();
     };
-  }, [url]);
+  }, [url, maxEdge]);
 
   return { canvasRef, failed };
 }

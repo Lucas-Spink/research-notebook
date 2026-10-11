@@ -153,6 +153,30 @@
   pointer-events: none;
 }
 
+/* The grid draws behind the cards: faint every 40 units, firmer every 200. */
+.canvas-grid--fine {
+  --xy-background-pattern-line-color: var(--color-border);
+  opacity: 0.45;
+}
+
+.canvas-grid--coarse {
+  --xy-background-pattern-line-color: var(--color-border-control);
+  opacity: 0.7;
+}
+
+/* Handles big enough to find with a pointer, on the edge of the selected card. */
+.canvas-resize-handle {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  background: var(--color-surface);
+}
+
+.canvas-resize-line {
+  border-color: var(--color-accent);
+}
+
 .canvas-card {
   display: flex;
   flex-direction: column;
