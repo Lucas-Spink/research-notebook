@@ -1,3 +1,8 @@
+import {
+  citationClusters,
+  type CanvasFileModel,
+} from "@research-notebook/format";
+
 /** Where `/cite` was typed: the range to take out before the picker opens. */
 export type CiteTrigger = { start: number; end: number };
 
@@ -46,5 +51,22 @@ export function readableCitations(
       const name = label(key);
       return name === null ? whole : `${dash}${name}`;
     }),
+  );
+}
+
+/** The citekeys cited in the notes of these canvases, for the project Bibliography. */
+export function notesCitekeys(
+  files: readonly (CanvasFileModel | null)[],
+): ReadonlySet<string> {
+  return new Set(
+    files.flatMap((file) =>
+      (file?.nodes ?? []).flatMap((node) =>
+        node.type === "note"
+          ? citationClusters(node.text).flatMap((cluster) =>
+              cluster.items.map((item) => item.citekey),
+            )
+          : [],
+      ),
+    ),
   );
 }

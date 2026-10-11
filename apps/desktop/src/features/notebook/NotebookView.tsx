@@ -281,7 +281,6 @@ function NotebookViewBody({
     notesChoice ?? (heldQuestion === "unassigned" ? null : heldQuestion),
     canvasTabs,
   );
-  const notesOpen = panes.tabs.some((tab) => tab.kind === "canvasNotes");
   // One canvas is read at a time: the canvas view's question, or else the pane's.
   const shownKey = viewMode === "canvas" ? canvasKey : notesKey;
   const shownTab = canvasTabs.find((tab) => tab.key === shownKey);
@@ -289,7 +288,8 @@ function NotebookViewBody({
     api: canvasApi,
     folder,
     writable,
-    enabled: viewMode === "canvas" || notesOpen,
+    // Always: the notes' citations belong in the Bibliography, whichever view is showing.
+    enabled: true,
     question:
       shownTab === undefined ? null : { id: shownTab.id, name: shownTab.label },
   });
@@ -614,13 +614,14 @@ function NotebookViewBody({
   /** Every source cited anywhere in the project, for the Bibliography. */
   const citedSources = useMemo(
     () =>
-      new Set(
-        [
+      new Set([
+        ...[
           ...(arranged?.questions ?? []).flatMap((group) => group.experiments),
           ...(arranged?.unassigned ?? []),
         ].flatMap((item) => [...attachedCitekeys(item.experiment.file.body)]),
-      ),
-    [arranged],
+        ...canvases.noteCitekeys,
+      ]),
+    [arranged, canvases.noteCitekeys],
   );
 
   function collapseAll(collapse: boolean) {
