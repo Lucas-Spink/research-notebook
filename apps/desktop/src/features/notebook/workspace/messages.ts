@@ -159,6 +159,7 @@ export const headerMessages = {
   },
   readOnly: "Read-only",
   archived: "Archived",
+  addQuestion: "Add question",
   addExperiment: "Add experiment",
   moreLabel: "Project menu",
 };

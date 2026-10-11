@@ -7,6 +7,7 @@ import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { selectLabel } from "../messages";
 import { sampleNotebook } from "../model/fakeApi";
+import { stubActions } from "../model/testModel";
 import {
   mountNotebook,
   openCell,
@@ -138,6 +139,55 @@ describe("the workspace (S6-T01)", () => {
     expect(
       [...view.querySelectorAll(".menu-list button")].map((b) => b.textContent),
     ).toEqual(["Project settings", "Integrity check", "Zotero integration"]);
+  });
+
+  it("puts Add question beside Add experiment in the header, and adds a question from it", async () => {
+    const created: string[] = [];
+    const { view } = mountNotebook(state, {
+      actions: {
+        ...stubActions,
+        createQuestion: (title) => {
+          created.push(title);
+          return Promise.resolve(true);
+        },
+      },
+    });
+    const actionsBar = view.querySelector(".project-header__actions");
+    const labels = [...(actionsBar?.querySelectorAll("button") ?? [])].map(
+      (b) => b.textContent,
+    );
+    expect(labels.indexOf("Add question")).toBeGreaterThanOrEqual(0);
+    expect(labels.indexOf("Add experiment")).toBe(
+      labels.indexOf("Add question") + 1,
+    );
+    const add = [...(actionsBar?.querySelectorAll("button") ?? [])].find(
+      (b) => b.textContent === "Add question",
+    );
+    click(add as Element);
+    const input = view.querySelector<HTMLInputElement>(
+      '.project-header__actions input[type="text"], .project-header__actions input:not([type])',
+    );
+    if (input === null) throw new Error("no title box");
+    act(() => {
+      Reflect.set(HTMLInputElement.prototype, "value", "Why?", input);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const submit = [
+      ...(actionsBar?.querySelectorAll('button[type="submit"]') ?? []),
+    ][0];
+    await act(async () => {
+      submit?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(created).toEqual(["Why?"]);
+  });
+
+  it("cannot add a question in a read-only project", () => {
+    const { view } = mountNotebook(state, { writable: false });
+    const add = [
+      ...view.querySelectorAll(".project-header__actions button"),
+    ].find((b) => b.textContent === "Add question");
+    expect((add as HTMLButtonElement | undefined)?.disabled).toBe(true);
   });
 
   it("shows the selected experiment in the breadcrumbs", () => {
