@@ -47,6 +47,7 @@ export const resultsMessages = {
   fileActionFailed:
     "The file could not be opened. It may be missing; nothing was changed.",
   missing: "File missing",
+  onCanvas: "On canvas",
   missingHint:
     "The linked file was not found where it was recorded. Open the result to find it again. Nothing has been changed.",
   details: {
@@ -68,6 +69,7 @@ export const resultsMessages = {
     `${plural(results, "result", "results")} · ${plural(groups, "folder", "folders")}`,
   menu: {
     preview: "Preview",
+    pin: "Pin to canvas",
     details: "Show details",
     openFile: "Open in default application",
     reveal: "Show in file explorer",

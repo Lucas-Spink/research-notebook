@@ -969,7 +969,7 @@ schema version; any mismatch triggers a full rebuild.
 | FR-CNV-05 | Edit Methods, Results Notes and Interpretation of the active experiment in the canvas view with the same editor, references and citations as the table, under the single live editor rule (ADR-0043). | Must |
 | FR-CNV-06 | Keep canvas-only notes, connectors and regions beside the cards. | Should |
 
-FR-CNV-01 to FR-CNV-03 are met by the canvas view's first release (ADR-0064); FR-CNV-04 to FR-CNV-06 follow in later releases. Panning and zooming are not yet saved with the canvas, because each save is also a history snapshot.
+FR-CNV-01 to FR-CNV-04 are met by the canvas view's first two releases (ADR-0064); FR-CNV-05 and FR-CNV-06 follow in later releases. The results browser lists every experiment of the project by question, using the same Results tree as the table; a result is pinned by dragging it onto the canvas or from its menu, stays in its groups, and is marked "On canvas". A card can be moved, resized and removed (Delete or its button) without touching the result, shows when a newer version exists and moves to it only when asked, and says what is missing when its result cannot be found. Edits and the view (pan and zoom) are written to the canvas file after a short pause, so a drag is one history snapshot rather than many.
 
 8\. Preview behaviour
 

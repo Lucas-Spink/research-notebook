@@ -4,6 +4,7 @@ const p = (d: string) => d;
 
 /** Small 12-unit line glyphs for menu entries; decorative, the label says what it does. */
 const PATHS: Readonly<Record<MenuLabel, string>> = {
+  pin: p("M3.5 2h5L8 5.5l1.5 1.5h-7L4 5.5ZM6 7v3.5"),
   preview: p("M1 6s2-3.5 5-3.5S11 6 11 6s-2 3.5-5 3.5S1 6 1 6ZM6 4.5v3"),
   details: p("M6 1.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9ZM6 5.5v3M6 3.5v.01"),
   openFile: p("M4.5 2H2v8h8V7.5M7 2h3v3M10 2 5.5 6.5"),

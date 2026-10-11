@@ -29,6 +29,8 @@ export type MenuRun =
   | { kind: "expandAll" | "collapseAll" }
   /** Opens the artefact's preview; changes nothing, so it is offered read-only too. */
   | { kind: "open"; artefactId: string }
+  /** Pins the result, or every chosen result, to the canvas; changes no group. */
+  | { kind: "pin" }
   /** Opens the result's file in its default application or the file manager; changes nothing. */
   | { kind: "file"; action: "openFile" | "reveal" }
   /** Shows what the file records about the artefact; changes nothing. */
@@ -38,6 +40,7 @@ export type MenuRun =
 
 export type MenuLabel =
   | "preview"
+  | "pin"
   | "details"
   | "openFile"
   | "reveal"
@@ -68,6 +71,10 @@ function step(row: TreeRow, delta: -1 | 1): MenuEntry[] {
       run: { kind: "action", action },
     },
   ];
+}
+
+function pinEntry(canPin: boolean): MenuEntry[] {
+  return canPin ? [{ label: "pin", run: { kind: "pin" } }] : [];
 }
 
 function pick(mode: PickMode, targets: GroupTarget[]): MenuEntry[] {
@@ -120,11 +127,14 @@ export function rowMenu(
     canOpen = false,
     canOpenFiles = false,
     canRemoveFiles = false,
+    canPin = false,
     selected = [],
   }: {
     canOpen?: boolean;
     canOpenFiles?: boolean;
     canRemoveFiles?: boolean;
+    /** The tree was given somewhere to pin results (ADR-0064). */
+    canPin?: boolean;
     selected?: readonly ItemRow[];
   } = {},
 ): MenuEntry[] {
@@ -133,6 +143,7 @@ export function rowMenu(
   if (row.kind === "item" && selected.length > 1) {
     const remove = batchRemove(selected);
     return [
+      ...pinEntry(canPin),
       ...pick("moveTo", all),
       ...pick("addTo", all),
       ...(remove === null
@@ -182,6 +193,7 @@ export function rowMenu(
       : [];
     return [
       ...preview,
+      ...pinEntry(canPin),
       ...details,
       ...(canOpenFiles
         ? [

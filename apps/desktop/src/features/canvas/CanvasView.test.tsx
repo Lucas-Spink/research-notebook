@@ -5,6 +5,7 @@ import type { CanvasApi } from "./model/store";
 import {
   buttonNamed,
   click,
+  fakeCards,
   flush,
   mount,
   stubFlowEnvironment,
@@ -35,7 +36,7 @@ function Harness({
     writable,
     enabled: true,
   });
-  return <CanvasView canvases={canvases} />;
+  return <CanvasView canvases={canvases} cards={fakeCards()} />;
 }
 
 async function open(
@@ -265,6 +266,7 @@ describe("the side panels", () => {
       return (
         <CanvasView
           canvases={canvases}
+          cards={fakeCards()}
           resultsPanel={<p>tree goes here</p>}
           writingPanel={<p>editors go here</p>}
         />

@@ -143,6 +143,11 @@ export function TreeRowView({
           {resultsMessages.missing}
         </span>
       )}
+      {row.kind === "item" && tree.pinned?.has(row.artefactId) === true && (
+        <span className="results__badge results__badge--pinned">
+          {resultsMessages.onCanvas}
+        </span>
+      )}
       {row.kind === "item" && row.classification !== null && (
         <span
           className={`results__badge${row.classification === "main_figure" ? " results__badge--main" : ""}`}
