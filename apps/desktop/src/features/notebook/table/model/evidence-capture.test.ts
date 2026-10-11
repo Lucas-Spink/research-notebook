@@ -12,6 +12,7 @@ import type {
   EvidenceFailure,
 } from "../../../../ipc/bindings";
 import { testEnv } from "../../model/fakeApi";
+import { outcomeText } from "../evidenceMessages";
 import {
   addEvidenceFiles,
   type AddOutcome,
@@ -117,6 +118,7 @@ type Setup = {
   thresholdMb?: number;
   override?: "copy" | "link";
   role?: "result" | "method";
+  scriptsOnly?: boolean;
   failSave?: boolean;
 };
 
@@ -127,6 +129,7 @@ async function add({
   thresholdMb = 50,
   override,
   role,
+  scriptsOnly = false,
   failSave = false,
 }: Setup) {
   const { api, calls } = fakeApi(captures);
@@ -139,6 +142,7 @@ async function add({
     copyThresholdMb: thresholdMb,
     ...(override !== undefined && { override }),
     ...(role !== undefined && { role }),
+    ...(scriptsOnly && { scriptsOnly }),
     files,
     artefacts: start,
     editArtefacts: save.edit,
@@ -571,5 +575,74 @@ describe("copying a script into the project (issue #104)", () => {
       override: "copy",
     });
     expect(calls.captured[0]?.[5]).toBe("evidence");
+  });
+});
+
+describe("only approved script formats are added as scripts (issue #104)", () => {
+  const script = (name: string) => located(`code/${name}`, 1);
+
+  it("refuses a file that is not an approved script, and still adds the rest", async () => {
+    const { outcomes, calls, held } = await add({
+      files: [script("notes.docx"), script("fit.py")],
+      captures: [created("methods/fit.py", "a")],
+      override: "copy",
+      role: "method",
+      scriptsOnly: true,
+    });
+
+    expect(outcomes.map((o) => o.kind)).toEqual(["unsupportedScript", "added"]);
+    expect(outcomes[0]).toMatchObject({ name: "notes.docx" });
+    expect(calls.captured).toHaveLength(1);
+    expect(held.file.artefacts).toHaveLength(1);
+  });
+
+  it("accepts the approved extensions in any case, keeping the file name", async () => {
+    const { outcomes, held } = await add({
+      files: [
+        script("A.PY"),
+        script("fit.R"),
+        script("fit.r"),
+        script("c.ipynb"),
+      ],
+      captures: [
+        created("methods/A.PY", "a"),
+        created("methods/fit.R", "b"),
+        created("methods/fit.r", "c"),
+        created("methods/c.ipynb", "d"),
+      ],
+      override: "copy",
+      role: "method",
+      scriptsOnly: true,
+    });
+
+    expect(outcomes.map((o) => o.kind)).toEqual([
+      "added",
+      "added",
+      "added",
+      "added",
+    ]);
+    expect(held.file.artefacts.map((a) => a.source.path)).toEqual([
+      "code/A.PY",
+      "code/fit.R",
+      "code/fit.r",
+      "code/c.ipynb",
+    ]);
+  });
+
+  it("adds any file when scripts are not required", async () => {
+    const { outcomes } = await add({
+      files: [located("results/a.docx", 1)],
+      captures: [created("evidence/a.docx", "a")],
+      override: "copy",
+    });
+    expect(only(outcomes)).toMatchObject({ kind: "added" });
+  });
+
+  it("says which formats are approved", () => {
+    const text = outcomeText({ kind: "unsupportedScript", name: "notes.docx" });
+    expect(text).toContain("notes.docx was not added");
+    expect(text).toContain(".py");
+    expect(text).toContain(".ipynb");
+    expect(text).toContain(".r");
   });
 });

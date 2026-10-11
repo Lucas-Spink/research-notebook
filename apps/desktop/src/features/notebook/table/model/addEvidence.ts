@@ -11,6 +11,7 @@ import {
   type NotebookError,
   type Result,
 } from "@research-notebook/format";
+import { scriptFormatOf } from "../../../preview";
 import type {
   CaptureNaming,
   CaptureOutcomeDto,
@@ -60,6 +61,8 @@ export type AddOutcome =
   | { kind: "duplicate"; name: string; version: number }
   /** A linked file records where it is, so adding it again changes nothing. */
   | { kind: "alreadyLinked"; name: string }
+  /** A script was asked for, but the file's extension is not an approved script format. */
+  | { kind: "unsupportedScript"; name: string }
   /** The file is outside the project and its external roots, or is not a file. */
   | { kind: "refused"; name: string; reason: Refusal }
   /**
@@ -92,6 +95,8 @@ type Request = {
   override?: CaptureMode;
   /** `method` records each file as a script, not a result (the Code folder). */
   role?: "result" | "method";
+  /** Adds only files in an approved script format (issue #104); others are named and skipped. */
+  scriptsOnly?: boolean;
   files: ChosenFile[];
   /** The experiment's `artefacts.yaml` as loaded. */
   artefacts: ArtefactsFileModel;
@@ -340,6 +345,10 @@ export async function addEvidenceFiles(
         name: chosen.name,
         reason: chosen.reason,
       });
+      continue;
+    }
+    if (request.scriptsOnly === true && scriptFormatOf(chosen.name) === null) {
+      outcomes.push({ kind: "unsupportedScript", name: chosen.name });
       continue;
     }
     const step = await addOne(request, chosen, current);

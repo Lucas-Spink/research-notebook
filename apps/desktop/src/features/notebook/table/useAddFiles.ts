@@ -79,7 +79,11 @@ export function useAddFiles({
         experimentFolder,
         copyThresholdMb: evidence.copyThresholdMb,
         ...(kind === "scripts"
-          ? { override: "copy" as const, role: "method" as const }
+          ? {
+              override: "copy" as const,
+              role: "method" as const,
+              scriptsOnly: true as const,
+            }
           : chosenHow !== "size" && { override: chosenHow }),
         files,
         artefacts: latest.current.artefacts,

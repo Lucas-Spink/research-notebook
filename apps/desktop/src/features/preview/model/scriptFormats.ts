@@ -51,6 +51,15 @@ export function scriptKindOf(fileName: string): ScriptView | "unsupported" {
   return scriptFormatOf(fileName)?.view ?? "unsupported";
 }
 
+/** The approved extensions with their dot, for messages: ".py, .r and .ipynb". */
+export function approvedExtensionsText(): string {
+  const dotted = SCRIPT_FORMATS.map((format) => `.${format.extension}`);
+  const last = dotted.at(-1);
+  return last === undefined || dotted.length === 1
+    ? dotted.join("")
+    : `${dotted.slice(0, -1).join(", ")} and ${last}`;
+}
+
 /** The extensions shown with the code viewer. */
 export function codeExtensions(): string[] {
   return SCRIPT_FORMATS.filter((format) => format.view === "code").map(
