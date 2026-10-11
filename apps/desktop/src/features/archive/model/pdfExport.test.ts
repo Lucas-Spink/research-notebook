@@ -30,7 +30,10 @@ function fakeApi(
     },
     writePdfExport: (...args) => {
       writes.push(args);
-      const written = options.written ?? { status: "ok", data: "written" };
+      const written = options.written ?? {
+        status: "ok",
+        data: { kind: "written", figuresOmitted: 0 },
+      };
       return written === "reject"
         ? Promise.reject(new Error("gone"))
         : Promise.resolve(written);
@@ -80,6 +83,7 @@ type Sent = {
   inputJson: string;
   notebookJson: string;
   bibliographyJson: string;
+  figures: { id: string; file: string }[];
 };
 const sentOf = (call: unknown[] | undefined): Sent => call?.[2] as Sent;
 
@@ -96,6 +100,7 @@ describe("exportPdf (FR-ARC-06)", () => {
         written: true,
         unresolved: [],
         location: "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+        figuresOmitted: 0,
       },
     });
     expect(asked).toHaveLength(1);
@@ -107,6 +112,30 @@ describe("exportPdf (FR-ARC-06)", () => {
     expect(sent.bibliographyJson).toBe('[{"id":"z:u:7XK2PQ9M"}]\n');
     expect(sent.inputJson).toContain("A study");
     expect(sent.notebookJson).toContain('"generatedBy": "0.2.0"');
+  });
+
+  it("sends the captured images the input shows, for the filesystem to read", async () => {
+    const { api, writes } = fakeApi();
+
+    await exportPdf(input(api).value);
+
+    expect(sentOf(writes[0]).figures).toEqual([
+      {
+        id: "f1",
+        file: "_notebook/experiments/EXP-001/evidence/volcano.png",
+      },
+    ]);
+    expect(sentOf(writes[0]).inputJson).toContain('"id": "f1"');
+  });
+
+  it("tells how many figures the PDF says it could not show", async () => {
+    const { api } = fakeApi({
+      written: { status: "ok", data: { kind: "written", figuresOmitted: 2 } },
+    });
+
+    const result = await exportPdf(input(api).value);
+
+    expect(result.ok && result.value.figuresOmitted).toBe(2);
   });
 
   it("names the PDF by the instant it was made, which is also the date inside it", async () => {
@@ -140,6 +169,7 @@ describe("exportPdf (FR-ARC-06)", () => {
         written: true,
         unresolved: ["z:u:GONE2222"],
         location: "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+        figuresOmitted: 0,
       },
     });
   });
@@ -190,8 +220,8 @@ describe("exportPdf (FR-ARC-06)", () => {
 
   it("reports a document that could not be built, a project not open for writing and a lost connection", async () => {
     const cases: Array<[Written | "reject", string]> = [
-      [{ status: "ok", data: "notBuilt" }, "notBuilt"],
-      [{ status: "ok", data: "writeFailed" }, "writeFailed"],
+      [{ status: "ok", data: { kind: "notBuilt" } }, "notBuilt"],
+      [{ status: "ok", data: { kind: "writeFailed" } }, "writeFailed"],
       [{ status: "error", error: { kind: "notWritable" } }, "notWritable"],
       ["reject", "writeFailed"],
     ];

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "title": "Batch effects in treated organoids",
   "locale": "en-GB",
   "generated": "2026-10-09T12:00:00Z",
@@ -109,7 +109,8 @@
           "lines": [
             "script, method",
             "Version 1: methods/02_pca.R (4121 bytes, captured 2026-09-03T13:58:02Z, SHA-256 5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e5c0e)"
-          ]
+          ],
+          "figure": null
         },
         {
           "name": "PCA by treatment",
@@ -117,21 +118,24 @@
             "pdf, result",
             "Version 1: evidence/pca_by_treatment.pdf (88213 bytes, captured 2026-09-03T14:02:11Z, SHA-256 9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c9b1c)",
             "Version 2: evidence/pca_by_treatment.v2.pdf (90411 bytes, captured 2026-09-05T09:40:52Z, SHA-256 4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a4e7a)"
-          ]
+          ],
+          "figure": null
         },
         {
           "name": "PCA by batch",
           "lines": [
             "pdf, result",
             "Version 1: evidence/pca_by_batch.pdf (79002 bytes, captured 2026-09-03T14:05:30Z, SHA-256 a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5a3d5)"
-          ]
+          ],
+          "figure": null
         },
         {
           "name": "Raw counts",
           "lines": [
             "other, result",
             "Linked file, not copied into the notebook: data/counts.h5"
-          ]
+          ],
+          "figure": null
         },
         {
           "name": "Volcano plot",
@@ -139,21 +143,30 @@
             "image, result",
             "Version 1: evidence/volcano.png (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a10a)",
             "Version 2: evidence/volcano.v2.png (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a11a)"
-          ]
+          ],
+          "figure": {
+            "id": "f1",
+            "caption": "Volcano plot (evidence/volcano.v2.png, version 2)"
+          }
         },
         {
           "name": "Counts",
           "lines": [
             "table, result",
             "Version 1: evidence/counts.csv (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b20b)"
-          ]
+          ],
+          "figure": null
         },
         {
           "name": "Diagram",
           "lines": [
             "svg, result",
             "Version 1: evidence/diagram.svg (100 bytes, captured 2026-09-03T14:02:11Z, SHA-256 c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c30c)"
-          ]
+          ],
+          "figure": {
+            "id": "f2",
+            "caption": "Diagram (evidence/diagram.svg, version 1)"
+          }
         }
       ],
       "literature": []

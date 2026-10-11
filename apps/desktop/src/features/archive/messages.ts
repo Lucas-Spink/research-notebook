@@ -200,6 +200,11 @@ export function failedPagesNote(names: readonly string[]): string {
   return `These pages could not be written and are as they were before: ${names.join(", ")}.`;
 }
 
+/** What is said when some captured images could not be shown in the PDF. */
+export function figuresOmittedNote(count: number): string {
+  return `${plural(count, "figure was", "figures were")} not included in the PDF (a missing file, a format it cannot show, or a file that could not be read). ${count === 1 ? "It is" : "They are"} named in the document where ${count === 1 ? "it" : "they"} would have been.`;
+}
+
 /** What is said when a citation names a source that is not in the project's bibliography. */
 export function unresolvedCitationsNote(citekeys: readonly string[]): string {
   return `${plural(citekeys.length, "source is", "sources are")} cited but not in the project's bibliography, so ${citekeys.length === 1 ? "its citations are" : "their citations are"} marked with a question mark: ${citekeys.join(", ")}.`;
@@ -238,7 +243,7 @@ export function failedFilesNote(names: readonly string[]): string {
 export const pdfExportMessages = {
   heading: "PDF/A export",
   intro:
-    "Writes a new dated file in exports/pdf/ (project-DATE.pdf, the date and time in UTC), so earlier PDFs are never replaced. It is a single archival PDF/A-3b document with every question, experiment, section and artefact listed, and one bibliography of every source cited anywhere in the project. notebook.json and bibliography.json are attached inside it. Figures are not included; artefacts are listed with their versions and checksums. Your captured files are not changed.",
+    "Writes a new dated file in exports/pdf/ (project-DATE.pdf, the date and time in UTC), so earlier PDFs are never replaced. It is a single archival PDF/A-3b document with every question, experiment, section and artefact listed, and one bibliography of every source cited anywhere in the project. notebook.json and bibliography.json are attached inside it. Captured images and SVGs are shown beside their artefact; a figure that cannot be shown (for example a PDF, or a missing file) is named in the document instead. Artefacts are listed with their versions and checksums. Your captured files are not changed.",
   write: "Write PDF/A export",
   writing: "Writing…",
   again: "Write again",

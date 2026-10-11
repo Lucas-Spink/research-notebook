@@ -22,6 +22,8 @@ export type PdfExportOutcome = {
   unresolved: readonly string[];
   /** Where to open the PDF, relative to `_notebook/`: this run's own, dated, file. */
   location: string;
+  /** Captured images the PDF names as not included (missing, unsupported or unreadable). */
+  figuresOmitted: number;
 };
 
 /** Why no PDF was written. Nothing is claimed in any case. */
@@ -95,6 +97,7 @@ export async function exportPdf(
       inputJson: built.input,
       notebookJson: built.notebookJson,
       bibliographyJson,
+      figures: built.figures,
     })
     .catch(() => null);
   if (written === null) return { ok: false, error: "writeFailed" };
@@ -105,7 +108,7 @@ export async function exportPdf(
         written.error.kind === "notWritable" ? "notWritable" : "writeFailed",
     };
   }
-  switch (written.data) {
+  switch (written.data.kind) {
     case "written":
       return {
         ok: true,
@@ -113,6 +116,7 @@ export async function exportPdf(
           written: true,
           unresolved: bibliography.unresolved,
           location: `exports/pdf/project-${stamp}.pdf`,
+          figuresOmitted: written.data.figuresOmitted,
         },
       };
     case "notBuilt":

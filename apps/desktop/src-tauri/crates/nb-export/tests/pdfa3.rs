@@ -22,6 +22,7 @@ fn export(input: &serde_json::Value) -> Vec<u8> {
         input_json: &text,
         notebook_json: NOTEBOOK,
         bibliography_json: BIBLIOGRAPHY,
+        figures: &[],
     };
     let document = nb_export::compile_project(&project).unwrap();
     nb_export::to_pdf_a_3b(&document, timestamp()).unwrap()
@@ -62,6 +63,7 @@ fn the_project_text_reaches_the_page_including_the_combined_bibliography() {
         input_json: &text,
         notebook_json: NOTEBOOK,
         bibliography_json: BIBLIOGRAPHY,
+        figures: &[],
     };
 
     let document = nb_export::compile_project(&project).unwrap();
@@ -96,6 +98,7 @@ fn wording_that_would_be_markup_stays_literal_text() {
         input_json: &text,
         notebook_json: NOTEBOOK,
         bibliography_json: BIBLIOGRAPHY,
+        figures: &[],
     };
 
     let document = nb_export::compile_project(&project).unwrap();
@@ -115,6 +118,7 @@ fn input_that_is_not_json_is_refused_not_papered_over() {
         input_json: "{ not valid json",
         notebook_json: NOTEBOOK,
         bibliography_json: BIBLIOGRAPHY,
+        figures: &[],
     };
     assert!(nb_export::compile_project(&project).is_err());
 }
@@ -126,6 +130,7 @@ fn the_pdf_is_dated_by_the_time_the_input_names() {
         input_json: &text,
         notebook_json: NOTEBOOK,
         bibliography_json: BIBLIOGRAPHY,
+        figures: &[],
     };
 
     let pdf = nb_export::export_project_pdf(&project).unwrap();
@@ -148,6 +153,7 @@ fn input_without_a_valid_generated_time_is_refused() {
             input_json: &text,
             notebook_json: NOTEBOOK,
             bibliography_json: BIBLIOGRAPHY,
+            figures: &[],
         };
         assert!(nb_export::export_project_pdf(&project).is_err());
     }

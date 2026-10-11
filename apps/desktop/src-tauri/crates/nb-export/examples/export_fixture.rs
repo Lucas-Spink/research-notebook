@@ -31,6 +31,7 @@ fn run(folder: &Path) -> Result<(), String> {
         input_json: &input,
         notebook_json: &notebook,
         bibliography_json: &bibliography,
+        figures: &[],
     })
     .map_err(|e| e.to_string())?;
     fs::write(folder.join("project.pdf"), pdf).map_err(|e| format!("cannot write project.pdf: {e}"))

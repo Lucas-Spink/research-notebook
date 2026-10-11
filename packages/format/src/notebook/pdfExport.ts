@@ -8,6 +8,7 @@ import {
   sectionKey,
 } from "./exportSections";
 import type { CitationCursor } from "./exportCitations";
+import { latestVersion, versionKey } from "./htmlArtefacts";
 import { selectExported } from "./htmlExport";
 import { buildMachineExport } from "./machineExport";
 import {
@@ -19,7 +20,7 @@ import {
 import { SECTION_TITLES } from "./machineMarkdown";
 
 /** The version of `pdf-input.json`, which the fixed Typst template reads. */
-export const PDF_INPUT_SCHEMA_VERSION = 1;
+export const PDF_INPUT_SCHEMA_VERSION = 2;
 
 /** The combined project bibliography, formatted by the citation engine (FR-ARC-06). */
 export interface PdfBibliography {
@@ -49,11 +50,22 @@ export interface PdfExportFiles {
   input: string;
   /** `notebook.json` as the machine-readable export writes it, to embed. */
   notebookJson: string;
+  /** The captured images the input shows, for the filesystem helper to read (issue #102). */
+  figures: PdfFigureRequest[];
+}
+
+/** A captured image the PDF should show: its id in the input, and where the file is. */
+export interface PdfFigureRequest {
+  id: string;
+  /** Project-relative path of the newest captured version. */
+  file: string;
 }
 
 interface PdfArtefact {
   name: string;
   lines: string[];
+  /** The captured image to show with the artefact, if it is one. */
+  figure: { id: string; caption: string } | null;
 }
 
 interface PdfExperiment {
@@ -97,6 +109,40 @@ function literatureBody(block: string): string {
     .join("\n");
 }
 
+/** Hands out `f1`, `f2`, ... across the whole project, and remembers what was asked for. */
+interface Figures {
+  next(file: string): string;
+  requests: PdfFigureRequest[];
+}
+
+function newFigures(): Figures {
+  const requests: PdfFigureRequest[] = [];
+  return {
+    requests,
+    next(file) {
+      const id = `f${requests.length + 1}`;
+      requests.push({ id, file });
+      return id;
+    },
+  };
+}
+
+/** The figure to show for an artefact: a captured image or SVG, newest version. */
+function figureOf(
+  artefact: ArtefactModel,
+  folder: string,
+  figures: Figures,
+): PdfArtefact["figure"] {
+  if (artefact.mode !== "copy") return null;
+  if (artefact.type !== "image" && artefact.type !== "svg") return null;
+  const latest = latestVersion(artefact);
+  const id = figures.next(versionKey(folder, latest.file));
+  return {
+    id,
+    caption: `${artefact.name} (${latest.file}, version ${latest.v})`,
+  };
+}
+
 function artefactLines(artefact: ArtefactModel): string[] {
   const kind = `${artefact.type}, ${artefact.role}`;
   if (artefact.mode === "link") {
@@ -117,6 +163,7 @@ function artefactLines(artefact: ArtefactModel): string[] {
 function experimentOf(
   item: ArrangedExperiment,
   questionRef: string | null,
+  figures: Figures,
   cites: ((key: string) => CitationCursor) | undefined,
 ): PdfExperiment {
   const { frontmatter: f, body } = item.experiment.file;
@@ -125,12 +172,14 @@ function experimentOf(
       ? item.artefacts.file.artefacts.map((a) => ({
           name: a.name,
           lines: artefactLines(a),
+          figure: figureOf(a, item.experiment.folder, figures),
         }))
       : item.artefacts?.kind === "unreadable"
         ? [
             {
               name: "Artefacts",
               lines: ["Artefacts could not be read, so none are listed here."],
+              figure: null,
             },
           ]
         : [];
@@ -180,6 +229,7 @@ export function buildPdfExport(input: PdfExportInput): PdfExportFiles {
     appVersion: input.appVersion,
     now: fixed,
   }).find((file) => file.name === "notebook.json");
+  const figures = newFigures();
   const data = {
     schemaVersion: PDF_INPUT_SCHEMA_VERSION,
     title: input.project.name,
@@ -194,7 +244,7 @@ export function buildPdfExport(input: PdfExportInput): PdfExportFiles {
       ),
     })),
     experiments: shown.experiments.map((e) =>
-      experimentOf(e, questionOf.get(e) ?? null, cites),
+      experimentOf(e, questionOf.get(e) ?? null, figures, cites),
     ),
     bibliography: input.bibliography.entries.map((entry): PdfInline[] =>
       pdfInline(entry),
@@ -204,5 +254,6 @@ export function buildPdfExport(input: PdfExportInput): PdfExportFiles {
   return {
     input: `${JSON.stringify(data, null, 2)}\n`,
     notebookJson: notebook?.text ?? "",
+    figures: figures.requests,
   };
 }

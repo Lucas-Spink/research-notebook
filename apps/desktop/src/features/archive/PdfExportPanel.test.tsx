@@ -91,7 +91,10 @@ function button(view: HTMLElement): HTMLButtonElement {
 
 describe("PdfExportPanel", () => {
   it("writes nothing until asked", async () => {
-    const { api, writes } = fakeApi({ status: "ok", data: "written" });
+    const { api, writes } = fakeApi({
+      status: "ok",
+      data: { kind: "written", figuresOmitted: 0 },
+    });
 
     const view = await show({ api });
 
@@ -101,7 +104,10 @@ describe("PdfExportPanel", () => {
   });
 
   it("says where the PDF was written", async () => {
-    const { api, writes } = fakeApi({ status: "ok", data: "written" });
+    const { api, writes } = fakeApi({
+      status: "ok",
+      data: { kind: "written", figuresOmitted: 0 },
+    });
     const view = await show({ api });
 
     act(() => button(view).click());
@@ -132,7 +138,10 @@ describe("PdfExportPanel", () => {
   });
 
   it("cannot be used on a read-only project", async () => {
-    const { api, writes } = fakeApi({ status: "ok", data: "written" });
+    const { api, writes } = fakeApi({
+      status: "ok",
+      data: { kind: "written", figuresOmitted: 0 },
+    });
 
     const view = await show({ api, writable: false });
 
@@ -143,14 +152,20 @@ describe("PdfExportPanel", () => {
   });
 
   it("is not available while the project is loading", async () => {
-    const { api } = fakeApi({ status: "ok", data: "written" });
+    const { api } = fakeApi({
+      status: "ok",
+      data: { kind: "written", figuresOmitted: 0 },
+    });
     const view = await show({ api, loaded: false });
     expect(button(view).disabled).toBe(true);
     expect(view.textContent).toContain("still loading");
   });
 
   it("names a cited source that is not in the bibliography", async () => {
-    const { api } = fakeApi({ status: "ok", data: "written" });
+    const { api } = fakeApi({
+      status: "ok",
+      data: { kind: "written", figuresOmitted: 0 },
+    });
     const view = await show({ api, citing: true });
 
     act(() => button(view).click());
@@ -158,5 +173,19 @@ describe("PdfExportPanel", () => {
 
     expect(view.textContent).toContain("z:u:GONE2222");
     expect(view.textContent).toContain("not in the project's bibliography");
+  });
+
+  it("says how many figures could not be shown, so none is dropped silently", async () => {
+    const { api } = fakeApi({
+      status: "ok",
+      data: { kind: "written", figuresOmitted: 2 },
+    });
+    const view = await show({ api });
+
+    act(() => button(view).click());
+    await flush();
+
+    expect(view.textContent).toContain("2 figures were not included");
+    expect(view.textContent).toContain("named in the document");
   });
 });

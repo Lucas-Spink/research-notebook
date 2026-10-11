@@ -15,6 +15,7 @@ mod git_bundle;
 mod html_export;
 mod machine_export;
 mod pdf_export;
+mod pdf_figures;
 mod stamp;
 mod verify;
 
@@ -29,5 +30,6 @@ pub use html_export::{
 };
 pub use machine_export::{write_machine_files, FileVerdict};
 pub use pdf_export::write_project_pdf;
+pub use pdf_figures::{prepare_pdf_figures, FigureFormat, FigureRequest, FigureVerdict};
 pub use stamp::{ExportStamp, InvalidStamp};
 pub use verify::{verify, Expected, Verdict};

@@ -208,8 +208,8 @@ export const commands = {
 	/**
 	 *  Writes the project PDF/A-3b into `_notebook/exports/pdf/` as
 	 *  `project-<stamp>.pdf` (FR-ARC-06); the PDF of an earlier run is kept.
-	 *  Refused, with nothing written, unless this application holds the
-	 *  project's lock.
+	 *  The captured figures it names are only read. Refused, with nothing
+	 *  written, unless this application holds the project's lock.
 	 */
 	writePdfExport: (folder: FolderHandle, run: ExportRun, input: PdfExportInput) => typedError<PdfExportOutcome, ProjectError>(__TAURI_INVOKE("write_pdf_export", { folder, run, input })),
 	/**  The manifest's text, for `packages/format` to parse. Read-only. */
@@ -666,6 +666,12 @@ export type ExternalRootStatus = {
 	available: boolean,
 };
 
+/**
+ *  The id of a figure in the PDF input, such as `f1`: letters and digits only,
+ *  so it can never name a path. It is the id `packages/format` gave the figure.
+ */
+export type FigureId = string;
+
 /**  One of FR-PRV-02's distinct actions. */
 export type FileActionKind = "openFile" | "reveal" | "openInVsCode" | "copyPath";
 
@@ -892,19 +898,32 @@ export type OpenedProject = {
 };
 
 /**
- *  The three texts the PDF is made from, all built by `packages/format` except
- *  `bibliography_json`, which is the project's own file.
+ *  The texts the PDF is made from, all built by `packages/format` except
+ *  `bibliography_json`, which is the project's own file, and the figures, which
+ *  are read from the captured files here.
  */
 export type PdfExportInput = {
 	inputJson: string,
 	notebookJson: string,
 	bibliographyJson: string,
+	figures: PdfFigureRequest[],
 };
 
 /**  How the export ended. Carries no system text. */
-export type PdfExportOutcome = "written" | 
+export type PdfExportOutcome = 
+/**  `figures_omitted` figures are named in the PDF as not included. */
+{ kind: "written"; figuresOmitted: number } | 
 /**  The inputs did not make a valid PDF/A document; nothing was written. */
-"notBuilt" | "writeFailed";
+{ kind: "notBuilt" } | { kind: "writeFailed" };
+
+/**
+ *  A captured image the PDF should show: its id in the input and the
+ *  project-relative path of the captured version file.
+ */
+export type PdfFigureRequest = {
+	id: FigureId,
+	file: VersionPath,
+};
 
 /**
  *  Why a preview could not be made. The `kind` is the key of the message

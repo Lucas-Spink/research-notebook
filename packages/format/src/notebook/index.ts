@@ -157,4 +157,5 @@ export {
   type PdfBibliography,
   type PdfExportFiles,
   type PdfExportInput,
+  type PdfFigureRequest,
 } from "./pdfExport";

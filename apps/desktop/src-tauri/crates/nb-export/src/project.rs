@@ -8,6 +8,7 @@ use typst::foundations::Datetime;
 use typst_layout::PagedDocument;
 use typst_pdf::{PdfOptions, PdfStandard, PdfStandards, Timestamp};
 
+use crate::figures::{serve, PdfFigure};
 use crate::world::FixedWorld;
 use crate::ExportError;
 
@@ -24,20 +25,30 @@ pub struct ProjectPdf<'a> {
     pub notebook_json: &'a [u8],
     /// `bibliography.json` exactly as the project stores it.
     pub bibliography_json: &'a [u8],
+    /// The captured figures the input names, by id (issue #102).
+    pub figures: &'a [PdfFigure<'a>],
 }
 
 /// Compiles the project through the fixed template.
 pub fn compile_project(project: &ProjectPdf<'_>) -> Result<PagedDocument, ExportError> {
-    let world = FixedWorld::new(
-        TEMPLATE,
-        &[
-            ("/data.json", project.input_json.as_bytes()),
-            ("/notebook.json", project.notebook_json),
-            ("/bibliography.json", project.bibliography_json),
-        ],
-    )?;
+    compile_reporting(project).map(|(document, _)| document)
+}
+
+/// As [`compile_project`], and says how many figures the document reports as
+/// not included (issue #102), so the caller can tell the researcher.
+fn compile_reporting(project: &ProjectPdf<'_>) -> Result<(PagedDocument, u32), ExportError> {
+    let served = serve(project.figures)?;
+    let mut files: Vec<(&str, &[u8])> = vec![
+        ("/data.json", project.input_json.as_bytes()),
+        ("/figures.json", served.manifest.as_bytes()),
+        ("/notebook.json", project.notebook_json),
+        ("/bibliography.json", project.bibliography_json),
+    ];
+    files.extend(served.files.iter().map(|(p, b)| (p.as_str(), b.as_slice())));
+    let world = FixedWorld::new(TEMPLATE, &files)?;
     let Warned { output, .. } = typst::compile::<PagedDocument>(&world);
-    output.map_err(ExportError::Compile)
+    let document = output.map_err(ExportError::Compile)?;
+    Ok((document, served.omitted))
 }
 
 /// Exports a compiled document as PDF/A-3b bytes. `timestamp` is injected so
@@ -57,9 +68,24 @@ pub fn to_pdf_a_3b(document: &PagedDocument, timestamp: Datetime) -> Result<Vec<
 /// time the input names (UTC, to the second), so the same input gives the
 /// same bytes and no system clock is read.
 pub fn export_project_pdf(project: &ProjectPdf<'_>) -> Result<Vec<u8>, ExportError> {
+    export_project_pdf_reporting(project).map(|exported| exported.pdf)
+}
+
+/// A finished PDF and how many of its figures it says it could not show.
+pub struct ExportedPdf {
+    pub pdf: Vec<u8>,
+    pub figures_omitted: u32,
+}
+
+/// As [`export_project_pdf`], and reports the figures left out.
+pub fn export_project_pdf_reporting(project: &ProjectPdf<'_>) -> Result<ExportedPdf, ExportError> {
     let at = generated_at(project.input_json)?;
-    let document = compile_project(project)?;
-    to_pdf_a_3b(&document, at)
+    let (document, figures_omitted) = compile_reporting(project)?;
+    let pdf = to_pdf_a_3b(&document, at)?;
+    Ok(ExportedPdf {
+        pdf,
+        figures_omitted,
+    })
 }
 
 /// The `generated` field of the input, as `YYYY-MM-DDTHH:MM:SSZ`.

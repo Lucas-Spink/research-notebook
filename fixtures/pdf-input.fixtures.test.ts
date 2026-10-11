@@ -61,7 +61,7 @@ describe("build-pdf-input (FR-ARC-06)", () => {
       questions: unknown[];
       experiments: unknown[];
     };
-    expect(input.schemaVersion).toBe(1);
+    expect(input.schemaVersion).toBe(2);
     expect(input.generated).toBe("2026-10-09T12:00:00Z");
     expect(input.questions).toHaveLength(3);
     expect(input.experiments).toHaveLength(12);
