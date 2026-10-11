@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { headerMessages as m } from "./messages";
 
 /** One step of the breadcrumb trail. `onSelect` makes it a link back to that place. */
@@ -18,10 +17,6 @@ type Props = {
   /** Shown beside the figures when the project cannot be changed here. */
   readOnly: boolean;
   archived: boolean;
-  /** The view's one main action. */
-  primary: ReactNode;
-  /** The compact menu of secondary project actions. */
-  more: ReactNode;
 };
 
 function integrityText(status: IntegrityStatus): {
@@ -40,9 +35,9 @@ function integrityText(status: IntegrityStatus): {
 }
 
 /**
- * The project's header (issue #101): where you are, the project's name, a
- * few key figures, and the one main action with a compact menu for the rest.
- * Each figure is words as well as a mark, so none depends on colour.
+ * The project's header (issue #101): where you are, the project's name and a
+ * few key figures. It has no actions of its own: every command is in the
+ * ribbon. Each figure is words as well as a mark, so none depends on colour.
  */
 export function ProjectHeader(props: Props) {
   const integrity = integrityText(props.integrity);
@@ -89,10 +84,6 @@ export function ProjectHeader(props: Props) {
             {props.readOnly && !props.archived && <li>{m.readOnly}</li>}
           </ul>
         </div>
-      </div>
-      <div className="project-header__actions">
-        {props.primary}
-        {props.more}
       </div>
     </header>
   );

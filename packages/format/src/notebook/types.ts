@@ -66,8 +66,11 @@ export type Step =
   | { kind: "create"; path: string; text: string }
   /** A file that exists and is replaced, keeping a snapshot of what it held. */
   | { kind: "replace"; path: string; text: string }
-  /** A file or folder that is moved to `.trash/`. */
-  | { kind: "trash"; path: string };
+  /**
+   * A file or folder that is moved to `.trash/`. `note` is kept beside it
+   * there, as text from `serialiseBinNote`, so a restore can find its place.
+   */
+  | { kind: "trash"; path: string; note?: string };
 
 /**
  * What to write, in order, and the state once every step has been written.

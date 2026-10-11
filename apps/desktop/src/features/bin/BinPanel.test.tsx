@@ -22,12 +22,14 @@ const question: BinItem = {
   kind: "question",
   name: "Q-001.md",
   original: "_notebook/questions/Q-001.md",
+  note: null,
 };
 const files: BinItem = {
   stamp: "2026-09-22T09-00-00Z",
   kind: "files",
   name: "EXP-002",
   original: "_notebook/experiments/EXP-002",
+  note: null,
 };
 
 function api(lists: BinItem[][]): BinListApi & { calls: () => number } {

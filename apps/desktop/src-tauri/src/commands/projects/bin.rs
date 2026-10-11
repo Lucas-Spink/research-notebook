@@ -85,6 +85,8 @@ pub struct BinItem {
     pub name: String,
     /// Where it comes back to, relative to the project folder.
     pub original: String,
+    /// The note kept when it was binned, as text for `packages/format` to read.
+    pub note: Option<String>,
 }
 
 impl From<BinEntry> for BinItem {
@@ -94,6 +96,7 @@ impl From<BinEntry> for BinItem {
             kind: entry.kind.into(),
             name: entry.name,
             original: entry.original,
+            note: entry.note,
         }
     }
 }

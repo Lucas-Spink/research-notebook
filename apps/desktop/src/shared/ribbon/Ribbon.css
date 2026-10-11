@@ -104,11 +104,6 @@
   min-width: 0;
 }
 
-.ribbon__hint {
-  color: var(--color-text-muted);
-  font-size: var(--text-small);
-}
-
 .ribbon__group {
   display: flex;
   flex-direction: column;
@@ -341,13 +336,6 @@
   color: var(--status-complete-fg);
 }
 
-.project-header__actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 /* The title and the key figures share a line, to keep the header low. */
 .project-header__line {
   display: flex;
@@ -355,10 +343,6 @@
   align-items: baseline;
   gap: var(--space-1) var(--space-4);
   min-width: 0;
-}
-
-.project-header__actions {
-  align-self: center;
 }
 
 /* The ribbon's own button rule must not hide the main action's fill. */

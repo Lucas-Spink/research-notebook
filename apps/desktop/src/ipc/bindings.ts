@@ -105,9 +105,10 @@ export const commands = {
 	writeNotebookFile: (folder: FolderHandle, path: NotebookPath, text: string, expected: ExpectedFile) => typedError<SaveResult, ProjectError>(__TAURI_INVOKE("write_notebook_file", { folder, path, text, expected })),
 	/**
 	 *  Moves a question file or an experiment folder to `.trash/`. Nothing is
-	 *  deleted; the person can move it back.
+	 *  deleted; the person can move it back. `note` is kept beside it in the bin
+	 *  as text, for the restore to read (ADR-0063); nothing here parses it.
 	 */
-	moveToTrash: (folder: FolderHandle, path: TrashTarget) => typedError<TrashedItem, ProjectError>(__TAURI_INVOKE("move_to_trash", { folder, path })),
+	moveToTrash: (folder: FolderHandle, path: TrashTarget, note: string | null) => typedError<TrashedItem, ProjectError>(__TAURI_INVOKE("move_to_trash", { folder, path, note })),
 	/**
 	 *  Copies the notebook's text files to `backups/` before the first write by
 	 *  this version of the application. The webview decides whether one is due by
@@ -415,6 +416,8 @@ export type BinItem = {
 	name: string,
 	/**  Where it comes back to, relative to the project folder. */
 	original: string,
+	/**  The note kept when it was binned, as text for `packages/format` to read. */
+	note: string | null,
 };
 
 /**

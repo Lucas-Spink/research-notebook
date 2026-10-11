@@ -7,6 +7,7 @@ const question: BinItem = {
   kind: "question",
   name: "Q-001.md",
   original: "_notebook/questions/Q-001.md",
+  note: null,
 };
 const experiment: BinItem = {
   ...question,
@@ -19,6 +20,7 @@ function setup(
   options: {
     restore?: "ok" | "nameTaken" | "notWritable";
     record?: string;
+    binned?: BinItem[];
   } = {},
 ) {
   const restoreFromBin = vi.fn(() =>
@@ -30,6 +32,9 @@ function setup(
   );
   const readBinnedRecord = vi.fn(() =>
     Promise.resolve({ status: "ok" as const, data: options.record ?? "" }),
+  );
+  const listBin = vi.fn(() =>
+    Promise.resolve({ status: "ok" as const, data: options.binned ?? [] }),
   );
   const refresh = vi.fn(() => Promise.resolve());
   const adoptRestored = vi.fn((...args: [unknown]) => {
@@ -46,6 +51,7 @@ function setup(
         restoreFromBin,
         readBinnedRecord,
         binArtefactFiles: vi.fn(),
+        listBin,
       },
       folder: 1,
       refresh,
@@ -54,11 +60,15 @@ function setup(
     },
     restoreFromBin,
     readBinnedRecord,
+    listBin,
     refresh,
     adoptRestored,
     editArtefacts,
   };
 }
+
+const noted = (index: number, experiments: string[] = []) =>
+  JSON.stringify({ version: 1, index, experiments });
 
 describe("restoring an entry from the bin", () => {
   it("puts a question back, then reloads the notebook so it appears", async () => {
@@ -89,6 +99,51 @@ describe("restoring an entry from the bin", () => {
       experimentFolder: "EXP-001",
     });
     expect(result).toEqual({ ok: true, text: "EXP-001 was restored." });
+  });
+
+  it("hands the place it had to the saved order (ADR-0063)", async () => {
+    const s = setup();
+    await restoreEntry({
+      ...s.request,
+      entry: { ...question, note: noted(1) },
+    });
+    expect(s.adoptRestored).toHaveBeenCalledWith({
+      questionFile: "Q-001.md",
+      note: { index: 1, experiments: [] },
+    });
+  });
+
+  it("ignores a note it cannot read", async () => {
+    const s = setup();
+    await restoreEntry({ ...s.request, entry: { ...question, note: "junk" } });
+    expect(s.adoptRestored).toHaveBeenCalledWith({ questionFile: "Q-001.md" });
+  });
+
+  it("puts back the experiments binned with a question, newest first, before reloading", async () => {
+    const older: BinItem = { ...experiment, stamp: "2026-09-20T09-00-00Z" };
+    const s = setup({ binned: [older, experiment] });
+    const result = await restoreEntry({
+      ...s.request,
+      entry: { ...question, note: noted(0, ["EXP-001"]) },
+    });
+    expect(s.restoreFromBin.mock.calls.map((c) => c.slice(1))).toEqual([
+      [question.stamp, "question", "Q-001.md"],
+      [experiment.stamp, "experiment", "EXP-001"],
+    ]);
+    expect(s.refresh).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ok: true, text: "Q-001 was restored." });
+  });
+
+  it("says which experiments could not come back, and still restores the question", async () => {
+    const s = setup({ binned: [] });
+    const result = await restoreEntry({
+      ...s.request,
+      entry: { ...question, note: noted(0, ["EXP-001", "EXP-002"]) },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.text).toContain("EXP-001, EXP-002");
+    expect(s.refresh).toHaveBeenCalledTimes(1);
+    expect(s.adoptRestored).toHaveBeenCalledTimes(1);
   });
 
   it("says a name is in the way, and reloads nothing", async () => {

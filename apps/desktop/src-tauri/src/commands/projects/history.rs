@@ -161,7 +161,8 @@ pub async fn write_notebook_file(
 }
 
 /// Moves a question file or an experiment folder to `.trash/`. Nothing is
-/// deleted; the person can move it back.
+/// deleted; the person can move it back. `note` is kept beside it in the bin
+/// as text, for the restore to read (ADR-0063); nothing here parses it.
 #[tauri::command]
 #[specta::specta]
 pub async fn move_to_trash(
@@ -169,11 +170,12 @@ pub async fn move_to_trash(
     locks: State<'_, LockRegistry>,
     folder: FolderHandle,
     path: TrashTarget,
+    note: Option<String>,
 ) -> Result<TrashedItem, ProjectError> {
     let locks = locks.inner().clone();
     with_root(&folders, folder, move |root| {
         writable(locks.health(&root))?;
-        root.move_to_trash(&path.to_rel()?, &SystemClock)
+        root.move_to_trash_noting(&path.to_rel()?, note.as_deref(), &SystemClock)
             .map(TrashedItem::from)
             .map_err(|_| ProjectError::WriteFailed)
     })

@@ -304,13 +304,26 @@ describe("NotebookView: controls", () => {
     const tabs = [
       ...render(model(state)).querySelectorAll('[role="tablist"] [role="tab"]'),
     ].map((tab) => tab.textContent);
-    expect(tabs).toEqual([
-      "Home",
-      "Projects",
-      "Experiments",
-      "Sources",
-      "Settings",
-    ]);
+    expect(tabs).toEqual(["Home", "View", "Sources", "Export", "Settings"]);
+  });
+
+  it("puts the project controls on the Home tab, in their own group", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(
+      <NotebookView
+        notebook={model(state)}
+        folder={1}
+        viewportHeight={720}
+        onCloseProject={() => undefined}
+        projectControls={<button type="button">Open project…</button>}
+      />,
+    );
+    const groups = [
+      ...container.querySelectorAll('[role="toolbar"] [role="group"]'),
+    ].map((g) => g.getAttribute("aria-label"));
+    expect(groups).toEqual(["Project", "New", "Selection", "Panes"]);
+    expect(ribbonButton(container, "‹ All projects")).toBeDefined();
+    expect(ribbonButton(container, "Open project…")).toBeDefined();
   });
 
   it("offers, in the ribbon, what to do with a selection, and to add a question", () => {

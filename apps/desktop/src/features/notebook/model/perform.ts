@@ -101,12 +101,16 @@ async function writeFile(
 }
 
 /** Moves `path` to the trash. `null` when it was moved, otherwise why not. */
-async function trash(deps: Deps, path: string): Promise<Failed | null> {
+async function trash(
+  deps: Deps,
+  path: string,
+  note: string | undefined,
+): Promise<Failed | null> {
   // Stop watching first: the files going away are ours, not an outside change.
   deps.changes.untrack(`${path}/experiment.md`);
   deps.changes.untrack(`${path}/artefacts.yaml`);
   deps.changes.untrack(path);
-  const result = await deps.api.moveToTrash(deps.folder, path);
+  const result = await deps.api.moveToTrash(deps.folder, path, note ?? null);
   if (result.status === "ok") return null;
   return {
     ok: false,
@@ -138,7 +142,7 @@ export async function applyPlan(
   let written = 0;
   for (const step of plan.steps) {
     if (step.kind === "trash") {
-      const trashed = await trash(deps, step.path);
+      const trashed = await trash(deps, step.path, step.note);
       if (trashed !== null) return failure(trashed.reason, written);
       for (const path of Object.keys(hashes)) {
         if (path === step.path || path.startsWith(`${step.path}/`))

@@ -11,8 +11,8 @@ import {
 } from "../table/tableTesting";
 
 /**
- * Moving a question or experiment to the bin is a command in the Experiments
- * tab of the ribbon. It is faded until something is selected, then accented,
+ * Moving a question or experiment to the bin is a command in the Selection
+ * group of the ribbon's Home tab. It is faded until something is selected, then accented,
  * asks before it moves anything, and moves it to `.trash/` (nothing is deleted).
  */
 
@@ -36,11 +36,6 @@ function mount(writable = true) {
       },
     },
   });
-  click(
-    [...mounted.view.querySelectorAll('[role="tab"]')].find(
-      (tab) => tab.textContent === "Experiments",
-    ),
-  );
   return { ...mounted, moved };
 }
 
@@ -72,7 +67,7 @@ const confirmButton = (view: HTMLElement) =>
     (b) => b.textContent === "Move to bin",
   );
 
-describe("Move to bin in the Experiments tab", () => {
+describe("Move to bin in the Home tab", () => {
   it("is there, faded, while nothing is selected", () => {
     const { view } = mount();
     const command = binCommand(view);
@@ -120,7 +115,7 @@ describe("Move to bin in the Experiments tab", () => {
     click(header?.closest("button"));
     expect(binCommand(view).disabled).toBe(false);
     click(binCommand(view));
-    expect(toolbar(view)?.textContent).toContain("will be kept");
+    expect(toolbar(view)?.textContent).toContain("brings them back too");
     click(confirmButton(view));
     await act(async () => Promise.resolve());
     expect(moved).toEqual([`question:${first}`]);
@@ -148,18 +143,15 @@ describe("Move to bin in the Experiments tab", () => {
     const header = tableOf(view).querySelector(".wtable__question strong");
     click(header?.closest("button"));
     expect(detailsOf(view).textContent ?? "").not.toMatch(/Move to bin|Delete/);
-    // And not under More actions in the Home tab.
-    click(
-      [...view.querySelectorAll('[role="tab"]')].find(
-        (tab) => tab.textContent === "Home",
-      ),
-    );
+    // Only in the Selection group of the Home tab, once, with no menu to hide it in.
     select(view, "EXP-001");
-    const more = [...(toolbar(view)?.querySelectorAll("button") ?? [])].find(
-      (b) => b.textContent === "More actions",
+    const buttons = [...(toolbar(view)?.querySelectorAll("button") ?? [])].map(
+      (b) => b.textContent,
     );
-    click(more);
-    expect(more).toBeDefined();
-    expect(document.body.textContent ?? "").not.toMatch(/Move to bin|Delete/);
+    expect(buttons.filter((t) => t === "Move to bin")).toHaveLength(1);
+    expect(buttons).not.toContain("More actions");
+    expect(
+      binCommand(view).closest('[role="group"]')?.getAttribute("aria-label"),
+    ).toBe("Selection");
   });
 });
