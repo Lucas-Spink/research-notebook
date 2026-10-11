@@ -68,6 +68,9 @@ function fakeApi(): PanelApi {
       ok({ lines: [], encoding: "utf8" as const, complete: true }),
     previewNotebook: () =>
       ok({ kind: "jupyter" as const, language: null, kernel: null }),
+    previewScript: () =>
+      ok({ lines: [], encoding: "utf8" as const, complete: true }),
+    previewNotebookBody: () => ok({ text: "{}", encoding: "utf8" as const }),
     openCapturedFileAction: () => ok(null),
     openLinkedFileAction: () => ok(null),
     openProjectFolder: () => ok(null),

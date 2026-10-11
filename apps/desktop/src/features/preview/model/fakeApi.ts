@@ -41,7 +41,27 @@ export const SAMPLE_NOTEBOOK: NotebookPreview = {
   kernel: "Python 3 (ipykernel)",
 };
 
+/** A small Jupyter notebook: a Markdown cell, and a code cell with saved output. */
+export const SAMPLE_NOTEBOOK_JSON = JSON.stringify({
+  nbformat: 4,
+  nbformat_minor: 5,
+  metadata: { language_info: { name: "python" } },
+  cells: [
+    { cell_type: "markdown", source: ["# Analysis\n", "of **cells**"] },
+    {
+      cell_type: "code",
+      source: ["print(1)"],
+      execution_count: 1,
+      outputs: [{ output_type: "stream", name: "stdout", text: ["1\n"] }],
+    },
+  ],
+});
+
 type Options = {
+  /** The text `previewNotebookBody` answers with. */
+  notebookText?: string;
+  /** Only `previewNotebookBody` refuses, with this failure. */
+  notebookFail?: PreviewFailure;
   /** Every command refuses with this failure. */
   fail?: PreviewFailure;
   /** Every command throws, as a broken IPC call would. */
@@ -82,5 +102,22 @@ export function fakePreviewApi(options: Options = {}): PreviewApi & {
     previewText: () => answer({ command: "previewText" }, SAMPLE_TEXT),
     previewNotebook: () =>
       answer({ command: "previewNotebook" }, SAMPLE_NOTEBOOK),
+    previewScript: () => answer({ command: "previewScript" }, SAMPLE_TEXT),
+    previewNotebookBody: () => {
+      if (options.notebookFail !== undefined) {
+        calls.push({ command: "previewNotebookBody" });
+        return Promise.resolve({
+          status: "error" as const,
+          error: options.notebookFail,
+        });
+      }
+      return answer(
+        { command: "previewNotebookBody" },
+        {
+          text: options.notebookText ?? SAMPLE_NOTEBOOK_JSON,
+          encoding: "utf8" as const,
+        },
+      );
+    },
   };
 }

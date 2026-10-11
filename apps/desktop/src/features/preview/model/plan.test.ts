@@ -64,7 +64,7 @@ describe("planPreview (spec 8)", () => {
   it("shows a format added to the script registry as text, whatever its recorded type", () => {
     expect(
       planPreview({ fileName: "fit.jl", type: "other", captured: true }),
-    ).toEqual({ kind: "text" });
+    ).toMatchObject({ kind: "text", script: { extension: "jl" } });
   });
 
   it("gives an unsupported image format the fallback, not an image preview", () => {

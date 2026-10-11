@@ -1,6 +1,11 @@
 import type { ARTEFACT_TYPES } from "@research-notebook/format";
 import { assertNever } from "../../../shared/assertNever";
-import { codeExtensions, extensionOf } from "./scriptFormats";
+import {
+  codeExtensions,
+  extensionOf,
+  scriptFormatOf,
+  type ScriptFormat,
+} from "./scriptFormats";
 
 /** An artefact's recorded type (spec 5.8). */
 export type ArtefactType = (typeof ARTEFACT_TYPES)[number];
@@ -15,8 +20,8 @@ export type PreviewPlan =
   | { kind: "pdf" }
   | { kind: "svg" }
   | { kind: "table" }
-  | { kind: "text" }
-  | { kind: "notebook" }
+  | { kind: "text"; script?: ScriptFormat }
+  | { kind: "notebook"; cells?: true }
   | { kind: "html" }
   | { kind: "other"; reason: "type" | "linked" };
 
@@ -46,6 +51,12 @@ const NOTEBOOK = ["ipynb", "rmd", "qmd"];
 const HTML = ["html", "htm"];
 const TABLE = /\.(csv|tsv)(\.gz)?$/i;
 
+/** Approved code formats get the script viewer; other text the plain one. */
+function textPlan(fileName: string): PreviewPlan {
+  const script = scriptFormatOf(fileName);
+  return script?.view === "code" ? { kind: "text", script } : { kind: "text" };
+}
+
 /**
  * Chooses a version's preview from its file name, as spec 8 lists them. The
  * extension decides rather than the recorded type, because a type inferred
@@ -62,9 +73,14 @@ export function planPreview({
   if (RASTER.includes(extension)) return { kind: "image" };
   if (extension === "pdf") return { kind: "pdf" };
   if (extension === "svg") return { kind: "svg" };
-  if (NOTEBOOK.includes(extension)) return { kind: "notebook" };
+  if (NOTEBOOK.includes(extension)) {
+    // Only a Jupyter notebook has cells to draw; Rmd and Quarto show details.
+    return scriptFormatOf(fileName)?.view === "notebook"
+      ? { kind: "notebook", cells: true }
+      : { kind: "notebook" };
+  }
   if (HTML.includes(extension)) return { kind: "html" };
-  if (TEXT.includes(extension)) return { kind: "text" };
+  if (TEXT.includes(extension)) return textPlan(fileName);
   // Showing the first lines of any script or text is safe: it is bounded.
   if (type === "script" || type === "text") return { kind: "text" };
   return { kind: "other", reason: "type" };
