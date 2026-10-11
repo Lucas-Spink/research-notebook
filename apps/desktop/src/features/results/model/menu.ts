@@ -32,7 +32,9 @@ export type MenuRun =
   /** Opens the result's file in its default application or the file manager; changes nothing. */
   | { kind: "file"; action: "openFile" | "reveal" }
   /** Shows what the file records about the artefact; changes nothing. */
-  | { kind: "details" };
+  | { kind: "details" }
+  /** Asks before removing the file from the notebook; the file goes to the bin. */
+  | { kind: "removeFile" };
 
 export type MenuLabel =
   | "preview"
@@ -44,6 +46,7 @@ export type MenuLabel =
   | "moveUp"
   | "moveDown"
   | "remove"
+  | "removeFile"
   | "markMainFigure"
   | "unmarkMainFigure"
   | "clearClassification"
@@ -116,10 +119,12 @@ export function rowMenu(
   {
     canOpen = false,
     canOpenFiles = false,
+    canRemoveFiles = false,
     selected = [],
   }: {
     canOpen?: boolean;
     canOpenFiles?: boolean;
+    canRemoveFiles?: boolean;
     selected?: readonly ItemRow[];
   } = {},
 ): MenuEntry[] {
@@ -197,6 +202,14 @@ export function rowMenu(
       ...step(row, -1),
       ...step(row, 1),
       ...remove,
+      ...(canRemoveFiles
+        ? [
+            {
+              label: "removeFile" as const,
+              run: { kind: "removeFile" as const },
+            },
+          ]
+        : []),
     ];
   }
   const self = findGroup(file.groups, row.id);

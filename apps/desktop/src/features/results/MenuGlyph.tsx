@@ -17,6 +17,7 @@ const PATHS: Readonly<Record<MenuLabel, string>> = {
   moveUp: p("M6 10V3M3 5.5 6 2.5 9 5.5"),
   moveDown: p("M6 2v7M3 6.5 6 9.5 9 6.5"),
   remove: p("M3 3l6 6M9 3 3 9"),
+  removeFile: p("M2.5 3.5h7M4.5 3.5V2h3v1.5M3.5 3.5l.4 6.5h4.2l.4-6.5"),
   newSubgroup: p("M1.5 3h3l1 1H10.5v5.5h-9ZM6 5.5v3M4.5 7h3"),
   expandAll: p("M3 4.5 6 7.5 9 4.5"),
   collapseAll: p("M3 7.5 6 4.5 9 7.5"),

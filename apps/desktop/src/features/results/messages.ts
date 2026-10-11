@@ -38,6 +38,12 @@ export const resultsMessages = {
   treeActions: "Results actions",
   filterTargets: "Filter",
   noTargets: "No match",
+  removeFileFailed:
+    "The file could not be removed. Nothing was changed, or it is in the bin and can be restored from there.",
+  removeFileConfirm: "Remove from notebook",
+  removeFileAsk: (name: string) => `Remove ${name} from the notebook?`,
+  removeFileNote:
+    "Its copy is moved to the bin and can be restored. A file stored outside the notebook is not touched.",
   fileActionFailed:
     "The file could not be opened. It may be missing; nothing was changed.",
   missing: "File missing",
@@ -71,6 +77,7 @@ export const resultsMessages = {
     moveUp: "Move up",
     moveDown: "Move down",
     remove: "Remove from this group",
+    removeFile: "Remove from notebook…",
     markMainFigure: "Mark as main figure",
     unmarkMainFigure: "Unmark main figure",
     clearClassification: "Clear classification",

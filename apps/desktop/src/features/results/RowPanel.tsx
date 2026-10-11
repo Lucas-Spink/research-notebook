@@ -36,6 +36,8 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
       tree.closePanel();
     } else if (run.kind === "renameResult" && panel.row.kind === "item")
       tree.setPanel({ kind: "renameResult", row: panel.row });
+    else if (run.kind === "removeFile" && panel.row.kind === "item")
+      tree.setPanel({ kind: "removeFile", row: panel.row });
     else if (run.kind === "details" && panel.row.kind === "item")
       tree.setPanel({ kind: "details", row: panel.row });
     else if (run.kind === "expandAll" || run.kind === "collapseAll") {
@@ -54,6 +56,7 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
       panel.row.kind === "group" &&
       run.kind !== "details" &&
       run.kind !== "renameResult" &&
+      run.kind !== "removeFile" &&
       run.kind !== "file"
     )
       tree.setPanel({ kind: run.kind, row: panel.row });
@@ -75,7 +78,7 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
         tree={tree}
         choose={choose}
       />
-      {panel.kind === "confirmDelete" && (
+      {(panel.kind === "confirmDelete" || panel.kind === "removeFile") && (
         <button type="button" onClick={tree.closePanel}>
           {resultsMessages.cancel}
         </button>
@@ -98,6 +101,7 @@ function PanelBody({
           {rowMenu(file, panel.row, {
             canOpen: tree.open !== undefined,
             canOpenFiles: tree.fileAction !== undefined,
+            canRemoveFiles: tree.removeFile !== undefined,
             selected: chosenWith(tree, panel.row),
           }).map((entry) => (
             <li key={entry.label}>
@@ -177,6 +181,23 @@ function PanelBody({
           }
           onCancel={tree.closePanel}
         />
+      );
+    case "removeFile":
+      return (
+        <>
+          <p>{resultsMessages.removeFileAsk(panel.row.name)}</p>
+          <p className="wtable__muted">{resultsMessages.removeFileNote}</p>
+          {tree.removeWarning !== undefined && (
+            <p>{tree.removeWarning(panel.row.artefactId)}</p>
+          )}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => void tree.removeFile?.(panel.row.artefactId)}
+          >
+            {resultsMessages.removeFileConfirm}
+          </button>
+        </>
       );
     case "confirmDelete":
       return (

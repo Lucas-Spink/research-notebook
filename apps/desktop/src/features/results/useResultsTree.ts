@@ -46,7 +46,8 @@ export type Panel =
   | { kind: "rename"; row: Extract<TreeRow, { kind: "group" }> }
   | { kind: "renameResult"; row: Extract<TreeRow, { kind: "item" }> }
   | { kind: "newSubgroup"; row: Extract<TreeRow, { kind: "group" }> }
-  | { kind: "confirmDelete"; row: Extract<TreeRow, { kind: "group" }> };
+  | { kind: "confirmDelete"; row: Extract<TreeRow, { kind: "group" }> }
+  | { kind: "removeFile"; row: Extract<TreeRow, { kind: "item" }> };
 
 type Options = {
   file: ArtefactsFileModel;
@@ -54,6 +55,10 @@ type Options = {
   onAction: (action: GroupAction) => Promise<ActionOutcome>;
   /** Opens an artefact's preview (ADR-0044); leave out where there is none to open. */
   onOpen?: (artefactId: string) => void;
+  /** Removes a result's file from the notebook, to the bin; resolves whether it was. Left out where files cannot be removed. */
+  onRemoveFile?: (artefactId: string) => Promise<boolean>;
+  /** What to say before a file is removed, such as how many places refer to it. */
+  removeWarning?: (artefactId: string) => string;
   /** Opens a result's file outside the application; resolves whether it worked. Leave out where there is none. */
   onFileAction?: (
     artefactId: string,
@@ -95,6 +100,8 @@ export function useResultsTree({
   disabled,
   onAction,
   onOpen,
+  onRemoveFile,
+  removeWarning,
   onFileAction,
   hideEmptyUngrouped = false,
 }: Options) {
@@ -367,6 +374,17 @@ export function useResultsTree({
     dragState,
     /** Opens an artefact's preview, or `undefined` when the tree has none to open. */
     open: onOpen,
+    /** Removes a file to the bin, or `undefined` when the tree cannot. */
+    removeFile:
+      onRemoveFile === undefined
+        ? undefined
+        : async (artefactId: string) => {
+            setStatus(null);
+            const removed = await onRemoveFile(artefactId);
+            if (removed) setPanel(null);
+            else setStatus(resultsMessages.removeFileFailed);
+          },
+    removeWarning,
     /** Opens or reveals a result's file; `undefined` when the tree cannot. */
     fileAction:
       onFileAction === undefined
