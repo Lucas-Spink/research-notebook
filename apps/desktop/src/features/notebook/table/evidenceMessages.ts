@@ -150,3 +150,11 @@ export function outcomeText(outcome: AddOutcome): string {
       return assertNever(outcome);
   }
 }
+
+/** The sentence about references in the warning before a file is removed. */
+export function referenceCountText(count: number): string {
+  if (count === 0) return "Nothing in the notebook refers to it.";
+  const places =
+    count === 1 ? "1 place refers to it" : `${count} places refer to it`;
+  return `${places}, and will show it as missing until it is restored.`;
+}
