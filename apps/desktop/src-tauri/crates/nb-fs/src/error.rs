@@ -59,6 +59,9 @@ pub enum WriteError {
     NotTrashable { path: String },
     #[error("`{path}` does not exist")]
     Missing { path: String },
+    /// Something is already where a restore would put a file; it is never replaced.
+    #[error("`{path}` already exists and will not be replaced")]
+    Exists { path: String },
     #[error("cannot {operation} `{path}`: {source}")]
     Io {
         operation: &'static str,

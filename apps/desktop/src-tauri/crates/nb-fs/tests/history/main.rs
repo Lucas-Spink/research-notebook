@@ -13,6 +13,7 @@
 mod common;
 
 mod backup;
+mod bin;
 mod history_retention;
 mod scope;
 mod snapshot;

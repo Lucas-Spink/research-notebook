@@ -15,7 +15,7 @@ use crate::project::{ProjectRoot, NOTEBOOK_DIR};
 use crate::RealIo;
 
 /// Where trashed files go, inside `_notebook/` (spec 5.11).
-const TRASH_DIR: &str = ".trash";
+pub(crate) const TRASH_DIR: &str = ".trash";
 /// How many deletions of one path may share a second before giving up.
 const MAX_SAME_SECOND: u32 = 10_000;
 /// Files at the top of `_notebook/` that are never trashed: without them the
@@ -73,16 +73,32 @@ impl ProjectRoot {
             });
         }
         self.check_names(inside, display)?;
+        let relative = inside.join("/");
+        let folder =
+            self.free_trash_folder(clock.now(), std::slice::from_ref(&relative), display)?;
+        self.trash_into(inside, display, &folder)?;
+        Ok(Trashed {
+            location: format!("{NOTEBOOK_DIR}/{TRASH_DIR}/{folder}/{relative}"),
+        })
+    }
+
+    /// Moves `inside` (a path relative to `_notebook/`, already checked to be
+    /// trashable) into `.trash/<folder>/`, keeping its relative path. Links are
+    /// neither followed nor moved, and nothing in the destination is replaced
+    /// by a caller that chose `folder` with [`Self::free_trash_folder`].
+    pub(crate) fn trash_into(
+        &self,
+        inside: &[&str],
+        display: &str,
+        folder: &str,
+    ) -> Result<(), WriteError> {
         let Some((name, parents)) = inside.split_last() else {
             return Err(WriteError::NotTrashable {
                 path: display.to_owned(),
             });
         };
-
         let source = self.existing_unlinked(parents, name, display)?;
-        let relative = inside.join("/");
-        let folder = self.free_trash_folder(clock.now(), &relative, display)?;
-        let mut folders = vec![TRASH_DIR, folder.as_str()];
+        let mut folders = vec![TRASH_DIR, folder];
         folders.extend(parents);
         let target_dir = self.confined_folder(&folders, display)?;
         let destination = Destination {
@@ -91,10 +107,7 @@ impl ProjectRoot {
             display,
             permissions: None,
         };
-        replace(&mut RealIo, &source, &target_dir.join(name), &destination)?;
-        Ok(Trashed {
-            location: format!("{NOTEBOOK_DIR}/{TRASH_DIR}/{folder}/{relative}"),
-        })
+        replace(&mut RealIo, &source, &target_dir.join(name), &destination)
     }
 
     /// Where the file or folder `name` in `_notebook/<parents>` is, checking
@@ -139,26 +152,29 @@ impl ProjectRoot {
     /// The name of the folder under `.trash/` in which `relative` can go
     /// without replacing anything: the stamp, or the stamp with a suffix if
     /// the same path was already trashed in this second.
-    fn free_trash_folder(
+    pub(crate) fn free_trash_folder(
         &self,
         now: Timestamp,
-        relative: &str,
+        relatives: &[String],
         display: &str,
     ) -> Result<String, WriteError> {
-        for seq in 1..=MAX_SAME_SECOND {
+        'folders: for seq in 1..=MAX_SAME_SECOND {
             let folder = Snapshot { at: now, seq }.file_stem();
-            let candidate = self.notebook.join(TRASH_DIR).join(&folder).join(relative);
-            match fs::symlink_metadata(&candidate) {
-                Ok(_) => {}
-                Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(folder),
-                Err(source) => {
-                    return Err(WriteError::Io {
-                        operation: "inspect",
-                        path: display.to_owned(),
-                        source,
-                    })
+            for relative in relatives {
+                let candidate = self.notebook.join(TRASH_DIR).join(&folder).join(relative);
+                match fs::symlink_metadata(&candidate) {
+                    Ok(_) => continue 'folders,
+                    Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                    Err(source) => {
+                        return Err(WriteError::Io {
+                            operation: "inspect",
+                            path: display.to_owned(),
+                            source,
+                        })
+                    }
                 }
             }
+            return Ok(folder);
         }
         Err(WriteError::Io {
             operation: "name a trash folder for",

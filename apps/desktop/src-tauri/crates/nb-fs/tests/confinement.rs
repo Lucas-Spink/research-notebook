@@ -30,6 +30,7 @@ fn kind(error: &WriteError) -> &'static str {
         WriteError::NotHistoryScope { .. } => "not history scope",
         WriteError::NotTrashable { .. } => "not trashable",
         WriteError::Missing { .. } => "missing",
+        WriteError::Exists { .. } => "exists",
         WriteError::Io { .. } => "io",
     }
 }

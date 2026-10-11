@@ -19,6 +19,7 @@
 
 mod atomic;
 mod backup;
+mod bin;
 pub mod cache;
 pub mod capture;
 mod clock;
@@ -45,6 +46,7 @@ pub mod watch;
 
 pub use atomic::{AtomicIo, RealIo, LOCK_RETRY_BUDGET};
 pub use backup::Backup;
+pub use bin::{BinEntry, BinKind, BinnedFiles};
 pub use capture::{CaptureName, CaptureOutcome, CaptureResult, CapturedVersion, KnownVersion};
 pub use clock::{Clock, SystemClock};
 pub use create::{Created, NewProject};
