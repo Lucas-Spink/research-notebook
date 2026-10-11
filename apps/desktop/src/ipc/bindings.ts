@@ -1163,8 +1163,8 @@ export type TextPreview = {
 };
 
 /**
- *  A project-relative path the trash command accepts: a question file, or the
- *  folder of an experiment.
+ *  A project-relative path the trash command accepts: a question file, a
+ *  canvas file (ADR-0064), or the folder of an experiment.
  */
 export type TrashTarget = string;
 

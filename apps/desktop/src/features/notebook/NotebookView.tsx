@@ -518,8 +518,8 @@ function NotebookViewBody({
               artefactId: node.artefact_id,
               ...(node.version === undefined ? {} : { version: node.version }),
             }),
-      renderPreview: (result) => (
-        <CanvasResultPreview folder={folder} result={result} />
+      renderPreview: (result, detail) => (
+        <CanvasResultPreview folder={folder} result={result} detail={detail} />
       ),
       onOpen: (result) =>
         editingNow.current.onOpenResult(

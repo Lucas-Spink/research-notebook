@@ -6,6 +6,7 @@ export type {
   CardServices,
   FoundResult,
   MissingResult,
+  PictureDetail,
   ResultInfo,
 } from "./model/results";
 export type { ArtefactNode, PinRef } from "./model/nodes";

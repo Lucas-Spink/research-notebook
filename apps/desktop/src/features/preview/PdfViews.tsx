@@ -34,11 +34,22 @@ export function PdfView({ name, url, onRenderFailed }: PdfProps) {
   );
 }
 
-type PdfThumbnailProps = { name: string; url: string; fallback: ReactNode };
+type PdfThumbnailProps = {
+  name: string;
+  url: string;
+  fallback: ReactNode;
+  /** The longest edge to draw, in pixels. Defaults to the thumbnail size. */
+  maxEdge?: number;
+};
 
 /** A PDF's first page at 256 px, or `fallback` if it cannot be drawn. */
-export function PdfThumbnail({ name, url, fallback }: PdfThumbnailProps) {
-  const { canvasRef, failed } = usePdfThumbnail(url);
+export function PdfThumbnail({
+  name,
+  url,
+  fallback,
+  maxEdge,
+}: PdfThumbnailProps) {
+  const { canvasRef, failed } = usePdfThumbnail(url, maxEdge);
   if (failed) return <>{fallback}</>;
   return (
     <canvas
