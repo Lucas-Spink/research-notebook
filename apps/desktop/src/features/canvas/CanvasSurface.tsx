@@ -246,6 +246,10 @@ function Flow({
           onConnect={onConnect}
           isValidConnection={isValidConnection}
           connectionMode={ConnectionMode.Loose}
+          // A line lands on the nearest point within reach, and the ends of
+          // existing lines are not dragged loose by a click meant for a point.
+          connectionRadius={36}
+          edgesReconnectable={false}
           nodeTypes={NODE_TYPES}
           onNodesChange={onNodesChange}
           onMoveEnd={(_event, view) => onViewport(view)}

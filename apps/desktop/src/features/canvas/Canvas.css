@@ -338,15 +338,29 @@
 
 /* The points a line is drawn from, shown on a selected or hovered card. */
 .canvas-handle {
-  width: 10px;
-  height: 10px;
-  border: 1px solid var(--color-accent);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-accent);
   background: var(--color-surface);
   opacity: 0;
+  z-index: 2;
+}
+
+/* A larger area than the dot to aim at. */
+.canvas-handle::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+.canvas-handle:hover {
+  background: var(--color-accent);
 }
 
 .react-flow__node:hover .canvas-handle,
-.react-flow__node.selected .canvas-handle {
+.react-flow__node.selected .canvas-handle,
+.canvas-surface .react-flow__handle.connectingfrom,
+.canvas-surface .react-flow__handle.connectionindicator {
   opacity: 1;
 }
 
