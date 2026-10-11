@@ -22,7 +22,6 @@ import {
   EXPERIMENT_COLUMN_WIDTH,
   gridColumns,
   gridWidth,
-  motivationColumn,
   spareShares,
   type ColumnLayout,
 } from "./model/columns";
@@ -230,7 +229,6 @@ export function WorkspaceTable({
     width: column.width + (shares.get(column.key) ?? 0),
   }));
   const total = gridWidth(cells);
-  const motivation = motivationColumn(shown);
 
   const edited = editedRow(rows, editing);
   const focus = useGridFocus({
@@ -339,23 +337,11 @@ export function WorkspaceTable({
                   row={row}
                   place={place}
                   columnCount={cells.length + 1}
-                  motivationWidth={motivation?.width ?? null}
                   selected={selectedKey === row.key}
                   picked={pickedKey === row.key}
                   sharesRef={row.ref !== null && sharedRefs.has(row.ref)}
                   onToggle={onToggle}
                   onSelect={onSelectQuestion}
-                  {...(editing.writable &&
-                  !row.readOnly &&
-                  row.questionId !== null
-                    ? {
-                        onMoveToBin: (header) => {
-                          if (header.questionId !== null) {
-                            void editing.onMoveQuestionToBin(header.questionId);
-                          }
-                        },
-                      }
-                    : {})}
                 />
               );
             }

@@ -27,6 +27,7 @@ import {
   type Crumb,
   type IntegrityStatus,
 } from "./ProjectHeader";
+import { MoveToBinCommand } from "./MoveToBinCommand";
 import { SelectionCommands } from "./SelectionCommands";
 
 type Props = {
@@ -162,22 +163,23 @@ export function Ribbon(props: Props) {
     </button>
   );
 
+  const newQuestionForm = (close: () => void) => (
+    <NewTitleForm
+      label={messages.newQuestionLabel}
+      placeholder={messages.newQuestionPlaceholder}
+      submitLabel={messages.addQuestion}
+      disabled={disabled}
+      onSubmit={(title) =>
+        actions.createQuestion(title).then((done) => {
+          if (done) close();
+          return done;
+        })
+      }
+    />
+  );
   const newQuestion = (
     <RibbonMenu label={m.newQuestion} disabled={disabled}>
-      {(close) => (
-        <NewTitleForm
-          label={messages.newQuestionLabel}
-          placeholder={messages.newQuestionPlaceholder}
-          submitLabel={messages.addQuestion}
-          disabled={disabled}
-          onSubmit={(title) =>
-            actions.createQuestion(title).then((done) => {
-              if (done) close();
-              return done;
-            })
-          }
-        />
-      )}
+      {newQuestionForm}
     </RibbonMenu>
   );
   const newExperimentForm = (close: () => void) => (
@@ -366,6 +368,13 @@ export function Ribbon(props: Props) {
               {addResult}
               {details}
             </RibbonGroup>
+            <RibbonGroup label={m.groups.remove}>
+              <MoveToBinCommand
+                selected={selected}
+                actions={actions}
+                disabled={disabled}
+              />
+            </RibbonGroup>
           </>
         );
       case "sources":
@@ -543,14 +552,23 @@ export function Ribbon(props: Props) {
           readOnly={!props.writable}
           archived={props.isArchived ?? false}
           primary={
-            <RibbonMenu
-              label={headerMessages.addExperiment}
-              variant="primary"
-              alignEnd
-              disabled={disabled || questions.length === 0}
-            >
-              {newExperimentForm}
-            </RibbonMenu>
+            <>
+              <RibbonMenu
+                label={headerMessages.addQuestion}
+                alignEnd
+                disabled={disabled}
+              >
+                {newQuestionForm}
+              </RibbonMenu>
+              <RibbonMenu
+                label={headerMessages.addExperiment}
+                variant="primary"
+                alignEnd
+                disabled={disabled || questions.length === 0}
+              >
+                {newExperimentForm}
+              </RibbonMenu>
+            </>
           }
           more={
             <RibbonMenu

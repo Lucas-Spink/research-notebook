@@ -1,8 +1,7 @@
 import type { ArrangedExperiment } from "@research-notebook/format";
 import { useId, useState } from "react";
-import { ConfirmDelete } from "./ConfirmDelete";
 import { ExperimentEditForm } from "./ExperimentEditForm";
-import { deleteExperimentWarning, messages, statusLabel } from "./messages";
+import { messages, statusLabel } from "./messages";
 import type { NotebookActions } from "./useNotebook";
 
 /** A question an experiment can be moved to. */
@@ -102,12 +101,6 @@ export function ExperimentItem({
               </button>
             </>
           )}
-          <ConfirmDelete
-            subject={front.ref}
-            warning={deleteExperimentWarning(front.ref)}
-            disabled={disabled}
-            onConfirm={() => void actions.removeExperiment(front.id)}
-          />
         </div>
       )}
       {editing && !readOnly && (

@@ -62,7 +62,6 @@ export const tableMessages = {
   closeResults: "Close",
   unreadableResults:
     "This experiment's artefacts.yaml could not be read, so its results are left as they are.",
-  noMotivation: "No motivation yet",
   noMatches: "No experiments in this question match the filter.",
   filterLabel: "Filter experiments",
   filterPlaceholder: "Ref, title or text",

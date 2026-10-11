@@ -72,8 +72,8 @@ type Props = {
 
 /**
  * Show, hide and size each column without the pointer (FR-TBL-04, spec
- * 10.2). Every column of `project.yaml` is listed, Motivation included, whose
- * width limits the summary in each question header.
+ * 10.2). Every column of `project.yaml` is listed except Literature and
+ * Motivation, which has no cell and is no longer shown.
  */
 export function ColumnsMenu({
   layout,
@@ -89,7 +89,10 @@ export function ColumnsMenu({
       {!writable && <p>{tableMessages.sessionOnly}</p>}
       <ul>
         {layout
-          .filter((column) => column.key !== "literature")
+          .filter(
+            (column) =>
+              column.key !== "literature" && column.key !== "motivation",
+          )
           .map((column) => {
             const label = columnLabel(column.key);
             return (

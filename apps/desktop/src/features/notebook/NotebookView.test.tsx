@@ -21,6 +21,7 @@ const actions: NotebookActions = {
   moveExperiment: () => Promise.resolve(true),
   removeExperiment: () => Promise.resolve(true),
   removeQuestion: () => Promise.resolve(true),
+  adoptRestored: () => Promise.resolve(true),
   refresh: () => Promise.resolve(),
   editExperimentSection: () => Promise.resolve({ ok: true }),
   changeSettings: () => undefined,
@@ -181,19 +182,7 @@ describe("NotebookView: the table", () => {
     );
     expect(headings).not.toContain("Results");
     expect(headings).not.toContain("Motivation");
-    expect(text(rowsIn(view)[0])).toContain("No motivation yet");
-  });
-
-  it("stops showing the Motivation when its column is hidden", () => {
-    const table = {
-      ...state.project.table,
-      columns: state.project.table.columns.map((c) =>
-        c.key === "motivation" ? { ...c, hidden: true } : c,
-      ),
-    };
-    expect(text(rowsIn(render(model(state, { table })))[0])).not.toContain(
-      "No motivation yet",
-    );
+    expect(text(rowsIn(view)[0])).not.toContain("motivation");
   });
 
   it("shows read-only, wrapped text in the cells, and no editors", () => {

@@ -1,11 +1,8 @@
 import { useId } from "react";
 import { RibbonMenu } from "../../../shared/ribbon";
-import { ConfirmDelete } from "../ConfirmDelete";
 import type { Selected } from "../DetailsPanel";
 import type { QuestionChoice } from "../ExperimentItem";
 import {
-  deleteExperimentWarning,
-  deleteQuestionWarning,
   messages,
   statusLabel,
   statusOfLabel,
@@ -82,40 +79,10 @@ export function SelectionCommands({
                   </select>
                 </p>
               )}
-              <ConfirmDelete
-                subject={front.ref}
-                warning={deleteExperimentWarning(front.ref)}
-                disabled={disabled}
-                onConfirm={() => {
-                  close();
-                  void actions.removeExperiment(front.id);
-                }}
-              />
             </>
           )}
         </RibbonMenu>
       </>
-    );
-  }
-  if (selected?.kind === "question" && !selected.group.readOnly) {
-    const front = selected.group.question.file.frontmatter;
-    return (
-      <RibbonMenu label={m.moreActions} disabled={disabled}>
-        {(close) => (
-          <ConfirmDelete
-            subject={front.ref}
-            warning={deleteQuestionWarning(
-              front.ref,
-              selected.group.experiments.length,
-            )}
-            disabled={disabled}
-            onConfirm={() => {
-              close();
-              void actions.removeQuestion(front.id);
-            }}
-          />
-        )}
-      </RibbonMenu>
     );
   }
   return <span className="ribbon__hint">{m.selectionHint}</span>;

@@ -31,10 +31,6 @@ export type TableEditing = {
     id: string,
     changes: ExperimentChanges,
   ) => Promise<boolean>;
-  /** Moves an experiment's folder to the bin (FR-EXP-06). Resolves whether it was moved. */
-  onMoveExperimentToBin: (id: string) => Promise<boolean>;
-  /** Moves a question to the bin (FR-EXP-06). Its experiments stay. */
-  onMoveQuestionToBin: (id: string) => Promise<boolean>;
   /** Opens this row's Results browser in the side pane, after any live section editor has saved and closed. */
   onOpenResults: (row: ExperimentRow) => void;
   /** Opens the Add result pane for this row's experiment, and selects the row. */

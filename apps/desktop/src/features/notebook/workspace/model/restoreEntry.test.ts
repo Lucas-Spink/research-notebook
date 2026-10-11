@@ -32,6 +32,10 @@ function setup(
     Promise.resolve({ status: "ok" as const, data: options.record ?? "" }),
   );
   const refresh = vi.fn(() => Promise.resolve());
+  const adoptRestored = vi.fn((...args: [unknown]) => {
+    void args;
+    return Promise.resolve(true);
+  });
   const editArtefacts = vi.fn((...args: [string, unknown]) => {
     void args;
     return Promise.resolve({ ok: true as const });
@@ -45,11 +49,13 @@ function setup(
       },
       folder: 1,
       refresh,
+      adoptRestored,
       editArtefacts,
     },
     restoreFromBin,
     readBinnedRecord,
     refresh,
+    adoptRestored,
     editArtefacts,
   };
 }
@@ -65,6 +71,8 @@ describe("restoring an entry from the bin", () => {
       "Q-001.md",
     );
     expect(s.refresh).toHaveBeenCalledTimes(1);
+    // It is listed in the saved order again once the notebook has reloaded.
+    expect(s.adoptRestored).toHaveBeenCalledWith({ questionFile: "Q-001.md" });
     expect(result).toEqual({ ok: true, text: "Q-001 was restored." });
   });
 
@@ -77,6 +85,9 @@ describe("restoring an entry from the bin", () => {
       "experiment",
       "EXP-001",
     );
+    expect(s.adoptRestored).toHaveBeenCalledWith({
+      experimentFolder: "EXP-001",
+    });
     expect(result).toEqual({ ok: true, text: "EXP-001 was restored." });
   });
 
@@ -86,6 +97,7 @@ describe("restoring an entry from the bin", () => {
     expect(result.ok).toBe(false);
     expect(result.text).toContain("already in the project");
     expect(s.refresh).not.toHaveBeenCalled();
+    expect(s.adoptRestored).not.toHaveBeenCalled();
   });
 
   it("says when the project is read-only", async () => {

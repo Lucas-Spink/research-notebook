@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  deleteExperimentWarning,
   messages,
   renameHint,
   selectLabel,
@@ -10,7 +9,6 @@ import {
   statusOptions,
   titleOfLabel,
 } from "../messages";
-import { BinButton } from "./BinButton";
 import type { TableEditing } from "./EditableSectionCell";
 import type { ExperimentRow } from "./model/rows";
 
@@ -206,16 +204,6 @@ export function ExperimentCell({
           ]
             .filter((part) => part !== null)
             .join(" · ")}
-        </div>
-      )}
-      {canEdit && !renaming && (
-        <div className="wtable__bin-row">
-          <BinButton
-            subject={front.ref}
-            warning={deleteExperimentWarning(front.ref)}
-            tabStop={false}
-            onConfirm={() => void editing.onMoveExperimentToBin(front.id)}
-          />
         </div>
       )}
     </div>

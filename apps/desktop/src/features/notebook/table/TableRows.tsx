@@ -10,13 +10,11 @@ import { evidenceOf } from "../model/evidence";
 import {
   collapseLabel,
   countLabel,
-  deleteQuestionWarning,
   expandLabel,
   messages,
   selectLabel,
   tableMessages,
 } from "../messages";
-import { BinButton } from "./BinButton";
 import { EditableSectionCell, type TableEditing } from "./EditableSectionCell";
 import { ResultsCell } from "./ResultsCell";
 import { ExperimentCell } from "./ExperimentCell";
@@ -181,29 +179,23 @@ type HeaderProps = {
   row: HeaderRow;
   place: RowPlace;
   columnCount: number;
-  /** The Motivation column's width while it is shown, or `null` when hidden. */
-  motivationWidth: number | null;
   selected: boolean;
   picked: boolean;
   sharesRef: boolean;
   onToggle: (row: HeaderRow) => void;
   onSelect: (row: HeaderRow) => void;
-  /** Moves the question to the bin; left out when it cannot be changed. */
-  onMoveToBin?: (row: HeaderRow) => void;
 };
 
-/** A question's full-width header (FR-TBL-02): collapse control, title, count and Motivation summary. */
+/** A question's full-width header (FR-TBL-02): collapse control, title and count. */
 export function QuestionHeaderRowView({
   row,
   place,
   columnCount,
-  motivationWidth,
   selected,
   picked,
   sharesRef,
   onToggle,
   onSelect,
-  onMoveToBin,
 }: HeaderProps) {
   const name = row.ref ?? messages.unassignedHeading;
   return (
@@ -245,29 +237,11 @@ export function QuestionHeaderRowView({
         <span className="wtable__count">
           {countLabel(row.shown, row.total, row.filtered)}
         </span>
-        {onMoveToBin !== undefined && row.questionId !== null && (
-          <BinButton
-            subject={name}
-            warning={deleteQuestionWarning(name, row.total)}
-            tabStop={false}
-            onConfirm={() => onMoveToBin(row)}
-          />
-        )}
         {sharesRef && (
           <span className="wtable__flag">{messages.duplicateRefBadge}</span>
         )}
         {row.readOnly && (
           <span className="wtable__flag">{messages.readOnlyItem}</span>
-        )}
-        {motivationWidth !== null && row.questionId !== null && (
-          <span
-            className="wtable__motivation"
-            style={{ maxWidth: motivationWidth }}
-          >
-            {row.motivation === ""
-              ? tableMessages.noMotivation
-              : row.motivation}
-          </span>
         )}
       </div>
     </div>
