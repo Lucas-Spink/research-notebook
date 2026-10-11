@@ -116,6 +116,25 @@ export const commands = {
 	 */
 	backupForVersionChange: (folder: FolderHandle) => typedError<BackupMade, ProjectError>(__TAURI_INVOKE("backup_for_version_change", { folder })),
 	/**
+	 *  Moves an artefact's captured files to the bin and keeps its record beside
+	 *  them (`record` is an `artefacts.yaml` holding just that artefact, made by
+	 *  `packages/format`). Pass no files for a linked artefact: only the record
+	 *  is kept, and the linked file is never touched. Nothing is deleted.
+	 */
+	binArtefactFiles: (folder: FolderHandle, experiment: ExperimentFolder, files: VersionPath[], record: string) => typedError<BinnedItem, ProjectError>(__TAURI_INVOKE("bin_artefact_files", { folder, experiment, files, record })),
+	/**  Everything in the bin, oldest first. */
+	listBin: (folder: FolderHandle) => typedError<BinItem[], ProjectError>(__TAURI_INVOKE("list_bin", { folder })),
+	/**
+	 *  The record kept with files removed from an experiment, as text for
+	 *  `packages/format` to read.
+	 */
+	readBinnedRecord: (folder: FolderHandle, stamp: BinSegment, experiment: ExperimentFolder) => typedError<string, ProjectError>(__TAURI_INVOKE("read_binned_record", { folder, stamp, experiment })),
+	/**
+	 *  Moves something in the bin back to where it was. Refused, with nothing
+	 *  moved, if anything is already there.
+	 */
+	restoreFromBin: (folder: FolderHandle, stamp: BinSegment, kind: BinEntryKind, name: BinSegment) => typedError<null, ProjectError>(__TAURI_INVOKE("restore_from_bin", { folder, stamp, kind, name })),
+	/**
 	 *  Starts watching the project's notebook files. Safe to call again for a
 	 *  project already watched. Read-only projects are watched too: they still
 	 *  show what changed on disk. Nothing is written.
@@ -382,6 +401,33 @@ export type BackupMade = {
 	folder: string,
 	copied: number,
 	skipped: number,
+};
+
+/**  What a bin entry is. */
+export type BinEntryKind = "question" | "experiment" | "files";
+
+/**  One thing in the bin. */
+export type BinItem = {
+	/**  When it was binned, as the bin's folder name (`2026-09-21T10-15-00Z`). */
+	stamp: string,
+	kind: BinEntryKind,
+	/**  A question's file name, or an experiment's folder name. */
+	name: string,
+	/**  Where it comes back to, relative to the project folder. */
+	original: string,
+};
+
+/**
+ *  A name or stamp that is one plain segment: no separators, no `..`. `nb-fs`
+ *  checks it again against what is actually in the bin.
+ */
+export type BinSegment = string;
+
+/**  What removing an artefact's files did. */
+export type BinnedItem = {
+	stamp: string,
+	moved: number,
+	missing: number,
 };
 
 /**  Which bundle to make. */
@@ -973,6 +1019,8 @@ export type ProjectError =
  *  lock, so the project is read-only.
  */
 { kind: "notWritable" } | 
+/**  A restore found something already using the name, so nothing was moved. */
+{ kind: "nameTaken" } | 
 /**  The project lock could not be read, written or removed. */
 { kind: "lockFailed" } | 
 /**
