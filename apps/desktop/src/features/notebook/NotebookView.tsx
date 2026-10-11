@@ -99,6 +99,14 @@ import { restoreEntry } from "./workspace/model/restoreEntry";
 import { AddResultPane } from "./workspace/AddResultPane";
 import { CanvasResultPreview } from "./workspace/CanvasResultPreview";
 import { CanvasResultsPanel } from "./workspace/CanvasResultsPanel";
+import { CanvasWritingPanel } from "./workspace/CanvasWritingPanel";
+import {
+  chooseExperiment,
+  chooseQuestion,
+  reconcile,
+  tabsOf,
+  type WritingTabs,
+} from "./workspace/model/writingTabs";
 import { resolveResult } from "./workspace/model/canvasResults";
 import { PaneHost } from "./workspace/PaneHost";
 import { PaneTabIcon } from "./workspace/PaneTabIcon";
@@ -263,11 +271,63 @@ function NotebookViewBody({
     writable,
     enabled: viewMode === "canvas",
   });
-  /** Whatever is being typed in the table is saved before the table goes away; if that fails, the table stays. */
+  // The writing beside the canvas: which question and experiment it shows (ADR-0064).
+  const [writing, setWriting] = useState<WritingTabs>({
+    question: null,
+    experiment: null,
+    last: {},
+  });
+  const writingTabs = useMemo(
+    () => (arranged === null ? [] : tabsOf(arranged)),
+    [arranged],
+  );
+  const writingNow = useMemo(
+    () => reconcile(writing, writingTabs),
+    [writing, writingTabs],
+  );
+  /**
+   * Shows a question or experiment in the writing panel. What is being typed
+   * is saved first, and if that fails nothing changes. The table's selection
+   * follows, so going back to the table lands on the same experiment.
+   */
+  async function showInWriting(next: WritingTabs) {
+    if (!(await live.activate(null))) return;
+    setWriting(next);
+    if (next.experiment !== null) {
+      setSelectedKey(`experiment:${next.experiment}`);
+      setPickedKey(`experiment:${next.experiment}`);
+    }
+  }
+  // A click on a card follows its experiment; kept in a ref so the cards need not be rebuilt for it.
+  const followCard = useRef<(folder: string) => void>(() => undefined);
+  followCard.current = (folder) =>
+    void showInWriting(chooseExperiment(writingNow, folder, writingTabs));
+  /** Whatever is being typed is saved before the view changes; if that fails, the view stays. */
   async function changeView(next: ViewMode) {
-    if (next === "canvas" && !(await live.activate(null))) return;
-    // Layout changes still waiting for their quiet moment are written before the table takes over.
-    if (next === "table") await canvases.flush();
+    if (!(await live.activate(null))) return;
+    if (next === "canvas") {
+      // The canvas opens on what the table had selected.
+      if (selected?.kind === "experiment") {
+        setWriting(
+          chooseExperiment(
+            writingNow,
+            selected.item.experiment.folder,
+            writingTabs,
+          ),
+        );
+      } else if (selected?.kind === "question") {
+        setWriting(
+          chooseQuestion(
+            writingNow,
+            selected.group.question.fileName,
+            writingTabs,
+          ),
+        );
+      }
+    } else {
+      // Layout changes still waiting for their quiet moment are written before the table takes over.
+      await canvases.flush();
+    }
     setViewMode(next);
   }
 
@@ -527,6 +587,7 @@ function NotebookViewBody({
           result.artefactId,
           result.shownVersion,
         ),
+      onSelect: (result) => followCard.current(result.experimentFolder),
     }),
     [arranged, folder],
   );
@@ -923,6 +984,25 @@ function NotebookViewBody({
                       editing={editing}
                       pinned={canvases.pinned}
                       onPin={(refs, screen) => canvases.pinAt(refs, screen)}
+                    />
+                  }
+                  writingPanel={
+                    <CanvasWritingPanel
+                      arranged={arranged}
+                      tabs={writingNow}
+                      onChooseQuestion={(key) =>
+                        void showInWriting(
+                          chooseQuestion(writingNow, key, writingTabs),
+                        )
+                      }
+                      onChooseExperiment={(folder) =>
+                        void showInWriting(
+                          chooseExperiment(writingNow, folder, writingTabs),
+                        )
+                      }
+                      live={live}
+                      writable={writable}
+                      onOpenResult={editing.onOpenResult}
                     />
                   }
                 />

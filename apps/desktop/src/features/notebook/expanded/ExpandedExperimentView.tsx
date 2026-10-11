@@ -8,6 +8,7 @@ import {
   liveKey,
   sectionText,
   type LiveTarget,
+  type Surface,
 } from "../editing/model/liveEditor";
 import type { LiveEditor } from "../editing/useLiveEditor";
 import { columnLabel, expandedMessages, messages } from "../messages";
@@ -38,6 +39,10 @@ type Props = {
   focusSection: RecognisedSectionKey | null;
   /** The application's one live section editor and its autosave (FR-EDT-03, ADR-0043). */
   live: LiveEditor;
+  /** Where this copy is shown. A section is live only on the surface that asked for it, so two copies never both edit. */
+  surface?: Surface;
+  /** Stack Results notes and Interpretation whatever the window's width, for a narrow panel. */
+  stacked?: boolean;
 };
 
 /**
@@ -55,6 +60,8 @@ export function ExpandedExperimentView({
   onOpenResult,
   focusSection,
   live,
+  surface = "details",
+  stacked = false,
 }: Props) {
   const { experiment, readOnly } = item;
   const experimentId = experiment.file.frontmatter.id;
@@ -94,9 +101,9 @@ export function ExpandedExperimentView({
     const here: LiveTarget = {
       folder: experiment.folder,
       section: key,
-      surface: "details",
+      surface,
     };
-    const isLive = isLiveIn(live.target, experiment.folder, key, "details");
+    const isLive = isLiveIn(live.target, experiment.folder, key, surface);
     return {
       label: columnLabel(key),
       editorKey: liveKey(here),
@@ -118,7 +125,10 @@ export function ExpandedExperimentView({
   };
 
   return (
-    <div className="expanded" aria-labelledby="expanded-heading">
+    <div
+      className={`expanded${stacked ? " expanded--stacked" : ""}`}
+      aria-labelledby="expanded-heading"
+    >
       <h5 id="expanded-heading">{expandedMessages.heading}</h5>
       <RichSectionEditor {...sectionProps("methods")} />
       <div className="expanded__pair">

@@ -85,6 +85,60 @@ describe("ExpandedExperimentView", () => {
     ).toBeNull();
   });
 
+  it("is live on the canvas only when asked to be shown there, never in the details panel's place", () => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    const shown = item();
+    act(() =>
+      root?.render(
+        <LiveEditorHarness
+          items={[shown]}
+          initial={{
+            folder: shown.experiment.folder,
+            section: "interpretation",
+            surface: "canvas",
+          }}
+        >
+          {(live) => (
+            <>
+              <ExpandedExperimentView
+                item={shown}
+                disabled={false}
+                onOpenResult={() => undefined}
+                focusSection={null}
+                live={live}
+              />
+              <ExpandedExperimentView
+                item={shown}
+                disabled={false}
+                onOpenResult={() => undefined}
+                focusSection={null}
+                live={live}
+                surface="canvas"
+                stacked
+              />
+            </>
+          )}
+        </LiveEditorHarness>,
+      ),
+    );
+    // One live editor in the whole window, and it is on the canvas's copy.
+    expect(container.querySelectorAll(".ProseMirror")).toHaveLength(1);
+    const copies = container.querySelectorAll(".expanded");
+    expect(copies[0]?.querySelector(".ProseMirror")).toBeNull();
+    expect(copies[1]?.querySelector(".ProseMirror")).not.toBeNull();
+  });
+
+  it("can be stacked whatever the window's width, for a narrow panel", () => {
+    const view = mount({ stacked: true });
+    expect(
+      view.querySelector(".expanded")?.classList.contains("expanded--stacked"),
+    ).toBe(true);
+    expect(mount().querySelector(".expanded--stacked")).toBeNull();
+  });
+
   it("starts Methods as the one live editor, the other two static", () => {
     const view = mount();
     expect(view.querySelectorAll(".ProseMirror")).toHaveLength(1);

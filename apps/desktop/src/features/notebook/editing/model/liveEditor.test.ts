@@ -75,6 +75,20 @@ describe("isLiveIn", () => {
     surface: "table",
   };
 
+  it("tells the canvas apart from the table and the details panel", () => {
+    const onCanvas: LiveTarget = {
+      folder: "EXP-001",
+      section: "methods",
+      surface: "canvas",
+    };
+    expect(isLiveIn(onCanvas, "EXP-001", "methods", "canvas")).toBe(true);
+    expect(isLiveIn(onCanvas, "EXP-001", "methods", "details")).toBe(false);
+    expect(isLiveIn(onCanvas, "EXP-001", "methods", "table")).toBe(false);
+    expect(liveKey(onCanvas)).toBe(
+      liveKey({ folder: "EXP-001", section: "methods", surface: "table" }),
+    );
+  });
+
   it("is true only for the same experiment, section and surface", () => {
     expect(isLiveIn(target, "EXP-001", "methods", "table")).toBe(true);
     expect(isLiveIn(target, "EXP-001", "methods", "details")).toBe(false);

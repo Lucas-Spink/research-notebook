@@ -5,8 +5,8 @@ import type {
   RecognisedSectionKey,
 } from "@research-notebook/format";
 
-/** Where a live section's editor is shown: in its table cell, or in the details panel below. */
-export type Surface = "table" | "details";
+/** Where a live section's editor is shown: in its table cell, the details panel below, or the canvas view's writing panel. */
+export type Surface = "table" | "details" | "canvas";
 
 /**
  * The one section being edited anywhere in the application (FR-EDT-03,

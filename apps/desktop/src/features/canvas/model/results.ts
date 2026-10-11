@@ -44,4 +44,6 @@ export type CardServices = {
   ) => React.ReactNode;
   /** Opens the original in the preview pane. */
   onOpen: (result: FoundResult, node: ArtefactNode) => void;
+  /** The card was clicked: the writing beside the canvas follows its experiment. */
+  onSelect: (result: FoundResult) => void;
 };

@@ -161,6 +161,11 @@ function Flow({
           edges={[]}
           nodeTypes={NODE_TYPES}
           onNodesChange={onNodesChange}
+          onNodeClick={(_event, node) => {
+            if (node.type === "artefact" && node.data.info.status === "found") {
+              services.onSelect(node.data.info);
+            }
+          }}
           onMoveEnd={(_event, view) => onViewport(view)}
           defaultViewport={canvas.viewport}
           minZoom={MIN_ZOOM}

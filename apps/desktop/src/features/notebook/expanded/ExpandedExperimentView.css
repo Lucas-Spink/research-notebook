@@ -142,11 +142,11 @@
 }
 
 @media (min-width: 1280px) {
-  .expanded__pair {
+  .expanded:not(.expanded--stacked) .expanded__pair {
     flex-direction: row;
   }
 
-  .expanded__pair > .expanded__field {
+  .expanded:not(.expanded--stacked) .expanded__pair > .expanded__field {
     flex: 1 1 0;
     min-width: 0;
   }

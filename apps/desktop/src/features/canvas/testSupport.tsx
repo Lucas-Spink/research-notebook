@@ -82,12 +82,15 @@ export function fakeCards(
 ): CardServices & {
   opened: [string, number | null][];
   details: string[];
+  selected: string[];
 } {
   const opened: [string, number | null][] = [];
   const details: string[] = [];
+  const selected: string[] = [];
   return {
     opened,
     details,
+    selected,
     resolve: (node: ArtefactNode) =>
       answers[node.artefact_id] ?? { status: "missing", reason: "artefact" },
     renderPreview: (result, detail) => {
@@ -95,5 +98,6 @@ export function fakeCards(
       return <span>picture of {result.name}</span>;
     },
     onOpen: (result) => opened.push([result.artefactId, result.shownVersion]),
+    onSelect: (result) => selected.push(result.experimentFolder),
   };
 }

@@ -298,6 +298,30 @@ describe("saving the layout", () => {
   });
 });
 
+describe("clicking a card", () => {
+  it("tells the application which experiment it belongs to, so the writing can follow", async () => {
+    const { view, cards } = await open(
+      { [pathOf(A)]: withCard(1) },
+      { [ART]: foundResult({ experimentFolder: "EXP-004" }) },
+    );
+    await flush();
+    click(view.querySelector(".react-flow__node"));
+    await flush();
+    expect(cards.selected).toEqual(["EXP-004"]);
+  });
+
+  it("says nothing for a card whose result is gone", async () => {
+    const { view, cards } = await open(
+      { [pathOf(A)]: withCard(1) },
+      { [ART]: { status: "missing", reason: "artefact" } },
+    );
+    await flush();
+    click(view.querySelector(".react-flow__node"));
+    await flush();
+    expect(cards.selected).toEqual([]);
+  });
+});
+
 describe("the picture on a card", () => {
   it("is drawn from the file itself when the card is big enough to read it", async () => {
     const { cards } = await open(

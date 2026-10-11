@@ -144,6 +144,14 @@ export const canvasResultsMessages = {
   resultsOf: (ref: string) => `Results of ${ref}`,
 };
 
+/** Text of the writing beside the canvas (ADR-0064). */
+export const writingMessages = {
+  questionsLabel: "Questions",
+  experimentsLabel: "Experiments",
+  noQuestions: "This project has no questions yet.",
+  noExperiments: "This question has no experiments yet.",
+};
+
 /** Text of the project header: breadcrumbs, key figures and the main action (issue #101). */
 export const headerMessages = {
   breadcrumbs: "Where you are",
