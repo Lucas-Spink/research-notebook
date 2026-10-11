@@ -10,13 +10,11 @@ import { evidenceOf } from "../model/evidence";
 import {
   collapseLabel,
   countLabel,
-  deleteQuestionWarning,
   expandLabel,
   messages,
   selectLabel,
   tableMessages,
 } from "../messages";
-import { BinButton } from "./BinButton";
 import { EditableSectionCell, type TableEditing } from "./EditableSectionCell";
 import { ResultsCell } from "./ResultsCell";
 import { ExperimentCell } from "./ExperimentCell";
@@ -188,8 +186,6 @@ type HeaderProps = {
   sharesRef: boolean;
   onToggle: (row: HeaderRow) => void;
   onSelect: (row: HeaderRow) => void;
-  /** Moves the question to the bin; left out when it cannot be changed. */
-  onMoveToBin?: (row: HeaderRow) => void;
 };
 
 /** A question's full-width header (FR-TBL-02): collapse control, title, count and Motivation summary. */
@@ -203,7 +199,6 @@ export function QuestionHeaderRowView({
   sharesRef,
   onToggle,
   onSelect,
-  onMoveToBin,
 }: HeaderProps) {
   const name = row.ref ?? messages.unassignedHeading;
   return (
@@ -245,14 +240,6 @@ export function QuestionHeaderRowView({
         <span className="wtable__count">
           {countLabel(row.shown, row.total, row.filtered)}
         </span>
-        {onMoveToBin !== undefined && row.questionId !== null && (
-          <BinButton
-            subject={name}
-            warning={deleteQuestionWarning(name, row.total)}
-            tabStop={false}
-            onConfirm={() => onMoveToBin(row)}
-          />
-        )}
         {sharesRef && (
           <span className="wtable__flag">{messages.duplicateRefBadge}</span>
         )}

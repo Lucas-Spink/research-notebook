@@ -374,3 +374,33 @@
   background: var(--action-bg-hover);
   border-color: var(--action-bg-hover);
 }
+
+/* Move to bin: faded until there is something selected to move, then
+   accented so it is clear it can be used. Never filled, so it is not
+   mistaken for the main action. */
+.ribbon__button--bin {
+  color: var(--status-abandoned-fg);
+  border-color: var(--status-abandoned-fg);
+  background: var(--color-surface);
+}
+
+.ribbon__button--bin:disabled {
+  color: var(--color-text-muted);
+  border-color: var(--color-border-control);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ribbon__button--bin:hover:not(:disabled) {
+  background: var(--status-abandoned-bg);
+  border-color: var(--status-abandoned-fg);
+}
+
+.ribbon__ask {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 28rem;
+  font-size: var(--text-small);
+}

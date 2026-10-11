@@ -568,7 +568,7 @@
   border-radius: 4px;
 }
 
-/* Move to bin on a question or experiment row. */
+/* Move to bin beside a script in the Code folder. */
 .wtable__bin {
   padding: 0 var(--space-2);
   border: 1px solid var(--color-border-control);

@@ -27,6 +27,7 @@ import {
   type Crumb,
   type IntegrityStatus,
 } from "./ProjectHeader";
+import { MoveToBinCommand } from "./MoveToBinCommand";
 import { SelectionCommands } from "./SelectionCommands";
 
 type Props = {
@@ -365,6 +366,13 @@ export function Ribbon(props: Props) {
             <RibbonGroup label={m.groups.results}>
               {addResult}
               {details}
+            </RibbonGroup>
+            <RibbonGroup label={m.groups.remove}>
+              <MoveToBinCommand
+                selected={selected}
+                actions={actions}
+                disabled={disabled}
+              />
             </RibbonGroup>
           </>
         );
