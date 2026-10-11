@@ -125,7 +125,7 @@ afterEach(() => {
 const flush = () =>
   act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)));
 
-async function openCanvas() {
+async function openCanvas(selectFirst?: string) {
   const editArtefacts = vi.fn(stubActions.editArtefacts);
   const canvas = fakeCanvasApi(canvasText());
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -140,6 +140,15 @@ async function openCanvas() {
       <NotebookView notebook={notebook} folder={1} canvasApi={canvas.api} />,
     ),
   );
+  if (selectFirst !== undefined) {
+    const title = place.querySelector(
+      `button[aria-label="Select ${selectFirst}"]`,
+    );
+    await act(async () => {
+      title?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+  }
   const switchTo = [
     ...place.querySelectorAll('.workspace__views [role="group"] button'),
   ].find((b) => b.textContent === "Canvas");
@@ -217,6 +226,33 @@ describe("the results beside the canvas", () => {
     const text = view.querySelector(".canvas-results")?.textContent ?? "";
     expect(text).toContain("EXP-001");
     expect(text).not.toContain("EXP-002");
+  });
+});
+
+describe("thumbnails and order in the list", () => {
+  it("shows a picture beside each result", async () => {
+    const { view } = await openCanvas();
+    await expandExperiment(view);
+    expect(
+      rowNamed(view, "PCA plot").querySelector(".results__thumb"),
+    ).not.toBeNull();
+    expect(
+      rowNamed(view, "PCA plot").classList.contains("results__row--with-thumb"),
+    ).toBe(true);
+  });
+
+  it("opens on the question being worked on, with its experiments already showing", async () => {
+    const { view } = await openCanvas("EXP-001");
+    expect(rowNamed(view, "PCA plot")).toBeDefined();
+    const headings = [...view.querySelectorAll(".canvas-results h4")].map(
+      (h) => h.textContent,
+    );
+    expect(headings[0]).toBe("Q-001 First");
+  });
+
+  it("leaves experiments closed when nothing is selected", async () => {
+    const { view } = await openCanvas();
+    expect(view.querySelector('[role="tree"]')).toBeNull();
   });
 });
 

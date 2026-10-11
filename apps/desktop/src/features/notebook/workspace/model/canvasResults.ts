@@ -1,4 +1,4 @@
-import type { Arranged } from "@research-notebook/format";
+import type { Arranged, ArrangedExperiment } from "@research-notebook/format";
 import type { FoundResult, ResultInfo } from "../../../canvas";
 import { evidenceOf } from "../../model/evidence";
 
@@ -19,6 +19,17 @@ export function resolveResult(arranged: Arranged, ref: Ref): ResultInfo {
       candidate.experiment.file.frontmatter.id === ref.experimentId,
   );
   if (item === undefined) return { status: "missing", reason: "experiment" };
+  return resolveInItem(item, ref);
+}
+
+/**
+ * As `resolveResult`, for an experiment already found: the artefact, then the
+ * version. Used where the experiment is at hand, such as a row of its results.
+ */
+export function resolveInItem(
+  item: ArrangedExperiment,
+  ref: Omit<Ref, "experimentId">,
+): ResultInfo {
   const artefacts = evidenceOf(item);
   const artefact = artefacts?.artefacts.find((a) => a.id === ref.artefactId);
   if (artefact === undefined) return { status: "missing", reason: "artefact" };

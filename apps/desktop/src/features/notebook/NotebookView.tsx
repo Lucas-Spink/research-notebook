@@ -100,6 +100,7 @@ import { AddResultPane } from "./workspace/AddResultPane";
 import { CanvasResultPreview } from "./workspace/CanvasResultPreview";
 import { CanvasResultsPanel } from "./workspace/CanvasResultsPanel";
 import { resolveResult } from "./workspace/model/canvasResults";
+import { questionKeyOf } from "./workspace/model/resultsOrder";
 import { PaneHost } from "./workspace/PaneHost";
 import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
@@ -923,6 +924,20 @@ function NotebookViewBody({
                       editing={editing}
                       pinned={canvases.pinned}
                       onPin={(refs, screen) => canvases.pinAt(refs, screen)}
+                      currentQuestion={questionKeyOf(
+                        arranged,
+                        selected === null
+                          ? null
+                          : selected.kind === "question"
+                            ? {
+                                kind: "question",
+                                fileName: selected.group.question.fileName,
+                              }
+                            : {
+                                kind: "experiment",
+                                folder: selected.item.experiment.folder,
+                              },
+                      )}
                     />
                   }
                 />
