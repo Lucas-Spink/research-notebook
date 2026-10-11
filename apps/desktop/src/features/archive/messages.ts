@@ -168,7 +168,7 @@ export function describeBundle(
 export const htmlExportMessages = {
   heading: "HTML export",
   intro:
-    "Writes a set of static web pages into exports/html/: one for each question and experiment, with figures reduced to 800 pixels, the first rows of tables, and links to the original files. Open index.html in any browser. The pages hold no scripts and load nothing from the internet. Your captured files are not changed. Pages from an earlier export that are no longer needed are left in place.",
+    "Writes a set of static web pages into exports/html/: one for each question and experiment, one listing every source cited, with citations formatted in the project's citation style, figures reduced to 800 pixels, the first rows of tables, and links to the original files. Open index.html in any browser. The pages hold no scripts and load nothing from the internet. Your captured files are not changed. Pages from an earlier export that are no longer needed are left in place.",
   write: "Write HTML export",
   writing: "Writing…",
   again: "Write again",
@@ -178,6 +178,8 @@ export const htmlExportMessages = {
   failures: {
     filesNotPrepared:
       "The figures and tables could not be read, so nothing was written. Try again.",
+    bibliographyFailed:
+      "The HTML export was not written because the citations could not be formatted with the project's citation style.",
     notWritable:
       "The HTML export was not written because this project is not open for writing.",
     writeFailed:
@@ -196,6 +198,11 @@ export function notPreparedNote(count: number): string {
 
 export function failedPagesNote(names: readonly string[]): string {
   return `These pages could not be written and are as they were before: ${names.join(", ")}.`;
+}
+
+/** What is said when a citation names a source that is not in the project's bibliography. */
+export function unresolvedCitationsNote(citekeys: readonly string[]): string {
+  return `${plural(citekeys.length, "source is", "sources are")} cited but not in the project's bibliography, so ${citekeys.length === 1 ? "its citations are" : "their citations are"} marked with a question mark: ${citekeys.join(", ")}.`;
 }
 
 /** Text of the machine-readable export (FR-ARC-07, ADR-0055). */

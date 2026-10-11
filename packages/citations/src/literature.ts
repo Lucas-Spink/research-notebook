@@ -38,6 +38,12 @@ export interface LiteratureOutput {
   entries: readonly string[];
   /** Cited citekeys with no item in `bibliography.json`, in order of first appearance. */
   unresolved: readonly string[];
+  /**
+   * The in-text form of each input cluster as plain text, such as `[1]` or
+   * `(Smith, 2020)`, in input order. `null` where none of a cluster's
+   * sources could be resolved, so a caller never shows a made-up citation.
+   */
+  clusterTexts: readonly (string | null)[];
 }
 
 export type LiteratureResult =
@@ -94,22 +100,36 @@ function toCitation(cluster: CitationCluster, index: number): Citation {
   };
 }
 
-/** Keeps the items citeproc can resolve; reports the rest once each. */
+/** One citeproc in-text string as plain text: tags dropped, entities decoded. */
+function plainText(html: string): string {
+  return decodeEntities(html.replace(/<[^>]+>/g, ""))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Keeps the items citeproc can resolve; reports the rest once each. `origin`
+ * says which input cluster each kept one came from.
+ */
 function resolve(
   clusters: readonly CitationCluster[],
   known: ReadonlyMap<string, LiteratureSource>,
-): { clusters: CitationCluster[]; unresolved: string[] } {
+): { clusters: CitationCluster[]; origin: number[]; unresolved: string[] } {
   const unresolved = new Set<string>();
   const kept: CitationCluster[] = [];
-  for (const cluster of clusters) {
+  const origin: number[] = [];
+  for (const [position, cluster] of clusters.entries()) {
     const items = cluster.items.filter((item) => {
       if (known.has(item.citekey)) return true;
       unresolved.add(item.citekey);
       return false;
     });
-    if (items.length > 0) kept.push({ items });
+    if (items.length > 0) {
+      kept.push({ items });
+      origin.push(position);
+    }
   }
-  return { clusters: kept, unresolved: [...unresolved] };
+  return { clusters: kept, origin, unresolved: [...unresolved] };
 }
 
 /** Numbered entries read as a tight list; anything else needs a blank line between paragraphs. */
@@ -128,9 +148,13 @@ function joinEntries(entries: readonly string[]): string {
  */
 export function renderLiterature(input: LiteratureInput): LiteratureResult {
   const known = new Map(input.items.map((item) => [item.id, item]));
-  const { clusters, unresolved } = resolve(input.clusters, known);
+  const { clusters, origin, unresolved } = resolve(input.clusters, known);
+  const clusterTexts: (string | null)[] = input.clusters.map(() => null);
   if (clusters.length === 0) {
-    return { ok: true, value: { text: "", entries: [], unresolved } };
+    return {
+      ok: true,
+      value: { text: "", entries: [], unresolved, clusterTexts },
+    };
   }
   try {
     const cited = new Set(
@@ -151,13 +175,22 @@ export function renderLiterature(input: LiteratureInput): LiteratureResult {
     const processed: [string, number][] = [];
     clusters.forEach((cluster, index) => {
       const citation = toCitation(cluster, index);
-      state = handleMessage(state, {
+      const step = handleMessage(state, {
         type: "cite",
         citation,
         citationsPre: [...processed],
         citationsPost: [],
-      }).state;
+      });
+      state = step.state;
       processed.push([citation.citationID, 0]);
+      // A later citation can change an earlier one (a numeric range, say), so
+      // every update lands on the cluster it names.
+      if (step.response.type === "cite") {
+        for (const update of step.response.updates) {
+          const at = origin[update.index];
+          if (at !== undefined) clusterTexts[at] = plainText(update.text);
+        }
+      }
     });
     const response = handleMessage(state, { type: "bibliography" }).response;
     if (response.type !== "bibliography") {
@@ -168,7 +201,7 @@ export function renderLiterature(input: LiteratureInput): LiteratureResult {
       .filter((e) => e !== "");
     const text =
       entries.length === 0 ? "" : `${HEADING}\n\n${joinEntries(entries)}`;
-    return { ok: true, value: { text, entries, unresolved } };
+    return { ok: true, value: { text, entries, unresolved, clusterTexts } };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, error: { message } };

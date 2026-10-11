@@ -1,6 +1,13 @@
-import { citationContext } from "../editor";
 import type { ArtefactModel, ProjectYamlModel } from "../schema";
 import type { Arranged, ArrangedExperiment } from "./arrange";
+import {
+  exportCitationClusters,
+  motivationKey,
+  preambleKey,
+  sectionCitations,
+  sectionKey,
+} from "./exportSections";
+import type { CitationCursor } from "./exportCitations";
 import { selectExported } from "./htmlExport";
 import { buildMachineExport } from "./machineExport";
 import {
@@ -18,6 +25,12 @@ export const PDF_INPUT_SCHEMA_VERSION = 1;
 export interface PdfBibliography {
   /** One formatted entry each, as Markdown, in the style's order. */
   entries: readonly string[];
+  /**
+   * The in-text form of each citation of `projectCitationClusters`, in that
+   * order; `null` where a source could not be resolved. Without it, citations
+   * are carried as written.
+   */
+  clusterTexts?: readonly (string | null)[];
 }
 
 export interface PdfExportInput {
@@ -57,15 +70,15 @@ interface PdfExperiment {
 }
 
 /**
- * Every exported experiment's citations, joined in project order. Formatting
- * these once, in one engine, gives the combined bibliography a fresh citation
- * context: sources are numbered from 1 and appear once however many
- * experiments cite them, whatever the experiments' own Literature blocks say.
+ * Every citation the exports show, in the order they show them (Motivations,
+ * then each experiment's sections, Results notes included). Formatting these
+ * once, in one engine, gives the combined bibliography and the in-text
+ * citations a fresh citation context: sources are numbered from 1 and appear
+ * once however many experiments cite them, whatever the experiments' own
+ * Literature blocks say.
  */
 export function projectCitationClusters(arranged: Arranged) {
-  return selectExported(arranged).experiments.flatMap((item) =>
-    citationContext(item.experiment.file.body),
-  );
+  return exportCitationClusters(selectExported(arranged));
 }
 
 function timestamp(date: Date): string {
@@ -104,6 +117,7 @@ function artefactLines(artefact: ArtefactModel): string[] {
 function experimentOf(
   item: ArrangedExperiment,
   questionRef: string | null,
+  cites: ((key: string) => CitationCursor) | undefined,
 ): PdfExperiment {
   const { frontmatter: f, body } = item.experiment.file;
   const artefacts =
@@ -127,10 +141,10 @@ function experimentOf(
     question: questionRef,
     started: f.started ?? null,
     completed: f.completed ?? null,
-    preamble: pdfBlocks(body.preamble),
-    sections: body.sections.map((s) => ({
+    preamble: pdfBlocks(body.preamble, cites?.(preambleKey(f.ref))),
+    sections: body.sections.map((s, index) => ({
       heading: s.key === "unknown" ? s.heading : SECTION_TITLES[s.key],
-      blocks: pdfBlocks(s.body),
+      blocks: pdfBlocks(s.body, cites?.(sectionKey(f.ref, index))),
     })),
     artefacts,
     literature:
@@ -157,6 +171,9 @@ export function buildPdfExport(input: PdfExportInput): PdfExportFiles {
       questionOf.set(e, q.question.file.frontmatter.ref);
     }
   }
+  const texts = input.bibliography.clusterTexts;
+  const cites =
+    texts === undefined ? undefined : sectionCitations(shown, texts);
   const notebook = buildMachineExport({
     arranged: input.arranged,
     project: input.project,
@@ -171,10 +188,13 @@ export function buildPdfExport(input: PdfExportInput): PdfExportFiles {
     questions: shown.questions.map((q) => ({
       ref: q.question.file.frontmatter.ref,
       title: q.question.file.frontmatter.title,
-      motivation: pdfBlocks(q.question.file.body),
+      motivation: pdfBlocks(
+        q.question.file.body,
+        cites?.(motivationKey(q.question.file.frontmatter.ref)),
+      ),
     })),
     experiments: shown.experiments.map((e) =>
-      experimentOf(e, questionOf.get(e) ?? null),
+      experimentOf(e, questionOf.get(e) ?? null, cites),
     ),
     bibliography: input.bibliography.entries.map((entry): PdfInline[] =>
       pdfInline(entry),

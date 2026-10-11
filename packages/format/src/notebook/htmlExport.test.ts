@@ -186,3 +186,53 @@ describe("renderHtmlExport (FR-ARC-05)", () => {
     expect(render().pages).toEqual(render().pages);
   });
 });
+
+describe("renderHtmlExport citations (issue #102)", () => {
+  function cited(citations: {
+    texts: (string | null)[];
+    bibliography: string[];
+  }) {
+    const arranged = project("PCA run", "Method [@z:u:7XK2PQ9M].");
+    const item = arranged.unassigned[0];
+    if (item === undefined) throw new Error("fixture");
+    item.experiment.file.body.sections.push({
+      key: "results_notes",
+      body: "Result [@z:u:7XK2PQ9M; @z:u:3HJ4MN8R].",
+    });
+    const pages = renderHtmlExport({
+      arranged,
+      projectName: "Yeast study",
+      locale: "en-GB",
+      assets: assets(),
+      citations,
+    });
+    return new Map(pages.map((p) => [p.name, p.html]));
+  }
+
+  it("shows formatted citations, not citekeys, in every section", () => {
+    const html = cited({
+      texts: ["[1]", "[1, 2]"],
+      bibliography: ["1. Smith J. *Yeast*. 2020.", "2. Jones K. Growth. 2021."],
+    }).get("EXP-001.html");
+    expect(html).toContain("<cite>[1]</cite>");
+    expect(html).toContain("<cite>[1, 2]</cite>");
+    expect(html).not.toContain("@z:u:");
+  });
+
+  it("writes a bibliography page, linked from the index", () => {
+    const pages = cited({
+      texts: ["[1]", "[1, 2]"],
+      bibliography: ["1. Smith J. *Yeast*. 2020.", "2. Jones K. Growth. 2021."],
+    });
+    const bibliography = pages.get("bibliography.html");
+    expect(bibliography).toContain("Smith J. <em>Yeast</em>. 2020.");
+    expect(bibliography).toContain("1. Smith");
+    expect(pages.get("index.html")).toContain('href="bibliography.html"');
+  });
+
+  it("writes no bibliography page when nothing is cited", () => {
+    const pages = cited({ texts: [], bibliography: [] });
+    expect(pages.has("bibliography.html")).toBe(false);
+    expect(pages.get("index.html")).not.toContain("bibliography.html");
+  });
+});

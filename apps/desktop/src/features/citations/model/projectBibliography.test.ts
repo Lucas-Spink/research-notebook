@@ -67,4 +67,24 @@ describe("formatProjectBibliography", () => {
       await formatProjectBibliography(setup(absent), [cite("z:u:AAAAAAAA")]),
     ).toBeNull();
   });
+
+  it("gives the in-text form of every citation, in the order passed", async () => {
+    const result = await formatProjectBibliography(setup(), [
+      cite("z:u:BBBBBBBB"),
+      cite("z:u:AAAAAAAA"),
+      cite("z:u:BBBBBBBB"),
+    ]);
+
+    expect(result?.clusterTexts).toEqual(["[1]", "[2]", "[1]"]);
+  });
+
+  it("names a citekey that is not in bibliography.json and leaves its citation without text", async () => {
+    const result = await formatProjectBibliography(setup(), [
+      cite("z:u:GONEGONE"),
+      cite("z:u:AAAAAAAA"),
+    ]);
+
+    expect(result?.unresolved).toEqual(["z:u:GONEGONE"]);
+    expect(result?.clusterTexts).toEqual([null, "[1]"]);
+  });
 });

@@ -50,7 +50,11 @@ function citing(): Arranged {
   return arranged;
 }
 
-function input(api: PdfExportApi, overrides: { arranged?: Arranged } = {}) {
+function input(
+  api: PdfExportApi,
+  overrides: { arranged?: Arranged; unresolved?: string[] } = {},
+) {
+  const unresolved = overrides.unresolved ?? [];
   const asked: CitationCluster[][] = [];
   return {
     asked,
@@ -61,7 +65,11 @@ function input(api: PdfExportApi, overrides: { arranged?: Arranged } = {}) {
       project: projectYaml(),
       formatBibliography: (clusters: readonly CitationCluster[]) => {
         asked.push([...clusters]);
-        return Promise.resolve({ entries: ["1. Smith J. *A study*."] });
+        return Promise.resolve({
+          entries: ["1. Smith J. *A study*."],
+          clusterTexts: clusters.map(() => "[1]"),
+          unresolved: unresolved,
+        });
       },
       now: () => new Date("2026-10-09T12:00:00Z"),
     },
@@ -82,7 +90,10 @@ describe("exportPdf (FR-ARC-06)", () => {
 
     const result = await exportPdf(value);
 
-    expect(result).toEqual({ ok: true, value: { written: true } });
+    expect(result).toEqual({
+      ok: true,
+      value: { written: true, unresolved: [] },
+    });
     expect(asked).toHaveLength(1);
     expect(asked[0]?.flatMap((c) => c.items.map((i) => i.citekey))).toEqual([
       "z:u:7XK2PQ9M",
@@ -92,6 +103,26 @@ describe("exportPdf (FR-ARC-06)", () => {
     expect(sent.bibliographyJson).toBe('[{"id":"z:u:7XK2PQ9M"}]\n');
     expect(sent.inputJson).toContain("A study");
     expect(sent.notebookJson).toContain('"generatedBy": "0.2.0"');
+  });
+
+  it("writes the citations as the engine formatted them, not as keys", async () => {
+    const { api, writes } = fakeApi();
+
+    await exportPdf(input(api).value);
+
+    const sent = sentOf(writes[0]);
+    expect(sent.inputJson).toContain('"s": "[1]"');
+    expect(sent.inputJson).not.toContain("@z:u:7XK2PQ9M");
+  });
+
+  it("reports the citekeys that are not in the bibliography", async () => {
+    const { api } = fakeApi();
+    const { value } = input(api, { unresolved: ["z:u:GONE2222"] });
+
+    expect(await exportPdf(value)).toEqual({
+      ok: true,
+      value: { written: true, unresolved: ["z:u:GONE2222"] },
+    });
   });
 
   it("does not ask for a bibliography when nothing is cited", async () => {

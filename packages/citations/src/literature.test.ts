@@ -134,3 +134,52 @@ describe("renderLiterature (FR-CIT-10)", () => {
     expect(JSON.stringify(literature)).toBe(before);
   });
 });
+
+describe("renderLiterature clusterTexts (in-text citations for exports)", () => {
+  function texts(literature: LiteratureInput) {
+    const result = renderLiterature(literature);
+    if (!result.ok) throw new Error(result.error.message);
+    return result.value.clusterTexts;
+  }
+
+  it("gives one in-text string per cluster, numbered by first appearance", () => {
+    expect(
+      texts(
+        input([
+          cite("z:u:SMIT2222"),
+          cite("z:u:LOVE2222"),
+          cite("z:u:SMIT2222"),
+        ]),
+      ),
+    ).toEqual(["[1]", "[2]", "[1]"]);
+  });
+
+  it("renders author-date citations from the style", () => {
+    expect(texts(input([cite("z:u:SMIT2222")], AUTHOR_DATE_STYLE))).toEqual([
+      "(Smith 2020)",
+    ]);
+  });
+
+  it("keeps the items of one cluster together", () => {
+    const [only] = texts(input([cite("z:u:SMIT2222", "z:u:LOVE2222")]));
+    expect(only).toContain("1");
+    expect(only).toContain("2");
+  });
+
+  it("stays aligned with the clusters when one cannot be resolved", () => {
+    expect(
+      texts(
+        input([
+          cite("z:u:GONE2222"),
+          cite("z:u:SMIT2222"),
+          cite("z:u:ADAM2222"),
+        ]),
+      ),
+    ).toEqual([null, "[1]", "[2]"]);
+  });
+
+  it("is plain text: no markup or entities from the engine", () => {
+    const [text] = texts(input([cite("z:u:SMIT2222")], AUTHOR_DATE_STYLE));
+    expect(text).not.toMatch(/[<>]|&#?\w+;/u);
+  });
+});

@@ -36,19 +36,38 @@ function fakeApi(written: Written) {
   return { api, writes };
 }
 
+/** The sample project with one citation whose source is not in the bibliography. */
+function citingProject() {
+  const arranged = arrangedWithFigures();
+  const body = arranged.unassigned[0]?.experiment.file.body;
+  if (body === undefined) throw new Error("fixture");
+  body.sections = [{ key: "methods", body: "As before [@z:u:GONE2222]." }];
+  return arranged;
+}
+
 function Harness(props: {
   api: PdfExportApi;
   writable?: boolean;
   loaded?: boolean;
+  citing?: boolean;
 }) {
   const loaded = props.loaded ?? true;
   const model = usePdfExport({
     api: props.api,
     folder: 1,
-    arranged: loaded ? arrangedWithFigures() : null,
+    arranged: loaded
+      ? props.citing === true
+        ? citingProject()
+        : arrangedWithFigures()
+      : null,
     project: loaded ? projectYaml() : null,
     writable: props.writable ?? true,
-    formatBibliography: () => Promise.resolve({ entries: [] }),
+    formatBibliography: () =>
+      Promise.resolve({
+        entries: [],
+        clusterTexts: [null],
+        unresolved: ["z:u:GONE2222"],
+      }),
     now: () => new Date("2026-10-09T12:00:00Z"),
   });
   return <PdfExportPanel model={model} />;
@@ -126,5 +145,16 @@ describe("PdfExportPanel", () => {
     const view = await show({ api, loaded: false });
     expect(button(view).disabled).toBe(true);
     expect(view.textContent).toContain("still loading");
+  });
+
+  it("names a cited source that is not in the bibliography", async () => {
+    const { api } = fakeApi({ status: "ok", data: "written" });
+    const view = await show({ api, citing: true });
+
+    act(() => button(view).click());
+    await flush();
+
+    expect(view.textContent).toContain("z:u:GONE2222");
+    expect(view.textContent).toContain("not in the project's bibliography");
   });
 });

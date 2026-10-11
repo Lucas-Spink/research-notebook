@@ -20,6 +20,7 @@ export const HTML_EXPORT_TEXT = {
   resultsNotes: "Results notes",
   interpretation: "Interpretation",
   literature: "Literature",
+  bibliography: "Bibliography",
   artefacts: "Artefacts",
   resultFiles: "Results",
   methodFiles: "Methods files",

@@ -3,6 +3,7 @@ import {
   failedPagesNote,
   htmlExportMessages,
   notPreparedNote,
+  unresolvedCitationsNote,
 } from "./messages";
 import type { HtmlExportModel } from "./useHtmlExport";
 
@@ -42,6 +43,11 @@ export function HtmlExportPanel({ model }: { model: HtmlExportModel }) {
       {state === "done" && outcome !== null && outcome.notPrepared > 0 && (
         <p>{notPreparedNote(outcome.notPrepared)}</p>
       )}
+      {state === "done" &&
+        outcome !== null &&
+        outcome.unresolved.length > 0 && (
+          <p role="alert">{unresolvedCitationsNote(outcome.unresolved)}</p>
+        )}
       {state === "done" &&
         outcome !== null &&
         outcome.failedPages.length > 0 && (

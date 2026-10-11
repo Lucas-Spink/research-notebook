@@ -1,3 +1,4 @@
+import type { CitationCluster } from "@research-notebook/format";
 import { describe, expect, it } from "vitest";
 import type { HtmlAssetOutcome } from "../../../ipc/bindings";
 import { arranged, arrangedWithFigures } from "./fixtures";
@@ -34,6 +35,12 @@ const input = (api: HtmlExportApi, withFigures = true) => ({
   arranged: withFigures ? arrangedWithFigures() : arranged(),
   projectName: "Yeast",
   locale: "en-GB",
+  formatBibliography: (clusters: readonly CitationCluster[]) =>
+    Promise.resolve({
+      entries: ["1. Smith J. *A study*."],
+      clusterTexts: clusters.map(() => "[1]"),
+      unresolved: [],
+    }),
 });
 
 const imageOutcome: HtmlAssetOutcome = {
@@ -81,7 +88,7 @@ describe("exportHtml (FR-ARC-05)", () => {
     expect(pages[0]?.html).toContain('<img src="assets/');
     expect(result).toEqual({
       ok: true,
-      value: { pages: 2, failedPages: [], notPrepared: 0 },
+      value: { pages: 2, failedPages: [], notPrepared: 0, unresolved: [] },
     });
   });
 
@@ -106,7 +113,7 @@ describe("exportHtml (FR-ARC-05)", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { pages: 2, failedPages: [], notPrepared: 1 },
+      value: { pages: 2, failedPages: [], notPrepared: 1, unresolved: [] },
     });
     const pages = (writeCalls[0]?.[1] ?? []) as { html: string }[];
     expect(pages[0]?.html).toContain("Preview not available");
@@ -139,7 +146,12 @@ describe("exportHtml (FR-ARC-05)", () => {
 
     expect(await exportHtml(input(api))).toEqual({
       ok: true,
-      value: { pages: 1, failedPages: ["EXP-001.html"], notPrepared: 0 },
+      value: {
+        pages: 1,
+        failedPages: ["EXP-001.html"],
+        notPrepared: 0,
+        unresolved: [],
+      },
     });
   });
 
@@ -187,6 +199,76 @@ describe("exportHtml (FR-ARC-05)", () => {
     expect(await exportHtml(input(short.api, false))).toEqual({
       ok: false,
       error: "writeFailed",
+    });
+  });
+
+  describe("citations (issue #102)", () => {
+    function citing() {
+      const value = arranged();
+      const body = value.unassigned[0]?.experiment.file.body;
+      if (body === undefined) throw new Error("fixture");
+      body.sections = [
+        { key: "methods", body: "Grown as before [@z:u:7XK2PQ9M]." },
+      ];
+      return value;
+    }
+    // No source resolves, so there is no bibliography page: two pages.
+    const ok = fakeApi(
+      { status: "ok", data: [] },
+      { status: "ok", data: ["written", "written"] },
+    );
+
+    it("writes formatted citations and a bibliography page", async () => {
+      const { api, writeCalls } = fakeApi(
+        { status: "ok", data: [] },
+        { status: "ok", data: ["written", "written", "written"] },
+      );
+
+      await exportHtml({ ...input(api, false), arranged: citing() });
+
+      const pages = (writeCalls[0]?.[1] ?? []) as {
+        name: string;
+        html: string;
+      }[];
+      expect(pages.map((p) => p.name)).toEqual([
+        "EXP-001.html",
+        "bibliography.html",
+        "index.html",
+      ]);
+      expect(pages[0]?.html).toContain("<cite>[1]</cite>");
+      expect(pages[0]?.html).not.toContain("@z:u:");
+      expect(pages[1]?.html).toContain("Smith J.");
+    });
+
+    it("reports the citekeys that are not in the bibliography", async () => {
+      const result = await exportHtml({
+        ...input(ok.api, false),
+        arranged: citing(),
+        formatBibliography: () =>
+          Promise.resolve({
+            entries: [],
+            clusterTexts: [null],
+            unresolved: ["z:u:7XK2PQ9M"],
+          }),
+      });
+
+      expect(result.ok && result.value.unresolved).toEqual(["z:u:7XK2PQ9M"]);
+    });
+
+    it("writes nothing when the citations could not be formatted", async () => {
+      const { api, writeCalls } = fakeApi(
+        { status: "ok", data: [] },
+        { status: "ok", data: [] },
+      );
+
+      const result = await exportHtml({
+        ...input(api, false),
+        arranged: citing(),
+        formatBibliography: () => Promise.resolve(null),
+      });
+
+      expect(result).toEqual({ ok: false, error: "bibliographyFailed" });
+      expect(writeCalls).toEqual([]);
     });
   });
 });

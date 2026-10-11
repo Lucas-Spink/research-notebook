@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { citationCursor } from "./exportCitations";
 import { renderMarkdownHtml, type RefLinks } from "./htmlMarkdown";
 
 const none: RefLinks = () => null;
@@ -70,5 +71,35 @@ describe("renderMarkdownHtml (FR-ARC-05)", () => {
     const html = renderMarkdownHtml("As shown [@z:u:7XK2PQ9M, p. 4].", none);
     expect(html).toContain("<cite>");
     expect(html).toContain("@z:u:7XK2PQ9M");
+  });
+
+  it("replaces a citation with its resolved text", () => {
+    const html = renderMarkdownHtml(
+      "As shown [@z:u:7XK2PQ9M, p. 4] and [@z:u:AAAA2222].",
+      none,
+      citationCursor(["(Smith 2020, p. 4)", "(Jones 2019)"]),
+    );
+    expect(html).toContain("<cite>(Smith 2020, p. 4)</cite>");
+    expect(html).toContain("<cite>(Jones 2019)</cite>");
+    expect(html).not.toContain("@z:u:");
+  });
+
+  it("escapes resolved citation text", () => {
+    const html = renderMarkdownHtml(
+      "Claim [@z:u:AAAA2222].",
+      none,
+      citationCursor(["<b>[1]</b>"]),
+    );
+    expect(html).toContain("&lt;b&gt;");
+    expect(html).not.toContain("<b>");
+  });
+
+  it("marks an unresolved citation", () => {
+    const html = renderMarkdownHtml(
+      "Claim [@z:u:GONE2222].",
+      none,
+      citationCursor([null]),
+    );
+    expect(html).toContain("<cite>[z:u:GONE2222?]</cite>");
   });
 });

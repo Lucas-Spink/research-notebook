@@ -1,5 +1,10 @@
 import type { JSONContent } from "@tiptap/core";
 import { parseSectionMarkdown } from "../editor";
+import {
+  citationsIn,
+  unresolvedMarker,
+  type CitationCursor,
+} from "./exportCitations";
 
 /**
  * Text inside a block, as the PDF template reads it (ADR-0056). The template
@@ -81,32 +86,59 @@ function citation(node: JSONContent): string {
   return `[${parts.join("; ")}]`;
 }
 
-function inlineOf(node: JSONContent): PdfInline[] {
+function citekeysOf(node: JSONContent): string[] {
+  if (node.type === "citationInText") return [text(node.attrs?.citekey)];
+  const items: unknown[] = Array.isArray(node.attrs?.items)
+    ? node.attrs.items
+    : [];
+  return items.map((item) => text(field(item, "citekey")));
+}
+
+/** The resolved text of a citation, a marker when it has none, or the source text without a cursor. */
+function resolved(
+  node: JSONContent,
+  source: PdfInline,
+  cursor: CitationCursor | undefined,
+): PdfInline {
+  if (cursor === undefined) return source;
+  const done = cursor.next();
+  return done === null
+    ? { t: "cite", s: unresolvedMarker(citekeysOf(node)) }
+    : { t: "text", s: done };
+}
+
+function inlineOf(node: JSONContent, cursor?: CitationCursor): PdfInline[] {
   switch (node.type ?? "") {
     case "text":
       return [marked(node)];
     case "hardBreak":
       return [{ t: "br" }];
     case "citation":
-      return [{ t: "cite", s: citation(node) }];
+      return [resolved(node, { t: "cite", s: citation(node) }, cursor)];
     case "citationInText": {
       const locator = text(node.attrs?.locator);
       const tail = locator === "" ? "" : ` [${locator}]`;
-      return [{ t: "cite", s: `@${text(node.attrs?.citekey)}${tail}` }];
+      return [
+        resolved(
+          node,
+          { t: "cite", s: `@${text(node.attrs?.citekey)}${tail}` },
+          cursor,
+        ),
+      ];
     }
     case "artefactRef":
       // A PDF has nothing to link a captured file to, so the label stands alone.
       return [{ t: "text", s: text(node.attrs?.label) }];
     default:
-      return (node.content ?? []).flatMap(inlineOf);
+      return (node.content ?? []).flatMap((child) => inlineOf(child, cursor));
   }
 }
 
-function itemsOf(node: JSONContent): PdfBlock[][] {
-  return (node.content ?? []).map((item) => blocksOf(item));
+function itemsOf(node: JSONContent, cursor?: CitationCursor): PdfBlock[][] {
+  return (node.content ?? []).map((item) => blocksOf(item, cursor));
 }
 
-function blockOf(node: JSONContent): PdfBlock[] {
+function blockOf(node: JSONContent, cursor?: CitationCursor): PdfBlock[] {
   switch (node.type ?? "") {
     case "orderedList": {
       const start: unknown = node.attrs?.start;
@@ -114,37 +146,44 @@ function blockOf(node: JSONContent): PdfBlock[] {
         {
           t: "ol",
           start: typeof start === "number" ? start : 1,
-          items: itemsOf(node),
+          items: itemsOf(node, cursor),
         },
       ];
     }
     case "bulletList":
-      return [{ t: "ul", items: itemsOf(node) }];
+      return [{ t: "ul", items: itemsOf(node, cursor) }];
     case "heading":
       // Page headings own levels 1 and 2, so a section's own levels 3 and 4 sit below them.
       return [
         {
           t: "h",
           level: node.attrs?.level === 3 ? 3 : 4,
-          c: (node.content ?? []).flatMap(inlineOf),
+          c: (node.content ?? []).flatMap((child) => inlineOf(child, cursor)),
         },
       ];
     case "codeBlock":
       return [{ t: "code", text: plain(node) }];
     case "passthrough":
       // Raw HTML, tables and other constructs are shown as the text written, never run.
+      // Its citations are not resolved, but they still count in the engine's order.
+      cursor?.skip(citationsIn(text(node.attrs?.markdown)));
       return [{ t: "raw", text: text(node.attrs?.markdown).trim() }];
     case "paragraph":
-      return [{ t: "p", c: (node.content ?? []).flatMap(inlineOf) }];
+      return [
+        {
+          t: "p",
+          c: (node.content ?? []).flatMap((child) => inlineOf(child, cursor)),
+        },
+      ];
     case "blockquote":
-      return [{ t: "quote", c: blocksOf(node) }];
+      return [{ t: "quote", c: blocksOf(node, cursor) }];
     default:
-      return blocksOf(node);
+      return blocksOf(node, cursor);
   }
 }
 
-function blocksOf(node: JSONContent): PdfBlock[] {
-  return (node.content ?? []).flatMap(blockOf);
+function blocksOf(node: JSONContent, cursor?: CitationCursor): PdfBlock[] {
+  return (node.content ?? []).flatMap((child) => blockOf(child, cursor));
 }
 
 /**
@@ -152,10 +191,15 @@ function blocksOf(node: JSONContent): PdfBlock[] {
  * template (FR-ARC-06). It goes through the editor's own parser, so the PDF,
  * the HTML export and the application agree on what the text means
  * (AGENTS.md 2.2). Nothing is passed on as markup: the template receives data.
+ * With a `cursor`, each citation becomes its formatted text (issue #102);
+ * without one it is carried as written.
  */
-export function pdfBlocks(markdown: string): PdfBlock[] {
+export function pdfBlocks(
+  markdown: string,
+  cursor?: CitationCursor,
+): PdfBlock[] {
   if (markdown.trim() === "") return [];
-  return blocksOf(parseSectionMarkdown(markdown));
+  return blocksOf(parseSectionMarkdown(markdown), cursor);
 }
 
 /**

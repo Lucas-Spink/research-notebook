@@ -1,8 +1,8 @@
 import type { Arranged, ProjectYamlModel } from "@research-notebook/format";
 import { useCallback, useRef, useState } from "react";
+import type { FormatBibliography } from "./model/citations";
 import {
   exportPdf,
-  type FormatBibliography,
   type PdfExportApi,
   type PdfExportFailure,
   type PdfExportOutcome,

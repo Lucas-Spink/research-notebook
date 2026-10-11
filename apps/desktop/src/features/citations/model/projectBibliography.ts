@@ -1,8 +1,17 @@
 import type { CitationCluster } from "@research-notebook/format";
 import type { LiteratureSetup } from "./literaturePlan";
 
-/** The combined bibliography as formatted entries, in the style's order. */
-export type ProjectBibliography = { entries: readonly string[] };
+/**
+ * The combined bibliography as formatted entries, in the style's order, and
+ * the in-text form of each citation passed in (`null` where none of its
+ * sources could be resolved). `unresolved` names the citekeys that are not in
+ * `bibliography.json`.
+ */
+export type ProjectBibliography = {
+  entries: readonly string[];
+  clusterTexts: readonly (string | null)[];
+  unresolved: readonly string[];
+};
 
 /**
  * Formats every source cited anywhere in the project as one bibliography
@@ -23,7 +32,13 @@ export async function formatProjectBibliography(
       styleXml: setup.styleXml,
       localeXml: setup.localeXml,
     });
-    return result.ok ? { entries: result.value.entries } : null;
+    return result.ok
+      ? {
+          entries: result.value.entries,
+          clusterTexts: result.value.clusterTexts,
+          unresolved: result.value.unresolved,
+        }
+      : null;
   } catch {
     return null;
   }

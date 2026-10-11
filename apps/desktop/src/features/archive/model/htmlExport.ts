@@ -1,11 +1,13 @@
 import {
   htmlAssetRequests,
+  projectCitationClusters,
   renderHtmlExport,
   type Arranged,
   type ExportAsset,
   type Result,
 } from "@research-notebook/format";
 import type { commands, HtmlAssetOutcome } from "../../../ipc/bindings";
+import type { FormatBibliography, FormattedCitations } from "./citations";
 
 /** The two commands the HTML export is made through; both write under `exports/html/`. */
 export type HtmlExportApi = Pick<
@@ -21,11 +23,13 @@ export type HtmlExportOutcome = {
   failedPages: readonly string[];
   /** Figures and tables that are only linked because they could not be prepared. */
   notPrepared: number;
+  /** Citekeys cited but not in `bibliography.json`; the pages mark each citation of them. */
+  unresolved: readonly string[];
 };
 
 /** Why no export was written. Nothing is claimed in either case. */
 export type HtmlExportFailure =
-  "filesNotPrepared" | "notWritable" | "writeFailed";
+  "filesNotPrepared" | "bibliographyFailed" | "notWritable" | "writeFailed";
 
 type Input = {
   api: HtmlExportApi;
@@ -33,6 +37,7 @@ type Input = {
   arranged: Arranged;
   projectName: string;
   locale: string;
+  formatBibliography: FormatBibliography;
 };
 
 /** Where reduced figures are written, which the pages refer to relative to themselves. */
@@ -100,6 +105,24 @@ async function prepare(
   return { ok: true, value: assets };
 }
 
+const NO_CITATIONS: FormattedCitations = {
+  entries: [],
+  clusterTexts: [],
+  unresolved: [],
+};
+
+/**
+ * Formats the project's citations once, in the order the exports show them, so
+ * the pages and the PDF word and number every citation alike (issue #102).
+ */
+async function formatCitations(
+  input: Input,
+): Promise<FormattedCitations | null> {
+  const clusters = projectCitationClusters(input.arranged);
+  if (clusters.length === 0) return NO_CITATIONS;
+  return input.formatBibliography(clusters).catch(() => null);
+}
+
 /**
  * Writes the static HTML export (FR-ARC-05): asks the filesystem for reduced
  * figures and table samples, lets `packages/format` build the pages, and
@@ -112,11 +135,17 @@ export async function exportHtml(
 ): Promise<Result<HtmlExportOutcome, HtmlExportFailure>> {
   const prepared = await prepare(input);
   if (!prepared.ok) return prepared;
+  const citations = await formatCitations(input);
+  if (citations === null) return { ok: false, error: "bibliographyFailed" };
   const rendered = renderHtmlExport({
     arranged: input.arranged,
     projectName: input.projectName,
     locale: input.locale,
     assets: prepared.value,
+    citations: {
+      texts: citations.clusterTexts,
+      bibliography: citations.entries,
+    },
   });
   const pages = [
     ...rendered.filter((p) => p.name !== "index.html"),
@@ -148,6 +177,7 @@ export async function exportHtml(
       pages: pages.length - failedPages.length,
       failedPages,
       notPrepared,
+      unresolved: citations.unresolved,
     },
   };
 }

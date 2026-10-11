@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { citationCursor } from "./exportCitations";
 import { pdfBlocks, pdfInline } from "./pdfBlocks";
 
 describe("pdfBlocks (FR-ARC-06)", () => {
@@ -84,5 +85,56 @@ describe("pdfInline", () => {
       { t: "em", c: [{ t: "text", s: "A study of yeast" }] },
       { t: "text", s: ". 2020." },
     ]);
+  });
+});
+
+describe("pdfBlocks citations (FR-ARC-06, issue #102)", () => {
+  const strings = (blocks: ReturnType<typeof pdfBlocks>) =>
+    JSON.stringify(blocks);
+
+  it("replaces each citation with its resolved text, in order", () => {
+    const cursor = citationCursor(["[1]", "[2]"]);
+    const blocks = pdfBlocks(
+      "One [@z:u:AAAA2222] and two [@z:u:BBBB2222; @z:u:CCCC2222].",
+      cursor,
+    );
+    const text = strings(blocks);
+    expect(text).toContain('{"t":"text","s":"[1]"}');
+    expect(text).toContain('{"t":"text","s":"[2]"}');
+    expect(text).not.toContain("@z:u:");
+  });
+
+  it("shows an unresolved citation as a marked key, never a made-up number", () => {
+    const text = strings(
+      pdfBlocks("Claim [@z:u:GONE2222].", citationCursor([null])),
+    );
+    expect(text).toContain("[z:u:GONE2222?]");
+  });
+
+  it("resolves an author-in-text citation", () => {
+    const cursor = citationCursor(["Smith (2020)"]);
+    const text = strings(pdfBlocks("As @z:u:SMIT2222 showed.", cursor));
+    expect(text).toContain("Smith (2020)");
+    expect(text).not.toContain("@z:u:");
+  });
+
+  it("keeps later citations aligned past one shown as written", () => {
+    // The table is raw text, so its citation is skipped, not drawn.
+    const cursor = citationCursor(["[1]", "[2]", "[3]"]);
+    const text = strings(
+      pdfBlocks(
+        "First [@z:u:AAAA2222].\n\n| a |\n| - |\n| [@z:u:BBBB2222] |\n\nLast [@z:u:CCCC2222].",
+        cursor,
+      ),
+    );
+    expect(text).toContain('"s":"[1]"');
+    expect(text).toContain('"s":"[3]"');
+    expect(text).not.toContain('"s":"[2]"');
+  });
+
+  it("is unchanged without a cursor", () => {
+    expect(strings(pdfBlocks("See [@z:u:AAAA2222]."))).toContain(
+      '{"t":"cite","s":"[@z:u:AAAA2222]"}',
+    );
   });
 });

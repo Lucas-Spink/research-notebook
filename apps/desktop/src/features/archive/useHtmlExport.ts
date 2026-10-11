@@ -1,5 +1,6 @@
 import type { Arranged } from "@research-notebook/format";
 import { useCallback, useRef, useState } from "react";
+import type { FormatBibliography } from "./model/citations";
 import {
   exportHtml,
   type HtmlExportApi,
@@ -26,6 +27,7 @@ type Options = {
   /** `project.yaml`'s name and locale; `null` before the project has loaded. */
   project: { name: string; locale: string } | null;
   writable: boolean;
+  formatBibliography: FormatBibliography;
 };
 
 /** Writes the static HTML export on request (FR-ARC-05). Never runs by itself. */
@@ -37,7 +39,8 @@ export function useHtmlExport(options: Options): HtmlExportModel {
   latest.current = options;
 
   const run = useCallback(() => {
-    const { api, folder, arranged, project, writable } = latest.current;
+    const { api, folder, arranged, project, writable, formatBibliography } =
+      latest.current;
     if (arranged === null || project === null || !writable) return;
     setState("running");
     void exportHtml({
@@ -46,6 +49,7 @@ export function useHtmlExport(options: Options): HtmlExportModel {
       arranged,
       projectName: project.name,
       locale: project.locale,
+      formatBibliography,
     })
       .then((result) => {
         setOutcome(result.ok ? result.value : null);

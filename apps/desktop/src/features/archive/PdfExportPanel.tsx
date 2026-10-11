@@ -1,4 +1,4 @@
-import { pdfExportMessages } from "./messages";
+import { pdfExportMessages, unresolvedCitationsNote } from "./messages";
 import type { PdfExportModel } from "./usePdfExport";
 
 /**
@@ -31,6 +31,11 @@ export function PdfExportPanel({ model }: { model: PdfExportModel }) {
         {state === "idle" && pdfExportMessages.notWritten}
         {state === "done" && outcome !== null && pdfExportMessages.exported}
       </div>
+      {state === "done" &&
+        outcome !== null &&
+        outcome.unresolved.length > 0 && (
+          <p role="alert">{unresolvedCitationsNote(outcome.unresolved)}</p>
+        )}
       {state === "failed" && failure !== null && (
         <p role="alert">{pdfExportMessages.failures[failure]}</p>
       )}
