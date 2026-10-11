@@ -32,6 +32,6 @@
     "heartbeat"
   ],
   "additionalProperties": {},
-  "title": ".lock (format version 1)",
+  "title": ".lock (format version 2)",
   "description": "Structural constraints only. Cross-entry and cross-file rules are listed in docs/format/format-v1.md."
 }

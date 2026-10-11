@@ -32,7 +32,7 @@ function artefact(id: string, role: "result" | "method") {
 
 function sample(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       artefact(R1, "result"),
       artefact(R2, "result"),

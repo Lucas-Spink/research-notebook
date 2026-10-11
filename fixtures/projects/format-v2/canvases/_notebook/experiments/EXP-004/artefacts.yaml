@@ -1,0 +1,51 @@
+format_version: 2
+artefacts:
+  - id: "01JAX0000000000000021N1WR7"
+    name: "Result 1"
+    role: "result"
+    mode: "copy"
+    type: "image"
+    source: {root: "project", path: "results/EXP-004/result-1.png"}
+    created: "2026-01-06T09:00:36Z"
+    versions:
+      - v: 1
+        file: "evidence/result-1.png"
+        sha256: "d264c521b8a54bfd4d858760596138aa5850af7754cdb791fc7346e363bf9a71"
+        size: 1025
+        captured: "2026-01-06T09:00:36Z"
+      - v: 2
+        file: "evidence/result-1.v2.png"
+        sha256: "d264c521b8a54bfd4d858760596138aa5850af7754cdb791fc7346e363bf9a72"
+        size: 1026
+        captured: "2026-01-06T09:00:36Z"
+  - id: "01JAX0000000000000021N1WR8"
+    name: "Result 2"
+    role: "result"
+    mode: "link"
+    type: "table"
+    source: {root: "project", path: "results/EXP-004/result-2.png"}
+    created: "2026-01-06T09:00:37Z"
+    link:
+      sha256: "4c61b398e9a0ba1d2acc053f6a25360c16b6c12ec7133ac10013ea58197fe970"
+      size: 2048
+      observed_mtime: "2026-01-06T09:00:37Z"
+      checked: "2026-01-06T09:00:37Z"
+  - id: "01JAX0000000000000021N1WR9"
+    name: "Result 3"
+    role: "result"
+    mode: "copy"
+    type: "image"
+    source: {root: "project", path: "results/EXP-004/result-3.png"}
+    created: "2026-01-06T09:00:38Z"
+    versions:
+      - v: 1
+        file: "evidence/result-3.png"
+        sha256: "be6922d36d2a1881f1dfbab6c7a8778a1b91e7b1130a6a517c7c66999a8a1061"
+        size: 3073
+        captured: "2026-01-06T09:00:38Z"
+      - v: 2
+        file: "evidence/result-3.v2.png"
+        sha256: "be6922d36d2a1881f1dfbab6c7a8778a1b91e7b1130a6a517c7c66999a8a1062"
+        size: 3074
+        captured: "2026-01-06T09:00:38Z"
+groups: []

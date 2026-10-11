@@ -82,7 +82,6 @@
               "type",
               "experiment_id",
               "artefact_id",
-              "version",
               "position",
               "size"
             ],

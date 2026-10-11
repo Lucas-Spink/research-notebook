@@ -40,7 +40,7 @@ describe("loadNotebook", () => {
     if (!result.ok) throw new Error(result.reason);
     expect(result.value.state.artefacts?.["EXP-001"]).toEqual({
       kind: "file",
-      file: { format_version: 1, artefacts: [], groups: [] },
+      file: { format_version: 2, artefacts: [], groups: [] },
     });
     expect(
       result.value.hashes["_notebook/experiments/EXP-001/artefacts.yaml"],
@@ -50,7 +50,7 @@ describe("loadNotebook", () => {
   it("reports an artefacts.yaml it cannot parse, holds no hash for it and marks that evidence unreadable", async () => {
     const { project } = loaded();
     const path = "_notebook/experiments/EXP-001/artefacts.yaml";
-    project.disk[path] = "format_version: 1\nartefacts: [not, valid\n";
+    project.disk[path] = "format_version: 2\nartefacts: [not, valid\n";
     const result = await loadNotebook(project.read, 1);
     if (!result.ok) throw new Error(result.reason);
     expect(result.value.state.artefacts?.["EXP-001"]).toEqual({
@@ -113,7 +113,7 @@ describe("loadNotebook", () => {
   it("keeps the ref of a folder that has no experiment.md", async () => {
     const { project } = loaded();
     project.disk["_notebook/experiments/EXP-005/artefacts.yaml"] =
-      "format_version: 1\n";
+      "format_version: 2\n";
     const result = await loadNotebook(project.read, 1);
     if (!result.ok) throw new Error(result.reason);
     expect(result.value.state.reservedRefs).toEqual(["EXP-005"]);
@@ -145,7 +145,7 @@ describe("loadNotebook", () => {
         p.faults.failRead.add("_notebook/project.yaml");
       },
       (p) => {
-        p.disk["_notebook/project.yaml"] = "format_version: 1\n";
+        p.disk["_notebook/project.yaml"] = "format_version: 2\n";
       },
     ];
     for (const breakIt of breakers) {

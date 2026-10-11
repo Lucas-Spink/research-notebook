@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 
 /** The only format version this build reads and writes (spec 5.13). */
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
 
 export const FormatVersion = z.literal(FORMAT_VERSION);
 

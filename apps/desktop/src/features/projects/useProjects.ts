@@ -3,7 +3,12 @@ import { commands, type RecentEntry } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { useExternalChanges, type Reload } from "../conflicts";
 import type { ChangesPort } from "../notebook";
-import { failureMessage, messages, warningMessage } from "./messages";
+import {
+  failureMessage,
+  messages,
+  migrateFailureMessage,
+  warningMessage,
+} from "./messages";
 import {
   addExternalRootFlow,
   checkLockFlow,
@@ -20,6 +25,7 @@ import {
   type FlowOutcome,
   type OpenedProject,
 } from "./model/flows";
+import { migrateProjectFlow } from "./model/migrateFlow";
 import {
   PROJECT_YAML,
   reloadProjectFlow,
@@ -312,6 +318,38 @@ export function useProjects() {
     [opened, env],
   );
 
+  /**
+   * Updates an older project after the person confirmed in the banner. The
+   * flow keeps the lock on success, so `project.yaml` is read again and the
+   * mode decided afresh, as after an outside change. Files that were not
+   * valid are left as they were and the person is told.
+   */
+  const migrate = useCallback(async () => {
+    const current = openedRef.current;
+    if (current === null) return;
+    setBusy(true);
+    setNotices([]);
+    try {
+      const done = await migrateProjectFlow({
+        api: commands,
+        folder: current.folder,
+        confirmed: true,
+      });
+      if (!done.ok) {
+        setNotices([migrateFailureMessage(done.error)]);
+        return;
+      }
+      await refreshProjectFile();
+      if (done.value.untouched.length > 0) {
+        setNotices([messages.migrateSomeUntouched(done.value.untouched)]);
+      }
+    } catch {
+      setNotices([messages.unexpected]);
+    } finally {
+      setBusy(false);
+    }
+  }, [refreshProjectFile]);
+
   return {
     recent,
     opened,
@@ -333,6 +371,7 @@ export function useProjects() {
     addExternalRoot,
     dismissNotices: () => setNotices([]),
     takeOver: () => changeMode((project) => takeOverFlow(commands, project)),
+    migrate,
     retryLock: () => changeMode((project) => retryLockFlow(commands, project)),
   };
 }

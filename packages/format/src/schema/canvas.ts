@@ -28,13 +28,17 @@ const Size = z.looseObject({
   height: z.number().finite().positive(),
 });
 
-/** A pinned result: a reference to an artefact version, never a copy (ADR-0064 point 3). */
+/**
+ * A pinned result: a reference to an artefact, and for a copy-mode artefact
+ * to one of its versions, never a copy (ADR-0064 point 3). A link-mode
+ * artefact has no versions, so its node has none either.
+ */
 const ArtefactNode = z.looseObject({
   id: Ulid,
   type: z.literal("artefact"),
   experiment_id: Ulid,
   artefact_id: Ulid,
-  version: z.number().int().positive(),
+  version: z.number().int().positive().optional(),
   position: Position,
   size: Size,
 });

@@ -1,0 +1,110 @@
+{
+  "format_version": 2,
+  "id": "01JAXC0000000000000000CNV1",
+  "name": "Compare dose response across questions",
+  "nodes": [
+    {
+      "id": "01JAXC00000000000000000N01",
+      "type": "artefact",
+      "experiment_id": "01JAX000000000000000000003",
+      "artefact_id": "01JAX0000000000000021N1SY4",
+      "version": 2,
+      "position": {
+        "x": 240,
+        "y": 180
+      },
+      "size": {
+        "width": 360,
+        "height": 260
+      }
+    },
+    {
+      "id": "01JAXC00000000000000000N02",
+      "type": "artefact",
+      "experiment_id": "01JAX000000000000000000006",
+      "artefact_id": "01JAX0000000000000021N1VT6",
+      "version": 1,
+      "position": {
+        "x": 640,
+        "y": 180
+      },
+      "size": {
+        "width": 360,
+        "height": 260
+      }
+    },
+    {
+      "id": "01JAXC00000000000000000N03",
+      "type": "artefact",
+      "experiment_id": "01JAX000000000000000000004",
+      "artefact_id": "01JAX0000000000000021N1TW6",
+      "position": {
+        "x": 240,
+        "y": 520
+      },
+      "size": {
+        "width": 360,
+        "height": 260
+      }
+    },
+    {
+      "id": "01JAXC00000000000000000N04",
+      "type": "artefact",
+      "experiment_id": "01JAXC000000000000000000X1",
+      "artefact_id": "01JAXC000000000000000000X2",
+      "version": 1,
+      "position": {
+        "x": 640,
+        "y": 520
+      },
+      "size": {
+        "width": 360,
+        "height": 260
+      }
+    },
+    {
+      "id": "01JAXC00000000000000000N05",
+      "type": "note",
+      "text": "PC1 separates treatment in both questions.\nCheck the batch before trusting it.",
+      "position": {
+        "x": 1040,
+        "y": 180
+      },
+      "size": {
+        "width": 280,
+        "height": 140
+      }
+    },
+    {
+      "id": "01JAXC00000000000000000N06",
+      "type": "region",
+      "label": "Dose response",
+      "position": {
+        "x": 200,
+        "y": 140
+      },
+      "size": {
+        "width": 840,
+        "height": 680
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "01JAXC00000000000000000E01",
+      "source": "01JAXC00000000000000000N01",
+      "target": "01JAXC00000000000000000N02",
+      "label": "supports"
+    },
+    {
+      "id": "01JAXC00000000000000000E02",
+      "source": "01JAXC00000000000000000N02",
+      "target": "01JAXC00000000000000000N05"
+    }
+  ],
+  "viewport": {
+    "x": -120,
+    "y": -80,
+    "zoom": 0.75
+  }
+}

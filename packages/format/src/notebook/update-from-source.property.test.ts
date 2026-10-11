@@ -9,7 +9,7 @@ const sha256Arb = fc.stringMatching(/^[0-9a-f]{64}$/);
 
 function fileWithVersions(hashes: readonly string[]): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: "01JAXR5D8K2M4N6P8Q0R2S4T6V",

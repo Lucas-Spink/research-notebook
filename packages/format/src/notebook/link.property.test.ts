@@ -19,7 +19,7 @@ describe("link operation sequences (FR-EVD-07, FR-EVD-08)", () => {
         (commands) => {
           const env = testEnv();
           let file: ArtefactsFileModel = {
-            format_version: 1,
+            format_version: 2,
             artefacts: [],
             groups: [],
           };

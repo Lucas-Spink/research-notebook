@@ -18,7 +18,7 @@ const ULID2 = "01JB0000000000000000000002";
 /** Two copy-mode artefacts, each with a v1 and a newer v2 (FR-EDT-07). */
 function artefacts(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: ULID,

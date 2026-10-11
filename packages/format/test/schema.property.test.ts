@@ -164,7 +164,7 @@ describe("unknown keys", () => {
 describe("group membership constraints", () => {
   function fileWithGroup(ids: string[], items: string[]): unknown {
     return {
-      format_version: 1,
+      format_version: 2,
       artefacts: ids.map((id, i) => ({
         id,
         name: `Result ${i}`,

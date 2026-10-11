@@ -34,7 +34,7 @@ function artefact(id: string, role: "result" | "method", name: string) {
  */
 export function sampleArtefacts(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       artefact(ids.r(1), "result", "Volcano plot"),
       artefact(ids.r(2), "result", "Heatmap"),
@@ -71,7 +71,7 @@ export function largeArtefacts(
   );
   const size = Math.ceil(count / groups);
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts,
     groups: Array.from({ length: groups }, (_, g) => ({
       id: ids.g(g + 1),

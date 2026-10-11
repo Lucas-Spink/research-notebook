@@ -45,6 +45,7 @@ export function ProjectsStart() {
                 busy={projects.busy}
                 onTakeOver={() => void projects.takeOver()}
                 onRetry={() => void projects.retryLock()}
+                onMigrate={() => void projects.migrate()}
               />
             )}
             {projects.notices.map((notice) => (
@@ -132,6 +133,7 @@ export function ProjectsStart() {
             onChooseRoot={(rootId) => void projects.chooseExternalRoot(rootId)}
             onTakeOver={() => void projects.takeOver()}
             onRetry={() => void projects.retryLock()}
+            onMigrate={() => void projects.migrate()}
             {...(projects.opened.mode.kind === "writable"
               ? {
                   onAddRoot: (label: string) =>

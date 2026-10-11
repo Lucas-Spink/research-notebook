@@ -155,7 +155,7 @@ describe("createExperiment (FR-EXP-02)", () => {
     const { plan } = withExperiment();
     const text = textOf(plan, "_notebook/experiments/EXP-001/artefacts.yaml");
     expect(must(parseArtefacts(text))).toEqual({
-      format_version: 1,
+      format_version: 2,
       artefacts: [],
       groups: [],
     });

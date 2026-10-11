@@ -32,6 +32,7 @@ const format = await import(
   new URL("../../packages/format/src/index.ts", import.meta.url).href
 );
 const {
+  FORMAT_VERSION,
   createExperiment,
   createQuestion,
   editExperiment,
@@ -223,7 +224,7 @@ function fakeArtefacts(count, env, folder) {
       },
     });
   }
-  return { format_version: 1, artefacts, groups: [] };
+  return { format_version: FORMAT_VERSION, artefacts, groups: [] };
 }
 
 function isoTimestamp(date) {
@@ -276,7 +277,7 @@ export function writeNotebook(outDir, { state, artefactsByExperiment }) {
       serialiseExperiment(experiment.file),
     );
     const artefacts = artefactsByExperiment?.get(experiment.folder) ?? {
-      format_version: 1,
+      format_version: FORMAT_VERSION,
       artefacts: [],
       groups: [],
     };

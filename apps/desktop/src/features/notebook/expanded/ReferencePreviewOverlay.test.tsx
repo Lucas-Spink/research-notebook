@@ -15,7 +15,7 @@ const NO_REFERENCES: ReferenceIndex = new Map();
 
 function sample(): ArtefactsFileModel {
   return {
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: ARTEFACT_ID,

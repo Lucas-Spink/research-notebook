@@ -30,7 +30,7 @@ describe("applyCapture sequences (S3-G01)", () => {
         (commands) => {
           const env = testEnv();
           let file: ArtefactsFileModel = {
-            format_version: 1,
+            format_version: 2,
             artefacts: [],
             groups: [],
           };

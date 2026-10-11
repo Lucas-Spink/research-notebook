@@ -160,6 +160,16 @@ describe("parseCanvas", () => {
     ).toBeTruthy();
   });
 
+  it("accepts a pinned result without a version, which is how a link-mode artefact is pinned", () => {
+    const file = base();
+    const node = at(listOf(file, "nodes"), 0);
+    delete node["version"];
+    const parsed = parseCanvas(text(file));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok)
+      expect(serialiseCanvas(parsed.value)).not.toContain('"version"');
+  });
+
   it("rejects an artefact version below 1", () => {
     expect(
       messageFor((file) => {

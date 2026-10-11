@@ -54,6 +54,6 @@
     "updated"
   ],
   "additionalProperties": {},
-  "title": "experiment.md frontmatter (format version 1)",
+  "title": "experiment.md frontmatter (format version 2)",
   "description": "Structural constraints only. Cross-entry and cross-file rules are listed in docs/format/format-v1.md."
 }

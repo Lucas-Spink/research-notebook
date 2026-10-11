@@ -1,4 +1,5 @@
 import {
+  FORMAT_VERSION,
   parseArtefacts,
   removeArtefact,
   restoreArtefact,
@@ -86,7 +87,7 @@ export async function removeArtefactFiles({
       ? artefact.versions.map((v) => versionFilePath(experimentFolder, v.file))
       : [];
   const record = serialiseArtefacts({
-    format_version: 1,
+    format_version: FORMAT_VERSION,
     artefacts: [artefact],
     groups: [],
   });

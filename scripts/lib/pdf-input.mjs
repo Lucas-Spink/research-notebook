@@ -34,6 +34,7 @@ const citations = await import(
 );
 
 const {
+  MIGRATIONS,
   arrangeNotebook,
   buildPdfExport,
   parseArtefacts,
@@ -45,8 +46,18 @@ const {
 } = format;
 const { DEFAULT_STYLE_XML, EN_US_LOCALE, renderLiterature } = citations;
 
+/**
+ * Reads a file. An older project's `project.yaml` and `artefacts.yaml` are
+ * migrated in memory first (ADR-0064), exactly as the application does before
+ * it opens one; nothing is written, so the project on disk stays as it was.
+ */
 function read(path) {
-  return readFileSync(path, "utf8");
+  const text = readFileSync(path, "utf8");
+  const name = path.split(/[\\/]/).at(-1);
+  if (name !== "project.yaml" && name !== "artefacts.yaml") return text;
+  const key = `_notebook/${name === "project.yaml" ? "project.yaml" : "experiments/x/artefacts.yaml"}`;
+  const migrated = format.runMigration({ [key]: text }, MIGRATIONS);
+  return migrated[key] ?? text;
 }
 
 function must(result, what) {

@@ -45,7 +45,7 @@ function artefact(
 }
 
 function file(...artefacts: ArtefactModel[]): ArtefactsFileModel {
-  return { format_version: 1, artefacts, groups: [] };
+  return { format_version: 2, artefacts, groups: [] };
 }
 
 const EXP_A = file(

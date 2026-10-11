@@ -84,7 +84,7 @@ export function artefact(name: string, path: string): ArtefactModel {
 }
 
 export function artefactsFile(artefacts: ArtefactModel[]): ArtefactsFileModel {
-  return { format_version: 1, artefacts, groups: [] };
+  return { format_version: 2, artefacts, groups: [] };
 }
 
 /** One question holding one experiment, for the simplest coverage tests. */

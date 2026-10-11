@@ -174,7 +174,7 @@ describe("SummaryCell", () => {
   ): SummaryPart => ({ kind: "ref", label, ulid, version });
 
   const artefacts: ArtefactsFileModel = {
-    format_version: 1,
+    format_version: 2,
     groups: [],
     artefacts: [
       {

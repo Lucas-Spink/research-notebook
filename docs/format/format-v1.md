@@ -419,7 +419,7 @@ Schema: `canvas.schema.json`. ADR-0064. One JSON file per canvas at `canvases/<U
 | `nodes[].type`              | enum                | Yes        | `artefact`, `note` or `region`.                                                       |
 | `nodes[].experiment_id`     | `ulid`              | `artefact` | The experiment that owns the result.                                                  |
 | `nodes[].artefact_id`       | `ulid`              | `artefact` | The pinned result.                                                                    |
-| `nodes[].version`           | integer, at least 1 | `artefact` | The pinned version number `v`. Never advances automatically.                          |
+| `nodes[].version`           | integer, at least 1 | `artefact` | The pinned version number `v` of a copy-mode artefact; omitted for a link-mode one, which has no versions. Never advances automatically. |
 | `nodes[].text`              | string              | `note`     | Canvas-only text; may be empty or span lines.                                         |
 | `nodes[].label`             | `text`              | `region`   | The region's title.                                                                   |
 | `nodes[].position`          | object              | Yes        | Canvas coordinates of the top-left corner.                                            |

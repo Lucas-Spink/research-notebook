@@ -104,7 +104,7 @@ describe("buildManifest property (FR-ARC-02)", () => {
           };
         });
         const parsed = ArtefactsFile.parse({
-          format_version: 1,
+          format_version: 2,
           artefacts,
           groups: [...groups].map(([name, items]) => ({
             id: newId(),

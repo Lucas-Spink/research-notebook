@@ -30,7 +30,7 @@ function node(id: string): fc.Arbitrary<CanvasFileModel["nodes"][number]> {
       type: fc.constant("artefact" as const),
       experiment_id: ulid(),
       artefact_id: ulid(),
-      version: fc.integer({ min: 1, max: 50 }),
+      version: fc.option(fc.integer({ min: 1, max: 50 }), { nil: undefined }),
       position,
       size,
     }),

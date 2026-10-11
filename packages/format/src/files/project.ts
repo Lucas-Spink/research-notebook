@@ -1,6 +1,12 @@
 import { PROJECT_SHAPE, orderByShapeAsMaps } from "../key-order";
 import { fail, ok, type FormatError, type Result } from "../result";
-import { ProjectYaml, type ProjectYamlModel } from "../schema";
+import {
+  FormatVersionProbe,
+  ProjectYaml,
+  type ProjectYamlModel,
+} from "../schema";
+import { normaliseText } from "../text";
+import { readYaml } from "../yaml/read";
 import { writeYaml } from "../yaml/write";
 import { parseYamlFile } from "./read";
 
@@ -12,6 +18,19 @@ export function parseProject(
   text: string,
 ): Result<ProjectYamlModel, FormatError> {
   return parseYamlFile(text, ProjectYaml);
+}
+
+/**
+ * Reads only `format_version` from the text of `project.yaml`, or `null` when
+ * the text is not YAML or has no usable version. This is how an older project
+ * is told apart from an invalid one, because the full schema accepts only the
+ * current version (spec 5.13, ADR-0064). Nothing else in the file is checked.
+ */
+export function projectFormatVersion(text: string): number | null {
+  const yaml = readYaml(normaliseText(text));
+  if (!yaml.ok) return null;
+  const probe = FormatVersionProbe.safeParse(yaml.value);
+  return probe.success ? probe.data.format_version : null;
 }
 
 /** Writes `project.yaml` in canonical form. */

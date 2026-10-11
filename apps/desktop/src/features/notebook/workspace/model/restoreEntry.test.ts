@@ -163,7 +163,7 @@ describe("restoring an entry from the bin", () => {
 
   it("restores removed files through the experiment's artefacts.yaml", async () => {
     const record = JSON.stringify({
-      format_version: 1,
+      format_version: 2,
       artefacts: [
         {
           id: "01JB0000000000000000000001",

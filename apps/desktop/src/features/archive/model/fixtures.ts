@@ -12,7 +12,7 @@ const COPIED = ID(2);
 const HASH = "a".repeat(64);
 
 const artefacts = ArtefactsFile.parse({
-  format_version: 1,
+  format_version: 2,
   artefacts: [
     {
       id: COPIED,
@@ -94,7 +94,7 @@ export function arranged(): Arranged {
  */
 export function arrangedWithRepositories(repos: readonly string[]): Arranged {
   const file = ArtefactsFile.parse({
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       {
         id: COPIED,
@@ -150,7 +150,7 @@ export function arrangedWithFigures(): Arranged {
     ],
   });
   const file = ArtefactsFile.parse({
-    format_version: 1,
+    format_version: 2,
     artefacts: [
       copy(3, "Volcano", "image", "volcano.png"),
       copy(4, "Counts", "table", "counts.csv"),
@@ -167,7 +167,7 @@ export function arrangedWithFigures(): Arranged {
 /** A valid `project.yaml` for the machine-readable export tests. */
 export function projectYaml(): ProjectYamlModel {
   return ProjectYaml.parse({
-    format_version: 1,
+    format_version: 2,
     id: "01JAX9Q2B7N4M8T6V3W5Y1Z0KC",
     name: "Yeast",
     created: "2026-09-01T09:12:44Z",

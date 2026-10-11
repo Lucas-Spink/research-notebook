@@ -34,7 +34,7 @@ function version(v: number, spec: Spec) {
 
 function project(artefacts: readonly (readonly Spec[])[]) {
   const file = ArtefactsFile.parse({
-    format_version: 1,
+    format_version: 2,
     artefacts: artefacts.map((specs, index) => ({
       id: id(index + 1),
       name: `Artefact ${index + 1}`,

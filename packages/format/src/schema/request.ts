@@ -14,13 +14,19 @@ import {
 } from "./common";
 
 /**
+ * A request is transient and never migrated (ADR-0064), so one written by an
+ * extension still on format version 1 is read as well as one on version 2.
+ */
+const RequestFormatVersion = z.union([z.literal(1), FormatVersion]);
+
+/**
  * Spec 5.10: `inbox/<ULID>/request.json`. Written by the VS Code extension,
  * read by the application. `payload` is null exactly when `mode` is `link`.
  * That `request_id` equals the folder name is checked on import, not here.
  */
 export const InboxRequest = z
   .looseObject({
-    format_version: FormatVersion,
+    format_version: RequestFormatVersion,
     request_id: Ulid,
     created: Timestamp,
     created_by: SingleLine,

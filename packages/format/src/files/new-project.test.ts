@@ -24,7 +24,7 @@ function created(overrides: Partial<typeof input> = {}, using = env) {
 describe("newProject", () => {
   it("fills every key of project.yaml from the spec 5.3 defaults", () => {
     expect(created().project).toEqual({
-      format_version: 1,
+      format_version: 2,
       id: PROJECT_ID,
       name: "Batch effects in treated organoids",
       created: "2026-09-19T08:30:15Z",

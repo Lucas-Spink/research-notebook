@@ -54,7 +54,7 @@ const copied = (id: string, name: string) => ({
 const file = (
   artefacts: ArtefactsFileModel["artefacts"],
 ): ArtefactsFileModel => ({
-  format_version: 1,
+  format_version: 2,
   artefacts,
   groups: [],
 });

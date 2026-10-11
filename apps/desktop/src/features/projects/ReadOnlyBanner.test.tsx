@@ -19,6 +19,7 @@ function render(reason: ReadOnlyReason, busy = false): HTMLElement {
       busy={busy}
       onTakeOver={() => undefined}
       onRetry={() => undefined}
+      onMigrate={() => undefined}
     />,
   );
   return container;
@@ -54,6 +55,12 @@ describe("ReadOnlyBanner", () => {
     ] satisfies ReadOnlyReason[]) {
       expect(labels(render(reason)), reason.kind).toEqual(["Try again"]);
     }
+  });
+
+  it("offers to update an older project, and asks before doing so", () => {
+    expect(labels(render({ kind: "olderFormat" }))).toEqual([
+      "Update project…",
+    ]);
   });
 
   it("offers no button when nothing the person can click would help", () => {

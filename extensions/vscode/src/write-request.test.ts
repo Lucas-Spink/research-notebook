@@ -26,7 +26,7 @@ let dir: string;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "rn-vscode-write-request-"));
   mkdirSync(join(dir, "_notebook"), { recursive: true });
-  writeFileSync(join(dir, "_notebook", "project.yaml"), "format_version: 1\n");
+  writeFileSync(join(dir, "_notebook", "project.yaml"), "format_version: 2\n");
 });
 
 afterEach(() => {
@@ -37,7 +37,7 @@ function copyRequest(
   overrides: Partial<InboxRequestModel> = {},
 ): InboxRequestModel {
   return {
-    format_version: 1,
+    format_version: 2,
     request_id: REQUEST_ID,
     created: "2026-09-23T11:00:00Z",
     created_by: "vscode-extension@0.1.0",

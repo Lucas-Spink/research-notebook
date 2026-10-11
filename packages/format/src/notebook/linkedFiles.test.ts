@@ -14,7 +14,7 @@ type Spec =
 
 function project(specs: readonly Spec[]) {
   const file = ArtefactsFile.parse({
-    format_version: 1,
+    format_version: 2,
     artefacts: specs.map((spec, index) => ({
       id: id(index + 1),
       name: spec.name,

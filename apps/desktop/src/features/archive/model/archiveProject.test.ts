@@ -203,14 +203,14 @@ describe("unarchiveProject", () => {
     expect(calls).toEqual(["read"]);
   });
 
-  it("stops before writing if a migration would be needed, which no build has yet", async () => {
+  it("stops before writing if a migration would be needed, for a later format version", async () => {
     const { api, calls } = fakeApi({ text: archivedText() });
     const done = await unarchiveProject({
       ...base,
       api,
       confirmed: true,
-      migrations: [{ from: 1, to: 2, run: (files) => files }],
-      target: 2,
+      migrations: [{ from: 2, to: 3, run: (files) => files }],
+      target: 3,
     });
     expect(done).toEqual({ ok: false, error: "migrationNeeded" });
     expect(calls).toEqual(["read", "lock", "backup", "release"]);
