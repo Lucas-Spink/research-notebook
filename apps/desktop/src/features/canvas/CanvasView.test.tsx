@@ -1,12 +1,18 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { parseCanvas } from "@research-notebook/format";
+import { act } from "react";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { CanvasView } from "./CanvasView";
-import { A, B, FOLDER, fakeApi, fileOf, pathOf, textOf } from "./model/fakeApi";
+import { A, B, FOLDER, fakeApi, pathOf, textOf } from "./model/fakeApi";
+import { connectNodes, addNote, setNoteText } from "./model/notes";
+import { pinResults } from "./model/nodes";
+import { serialiseCanvasText } from "./testCanvas";
 import type { CanvasApi } from "./model/store";
 import {
   buttonNamed,
   click,
   fakeCards,
   flush,
+  foundResult,
   mount,
   stubFlowEnvironment,
   type,
@@ -15,267 +21,339 @@ import {
 import { useCanvases } from "./useCanvases";
 
 /**
- * ADR-0064, phase 1: the canvas view's three regions, the picker for the
- * project's canvases (new, rename, delete) and the side panels that resize and
- * collapse. The canvases are real files behind a fake of the notebook commands.
+ * ADR-0065, the canvas view: a tab for each question, that question's canvas
+ * in the middle with notes and figures, and a summary of the notes beside it.
  */
 
 beforeAll(stubFlowEnvironment);
 afterEach(unmount);
 
+const EXP = "01JAXE000000000000000000A1";
+const ART = "01JAXA000000000000000000A1";
+
+const TABS = [
+  { key: "Q-001.md", label: "Q-001 First", id: A },
+  { key: "Q-002.md", label: "Q-002 Second", id: B },
+];
+
 function Harness({
   api,
+  cards,
   writable = true,
+  initial = "Q-001.md",
+  onChoose = () => undefined,
+  questions = TABS,
 }: {
   api: CanvasApi;
+  cards: ReturnType<typeof fakeCards>;
   writable?: boolean;
+  initial?: string | null;
+  onChoose?: (key: string) => void;
+  questions?: typeof TABS;
 }) {
+  const tab = questions.find((t) => t.key === initial);
   const canvases = useCanvases({
     api,
     folder: FOLDER,
     writable,
     enabled: true,
+    question: tab === undefined ? null : { id: tab.id, name: tab.label },
+    saveDelayMs: 0,
   });
-  return <CanvasView canvases={canvases} cards={fakeCards()} />;
+  return (
+    <CanvasView
+      canvases={canvases}
+      cards={cards}
+      questions={questions}
+      question={initial}
+      onChooseQuestion={onChoose}
+    />
+  );
 }
 
 async function open(
-  files: Record<string, string>,
-  options: { writable?: boolean; faults?: Parameters<typeof fakeApi>[1] } = {},
+  files: Record<string, string> = {},
+  options: {
+    writable?: boolean;
+    initial?: string | null;
+    questions?: typeof TABS;
+    onChoose?: (key: string) => void;
+  } = {},
 ) {
-  const fake = fakeApi(files, options.faults);
-  const view = mount(
-    <Harness api={fake.api} writable={options.writable ?? true} />,
-  );
+  const fake = fakeApi(files);
+  const cards = fakeCards({ [ART]: foundResult() });
+  const view = mount(<Harness api={fake.api} cards={cards} {...options} />);
   await flush();
-  return { view, ...fake };
+  return { view, cards, ...fake };
 }
 
-const picker = (view: HTMLElement) => {
-  const select = view.querySelector("select");
-  if (!(select instanceof HTMLSelectElement)) throw new Error("no picker");
-  return select;
+const saved = (disk: Record<string, string>, id = A) => {
+  const parsed = parseCanvas(disk[pathOf(id)] ?? "");
+  if (!parsed.ok) throw new Error(parsed.error.message);
+  return parsed.value;
 };
-const names = (view: HTMLElement) =>
-  [...picker(view).options].map((option) => option.textContent);
-const separator = (view: HTMLElement, label: string) => {
-  const found = view.querySelector(`[role="separator"][aria-label="${label}"]`);
-  if (!(found instanceof HTMLElement)) throw new Error(`no ${label}`);
+
+const panel = (view: HTMLElement, heading: string) => {
+  const found = [...view.querySelectorAll("aside")].find(
+    (a) => a.querySelector("h3")?.textContent === heading,
+  );
+  if (found === undefined) throw new Error(`no ${heading} panel`);
   return found;
 };
 
 describe("the canvas view", () => {
-  it("has results on the left, the canvas in the middle and writing on the right", async () => {
-    const { view } = await open({ [pathOf(A)]: textOf(A, "Compare") });
-    const headings = [...view.querySelectorAll("aside h3")].map(
-      (h) => h.textContent,
-    );
-    expect(headings).toEqual(["Results", "Writing"]);
+  it("has results on the left, the question's canvas in the middle and its notes on the right", async () => {
+    const { view } = await open();
     expect(
-      view.querySelector('[aria-label="Canvas"][role="region"]'),
+      [...view.querySelectorAll("aside h3")].map((h) => h.textContent),
+    ).toEqual(["Results", "Notes"]);
+    expect(
+      view.querySelector('[role="region"][aria-label="Canvas"]'),
     ).not.toBeNull();
     expect(view.textContent).toContain("Zoom: 100%");
-    expect(buttonNamed(view, "Fit to view")).toBeDefined();
-    expect(buttonNamed(view, "Reset view")).toBeDefined();
   });
 
-  it("lists the project's canvases by name and shows the first", async () => {
-    const { view } = await open({
-      [pathOf(A)]: textOf(A, "Zebra"),
-      [pathOf(B)]: textOf(B, "Apple"),
+  it("has a tab for each question, the one shown selected, and asks for another when one is chosen", async () => {
+    const chosen: string[] = [];
+    const { view } = await open({}, { onChoose: (k) => chosen.push(k) });
+    const tabs = [...view.querySelectorAll('[role="tab"]')];
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      "Q-001 First",
+      "Q-002 Second",
+    ]);
+    expect(tabs.map((t) => t.getAttribute("aria-selected"))).toEqual([
+      "true",
+      "false",
+    ]);
+    click(tabs[1]);
+    expect(chosen).toEqual(["Q-002.md"]);
+  });
+
+  it("moves between question tabs with the arrow keys", async () => {
+    const chosen: string[] = [];
+    const { view } = await open({}, { onChoose: (k) => chosen.push(k) });
+    await act(async () => {
+      view
+        .querySelector('[role="tab"]')
+        ?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+        );
+      await Promise.resolve();
     });
-    expect(names(view)).toEqual(["Apple", "Zebra"]);
-    expect(picker(view).value).toBe(fileOf(B));
+    expect(chosen).toEqual(["Q-002.md"]);
   });
 
-  it("says so, and offers to make one, when the project has no canvases", async () => {
-    const { view } = await open({});
-    expect(view.textContent).toContain("This project has no canvases yet.");
+  it("says so, with no canvas, when the project has no questions", async () => {
+    const { view } = await open({}, { questions: [], initial: null });
+    expect(view.textContent).toContain("no questions yet");
     expect(
       view.querySelector('[role="region"][aria-label="Canvas"]'),
     ).toBeNull();
-    expect(buttonNamed(view, "New canvas").disabled).toBe(false);
-    expect(buttonNamed(view, "Rename").disabled).toBe(true);
-    expect(buttonNamed(view, "Delete").disabled).toBe(true);
+    expect(buttonNamed(view, "Add note").disabled).toBe(true);
   });
 
-  it("explains a canvas file it cannot read and does not offer to rename it", async () => {
+  it("shows another question's own canvas, not this one's", async () => {
+    const withNote = serialiseCanvasText(B, "Second", (file) =>
+      setNoteText(
+        addNote(file, { x: 0, y: 0 }, () => "01JAXN00000000000000000001"),
+        "01JAXN00000000000000000001",
+        "belongs to Q-002",
+      ),
+    );
+    const { view } = await open({ [pathOf(B)]: withNote });
+    expect(panel(view, "Notes").textContent).not.toContain("belongs to Q-002");
+  });
+
+  it("explains a canvas file that cannot be read, leaves it alone, and offers no notes", async () => {
     const { view, disk } = await open({ [pathOf(A)]: "{ not json" });
-    expect(names(view)).toEqual([`${fileOf(A)} (cannot be read)`]);
     expect(view.textContent).toContain("could not be read");
-    expect(buttonNamed(view, "Rename").disabled).toBe(true);
-    expect(buttonNamed(view, "Delete").disabled).toBe(false);
+    expect(buttonNamed(view, "Add note").disabled).toBe(true);
     expect(disk[pathOf(A)]).toBe("{ not json");
   });
 
-  it("is read-only when the project is: canvases can be seen, not made or changed", async () => {
-    const { view, writes } = await open(
-      { [pathOf(A)]: textOf(A, "Compare") },
-      { writable: false },
-    );
-    expect(view.textContent).toContain("This project is read-only");
-    for (const label of ["New canvas", "Rename", "Delete"]) {
-      expect(buttonNamed(view, label).disabled, label).toBe(true);
-    }
+  it("is read-only when the project is: it can be looked at, not changed", async () => {
+    const { view, writes } = await open({}, { writable: false });
+    expect(view.textContent).toContain("read-only");
+    expect(buttonNamed(view, "Add note").disabled).toBe(true);
     expect(writes).toEqual([]);
   });
 });
 
-describe("making, renaming and deleting canvases", () => {
-  it("makes a new canvas with the name typed, and shows it", async () => {
-    const { view, disk } = await open({ [pathOf(A)]: textOf(A, "Compare") });
-    click(buttonNamed(view, "New canvas"));
-    const input = view.querySelector("input");
-    if (!(input instanceof HTMLInputElement)) throw new Error("no name field");
-    expect(input.value).toBe("Untitled canvas");
-    type(input, "Figure 2");
-    click(buttonNamed(view, "Create canvas"));
-    await flush();
-    expect(names(view)).toContain("Figure 2");
-    expect(picker(view).selectedOptions[0]?.textContent).toBe("Figure 2");
-    expect(Object.keys(disk)).toHaveLength(2);
-  });
-
-  it("does not make one with an empty name", async () => {
-    const { view, writes } = await open({});
-    click(buttonNamed(view, "New canvas"));
-    const input = view.querySelector("input");
-    if (!(input instanceof HTMLInputElement)) throw new Error("no name field");
-    type(input, "   ");
-    expect(buttonNamed(view, "Create canvas").disabled).toBe(true);
+describe("notes", () => {
+  it("adds an empty note that makes the canvas file, and lists it in the summary", async () => {
+    const { view, disk, writes } = await open();
     expect(writes).toEqual([]);
-  });
-
-  it("cancels without writing anything", async () => {
-    const { view, writes } = await open({});
-    click(buttonNamed(view, "New canvas"));
-    click(buttonNamed(view, "Cancel"));
-    expect(view.querySelector("input")).toBeNull();
-    expect(writes).toEqual([]);
-  });
-
-  it("renames the canvas shown, keeping the list in order", async () => {
-    const { view, disk } = await open({
-      [pathOf(A)]: textOf(A, "Alpha"),
-      [pathOf(B)]: textOf(B, "Beta"),
-    });
-    click(buttonNamed(view, "Rename"));
-    const input = view.querySelector("input");
-    if (!(input instanceof HTMLInputElement)) throw new Error("no name field");
-    expect(input.value).toBe("Alpha");
-    type(input, "Zulu");
-    click(buttonNamed(view, "Save name"));
+    click(buttonNamed(view, "Add note"));
     await flush();
-    expect(names(view)).toEqual(["Beta", "Zulu"]);
-    expect(disk[pathOf(A)]).toBe(textOf(A, "Zulu"));
+    expect(view.querySelectorAll(".canvas-note")).toHaveLength(1);
+    expect(saved(disk).nodes).toHaveLength(1);
+    expect(saved(disk).nodes[0]).toMatchObject({ type: "note", text: "" });
+    expect(panel(view, "Notes").textContent).toContain("Empty note");
   });
 
-  it("reports a change made outside the application and reloads instead of overwriting", async () => {
-    const { view, disk } = await open({ [pathOf(A)]: textOf(A, "Alpha") });
-    disk[pathOf(A)] = textOf(A, "Edited elsewhere");
-    click(buttonNamed(view, "Rename"));
-    const input = view.querySelector("input");
-    if (!(input instanceof HTMLInputElement)) throw new Error("no name field");
-    type(input, "Mine");
-    click(buttonNamed(view, "Save name"));
+  it("saves what is typed in a note and shows it in the summary", async () => {
+    const { view, disk } = await open();
+    click(buttonNamed(view, "Add note"));
     await flush();
-    expect(view.textContent).toContain("changed outside the application");
-    expect(disk[pathOf(A)]).toBe(textOf(A, "Edited elsewhere"));
-    // The form stays open with what was typed, so the person can try again on the fresh file.
-    expect(view.querySelector("input")?.value).toBe("Mine");
-    click(buttonNamed(view, "Cancel"));
-    expect(names(view)).toEqual(["Edited elsewhere"]);
-  });
-
-  it("asks before deleting, then moves only that canvas to the trash", async () => {
-    const { view, disk, trashed } = await open({
-      [pathOf(A)]: textOf(A, "Alpha"),
-      [pathOf(B)]: textOf(B, "Beta"),
+    const box = view.querySelector("textarea");
+    if (box === null) throw new Error("no note");
+    type(box, "Why is the dotplot flat?");
+    await flush();
+    expect(saved(disk).nodes[0]).toMatchObject({
+      text: "Why is the dotplot flat?",
     });
-    click(buttonNamed(view, "Delete"));
-    expect(view.textContent).toContain("Delete “Alpha”?");
-    expect(view.textContent).toContain(
-      "Results, experiments and their text are not touched",
+    expect(panel(view, "Notes").textContent).toContain(
+      "Why is the dotplot flat?",
     );
-    expect(trashed).toEqual([]);
-    click(buttonNamed(view, "Move to trash"));
-    await flush();
-    expect(trashed).toEqual([pathOf(A)]);
-    expect(Object.keys(disk)).toEqual([pathOf(B)]);
-    expect(names(view)).toEqual(["Beta"]);
   });
 
-  it("keeps the canvas when the person cancels the deletion", async () => {
-    const { view, trashed } = await open({ [pathOf(A)]: textOf(A, "Alpha") });
-    click(buttonNamed(view, "Delete"));
-    click(buttonNamed(view, "Cancel"));
-    expect(trashed).toEqual([]);
-    expect(names(view)).toEqual(["Alpha"]);
+  it("removes a note with its button, and its lines with it", async () => {
+    const { view, disk } = await open();
+    click(buttonNamed(view, "Add note"));
+    await flush();
+    click(view.querySelector('button[aria-label="Remove note"]'));
+    await flush();
+    expect(saved(disk).nodes).toEqual([]);
+    expect(view.querySelector(".canvas-note")).toBeNull();
+  });
+
+  it("has no way to write in or remove a note when the project is read-only", async () => {
+    const file = serialiseCanvasText(A, "First", (f) =>
+      setNoteText(
+        addNote(f, { x: 0, y: 0 }, () => "01JAXN00000000000000000001"),
+        "01JAXN00000000000000000001",
+        "kept",
+      ),
+    );
+    const { view } = await open({ [pathOf(A)]: file }, { writable: false });
+    expect(view.querySelector("textarea")?.hasAttribute("readonly")).toBe(true);
+    expect(view.querySelector('button[aria-label="Remove note"]')).toBeNull();
+  });
+});
+
+describe("lines and the summary", () => {
+  const joined = () => {
+    let file = addNote(
+      { ...parsedEmpty(), nodes: [] },
+      { x: 100, y: 100 },
+      () => "01JAXN00000000000000000001",
+    );
+    file = setNoteText(file, "01JAXN00000000000000000001", "Flat dotplot");
+    file = pinResults(
+      file,
+      [{ experimentId: EXP, artefactId: ART, version: 1 }],
+      { x: 600, y: 100 },
+      () => "01JAXN00000000000000000002",
+    );
+    file = connectNodes(
+      file,
+      "01JAXN00000000000000000001",
+      "01JAXN00000000000000000002",
+      () => "01JAXD00000000000000000001",
+    );
+    return file;
+  };
+
+  it("draws a line between a note and a figure and lists the figure under the note", async () => {
+    const { view } = await open({
+      [pathOf(A)]: serialiseCanvasText(A, "First", () => joined()),
+    });
+    const summary = panel(view, "Notes").textContent ?? "";
+    expect(summary).toContain("Flat dotplot");
+    expect(summary).toContain("Refers to");
+    expect(summary).toContain("PCA plot (EXP-001, v1)");
+  });
+
+  it("selects a note's card when its entry in the summary is chosen", async () => {
+    const { view } = await open({
+      [pathOf(A)]: serialiseCanvasText(A, "First", () => joined()),
+    });
+    const entry = panel(view, "Notes").querySelector(
+      "button.canvas-summary__select",
+    );
+    click(entry);
+    await flush();
+    const noteCard = view.querySelector(".react-flow__node-note");
+    expect(noteCard?.classList.contains("selected")).toBe(true);
+  });
+
+  it("drops a line when its card is removed", async () => {
+    const { view, disk } = await open({
+      [pathOf(A)]: serialiseCanvasText(A, "First", () => joined()),
+    });
+    click(view.querySelector('button[aria-label="Remove from canvas"]'));
+    await flush();
+    expect(saved(disk).edges).toEqual([]);
+    expect(panel(view, "Notes").textContent).not.toContain("Refers to");
   });
 });
 
 describe("the side panels", () => {
   it("hide and show with their buttons, giving the canvas the room", async () => {
-    const { view } = await open({ [pathOf(A)]: textOf(A, "Compare") });
+    const { view } = await open();
     click(buttonNamed(view, "Hide results"));
     expect(view.querySelectorAll("aside")).toHaveLength(1);
-    expect(buttonNamed(view, "Show results").getAttribute("aria-pressed")).toBe(
-      "false",
-    );
-    click(buttonNamed(view, "Hide writing"));
+    click(buttonNamed(view, "Hide notes"));
     expect(view.querySelectorAll("aside")).toHaveLength(0);
     click(buttonNamed(view, "Show results"));
-    click(buttonNamed(view, "Show writing"));
+    click(buttonNamed(view, "Show notes"));
     expect(view.querySelectorAll("aside")).toHaveLength(2);
   });
 
   it("resize from the keyboard, within their limits", async () => {
-    const { view } = await open({ [pathOf(A)]: textOf(A, "Compare") });
-    const results = separator(view, "Resize the results panel");
-    const before = Number(results.getAttribute("aria-valuenow"));
-    results.dispatchEvent(
+    const { view } = await open();
+    const results = view.querySelector(
+      '[role="separator"][aria-label="Resize the results panel"]',
+    );
+    const before = Number(results?.getAttribute("aria-valuenow"));
+    results?.dispatchEvent(
       new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
     );
     await flush();
     expect(
       Number(
-        separator(view, "Resize the results panel").getAttribute(
-          "aria-valuenow",
-        ),
+        view
+          .querySelector(
+            '[role="separator"][aria-label="Resize the results panel"]',
+          )
+          ?.getAttribute("aria-valuenow"),
       ),
     ).toBe(before + 16);
-    const writing = separator(view, "Resize the writing panel");
-    writing.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "End", bubbles: true }),
-    );
-    await flush();
-    expect(
-      separator(view, "Resize the writing panel").getAttribute("aria-valuenow"),
-    ).toBe(writing.getAttribute("aria-valuemax"));
   });
 
-  it("show what the rest of the application gives them", async () => {
-    const fake = fakeApi({ [pathOf(A)]: textOf(A, "Compare") });
-    function WithPanels() {
+  it("show what the rest of the application gives the results panel", async () => {
+    const fake = fakeApi({});
+    const cards = fakeCards();
+    const spy = vi.fn();
+    function WithPanel() {
       const canvases = useCanvases({
         api: fake.api,
         folder: FOLDER,
         writable: true,
         enabled: true,
+        question: { id: A, name: "Q" },
       });
+      spy();
       return (
         <CanvasView
           canvases={canvases}
-          cards={fakeCards()}
+          cards={cards}
+          questions={TABS}
+          question="Q-001.md"
+          onChooseQuestion={() => undefined}
           resultsPanel={<p>tree goes here</p>}
-          writingPanel={<p>editors go here</p>}
         />
       );
     }
-    const view = mount(<WithPanels />);
+    const view = mount(<WithPanel />);
     await flush();
     expect(view.textContent).toContain("tree goes here");
-    expect(view.textContent).toContain("editors go here");
     expect(view.textContent).not.toContain("will be listed here");
   });
 });
+
+function parsedEmpty() {
+  const parsed = parseCanvas(textOf(A, "First"));
+  if (!parsed.ok) throw new Error("fixture");
+  return parsed.value;
+}

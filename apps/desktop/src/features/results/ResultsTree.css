@@ -424,3 +424,33 @@ body.results-dragging * {
   outline: 2px dashed var(--color-accent);
   outline-offset: -4px;
 }
+
+/* A picture beside a result: taller rows, a square it fits inside, never stretched. */
+.results__row--with-thumb {
+  min-height: 52px;
+  padding-block: 2px;
+}
+
+.results__thumb {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-surface-alt);
+}
+
+.results__thumb img,
+.results__thumb canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.results__thumb .preview-thumb__icon {
+  font-size: 9px;
+}

@@ -3,59 +3,56 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FolderHandle } from "../../ipc/bindings";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { canvasMessages } from "./messages";
-import { defaultCanvasName, sortEntries } from "./model/canvasFiles";
+import { addNote } from "./model/notes";
 import { pinResults, pinnedIds, type PinRef, type Point } from "./model/nodes";
 import { createCanvasSaver, type SaveReport } from "./model/saver";
 import {
-  createCanvas,
-  deleteCanvas,
+  canvasEntryOf,
   loadCanvases,
-  renameCanvas,
   type CanvasApi,
   type CanvasEntry,
-  type CanvasResult,
 } from "./model/store";
 
 /** How long edits must be quiet before they are written; every write is also a history snapshot. */
 const SAVE_DELAY_MS = 800;
+
+/** The question whose canvas is showing: its id names the canvas file, its name labels a new one. */
+export type CanvasQuestion = { id: string; name: string };
 
 type Options = {
   api: CanvasApi;
   folder: FolderHandle;
   /** Whether the project may be changed. Reading never needs it. */
   writable: boolean;
-  /** Canvases are read only while the canvas view is showing. */
+  /** Canvases are read only while something that shows them is showing. */
   enabled: boolean;
+  /** The question whose canvas to show, or `null` when there is none. */
+  question: CanvasQuestion | null;
   /** Only tests set this. */
   saveDelayMs?: number;
 };
 
-/** What the drawn surface can say about where things are on screen (React Flow knows, not this hook). */
+/** What the drawn surface can say and do about where things are on screen (React Flow knows, not this hook). */
 export type SurfaceBridge = {
   /** The canvas point under a point of the window. */
   toCanvas: (screen: Point) => Point;
   /** The canvas point in the middle of what is showing. */
   centre: () => Point;
+  /** Selects a card and brings it into view. */
+  focusNode: (id: string) => void;
 };
 
 /** What the canvas view shows and can ask for. */
 export type CanvasesModel = {
   status: "idle" | "loading" | "ready" | "failed";
-  entries: readonly CanvasEntry[];
-  /** The canvas being shown, or `null` when there is none. */
-  selected: CanvasEntry | null;
+  /** The question's canvas: its file, or an empty one not written yet; `null` with no question. */
+  current: CanvasEntry | null;
   writable: boolean;
-  busy: boolean;
   notice: string | null;
   /** The results that have a card on the canvas being shown. */
   pinned: ReadonlySet<string>;
-  select: (fileName: string) => void;
-  /** Creates a canvas named `name` (a default one when omitted) and shows it. Resolves whether it was made. */
-  create: (name?: string) => Promise<boolean>;
-  /** Renames the canvas being shown. Resolves whether it was saved. */
-  rename: (name: string) => Promise<boolean>;
-  /** Moves the canvas being shown to the trash. Resolves whether it was moved. */
-  remove: () => Promise<boolean>;
+  /** Makes an id for a new card or line. */
+  newId: () => string;
   /** Changes the canvas being shown and saves it after a short quiet. Does nothing when it cannot be changed. */
   edit: (change: (file: CanvasFileModel) => CanvasFileModel) => void;
   /**
@@ -64,6 +61,10 @@ export type CanvasesModel = {
    * anything was pinned; the results themselves are not touched.
    */
   pinAt: (refs: readonly PinRef[], screen: Point | null) => boolean;
+  /** Adds an empty note in the middle of what is showing and selects it. Returns its id, or `null` when it could not be added. */
+  addNote: () => string | null;
+  /** Selects a card and brings it into view. */
+  focusNode: (id: string) => void;
   /** The drawn surface says where things are on screen while it is showing. */
   registerSurface: (bridge: SurfaceBridge | null) => void;
   /** Writes whatever is waiting to be saved now. */
@@ -72,23 +73,22 @@ export type CanvasesModel = {
 };
 
 /**
- * The project's canvases (ADR-0064): which exist, which is shown, the edits
- * made to it, and the actions on them. The files are read and written by
- * `model/store`, edits are held back and written by `model/saver`; this holds
- * only what the view shows. Nothing is read until `enabled`, so a project
- * that never opens the canvas view never touches these files.
+ * The canvas of one question (ADR-0065) and the edits made to it. The files
+ * are read by `model/store`, edits are held back and written by
+ * `model/saver`; this holds only what the view shows. A question's canvas is
+ * made, as a file, by the first change to it. Nothing is read until
+ * `enabled`, so a project that never opens a canvas never touches these files.
  */
 export function useCanvases({
   api,
   folder,
   writable,
   enabled,
+  question,
   saveDelayMs = SAVE_DELAY_MS,
 }: Options): CanvasesModel {
   const [status, setStatus] = useState<CanvasesModel["status"]>("idle");
   const [entries, setEntriesState] = useState<readonly CanvasEntry[]>([]);
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   // The entries as they are now, readable between renders: an edit and the save report that follows it must see each other.
@@ -105,8 +105,8 @@ export function useCanvases({
     },
     [],
   );
-  const selectedRef = useRef<string | null>(null);
-  selectedRef.current = selectedName;
+  const questionRef = useRef(question);
+  questionRef.current = question;
 
   const newId = useMemo(
     () => createUlidGenerator(() => new Date(), browserRandomBytes),
@@ -120,25 +120,18 @@ export function useCanvases({
     current.current = folder;
   });
 
-  const load = useCallback(async (): Promise<readonly CanvasEntry[] | null> => {
+  const load = useCallback(async () => {
     const loaded = await loadCanvases(api, folder).catch(
       () => ({ ok: false, error: "unreadable" }) as const,
     );
-    if (current.current !== folder) return null;
+    if (current.current !== folder) return;
     if (!loaded.ok) {
       setStatus("failed");
       setNotice(canvasMessages.failures[loaded.error]);
-      return null;
+      return;
     }
     setEntries(loaded.value);
     setStatus("ready");
-    // Keep the canvas being shown if it is still there, else the first.
-    setSelectedName((name) =>
-      loaded.value.some((entry) => entry.fileName === name)
-        ? name
-        : (loaded.value[0]?.fileName ?? null),
-    );
-    return loaded.value;
   }, [api, folder, setEntries]);
 
   useEffect(() => {
@@ -177,176 +170,93 @@ export function useCanvases({
   // Leaving the project saves what is waiting.
   useEffect(() => () => void saver.flush(), [saver]);
 
-  const selected =
-    entries.find((entry) => entry.fileName === selectedName) ?? null;
-
-  /** Runs one change to the files, shows what went wrong, and reloads if they moved underneath. */
-  const act = useCallback(
-    async <T>(
-      change: () => Promise<CanvasResult<T>>,
-      onDone: (value: T) => void,
-    ): Promise<boolean> => {
-      if (!writable) {
-        setNotice(canvasMessages.failures.notWritable);
-        return false;
-      }
-      setBusy(true);
-      setNotice(null);
-      try {
-        const result = await change();
-        if (!result.ok) {
-          setNotice(canvasMessages.failures[result.error]);
-          if (result.error === "changed" || result.error === "exists") {
-            await load();
-          }
-          return false;
-        }
-        onDone(result.value);
-        return true;
-      } catch {
-        setNotice(canvasMessages.failures.writeFailed);
-        return false;
-      } finally {
-        setBusy(false);
-      }
-    },
-    [writable, load],
-  );
-
-  const create = useCallback(
-    (name?: string) =>
-      act(
-        () =>
-          createCanvas(api, folder, {
-            id: newId(),
-            name:
-              name ??
-              defaultCanvasName(
-                entriesRef.current.flatMap((entry) =>
-                  entry.name === null ? [] : [entry.name],
-                ),
-              ),
-          }),
-        (entry) => {
-          setEntries((previous) => sortEntries([...previous, entry]));
-          setSelectedName(entry.fileName);
-        },
-      ),
-    [act, api, folder, newId, setEntries],
-  );
-
-  const rename = useCallback(
-    async (name: string) => {
-      const target = selectedRef.current;
-      if (target === null) return false;
-      // Edits waiting to be saved go first, so the rename expects the file as they left it.
-      await saver.flush();
-      const latest = entriesRef.current.find(
-        (entry) => entry.fileName === target,
-      );
-      if (latest === undefined) return false;
-      return act(
-        () => renameCanvas(api, folder, latest, name),
-        (entry) => {
-          // The file has a new hash, so what the saver remembers of it is stale.
-          saver.discard(entry.fileName);
-          setEntries((previous) =>
-            sortEntries([
-              ...previous.filter((e) => e.fileName !== entry.fileName),
-              entry,
-            ]),
-          );
-        },
-      );
-    },
-    [act, api, folder, saver, setEntries],
-  );
-
-  const remove = useCallback(() => {
-    const target = entriesRef.current.find(
-      (entry) => entry.fileName === selectedRef.current,
-    );
-    if (target === undefined) return Promise.resolve(false);
-    saver.discard(target.fileName);
-    return act(
-      () => deleteCanvas(api, folder, target),
-      () => {
-        const rest = entriesRef.current.filter(
-          (e) => e.fileName !== target.fileName,
-        );
-        setEntries(rest);
-        setSelectedName(rest[0]?.fileName ?? null);
-      },
-    );
-  }, [act, api, folder, saver, setEntries]);
+  const shown = question === null ? null : canvasEntryOf(entries, question);
 
   const edit = useCallback<CanvasesModel["edit"]>(
     (change) => {
-      if (!writable) return;
-      const target = entriesRef.current.find(
-        (entry) => entry.fileName === selectedRef.current,
-      );
-      if (target?.file == null) return;
+      const asked = questionRef.current;
+      if (!writable || asked === null) return;
+      const target = canvasEntryOf(entriesRef.current, asked);
+      if (target.file === null) return;
       const next = change(target.file);
       if (next === target.file) return;
+      const updated: CanvasEntry = { ...target, name: next.name, file: next };
       setEntries((previous) =>
-        previous.map((entry) =>
-          entry.fileName === target.fileName
-            ? { ...entry, name: next.name, file: next }
-            : entry,
-        ),
+        previous.some((entry) => entry.fileName === target.fileName)
+          ? previous.map((entry) =>
+              entry.fileName === target.fileName ? updated : entry,
+            )
+          : [...previous, updated],
       );
       saver.queue(target, next);
     },
     [writable, saver, setEntries],
   );
 
+  /** Where a new card goes, or why it cannot: the surface, and a canvas that can be changed. */
+  const place = useCallback((): SurfaceBridge | null => {
+    const asked = questionRef.current;
+    const surface = bridge.current;
+    if (!writable) {
+      setNotice(canvasMessages.failures.notWritable);
+      return null;
+    }
+    if (
+      surface === null ||
+      asked === null ||
+      canvasEntryOf(entriesRef.current, asked).file === null
+    ) {
+      setNotice(canvasMessages.pinFailed);
+      return null;
+    }
+    return surface;
+  }, [writable]);
+
   const pinAt = useCallback<CanvasesModel["pinAt"]>(
     (refs, screen) => {
-      const surface = bridge.current;
-      const target = entriesRef.current.find(
-        (entry) => entry.fileName === selectedRef.current,
-      );
       if (refs.length === 0) return false;
-      if (!writable) {
-        setNotice(canvasMessages.failures.notWritable);
-        return false;
-      }
-      if (surface === null || target?.file == null) {
-        setNotice(canvasMessages.pinFailed);
-        return false;
-      }
+      const surface = place();
+      if (surface === null) return false;
       const at = screen === null ? surface.centre() : surface.toCanvas(screen);
       edit((file) => pinResults(file, refs, at, newId));
       return true;
     },
-    [writable, edit, newId],
+    [place, edit, newId],
   );
+
+  const addNoteHere = useCallback<CanvasesModel["addNote"]>(() => {
+    const surface = place();
+    if (surface === null) return null;
+    const id = newId();
+    edit((file) => addNote(file, surface.centre(), () => id));
+    return id;
+  }, [place, edit, newId]);
 
   const registerSurface = useCallback((next: SurfaceBridge | null) => {
     bridge.current = next;
   }, []);
 
+  const focusNode = useCallback(
+    (id: string) => bridge.current?.focusNode(id),
+    [],
+  );
+
   const pinned = useMemo(
-    () =>
-      selected?.file == null ? new Set<string>() : pinnedIds(selected.file),
-    [selected],
+    () => (shown?.file == null ? new Set<string>() : pinnedIds(shown.file)),
+    [shown],
   );
 
   return {
     status,
-    entries,
-    selected,
+    current: shown,
     writable,
-    busy,
     notice,
     pinned,
-    select: setSelectedName,
-    create,
-    rename,
-    remove,
+    newId,
     edit,
     pinAt,
+    addNote: addNoteHere,
+    focusNode,
     registerSurface,
     flush: () => saver.flush(),
     dismissNotice: () => setNotice(null),

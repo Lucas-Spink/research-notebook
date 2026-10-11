@@ -57,6 +57,8 @@ type Props = {
   onPin?: (artefactIds: string[]) => void;
   /** The results already on the canvas, marked in words. */
   pinned?: ReadonlySet<string>;
+  /** A picture drawn beside each result, before its name, to scan figures by; left out, rows are text only. */
+  renderThumbnail?: (artefactId: string) => ReactNode;
 };
 
 /**
@@ -81,6 +83,7 @@ export function ResultsTree({
   outside,
   onPin,
   pinned,
+  renderThumbnail,
 }: Props) {
   const tree = useResultsTree({
     file,
@@ -187,6 +190,7 @@ export function ResultsTree({
               tabbable={tabStops && row.key === tree.tabKey}
               disabled={disabled}
               tree={tree}
+              {...(renderThumbnail === undefined ? {} : { renderThumbnail })}
               {...(onHover === undefined ? {} : { onHover })}
               missing={
                 row.kind === "item" && (missing?.has(row.artefactId) ?? false)

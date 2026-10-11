@@ -1,6 +1,6 @@
 # ADR-0064: Project canvases, a second view over the notebook (format version 2)
 
-- Status: Accepted
+- Status: Accepted (points 1, 2 and 8 amended by ADR-0065)
 - Date: 2026-10-11
 - Deciders: maintainer
 - Spec sections affected: 5.1 (folder layout), 5.13 (versioning), new 5.14 (canvas files), 6.3, 7.3 (workspace views), 7.5 (virtual groups, drag payloads), 7.7 (editors); ADR-0043 (single live editor, new surface). Changes chapter 5: **format version 1 becomes 2**.

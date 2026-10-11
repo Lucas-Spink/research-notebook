@@ -1,5 +1,6 @@
 import { NodeResizer, useStore, type NodeProps } from "@xyflow/react";
 import { memo } from "react";
+import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
 import { canvasMessages as m } from "./messages";
 import type { ArtefactFlowNode } from "./model/flowNodes";
@@ -56,6 +57,7 @@ function ArtefactCardView({
         </header>
         <p className="canvas-card__reason">{m.missingReasons[info.reason]}</p>
         <p className="canvas-card__reason">{m.missingKept}</p>
+        <CardHandles />
       </div>
     );
   }
@@ -126,6 +128,7 @@ function ArtefactCardView({
         <div className="canvas-card__body">
           {services.renderPreview(info, detail)}
         </div>
+        <CardHandles />
       </div>
     </>
   );

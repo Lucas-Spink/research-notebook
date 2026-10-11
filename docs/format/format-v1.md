@@ -409,7 +409,7 @@ Schema: `lock.schema.json`. Spec 5.11. JSON, present while a writer has the proj
 
 ### 4.9 Canvas files (format version 2)
 
-Schema: `canvas.schema.json`. ADR-0064. One JSON file per canvas at `canvases/<ULID>.canvas.json`, where `<ULID>` equals `id`. A canvas holds presentation only: which result sits where, how large, and the viewport. It never holds experiment text or evidence bytes. Version 1 applications do not read canvases; they open a version 2 project read-only (section 6).
+Schema: `canvas.schema.json`. ADR-0064, ADR-0065. One JSON file per canvas at `canvases/<ULID>.canvas.json`, where `<ULID>` equals `id`. The application gives each question one canvas, whose `id` is the question's own ULID (ADR-0065); a canvas with any other `id` is valid and is kept, but is not shown. A canvas holds presentation only: which result sits where, how large, and the viewport. It never holds experiment text or evidence bytes. Version 1 applications do not read canvases; they open a version 2 project read-only (section 6).
 
 | Key                         | Type                | Req.       | Notes                                                                                 |
 | --------------------------- | ------------------- | ---------- | ------------------------------------------------------------------------------------- |
