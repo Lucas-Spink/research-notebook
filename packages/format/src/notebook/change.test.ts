@@ -10,6 +10,7 @@ import {
   textOf,
 } from "../../test/notebook-support";
 import { parseProject } from "../files";
+import { parseBinNote } from "./bin-note";
 import {
   arrangeNotebook,
   createExperiment,
@@ -292,6 +293,17 @@ describe("removeExperiment (FR-EXP-06)", () => {
     expect(plan.next.experiments.map((e) => e.folder)).toEqual(["EXP-002"]);
   });
 
+  it("notes its place under the question, for a restore (ADR-0063)", () => {
+    const { env, state, two } = sample();
+    const plan = must(removeExperiment(state, two, env));
+    const step = plan.steps[0];
+    expect(
+      step?.kind === "trash" && step.note !== undefined
+        ? parseBinNote(step.note)
+        : null,
+    ).toEqual({ index: 1, experiments: [] });
+  });
+
   it("keeps the counter, so the ref is not issued again", () => {
     const { env, state, one } = sample();
     const plan = must(removeExperiment(state, one, env));
@@ -306,10 +318,12 @@ describe("removeExperiment (FR-EXP-06)", () => {
 });
 
 describe("removeQuestion (FR-EXP-06)", () => {
-  it("moves only the question file to the trash and drops its entry from the order", () => {
+  it("moves the question's experiments and then the question file to the trash, then drops them from the order", () => {
     const { env, state, first, second } = sample();
     const plan = must(removeQuestion(state, first, env));
     expect(plan.steps.map((s) => [s.kind, s.path])).toEqual([
+      ["trash", "_notebook/experiments/EXP-001"],
+      ["trash", "_notebook/experiments/EXP-002"],
       ["trash", "_notebook/questions/Q-001.md"],
       ["replace", PROJECT],
     ]);
@@ -318,15 +332,53 @@ describe("removeQuestion (FR-EXP-06)", () => {
     expect(plan.next.questions.map((q) => q.fileName)).toEqual(["Q-002.md"]);
   });
 
-  it("leaves its experiments in place, shown as Unassigned", () => {
+  it("takes its experiments with it, so none is left Unassigned (ADR-0063)", () => {
     const { env, state, first } = sample();
     const plan = must(removeQuestion(state, first, env));
-    expect(plan.next.experiments).toHaveLength(2);
-    const arranged = arrangeNotebook(plan.next);
-    expect(arranged.unassigned.map((e) => e.experiment.folder)).toEqual([
+    expect(plan.next.experiments).toEqual([]);
+    expect(arrangeNotebook(plan.next).unassigned).toEqual([]);
+  });
+
+  it("leaves another question's experiments alone", () => {
+    const { env, state, second } = sample();
+    const withOther = must(
+      createExperiment(state, { questionId: second, title: "Other" }, env),
+    ).next;
+    const plan = must(removeQuestion(withOther, second, env));
+    expect(plan.steps.map((s) => s.path)).toEqual([
+      "_notebook/experiments/EXP-003",
+      "_notebook/questions/Q-002.md",
+      PROJECT,
+    ]);
+    expect(plan.next.experiments.map((e) => e.folder)).toEqual([
       "EXP-001",
       "EXP-002",
     ]);
+  });
+
+  it("notes where the question and its experiments were, for a restore (ADR-0063)", () => {
+    const { env, state, first } = sample();
+    const plan = must(removeQuestion(state, first, env));
+    const notes = plan.steps.map((s) =>
+      s.kind === "trash" && s.note !== undefined ? parseBinNote(s.note) : null,
+    );
+    expect(notes).toEqual([
+      { index: 0, experiments: [] },
+      { index: 1, experiments: [] },
+      { index: 0, experiments: ["EXP-001", "EXP-002"] },
+      null,
+    ]);
+  });
+
+  it("notes the question's place among the questions as shown, not only as listed", () => {
+    const { env, state, second } = sample();
+    const plan = must(removeQuestion(state, second, env));
+    const step = plan.steps.find((s) => s.path.endsWith("Q-002.md"));
+    expect(
+      step?.kind === "trash" && step.note !== undefined
+        ? parseBinNote(step.note)
+        : null,
+    ).toEqual({ index: 1, experiments: [] });
   });
 
   it("forgets that the question was collapsed", () => {

@@ -1,17 +1,19 @@
-import type {
-  ArtefactsFileModel,
-  Restored,
-  NotebookEnv,
-  NotebookError,
-  Result,
+import {
+  parseBinNote,
+  type ArtefactsFileModel,
+  type BinNote,
+  type Restored,
+  type NotebookEnv,
+  type NotebookError,
+  type Result,
 } from "@research-notebook/format";
-import type { BinItem, FolderHandle } from "../../../../ipc/bindings";
+import type { BinItem, commands, FolderHandle } from "../../../../ipc/bindings";
 import type { ArtefactsOutcome } from "../../model/api";
 import { binReasonText } from "../../table/evidenceMessages";
 import { restoreBinnedFiles, type BinApi } from "../../table/model/binArtefact";
 
 type Request = {
-  api: BinApi;
+  api: BinApi & Pick<typeof commands, "listBin">;
   folder: FolderHandle;
   entry: BinItem;
   /** Reads the notebook from disk again, so a restored question or experiment appears. */
@@ -68,6 +70,7 @@ export async function restoreEntry({
   }
   const label =
     entry.kind === "question" ? entry.name.replace(/\.md$/i, "") : entry.name;
+  const note = entry.note === null ? null : parseBinNote(entry.note);
   const moved = await api
     .restoreFromBin(folder, entry.stamp, entry.kind, entry.name)
     .catch(() => null);
@@ -78,12 +81,52 @@ export async function restoreEntry({
       text: `${label} was not restored: ${binReasonText(reason)}.`,
     };
   }
+  const left =
+    entry.kind === "question" && note !== null
+      ? await restoreExperimentsOf(api, folder, note)
+      : [];
   await refresh();
-  // Deleting dropped it from the saved order; put it back so it is not flagged.
+  // Deleting dropped it from the saved order; put it back where it was.
+  const withNote = note === null ? {} : { note };
   await adoptRestored(
     entry.kind === "question"
-      ? { questionFile: entry.name }
-      : { experimentFolder: entry.name },
+      ? { questionFile: entry.name, ...withNote }
+      : { experimentFolder: entry.name, ...withNote },
   );
+  if (left.length > 0) {
+    return {
+      ok: false,
+      text: `${label} was restored, but ${left.join(", ")} could not be: restore ${left.length === 1 ? "it" : "them"} from the bin.`,
+    };
+  }
   return { ok: true, text: `${label} was restored.` };
+}
+
+/**
+ * Puts back the experiments that were binned with a question (ADR-0063): for
+ * each folder the note names, the most recent bin entry of that name. Returns
+ * the folders that could not be restored, which stay in the bin.
+ */
+async function restoreExperimentsOf(
+  api: Request["api"],
+  folder: FolderHandle,
+  note: BinNote,
+): Promise<string[]> {
+  if (note.experiments.length === 0) return [];
+  const listed = await api.listBin(folder).catch(() => null);
+  const binned = listed?.status === "ok" ? listed.data : [];
+  const left: string[] = [];
+  for (const name of note.experiments) {
+    const newest = binned
+      .filter((item) => item.kind === "experiment" && item.name === name)
+      .sort((a, b) => (a.stamp < b.stamp ? 1 : a.stamp > b.stamp ? -1 : 0))[0];
+    const result =
+      newest === undefined
+        ? null
+        : await api
+            .restoreFromBin(folder, newest.stamp, "experiment", name)
+            .catch(() => null);
+    if (result?.status !== "ok") left.push(name);
+  }
+  return left;
 }

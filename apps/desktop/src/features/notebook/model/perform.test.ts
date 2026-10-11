@@ -187,7 +187,7 @@ describe("perform: editing, moving and deleting", () => {
     expect(done.loaded.hashes).not.toHaveProperty(EXP_1);
   });
 
-  it("deletes a question by trashing its file only", async () => {
+  it("deletes a question by trashing its experiments, then its file (ADR-0063)", async () => {
     const { sample, project, loaded, deps } = await setup();
     project.calls.length = 0;
     const done = await perform(deps(), loaded, (state) =>
@@ -195,10 +195,15 @@ describe("perform: editing, moving and deleting", () => {
     );
     if (done.kind !== "done") throw new Error(done.kind);
     expect(writes(project.calls)).toEqual([
+      "trash _notebook/experiments/EXP-001",
+      "trash _notebook/experiments/EXP-002",
       "trash _notebook/questions/Q-001.md",
       `write ${PROJECT}`,
     ]);
-    expect(project.disk[EXP_1]).toBeDefined();
+    expect(project.disk[EXP_1]).toBeUndefined();
+    expect(Object.keys(project.disk)).toContain(
+      "_notebook/.trash/2026-09-21T10-15-00Z/experiments/EXP-001/experiment.md",
+    );
   });
 
   it("does nothing when the plan has no steps", async () => {

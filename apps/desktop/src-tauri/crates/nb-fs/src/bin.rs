@@ -26,6 +26,11 @@ const RECORD: &str = "artefacts.yaml";
 const RESTORED_RECORD: &str = "artefacts.restored.yaml";
 /// The largest record read back (2 MiB); a real one is a few kilobytes.
 const RECORD_LIMIT: u64 = 2 * 1024 * 1024;
+/// Where notes about binned items are kept, beside them in `.trash/<stamp>/`:
+/// `notes/<questions|experiments>/<name>.json` (ADR-0063).
+const NOTES_DIR: &str = "notes";
+/// The largest note kept or read back (16 KiB); a real one is under a kilobyte.
+const NOTE_LIMIT: usize = 16 * 1024;
 
 /// What a bin entry is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +53,9 @@ pub struct BinEntry {
     pub name: String,
     /// Where it comes back to, relative to the project folder.
     pub original: String,
+    /// The note kept when it was binned, as the text it was given (ADR-0063).
+    /// `None` if there is none, or it could not be read.
+    pub note: Option<String>,
 }
 
 /// What removing an artefact's files did.
@@ -191,6 +199,31 @@ impl ProjectRoot {
         })
     }
 
+    /// Keeps `note` about what was just trashed from `relative` (a path under
+    /// `_notebook/`, such as `questions/Q-001.md`) in `.trash/<stamp>/`.
+    /// Best effort: a note that is too long or cannot be written is dropped.
+    pub(crate) fn keep_bin_note(&self, stamp: &str, relative: &str, note: &str) {
+        if note.len() > NOTE_LIMIT {
+            return;
+        }
+        let mut parts: Vec<&str> = relative.split('/').collect();
+        let Some(leaf) = parts.pop() else { return };
+        let file = format!("{leaf}.json");
+        let display = format!("{NOTEBOOK_DIR}/{TRASH_DIR}/{stamp}/{NOTES_DIR}/{relative}.json");
+        let mut folders = vec![TRASH_DIR, stamp, NOTES_DIR];
+        folders.extend(parts);
+        let Ok(dir) = self.confined_folder(&folders, &display) else {
+            return;
+        };
+        let destination = Destination {
+            dir: &dir,
+            name: &file,
+            display: &display,
+            permissions: None,
+        };
+        write(&mut RealIo, &destination, note.as_bytes()).ok();
+    }
+
     /// Everything in the bin, oldest first. Reads only; a link is not followed.
     pub fn list_bin(&self) -> Result<Vec<BinEntry>, ReadError> {
         let trash = self.notebook.join(TRASH_DIR);
@@ -218,6 +251,7 @@ impl ProjectRoot {
                     stamp: stamp.clone(),
                     kind: BinKind::Question,
                     original: format!("{NOTEBOOK_DIR}/questions/{name}"),
+                    note: read_note(&base, "questions", &name),
                     name,
                 });
             }
@@ -230,10 +264,15 @@ impl ProjectRoot {
                 } else {
                     continue;
                 };
+                let note = match kind {
+                    BinKind::Experiment => read_note(&base, "experiments", &name),
+                    _ => None,
+                };
                 entries.push(BinEntry {
                     stamp: stamp.clone(),
                     kind,
                     original: format!("{NOTEBOOK_DIR}/experiments/{name}"),
+                    note,
                     name,
                 });
             }
@@ -377,6 +416,20 @@ impl ProjectRoot {
         let renamed = source.join(RESTORED_RECORD);
         fs::rename(&record, &renamed).map_err(|e| io_error("keep the record of", display, e))
     }
+}
+
+/// The note kept for `name` in `group` (`questions` or `experiments`) of the
+/// bin folder `base`, if there is a plain, small, UTF-8 one.
+fn read_note(base: &Path, group: &str, name: &str) -> Option<String> {
+    let path = base
+        .join(NOTES_DIR)
+        .join(group)
+        .join(format!("{name}.json"));
+    let meta = plain_entry(&path).ok()??;
+    if !meta.is_file() || meta.len() > NOTE_LIMIT as u64 {
+        return None;
+    }
+    fs::read_to_string(&path).ok()
 }
 
 /// Whether anything at all, a link included, is at `path`.

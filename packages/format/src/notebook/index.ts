@@ -73,6 +73,7 @@ export { formatRef, nextRefNumber, refNumber } from "./refs";
 export { artefactsOf, editArtefacts, EMPTY_ARTEFACTS } from "./artefacts-edit";
 export { removeArtefact, restoreArtefact } from "./artefact-bin";
 export { adoptIntoOrder, type Restored } from "./restore-order";
+export { parseBinNote, serialiseBinNote, type BinNote } from "./bin-note";
 export {
   artefactsPath,
   PROJECT_PATH,

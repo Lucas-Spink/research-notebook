@@ -57,6 +57,19 @@ impl ProjectRoot {
         path: &ProjectRelPath,
         clock: &impl Clock,
     ) -> Result<Trashed, WriteError> {
+        self.move_to_trash_noting(path, None, clock)
+    }
+
+    /// As [`Self::move_to_trash`], and keeps `note` beside what was trashed
+    /// (ADR-0063), for the person who restores it. The note is the caller's
+    /// text, not read here. Losing it only costs the place the item had, so
+    /// a note that cannot be kept does not undo the move.
+    pub fn move_to_trash_noting(
+        &self,
+        path: &ProjectRelPath,
+        note: Option<&str>,
+        clock: &impl Clock,
+    ) -> Result<Trashed, WriteError> {
         let display = path.as_str();
         let segments: Vec<&str> = path.segments().collect();
         let inside = match segments.as_slice() {
@@ -77,6 +90,9 @@ impl ProjectRoot {
         let folder =
             self.free_trash_folder(clock.now(), std::slice::from_ref(&relative), display)?;
         self.trash_into(inside, display, &folder)?;
+        if let Some(note) = note {
+            self.keep_bin_note(&folder, &relative, note);
+        }
         Ok(Trashed {
             location: format!("{NOTEBOOK_DIR}/{TRASH_DIR}/{folder}/{relative}"),
         })

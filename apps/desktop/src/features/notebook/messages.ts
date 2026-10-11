@@ -262,7 +262,7 @@ export function deleteQuestionWarning(
     return `${ref} will be moved to the bin. You can restore it from the Bin.`;
   }
   const noun = experiments === 1 ? "experiment" : "experiments";
-  return `${ref} will be moved to the bin. You can restore it from the Bin. Its ${experiments} ${noun} will be kept and shown as unassigned.`;
+  return `${ref} and its ${experiments} ${noun} will be moved to the bin. Restoring ${ref} from the Bin brings them back too.`;
 }
 
 /** Label of the field that adds an experiment to the question `ref`. */

@@ -162,6 +162,58 @@ fn the_bin_lists_questions_experiments_and_removed_files() {
 }
 
 #[test]
+fn a_note_kept_when_trashing_is_listed_with_the_item() {
+    let project = project();
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+    let note = r#"{"version":1,"index":2,"experiments":["EXP-001"]}"#;
+    root.move_to_trash_noting(&rel("_notebook/questions/Q-001.md"), Some(note), &clock)
+        .unwrap();
+    clock.advance(60);
+    root.move_to_trash_noting(&rel(EXP), Some("{\"version\":1}"), &clock)
+        .unwrap();
+
+    let entries = root.list_bin().unwrap();
+
+    assert_eq!(entries[0].kind, BinKind::Question);
+    assert_eq!(entries[0].note.as_deref(), Some(note));
+    assert_eq!(entries[1].kind, BinKind::Experiment);
+    assert_eq!(entries[1].note.as_deref(), Some("{\"version\":1}"));
+}
+
+#[test]
+fn an_item_trashed_without_a_note_lists_none_and_a_note_never_stops_a_restore() {
+    let project = project();
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+    root.move_to_trash(&rel("_notebook/questions/Q-001.md"), &clock)
+        .unwrap();
+    assert_eq!(root.list_bin().unwrap()[0].note, None);
+
+    let second = FakeClock::at("2026-09-21T10:16:00Z");
+    root.restore_from_bin(STAMP, BinKind::Question, "Q-001.md")
+        .unwrap();
+    root.move_to_trash_noting(&rel("_notebook/questions/Q-001.md"), Some("x"), &second)
+        .unwrap();
+    root.restore_from_bin("2026-09-21T10-16-00Z", BinKind::Question, "Q-001.md")
+        .unwrap();
+    assert!(project.exists("_notebook/questions/Q-001.md"));
+}
+
+#[test]
+fn a_note_that_is_too_long_is_dropped_and_the_move_still_happens() {
+    let project = project();
+    let root = project.open();
+    let clock = FakeClock::at("2026-09-21T10:15:00Z");
+    let long = "x".repeat(20 * 1024);
+    root.move_to_trash_noting(&rel("_notebook/questions/Q-001.md"), Some(&long), &clock)
+        .unwrap();
+
+    assert!(!project.exists("_notebook/questions/Q-001.md"));
+    assert_eq!(root.list_bin().unwrap()[0].note, None);
+}
+
+#[test]
 fn an_empty_bin_lists_nothing() {
     let project = project();
     assert!(project.open().list_bin().unwrap().is_empty());

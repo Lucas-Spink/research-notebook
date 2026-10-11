@@ -7,6 +7,7 @@ const item = (over: Partial<BinItem>): BinItem => ({
   kind: "question",
   name: "Q-001.md",
   original: "_notebook/questions/Q-001.md",
+  note: null,
   ...over,
 });
 

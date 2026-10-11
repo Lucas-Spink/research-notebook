@@ -1,5 +1,5 @@
-import type { ColumnKey } from "@research-notebook/format";
 import {
+  Fragment,
   useEffect,
   useId,
   useRef,
@@ -7,105 +7,31 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { RibbonGroup, RibbonMenu } from "../../../shared/ribbon";
-import { useTheme } from "../../../shared/theme";
+import { RibbonGroup } from "../../../shared/ribbon";
 import { useSources } from "../../citations";
-import type { Selected } from "../DetailsPanel";
-import type { QuestionChoice } from "../ExperimentItem";
 import { messages } from "../messages";
-import { NewTitleForm } from "../NewTitleForm";
-import { ColumnsMenu } from "../table/ColumnsMenu";
-import type { ColumnLayout } from "../table/model/columns";
-import type { FilterState, SortState } from "../table/model/rows";
-import { FilterControls, SortControls } from "../table/TableToolbar";
-import type { NotebookActions } from "../useNotebook";
-import { headerMessages, paneMessages, ribbonMessages as m } from "./messages";
-import type { ExportSection, PaneTab } from "./model/panes";
-import { NewExperimentForm } from "./NewExperimentForm";
-import {
-  ProjectHeader,
-  type Crumb,
-  type IntegrityStatus,
-} from "./ProjectHeader";
-import { MoveToBinCommand } from "./MoveToBinCommand";
-import { SelectionCommands } from "./SelectionCommands";
+import { headerMessages, ribbonMessages as m } from "./messages";
+import { ProjectHeader, type Crumb } from "./ProjectHeader";
+import { RIBBON_LAYOUT, RIBBON_TABS, type RibbonTab } from "./ribbonLayout";
+import type { RibbonProps } from "./ribbonProps";
+import { questionOfSelection, useRibbonCommands } from "./useRibbonCommands";
 
-type Props = {
-  /** The open project's name, shown beside the application title so the research context is always visible. */
-  projectName?: string | null;
-  /** Closes the project and returns to the start page. */
-  onCloseProject?: () => void;
-  /** The Projects tab's controls (new, open, recent), which belong to the projects feature. */
-  projectControls: ReactNode;
-  /** The Settings tab's project controls (settings, Zotero), which belong to the projects feature. */
-  settingsControls?: ReactNode;
-  /** Key figures for the project header. */
-  summary?: { experiments: number; results: number };
-  integrity?: IntegrityStatus;
-  /** The project was archived: it is shown read-only and says so. */
-  isArchived?: boolean;
-  writable: boolean;
-  /** Turns off one-shot actions while another is in flight, or the project is read-only. */
-  disabled: boolean;
-  actions: NotebookActions;
-  selected: Selected | null;
-  questions: QuestionChoice[];
-  filter: FilterState;
-  onFilter: (filter: FilterState) => void;
-  sort: SortState;
-  /** Whether the table clamps long text (Compact overview) or shows it all (Detailed comparison). */
-  compact: boolean;
-  onCompact: (compact: boolean) => void;
-  onSort: (sort: SortState) => void;
-  layout: readonly ColumnLayout[];
-  onHide: (key: ColumnKey, hidden: boolean) => void;
-  onWidth: (key: ColumnKey, width: number) => void;
-  onReset: () => void;
-  /** Collapses or expands every question and the Unassigned group. */
-  onCollapseAll: (collapsed: boolean) => void;
-  /** Opens the selected experiment's Results cell, where files are added. */
-  onAddResult: (() => void) | null;
-  /** Whether the project can be archived here, which adds the Archive command. */
-  archivable: boolean;
-  /** The tab ids that are open, to show which ribbon buttons they belong to. */
-  openTabs: ReadonlySet<string>;
-  onOpenPane: (tab: PaneTab) => void;
-};
-
-const TAB_KEYS = [
-  "home",
-  "projects",
-  "experiments",
-  "sources",
-  "settings",
-] as const;
-type RibbonTab = (typeof TAB_KEYS)[number];
-
-const SOURCES_TAB: PaneTab = { id: "sources", kind: "sources" };
-const SEARCH_TAB: PaneTab = { id: "search", kind: "search" };
-const CITATIONS_TAB: PaneTab = { id: "citations", kind: "citations" };
-const DETAILS_TAB: PaneTab = { id: "details", kind: "details" };
-const INTEGRITY_TAB: PaneTab = { id: "integrity", kind: "integrity" };
-const BIN_TAB: PaneTab = { id: "bin", kind: "bin" };
-const exportTab = (section: ExportSection): PaneTab => ({
-  id: `export:${section}`,
-  kind: "export",
-  section,
-});
+/** Whether a command has anything to draw. */
+const drawn = (node: ReactNode) =>
+  node !== null && node !== undefined && node !== false;
 
 /**
- * The ribbon (S6-T01): a row of tabs, Home, Projects, Experiments, Sources
- * and Settings, and under it only the commands of the chosen tab, in labelled
- * groups, so nothing needs more width than a window has. Less common
- * actions sit in menus. It can be collapsed to its tabs alone to give the
- * table more height; choosing a tab then shows its commands over the table
- * until a press elsewhere or Escape.
+ * The ribbon (S6-T01): a row of tabs, Home, View, Sources, Export and Settings, and
+ * under it only the commands of the chosen tab, in labelled groups, so
+ * nothing needs more width than a window has. What each tab holds is in
+ * `ribbonLayout.ts`. Less common actions sit in menus. It can be collapsed to
+ * its tabs alone to give the table more height; choosing a tab then shows its
+ * commands over the table until a press elsewhere or Escape.
  */
-export function Ribbon(props: Props) {
-  const { actions, selected, questions, disabled, openTabs, onOpenPane } =
-    props;
+export function Ribbon(props: RibbonProps) {
+  const { selected, questions } = props;
   const sources = useSources();
-  const { theme, setTheme } = useTheme();
+  const commands = useRibbonCommands(props);
   const ids = useId();
   const root = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<RibbonTab>("home");
@@ -142,300 +68,6 @@ export function Ribbon(props: Props) {
     return () => document.removeEventListener("pointerdown", onPress);
   }, [peek]);
 
-  const selectedQuestion =
-    selected?.kind === "question"
-      ? selected.group.question.file.frontmatter.id
-      : selected?.kind === "experiment"
-        ? (selected.item.experiment.file.frontmatter.question ?? "")
-        : "";
-  const pane = (target: PaneTab) => ({
-    "aria-pressed": openTabs.has(target.id),
-    onClick: () => onOpenPane(target),
-  });
-  const plain = (label: string, onClick: () => void, off = false) => (
-    <button
-      type="button"
-      className="ribbon__button"
-      disabled={off}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-
-  const newQuestionForm = (close: () => void) => (
-    <NewTitleForm
-      label={messages.newQuestionLabel}
-      placeholder={messages.newQuestionPlaceholder}
-      submitLabel={messages.addQuestion}
-      disabled={disabled}
-      onSubmit={(title) =>
-        actions.createQuestion(title).then((done) => {
-          if (done) close();
-          return done;
-        })
-      }
-    />
-  );
-  const newQuestion = (
-    <RibbonMenu label={m.newQuestion} disabled={disabled}>
-      {newQuestionForm}
-    </RibbonMenu>
-  );
-  const newExperimentForm = (close: () => void) => (
-    <NewExperimentForm
-      questions={questions}
-      initial={selectedQuestion}
-      disabled={disabled}
-      onCreate={(id, title) =>
-        actions.createExperiment(id, title).then((done) => {
-          if (done) close();
-          return done;
-        })
-      }
-    />
-  );
-  const newExperiment = (
-    <RibbonMenu
-      label={m.newExperiment}
-      disabled={disabled || questions.length === 0}
-    >
-      {newExperimentForm}
-    </RibbonMenu>
-  );
-  const addResult = (
-    <button
-      type="button"
-      className="ribbon__button"
-      disabled={props.onAddResult === null}
-      title={props.onAddResult === null ? m.noSelection : undefined}
-      onClick={() => props.onAddResult?.()}
-    >
-      {m.addResult}
-    </button>
-  );
-  const details = (
-    <button
-      type="button"
-      className="ribbon__button"
-      disabled={selected === null}
-      title={selected === null ? paneMessages.noSelection : undefined}
-      {...pane(DETAILS_TAB)}
-    >
-      {m.details}
-    </button>
-  );
-  const binPane = (
-    <button type="button" className="ribbon__button" {...pane(BIN_TAB)}>
-      {m.binPane}
-    </button>
-  );
-  const sourcesPane = (
-    <button type="button" className="ribbon__button" {...pane(SOURCES_TAB)}>
-      {m.sourcesPane}
-    </button>
-  );
-  const exportButton = (section: ExportSection, label: string) => (
-    <button
-      type="button"
-      className="ribbon__button"
-      {...pane(exportTab(section))}
-    >
-      {label}
-    </button>
-  );
-  const filters = (
-    <RibbonMenu label={m.filters}>
-      <FilterControls filter={props.filter} onFilter={props.onFilter} />
-    </RibbonMenu>
-  );
-  const sorting = (
-    <RibbonMenu label={m.sorting}>
-      <SortControls sort={props.sort} onSort={props.onSort} />
-    </RibbonMenu>
-  );
-  const rows = (
-    <>
-      {plain(m.expandAll, () => props.onCollapseAll(false))}
-      {plain(m.collapseAll, () => props.onCollapseAll(true))}
-    </>
-  );
-
-  const allProjects = props.onCloseProject !== undefined && (
-    <button
-      type="button"
-      className="ribbon__button"
-      onClick={props.onCloseProject}
-    >
-      {m.allProjects}
-    </button>
-  );
-  const tableControls = (
-    <>
-      <RibbonMenu label={m.columns}>
-        <ColumnsMenu
-          layout={props.layout}
-          writable={props.writable}
-          onHide={props.onHide}
-          onWidth={props.onWidth}
-          onReset={props.onReset}
-        />
-      </RibbonMenu>
-      <button
-        type="button"
-        className="ribbon__button"
-        aria-pressed={props.compact}
-        onClick={() => props.onCompact(!props.compact)}
-      >
-        {props.compact ? m.compactOverview : m.detailedComparison}
-      </button>
-    </>
-  );
-
-  function commands(): ReactNode {
-    switch (tab) {
-      case "home":
-        return (
-          <>
-            {allProjects !== false && (
-              <RibbonGroup label={m.groups.project}>{allProjects}</RibbonGroup>
-            )}
-            <RibbonGroup label={m.groups.add}>
-              {newQuestion}
-              {newExperiment}
-              {addResult}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.selection}>
-              <SelectionCommands
-                selected={selected}
-                questions={questions}
-                actions={actions}
-                disabled={disabled}
-              />
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.panes}>
-              {details}
-              {sourcesPane}
-              {binPane}
-            </RibbonGroup>
-          </>
-        );
-      case "projects":
-        return (
-          <>
-            <RibbonGroup label={m.groups.project}>
-              {allProjects}
-              {props.projectControls}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.documents}>
-              {exportButton("pdf", m.exportPdf)}
-              {exportButton("html", m.exportHtml)}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.data}>
-              {exportButton("machine", m.exportMachine)}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.packages}>
-              {exportButton("bundles", m.exportBundles)}
-              {exportButton("gitBundle", m.exportGitBundle)}
-            </RibbonGroup>
-            {props.archivable && (
-              <RibbonGroup label={m.groups.preservation}>
-                {exportButton("archive", m.archiveProject)}
-              </RibbonGroup>
-            )}
-          </>
-        );
-      case "experiments":
-        return (
-          <>
-            <RibbonGroup label={m.groups.questions}>
-              {newQuestion}
-              {rows}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.find}>
-              <button
-                type="button"
-                className="ribbon__button"
-                {...pane(SEARCH_TAB)}
-              >
-                {m.search}
-              </button>
-              {filters}
-              {sorting}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.table}>{tableControls}</RibbonGroup>
-            <RibbonGroup label={m.groups.results}>
-              {addResult}
-              {details}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.remove}>
-              <MoveToBinCommand
-                selected={selected}
-                actions={actions}
-                disabled={disabled}
-              />
-            </RibbonGroup>
-          </>
-        );
-      case "sources":
-        return (
-          <>
-            <RibbonGroup label={m.groups.library}>
-              {sourcesPane}
-              {plain(
-                m.refreshSources,
-                sources.refresh,
-                !sources.writable || sources.busy,
-              )}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.attach}>
-              {plain(
-                m.attachSource,
-                () => onOpenPane(SOURCES_TAB),
-                selected?.kind !== "experiment",
-              )}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.citations}>
-              <button
-                type="button"
-                className="ribbon__button"
-                {...pane(CITATIONS_TAB)}
-              >
-                {m.citationStyle}
-              </button>
-            </RibbonGroup>
-          </>
-        );
-      case "settings":
-        return (
-          <>
-            <RibbonGroup label={m.groups.project}>
-              {props.settingsControls}
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.check}>
-              <button
-                type="button"
-                className="ribbon__button"
-                {...pane(INTEGRITY_TAB)}
-              >
-                {m.integrityCheck}
-              </button>
-            </RibbonGroup>
-            <RibbonGroup label={m.groups.appearance}>
-              <button
-                type="button"
-                className="ribbon__button"
-                aria-pressed={theme === "dark"}
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                {m.darkMode}
-              </button>
-            </RibbonGroup>
-          </>
-        );
-    }
-  }
-
   function choose(next: RibbonTab) {
     setTab(next);
     // A collapsed ribbon shows the commands of a tab chosen, and hides them again on choosing it twice.
@@ -447,8 +79,9 @@ export function Ribbon(props: Props) {
       event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (step === 0) return;
     event.preventDefault();
-    const at = TAB_KEYS.indexOf(tab);
-    const next = TAB_KEYS[(at + step + TAB_KEYS.length) % TAB_KEYS.length];
+    const at = RIBBON_TABS.indexOf(tab);
+    const next =
+      RIBBON_TABS[(at + step + RIBBON_TABS.length) % RIBBON_TABS.length];
     if (next === undefined) return;
     choose(next);
     root.current
@@ -456,6 +89,12 @@ export function Ribbon(props: Props) {
       ?.focus();
   }
 
+  const groups = RIBBON_LAYOUT[tab].flatMap((spec) => {
+    const present = spec.commands.filter((id) => drawn(commands[id]));
+    return present.length === 0 ? [] : [{ spec, present }];
+  });
+
+  const parentId = questionOfSelection(selected);
   const crumbs: Crumb[] = [
     {
       label: headerMessages.projects,
@@ -470,7 +109,7 @@ export function Ribbon(props: Props) {
   if (selected?.kind === "question") {
     crumbs.push({ label: nameOf(selected.group.question.file.frontmatter) });
   } else if (selected?.kind === "experiment") {
-    const parent = questions.find((q) => q.id === selectedQuestion);
+    const parent = questions.find((q) => q.id === parentId);
     if (parent !== undefined) crumbs.push({ label: parent.label });
     crumbs.push({ label: nameOf(selected.item.experiment.file.frontmatter) });
   }
@@ -493,7 +132,7 @@ export function Ribbon(props: Props) {
             className="ribbon__tabs"
             onKeyDown={onTabKeys}
           >
-            {TAB_KEYS.map((key) => (
+            {RIBBON_TABS.map((key) => (
               <button
                 key={key}
                 type="button"
@@ -536,7 +175,13 @@ export function Ribbon(props: Props) {
               aria-label={m.label}
               className="ribbon__toolbar"
             >
-              {commands()}
+              {groups.map(({ spec, present }) => (
+                <RibbonGroup key={spec.group} label={m.groups[spec.group]}>
+                  {present.map((id) => (
+                    <Fragment key={id}>{commands[id]}</Fragment>
+                  ))}
+                </RibbonGroup>
+              ))}
             </div>
           </div>
         )}
@@ -551,64 +196,6 @@ export function Ribbon(props: Props) {
           integrity={props.integrity ?? { state: "idle" }}
           readOnly={!props.writable}
           archived={props.isArchived ?? false}
-          primary={
-            <>
-              <RibbonMenu
-                label={headerMessages.addQuestion}
-                alignEnd
-                disabled={disabled}
-              >
-                {newQuestionForm}
-              </RibbonMenu>
-              <RibbonMenu
-                label={headerMessages.addExperiment}
-                variant="primary"
-                alignEnd
-                disabled={disabled || questions.length === 0}
-              >
-                {newExperimentForm}
-              </RibbonMenu>
-            </>
-          }
-          more={
-            <RibbonMenu
-              label={headerMessages.moreLabel}
-              trigger={<span aria-hidden="true">⋯</span>}
-              alignEnd
-            >
-              {(close) => (
-                <div className="menu-list">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      choose("settings");
-                    }}
-                  >
-                    {m.projectSettings}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      onOpenPane(INTEGRITY_TAB);
-                    }}
-                  >
-                    {m.integrityCheck}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      choose("settings");
-                    }}
-                  >
-                    {m.zoteroIntegration}
-                  </button>
-                </div>
-              )}
-            </RibbonMenu>
-          }
         />
       )}
     </>

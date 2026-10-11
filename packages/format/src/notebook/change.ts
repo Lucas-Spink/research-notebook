@@ -1,6 +1,8 @@
 import { serialiseExperiment } from "../files/experiment";
 import { fail, ok, type Result } from "../result";
 import { ExperimentFrontmatter } from "../schema";
+import { arrangeNotebook } from "./arrange";
+import { serialiseBinNote, type BinNote } from "./bin-note";
 import {
   checkedProject,
   missingExperiment,
@@ -19,6 +21,7 @@ import {
   type NotebookError,
   type NotebookState,
   type Plan,
+  type Step,
 } from "./types";
 import { formatTimestamp, refusal } from "./util";
 
@@ -87,10 +90,29 @@ export function moveExperiment(
   });
 }
 
+/** The `.trash/` step for `path`, with a note of where it was shown. */
+function trashStep(path: string, note: BinNote): Step {
+  return { kind: "trash", path, note: serialiseBinNote(note) };
+}
+
+/** `artefacts` without the experiment folders in `gone`. */
+function withoutFolders(
+  artefacts: NotebookState["artefacts"],
+  gone: ReadonlySet<string>,
+): Pick<NotebookState, "artefacts"> {
+  if (artefacts === undefined) return {};
+  return {
+    artefacts: Object.fromEntries(
+      Object.entries(artefacts).filter(([folder]) => !gone.has(folder)),
+    ),
+  };
+}
+
 /**
  * Deletes an experiment by moving its folder to `.trash/` (FR-EXP-06), then
  * dropping it from the order. The counter is not lowered, so its ref is not
- * given out again (FR-EXP-03).
+ * given out again (FR-EXP-03). Its place under its question is kept with it
+ * in the bin so a restore can put it back (ADR-0063).
  */
 export function removeExperiment(
   state: NotebookState,
@@ -100,6 +122,11 @@ export function removeExperiment(
   const found = state.experiments.find((e) => e.file.frontmatter.id === id);
   if (found === undefined) return fail(missingExperiment(id));
   const experiments = state.experiments.filter((e) => e !== found);
+  const shown = arrangeNotebook(state).questions.find(
+    (q) => q.question.file.frontmatter.id === found.file.frontmatter.question,
+  );
+  const index =
+    shown?.experiments.findIndex((e) => e.experiment === found) ?? -1;
   const project = checkedProject(
     tidied(
       stamped(
@@ -115,32 +142,29 @@ export function removeExperiment(
     ),
   );
   if (!project.ok) return project;
+  const path = experimentFolderPath(found.folder);
   return ok({
     steps: [
-      { kind: "trash", path: experimentFolderPath(found.folder) },
+      index < 0
+        ? { kind: "trash", path }
+        : trashStep(path, { index, experiments: [] }),
       projectStep(project.value),
     ],
     next: {
       ...state,
       project: project.value,
       experiments,
-      ...(state.artefacts === undefined
-        ? {}
-        : {
-            artefacts: Object.fromEntries(
-              Object.entries(state.artefacts).filter(
-                ([folder]) => folder !== found.folder,
-              ),
-            ),
-          }),
+      ...withoutFolders(state.artefacts, new Set([found.folder])),
     },
   });
 }
 
 /**
- * Deletes a question by moving its file to `.trash/` (FR-EXP-06). Only the
- * file moves: its experiments stay where they are and are shown under
- * Unassigned (FR-EXP-08), so nothing is lost with it (ADR-0026).
+ * Deletes a question by moving its file to `.trash/` (FR-EXP-06), after the
+ * folders of all its experiments, so none is left shown as Unassigned
+ * (ADR-0063, which replaces ADR-0026 point 5). The question's place among the
+ * questions and its experiments' order are kept with it in the bin, so one
+ * restore puts everything back where it was.
  */
 export function removeQuestion(
   state: NotebookState,
@@ -149,7 +173,11 @@ export function removeQuestion(
 ): Result<Plan, NotebookError> {
   const found = state.questions.find((q) => q.file.frontmatter.id === id);
   if (found === undefined) return fail(missingQuestion(id));
+  const arranged = arrangeNotebook(state).questions;
+  const index = arranged.findIndex((q) => q.question === found);
+  const taken = (arranged[index]?.experiments ?? []).map((e) => e.experiment);
   const questions = state.questions.filter((q) => q !== found);
+  const experiments = state.experiments.filter((e) => !taken.includes(e));
   const project = checkedProject(
     tidied(
       stamped(
@@ -166,16 +194,31 @@ export function removeQuestion(
         env,
       ),
       questions,
-      state.experiments,
+      experiments,
       state.unreadable,
     ),
   );
   if (!project.ok) return project;
   return ok({
     steps: [
-      { kind: "trash", path: questionPath(found.fileName) },
+      ...taken.map((e, position) =>
+        trashStep(experimentFolderPath(e.folder), {
+          index: position,
+          experiments: [],
+        }),
+      ),
+      trashStep(questionPath(found.fileName), {
+        index: Math.max(index, 0),
+        experiments: taken.map((e) => e.folder),
+      }),
       projectStep(project.value),
     ],
-    next: { ...state, project: project.value, questions },
+    next: {
+      ...state,
+      project: project.value,
+      questions,
+      experiments,
+      ...withoutFolders(state.artefacts, new Set(taken.map((e) => e.folder))),
+    },
   });
 }

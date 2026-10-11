@@ -50,7 +50,7 @@ function targetOf(selected: Selected | null, actions: NotebookActions) {
 }
 
 /**
- * Move to bin, in the Experiments tab of the ribbon. Faded until a question
+ * Move to bin, in the Selection group of the ribbon's Home tab. Faded until a question
  * or experiment is selected, then accented to show it can be moved. The
  * first press only says what will happen. Nothing is deleted: the item goes
  * to the bin and can be restored from it.
@@ -96,7 +96,7 @@ export function MoveToBinCommand({ selected, actions, disabled }: Props) {
       type="button"
       className="ribbon__button ribbon__button--bin"
       disabled={disabled || target === null}
-      title={target === null ? m.moveToBinHint : undefined}
+      title={target === null ? m.selectionHint : undefined}
       aria-label={
         target === null ? undefined : messages.moveToBinLabel(target.ref)
       }
