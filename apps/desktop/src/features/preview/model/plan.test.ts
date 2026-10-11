@@ -49,16 +49,22 @@ describe("planPreview (spec 8)", () => {
 
   it("shows unlisted scripts and text as text, from their recorded type", () => {
     expect(
-      planPreview({ fileName: "fit.jl", type: "script", captured: true }),
+      planPreview({ fileName: "fit.pl", type: "script", captured: true }),
     ).toEqual({
       kind: "text",
     });
     expect(
-      planPreview({ fileName: "fit.jl", type: "other", captured: true }),
+      planPreview({ fileName: "fit.pl", type: "other", captured: true }),
     ).toEqual({
       kind: "other",
       reason: "type",
     });
+  });
+
+  it("shows a format added to the script registry as text, whatever its recorded type", () => {
+    expect(
+      planPreview({ fileName: "fit.jl", type: "other", captured: true }),
+    ).toEqual({ kind: "text" });
   });
 
   it("gives an unsupported image format the fallback, not an image preview", () => {

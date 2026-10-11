@@ -1,5 +1,6 @@
 import type { ARTEFACT_TYPES } from "@research-notebook/format";
 import { assertNever } from "../../../shared/assertNever";
+import { codeExtensions, extensionOf } from "./scriptFormats";
 
 /** An artefact's recorded type (spec 5.8). */
 export type ArtefactType = (typeof ARTEFACT_TYPES)[number];
@@ -30,13 +31,9 @@ export type PlanInput = {
 
 // Spec 8's extension lists, lower case.
 const RASTER = ["png", "jpg", "jpeg", "gif", "webp", "tif", "tiff", "bmp"];
+// Approved scripts come from the registry, so a new format is listed once.
 const TEXT = [
-  "r",
-  "py",
-  "sh",
-  "smk",
-  "nf",
-  "wdl",
+  ...codeExtensions(),
   "md",
   "txt",
   "yaml",
@@ -48,11 +45,6 @@ const TEXT = [
 const NOTEBOOK = ["ipynb", "rmd", "qmd"];
 const HTML = ["html", "htm"];
 const TABLE = /\.(csv|tsv)(\.gz)?$/i;
-
-function extensionOf(fileName: string): string {
-  const dot = fileName.lastIndexOf(".");
-  return dot <= 0 ? "" : fileName.slice(dot + 1).toLowerCase();
-}
 
 /**
  * Chooses a version's preview from its file name, as spec 8 lists them. The
