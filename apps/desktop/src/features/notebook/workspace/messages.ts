@@ -13,6 +13,7 @@ export const paneMessages = {
   detailsTab: "Details",
   integrityTab: "Integrity check",
   binTab: "Bin",
+  canvasNotesTab: "Canvas notes",
   exportTabs: {
     pdf: "PDF/A export",
     html: "HTML export",
@@ -86,6 +87,7 @@ export const ribbonMessages = {
   citationStyle: "Citation style",
   integrityCheck: "Integrity check",
   binPane: "Bin",
+  canvasNotesPane: "Canvas notes",
   exportPdf: "PDF/A",
   exportHtml: "HTML",
   exportMachine: "Machine-readable",
@@ -162,4 +164,16 @@ export const headerMessages = {
   },
   readOnly: "Read-only",
   archived: "Archived",
+};
+
+/** Text of the Canvas notes pane in the table view (ADR-0065). */
+export const canvasNotesPaneMessages = {
+  questionLabel: "Question",
+  intro:
+    "The notes drafted on this question's canvas, and the figures their lines refer to. Edit them on the canvas.",
+  openCanvas: "Open on canvas",
+  loading: "Loading the canvas…",
+  noQuestions: "This project has no questions yet.",
+  unreadable:
+    "This question's canvas file could not be read, so its notes cannot be shown. It has not been changed.",
 };
