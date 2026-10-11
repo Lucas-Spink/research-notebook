@@ -211,7 +211,7 @@ export const machineExportMessages = {
   intro:
     "Writes notebook.json into exports/machine/, with the JSON Schemas it follows and a Markdown file for each question and experiment, so the notebook can be read by other programs and without this application. Your captured files are not changed. Files from an earlier export that are no longer needed are left in place.",
   write: "Write machine-readable export",
-  writing: "Writing…",
+  writing: "Writingâ€¦",
   again: "Write again",
   notWritten: "The machine-readable export has not been written yet.",
   readOnly:
@@ -240,7 +240,7 @@ export const pdfExportMessages = {
   intro:
     "Writes a new dated file in exports/pdf/ (project-DATE.pdf, the date and time in UTC), so earlier PDFs are never replaced. It is a single archival PDF/A-3b document with every question, experiment, section and artefact listed, and one bibliography of every source cited anywhere in the project. notebook.json and bibliography.json are attached inside it. Figures are not included; artefacts are listed with their versions and checksums. Your captured files are not changed.",
   write: "Write PDF/A export",
-  writing: "Writing…",
+  writing: "Writingâ€¦",
   again: "Write again",
   notWritten: "The PDF/A export has not been written yet.",
   readOnly: "This project is read-only, so the PDF/A export cannot be written.",
