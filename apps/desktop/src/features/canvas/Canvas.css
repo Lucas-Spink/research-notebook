@@ -450,3 +450,11 @@
   border-top: 0;
   border-left: 1px solid var(--color-border);
 }
+
+/* A note away from editing: citations read as author and year. */
+.canvas-note__read {
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}

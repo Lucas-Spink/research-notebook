@@ -1,4 +1,5 @@
 import { parseCanvas } from "@research-notebook/format";
+import { act } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { CanvasView } from "./CanvasView";
 import { A, FOLDER, fakeApi, pathOf } from "./model/fakeApi";
@@ -32,6 +33,15 @@ vi.mock("./NoteCitationPicker", () => ({
       </button>
     </div>
   ),
+}));
+
+// The library has cached the source under the key the picker mock inserts.
+vi.mock("../citations", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../citations")>()),
+  useSources: () => ({
+    lookup: (key: string) =>
+      key === "z:u:7XK2PQ9M" ? { label: "Smith 2021" } : undefined,
+  }),
 }));
 
 beforeAll(stubFlowEnvironment);
@@ -113,5 +123,23 @@ describe("/cite in a note", () => {
     await flush();
     expect(view.querySelector('[data-testid="picker"]')).toBeNull();
     expect(box.value).toBe("a/cite");
+  });
+
+  it("shows the citation as author and year away from the note, and as the key while writing", async () => {
+    const { view, box } = await openNote();
+    type(box, "As shown by /cite");
+    await flush();
+    click(buttonNamed(view, "Pick"));
+    await flush();
+    act(() => box.blur());
+    const read = view.querySelector(".canvas-note__read");
+    expect(read?.textContent).toBe("As shown by [Smith 2021]");
+    expect(box.hidden).toBe(true);
+    act(() => {
+      read?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flush();
+    expect(view.querySelector(".canvas-note__read")).toBeNull();
+    expect(box.value).toBe("As shown by [@z:u:7XK2PQ9M]");
   });
 });

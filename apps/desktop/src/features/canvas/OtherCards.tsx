@@ -1,10 +1,11 @@
 import { NodeResizer, type NodeProps } from "@xyflow/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSources } from "../citations";
 import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
 import { canvasMessages as m } from "./messages";
 import type { NoteFlowNode, RegionFlowNode } from "./model/flowNodes";
-import { citeTrigger, spliceCitation } from "./model/cite";
+import { citeTrigger, readableCitations, spliceCitation } from "./model/cite";
 import { NOTE_CARD } from "./model/notes";
 import { NoteCitationPicker } from "./NoteCitationPicker";
 
@@ -14,13 +15,24 @@ import { NoteCitationPicker } from "./NoteCitationPicker";
  * editor; what is typed goes to the canvas file after a short pause. A line
  * from it to a figure is its reference to that figure. Typing `/cite` opens
  * the citation picker, as in a section, and puts the citation where it was
- * typed.
+ * typed. Away from the note, a citation reads as author and year; it is the
+ * citekey again while the note is being written.
  */
 export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
   const { editable, onNoteText, onRemove } = useCard();
   const [draft, setDraft] = useState(data.text);
   const [seen, setSeen] = useState(data.text);
   const box = useRef<HTMLTextAreaElement>(null);
+  const { lookup } = useSources();
+  const [editing, setEditing] = useState(false);
+  const readable = readableCitations(
+    draft,
+    (key) => lookup(key)?.label ?? null,
+  );
+  const showReadable = !editing && readable !== draft;
+  useEffect(() => {
+    if (editing) box.current?.focus();
+  }, [editing]);
   // Where the citation goes once the picker is done, while it is open.
   const [citeAt, setCiteAt] = useState<number | null>(null);
   // The file changed underneath (reloaded, saved elsewhere): show it, unless it is just what was typed.
@@ -49,8 +61,19 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
             ×
           </button>
         )}
+        {showReadable && (
+          <div
+            className="canvas-note__text canvas-note__read nodrag nopan nowheel"
+            onClick={() => editable && setEditing(true)}
+          >
+            {readable}
+          </div>
+        )}
         <textarea
           className="canvas-note__text nodrag nopan nowheel"
+          hidden={showReadable}
+          onFocus={() => setEditing(true)}
+          onBlur={() => citeAt === null && setEditing(false)}
           ref={box}
           aria-label={m.noteLabel}
           placeholder={m.notePlaceholder}
