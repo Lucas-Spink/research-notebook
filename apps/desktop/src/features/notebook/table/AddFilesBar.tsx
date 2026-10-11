@@ -78,9 +78,9 @@ export function AddFilesBar({
             onClick={() => void add.pickScripts()}
             disabled={readOnly || add.busy}
           >
-            {evidenceMessages.linkScripts}
+            {evidenceMessages.addScripts}
           </button>
-          <p className="wtable__muted">{evidenceMessages.linkScriptsHint}</p>
+          <p className="wtable__muted">{evidenceMessages.addScriptsHint}</p>
         </>
       )}
       <label className="wtable__add-how">

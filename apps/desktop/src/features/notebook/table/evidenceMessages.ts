@@ -6,9 +6,9 @@ import type { AddOutcome } from "./model/addEvidence";
 /** Text of adding files in the Results cell (FR-EVD-01 to FR-EVD-05, ADR-0044). */
 export const evidenceMessages = {
   addFiles: "Add files…",
-  linkScripts: "Link scripts…",
-  linkScriptsHint:
-    "Scripts stay where they are and are listed in the Code folder, so text can refer to them.",
+  addScripts: "Add scripts…",
+  addScriptsHint:
+    "Scripts are copied into the project and listed in the Code folder, so text can refer to them and they can be previewed.",
   choosing: "Choosing files…",
   adding: "Adding files…",
   howLabel: "Add as",

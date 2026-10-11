@@ -543,3 +543,33 @@ describe("linking a script into the Code folder (S6-T01)", () => {
     expect(held.file.artefacts[0]).toMatchObject({ role: "result" });
   });
 });
+
+describe("copying a script into the project (issue #104)", () => {
+  it("captures it under methods/ and records a method artefact of type script", async () => {
+    const { outcomes, calls, held } = await add({
+      files: [located("code/analysis.py", 1)],
+      captures: [created("methods/analysis.py", "a")],
+      override: "copy",
+      role: "method",
+    });
+
+    expect(only(outcomes)).toMatchObject({ kind: "added", mode: "copy" });
+    expect(calls.captured[0]?.[5]).toBe("methods");
+    expect(held.file.artefacts[0]).toMatchObject({
+      role: "method",
+      mode: "copy",
+      type: "script",
+      versions: [{ v: 1, file: "methods/analysis.py" }],
+    });
+    expect(held.file.groups).toEqual([]);
+  });
+
+  it("still captures results under evidence/", async () => {
+    const { calls } = await add({
+      files: [located("results/a.png", 1)],
+      captures: [created("evidence/a.png", "a")],
+      override: "copy",
+    });
+    expect(calls.captured[0]?.[5]).toBe("evidence");
+  });
+});

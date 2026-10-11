@@ -63,7 +63,7 @@ export function useAddFiles({
   latest.current = { artefacts, how };
   const running = useRef(false);
 
-  /** What an addition does apart from the "Add as" choice: scripts are always linked, as methods. */
+  /** What an addition does apart from the "Add as" choice: scripts are always copied, as methods. */
   type Kind = "results" | "scripts";
 
   async function addChosen(files: ChosenFile[], kind: Kind = "results") {
@@ -79,7 +79,7 @@ export function useAddFiles({
         experimentFolder,
         copyThresholdMb: evidence.copyThresholdMb,
         ...(kind === "scripts"
-          ? { override: "link" as const, role: "method" as const }
+          ? { override: "copy" as const, role: "method" as const }
           : chosenHow !== "size" && { override: chosenHow }),
         files,
         artefacts: latest.current.artefacts,

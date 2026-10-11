@@ -225,7 +225,7 @@ async function copy(
     root,
     path,
     request.experimentFolder,
-    existing?.role === "method" ? "methods" : "evidence",
+    (existing?.role ?? request.role) === "method" ? "methods" : "evidence",
     naming,
     knownVersions(current, existing),
   );
@@ -254,7 +254,7 @@ async function copy(
         ? {
             kind: "new",
             name: defaultDisplayName(chosen.name),
-            role: "result",
+            role: request.role ?? "result",
             type: inferArtefactType(chosen.name),
             source: { root, path },
           }

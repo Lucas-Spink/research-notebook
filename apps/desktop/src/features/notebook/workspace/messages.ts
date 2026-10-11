@@ -129,8 +129,8 @@ export const resultsBrowserMessages = {
   codeFolder: "Code",
   codeCount: (count: number) => (count === 1 ? "1 script" : `${count} scripts`),
   codeEmpty:
-    "No scripts yet. Link one here and text can refer to it, as it can to a figure.",
-  linkScript: "Link script…",
+    "No scripts yet. Add one here to preview it, and text can refer to it as it can to a figure.",
+  addScript: "Add script…",
   scriptOpen: (name: string) => `Open ${name}`,
   linked: "linked",
 };

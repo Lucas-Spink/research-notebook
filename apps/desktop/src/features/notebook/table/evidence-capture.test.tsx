@@ -180,33 +180,40 @@ describe("adding files in the Results cell (FR-EVD-01, FR-EVD-02)", () => {
     expect(statusIn(view)).toContain("Linked reads.csv");
   });
 
-  it("links a picked script in place as a method, from the Link scripts button", async () => {
+  it("copies a picked script into the project as a method, from the Add scripts button", async () => {
     okPick(located("code/analysis.py", 1));
-    const capture = vi.spyOn(commands, "captureEvidence");
-    vi.spyOn(commands, "observeEvidence").mockResolvedValue({
+    const capture = vi.spyOn(commands, "captureEvidence").mockResolvedValue({
       status: "ok",
       data: {
-        sha256: "e".repeat(64),
-        size: 1,
-        observedMtime: "2026-09-26T09:00:00Z",
+        result: {
+          kind: "created",
+          file: "methods/analysis.py",
+          sha256: "e".repeat(64),
+          size: 1,
+          number: 1,
+        },
+        matchesOtherArtefact: false,
+        provenance: null,
       },
     });
+    const observe = vi.spyOn(commands, "observeEvidence");
     const { view, edits } = mount();
     await openResults(view);
     await act(async () => {
-      buttonIn(view, evidenceMessages.linkScripts).click();
+      buttonIn(view, evidenceMessages.addScripts).click();
       await settle();
       await settle();
     });
 
-    expect(capture).not.toHaveBeenCalled();
+    expect(observe).not.toHaveBeenCalled();
+    expect(capture.mock.calls[0]?.[5]).toBe("methods");
     expect(edits[0]?.artefacts.at(-1)).toMatchObject({
       role: "method",
-      mode: "link",
+      mode: "copy",
       type: "script",
-      source: { path: "code/analysis.py" },
+      versions: [{ file: "methods/analysis.py" }],
     });
-    expect(statusIn(view)).toContain("Linked analysis.py");
+    expect(statusIn(view)).toContain("Copied analysis.py");
   });
 
   it("says why a file outside the project was not added, and saves nothing", async () => {

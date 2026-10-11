@@ -267,13 +267,13 @@ describe("Results cell (FR-TBL-06, issue #101)", () => {
     expect(treeIn(view, "EXP-001")?.textContent).not.toContain("analysis.py");
   });
 
-  it("offers to link a script, and says there are none yet when there are none", () => {
+  it("offers to add a script, and says there are none yet when there are none", () => {
     const { view } = mount(withResults(figure));
     const code = cellOf(view, "EXP-001")?.querySelector(".code-folder");
     expect(code?.textContent).toContain("No scripts yet");
     expect(
       [...(code?.querySelectorAll("button") ?? [])].some(
-        (b) => b.textContent === "Link script…",
+        (b) => b.textContent === "Add script…",
       ),
     ).toBe(true);
   });
