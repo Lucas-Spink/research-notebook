@@ -1,5 +1,6 @@
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSources } from "../citations";
 import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
@@ -25,6 +26,8 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
   const box = useRef<HTMLTextAreaElement>(null);
   const { lookup } = useSources();
   const [editing, setEditing] = useState(false);
+  // Deleting is a deliberate act: it is only offered from the right-click menu.
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const readable = readableCitations(
     draft,
     (key) => lookup(key)?.label ?? null,
@@ -49,18 +52,16 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
         handleClassName="canvas-resize-handle"
         lineClassName="canvas-resize-line"
       />
-      <div className="canvas-note" role="group" aria-label={m.noteLabel}>
-        {editable && (
-          <button
-            type="button"
-            className="canvas-note__remove nodrag nopan"
-            aria-label={m.removeNote}
-            title={m.removeNote}
-            onClick={() => onRemove(id)}
-          >
-            ×
-          </button>
-        )}
+      <div
+        className="canvas-note"
+        role="group"
+        aria-label={m.noteLabel}
+        onContextMenu={(event) => {
+          if (!editable) return;
+          event.preventDefault();
+          setMenu({ x: event.clientX, y: event.clientY });
+        }}
+      >
         {showReadable && (
           <div
             className="canvas-note__text canvas-note__read nodrag nopan nowheel"
@@ -112,9 +113,59 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
             }}
           />
         )}
+        {menu !== null && (
+          <NoteMenu
+            at={menu}
+            onClose={() => setMenu(null)}
+            onDelete={() => {
+              setMenu(null);
+              onRemove(id);
+            }}
+          />
+        )}
         <CardHandles />
       </div>
     </>
+  );
+}
+
+/** The right-click menu of a note. Drawn into the page body: a card is moved and scaled with the canvas, which would carry a fixed menu with it. */
+function NoteMenu({
+  at,
+  onClose,
+  onDelete,
+}: {
+  at: { x: number; y: number };
+  onClose: () => void;
+  onDelete: () => void;
+}) {
+  useEffect(() => {
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent ? event.key === "Escape" : true)
+        onClose();
+    };
+    window.addEventListener("keydown", close);
+    window.addEventListener("mousedown", close);
+    window.addEventListener("wheel", close);
+    return () => {
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("wheel", close);
+    };
+  }, [onClose]);
+  return createPortal(
+    <div
+      className="canvas-note-menu"
+      role="menu"
+      style={{ left: at.x, top: at.y }}
+      // A press inside must not reach the window listener that closes it.
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <button type="button" role="menuitem" onClick={onDelete}>
+        {m.removeNote}
+      </button>
+    </div>,
+    document.body,
   );
 }
 

@@ -207,11 +207,17 @@ describe("notes", () => {
     );
   });
 
-  it("removes a note with its button, and its lines with it", async () => {
+  it("removes a note from its right-click menu, and its lines with it", async () => {
     const { view, disk } = await open();
     click(buttonNamed(view, "Add note"));
     await flush();
-    click(view.querySelector('button[aria-label="Remove note"]'));
+    expect(document.querySelector('[role="menuitem"]')).toBeNull();
+    act(() => {
+      view
+        .querySelector(".canvas-note")
+        ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    });
+    click(document.querySelector('[role="menuitem"]'));
     await flush();
     expect(saved(disk).nodes).toEqual([]);
     expect(view.querySelector(".canvas-note")).toBeNull();
@@ -227,7 +233,12 @@ describe("notes", () => {
     );
     const { view } = await open({ [pathOf(A)]: file }, { writable: false });
     expect(view.querySelector("textarea")?.hasAttribute("readonly")).toBe(true);
-    expect(view.querySelector('button[aria-label="Remove note"]')).toBeNull();
+    act(() => {
+      view
+        .querySelector(".canvas-note")
+        ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    });
+    expect(document.querySelector('[role="menuitem"]')).toBeNull();
   });
 });
 
@@ -357,3 +368,23 @@ function parsedEmpty() {
   if (!parsed.ok) throw new Error("fixture");
   return parsed.value;
 }
+
+describe("the note menu", () => {
+  it("has no button on the note itself and closes without deleting", async () => {
+    const { view, disk } = await open();
+    click(buttonNamed(view, "Add note"));
+    await flush();
+    expect(view.querySelector("button[aria-label='Delete note']")).toBeNull();
+    act(() => {
+      view
+        .querySelector(".canvas-note")
+        ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    });
+    expect(document.querySelector('[role="menuitem"]')).not.toBeNull();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+    expect(document.querySelector('[role="menuitem"]')).toBeNull();
+    expect(saved(disk).nodes).toHaveLength(1);
+  });
+});

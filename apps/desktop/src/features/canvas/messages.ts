@@ -54,7 +54,7 @@ export const canvasMessages = {
 
   noteLabel: "Note",
   notePlaceholder: "Write a note… (type /cite to cite a source)",
-  removeNote: "Remove note",
+  removeNote: "Delete note",
   noteHandle: "Draw a line from this card",
 
   summaryEmpty:

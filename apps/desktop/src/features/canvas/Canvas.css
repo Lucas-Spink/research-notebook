@@ -328,12 +328,21 @@
   font: inherit;
 }
 
-.canvas-note__remove {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  z-index: 1;
-  padding: 0 var(--space-2);
+.canvas-note-menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 9rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-dialog);
+}
+
+.canvas-note-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
 }
 
 /* The points a line is drawn from, shown on a selected or hovered card. */
