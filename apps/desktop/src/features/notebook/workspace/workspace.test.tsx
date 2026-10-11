@@ -257,6 +257,22 @@ describe("the workspace (S6-T01)", () => {
     expect(pane(view)?.textContent).toContain("has not been run");
   });
 
+  it("opens the Bin from the Home tab, listing nothing it cannot read and offering no way to empty it", async () => {
+    const { view } = mountNotebook(state);
+    click(ribbonButton(view, "Bin"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    const text = pane(view)?.textContent ?? "";
+    expect(text).toContain("Bin");
+    expect(text).toContain("never empties the bin");
+    expect(
+      [...(pane(view)?.querySelectorAll("button") ?? [])].map(
+        (b) => b.textContent,
+      ),
+    ).not.toContain("Empty bin");
+  });
+
   it("offers the manifest beside the integrity check, and does not write it until asked", () => {
     const { view } = mountNotebook(state);
     click(ribbonTab(view, "Settings"));

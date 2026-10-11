@@ -47,6 +47,7 @@ import {
   useVerify,
   VerifyPanel,
 } from "../archive";
+import { BinPanel } from "../bin";
 import {
   IntegrityPanel,
   useIntegrityCheck,
@@ -85,6 +86,7 @@ import {
   type BibliographyTarget,
 } from "./workspace/BibliographyPanel";
 import { attachedCitekeys } from "./workspace/model/attach";
+import { restoreEntry } from "./workspace/model/restoreEntry";
 import { AddResultPane } from "./workspace/AddResultPane";
 import { PaneHost } from "./workspace/PaneHost";
 import { PaneTabIcon } from "./workspace/PaneTabIcon";
@@ -572,6 +574,8 @@ function NotebookViewBody({
         return paneMessages.detailsTab;
       case "integrity":
         return paneMessages.integrityTab;
+      case "bin":
+        return paneMessages.binTab;
       case "export":
         return paneMessages.exportTabs[tab.section];
       case "addResult":
@@ -656,6 +660,24 @@ function NotebookViewBody({
             />
             <VerifyPanel model={verify} />
           </>
+        );
+      case "bin":
+        return (
+          <BinPanel
+            api={commands}
+            folder={folder}
+            writable={writable}
+            onRestore={(entry) =>
+              restoreEntry({
+                api: commands,
+                folder,
+                entry,
+                refresh: () => actions.refresh(),
+                editArtefacts: (experimentFolder, change) =>
+                  actions.editArtefacts(experimentFolder, change),
+              })
+            }
+          />
         );
       case "export":
         return exportContent(tab.section);

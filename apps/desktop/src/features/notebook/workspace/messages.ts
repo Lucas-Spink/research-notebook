@@ -12,6 +12,7 @@ export const paneMessages = {
   citationsTab: "Citation style",
   detailsTab: "Details",
   integrityTab: "Integrity check",
+  binTab: "Bin",
   exportTabs: {
     pdf: "PDF/A export",
     html: "HTML export",
@@ -89,6 +90,7 @@ export const ribbonMessages = {
   refreshSources: "Refresh Zotero sources",
   citationStyle: "Citation style",
   integrityCheck: "Integrity check",
+  binPane: "Bin",
   exportPdf: "PDF/A",
   exportHtml: "HTML",
   exportMachine: "Machine-readable",
