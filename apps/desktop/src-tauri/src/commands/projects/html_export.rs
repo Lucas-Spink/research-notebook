@@ -1,15 +1,17 @@
 //! The static HTML export (FR-ARC-05, ADR-0054). `packages/format` decides
 //! which figures and tables the pages need and writes the pages; these
 //! commands only prepare those files and store those pages under
-//! `_notebook/exports/html/`, so Rust never parses notebook text.
+//! `_notebook/exports/html/<stamp>/`, one folder per run so an earlier export
+//! is kept (issue #102), so Rust never parses notebook text.
 
-use nb_archive::{AssetKind, AssetRequest, AssetVerdict, PageVerdict};
+use nb_archive::{AssetKind, AssetRequest, AssetVerdict, ExportStamp, PageVerdict};
 use nb_fs::lock::LockRegistry;
 use nb_fs::ProjectRoot;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::State;
 
+use super::export_run::ExportRun;
 use super::folders::{FolderHandle, PickedFolders};
 use super::history::writable;
 use super::lock::with_root;
@@ -114,7 +116,11 @@ impl From<PageVerdict> for HtmlPageOutcome {
     }
 }
 
-pub(super) fn prepare(root: &ProjectRoot, requests: &[HtmlAssetRequest]) -> Vec<HtmlAssetOutcome> {
+pub(super) fn prepare(
+    root: &ProjectRoot,
+    stamp: &ExportStamp,
+    requests: &[HtmlAssetRequest],
+) -> Vec<HtmlAssetOutcome> {
     let requests: Vec<AssetRequest> = requests
         .iter()
         .map(|r| AssetRequest {
@@ -126,25 +132,29 @@ pub(super) fn prepare(root: &ProjectRoot, requests: &[HtmlAssetRequest]) -> Vec<
             },
         })
         .collect();
-    nb_archive::prepare_html_assets(root, &requests)
+    nb_archive::prepare_html_assets(root, stamp, &requests)
         .into_iter()
         .map(HtmlAssetOutcome::from)
         .collect()
 }
 
-pub(super) fn store(root: &ProjectRoot, pages: &[HtmlPageInput]) -> Vec<HtmlPageOutcome> {
+pub(super) fn store(
+    root: &ProjectRoot,
+    stamp: &ExportStamp,
+    pages: &[HtmlPageInput],
+) -> Vec<HtmlPageOutcome> {
     let pages: Vec<(String, String)> = pages
         .iter()
         .map(|p| (p.name.clone(), p.html.clone()))
         .collect();
-    nb_archive::write_html_pages(root, &pages)
+    nb_archive::write_html_pages(root, stamp, &pages)
         .into_iter()
         .map(HtmlPageOutcome::from)
         .collect()
 }
 
 /// Reduces figures and samples tables for the HTML export, writing reduced
-/// figures under `_notebook/exports/html/assets/` (FR-ARC-05). The captured
+/// figures under `_notebook/exports/html/<stamp>/assets/` (FR-ARC-05). The captured
 /// files are only read. Refused, with nothing written, unless this
 /// application holds the project's lock.
 #[tauri::command]
@@ -153,31 +163,36 @@ pub async fn prepare_html_assets(
     folders: State<'_, PickedFolders>,
     locks: State<'_, LockRegistry>,
     folder: FolderHandle,
+    run: ExportRun,
     requests: Vec<HtmlAssetRequest>,
 ) -> Result<Vec<HtmlAssetOutcome>, ProjectError> {
     let locks = locks.inner().clone();
     with_root(&folders, folder, move |root| {
         writable(locks.health(&root))?;
-        Ok(prepare(&root, &requests))
+        let stamp = run.stamp().map_err(|_| ProjectError::WriteFailed)?;
+        Ok(prepare(&root, &stamp, &requests))
     })
     .await
 }
 
-/// Writes the export's pages into `_notebook/exports/html/` (FR-ARC-05),
-/// replacing those of an earlier run. Refused, with nothing written, unless
-/// this application holds the project's lock.
+/// Writes the export's pages into this run's folder,
+/// `_notebook/exports/html/<stamp>/` (FR-ARC-05); an earlier run's folder is
+/// not touched. Refused, with nothing written, unless this application holds
+/// the project's lock.
 #[tauri::command]
 #[specta::specta]
 pub async fn write_html_pages(
     folders: State<'_, PickedFolders>,
     locks: State<'_, LockRegistry>,
     folder: FolderHandle,
+    run: ExportRun,
     pages: Vec<HtmlPageInput>,
 ) -> Result<Vec<HtmlPageOutcome>, ProjectError> {
     let locks = locks.inner().clone();
     with_root(&folders, folder, move |root| {
         writable(locks.health(&root))?;
-        Ok(store(&root, &pages))
+        let stamp = run.stamp().map_err(|_| ProjectError::WriteFailed)?;
+        Ok(store(&root, &stamp, &pages))
     })
     .await
 }
@@ -191,6 +206,10 @@ mod tests {
     use super::*;
 
     const EVIDENCE: &str = "_notebook/experiments/EXP-001/evidence";
+
+    fn stamp() -> ExportStamp {
+        ExportStamp::parse("2026-10-11T14-30-05Z").unwrap()
+    }
 
     fn project() -> (tempfile::TempDir, ProjectRoot) {
         let dir = tempfile::tempdir().unwrap();
@@ -216,7 +235,7 @@ mod tests {
             },
         ];
 
-        let outcomes = prepare(&root, &requests);
+        let outcomes = prepare(&root, &stamp(), &requests);
 
         assert_eq!(outcomes.len(), 2);
         assert_eq!(outcomes[0], HtmlAssetOutcome::Missing);
@@ -246,7 +265,7 @@ mod tests {
             },
         ];
 
-        let outcomes = store(&root, &pages);
+        let outcomes = store(&root, &stamp(), &pages);
 
         assert_eq!(
             outcomes,
@@ -254,7 +273,7 @@ mod tests {
         );
         assert!(dir
             .path()
-            .join("_notebook/exports/html/index.html")
+            .join("_notebook/exports/html/2026-10-11T14-30-05Z/index.html")
             .is_file());
         assert!(!dir.path().join("_notebook/exports/x.html").exists());
     }

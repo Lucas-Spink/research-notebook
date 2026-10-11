@@ -29,7 +29,9 @@ export function PdfExportPanel({ model }: { model: PdfExportModel }) {
       </button>
       <div role="status" aria-live="polite">
         {state === "idle" && pdfExportMessages.notWritten}
-        {state === "done" && outcome !== null && pdfExportMessages.exported}
+        {state === "done" &&
+          outcome !== null &&
+          pdfExportMessages.exported(outcome)}
       </div>
       {state === "done" &&
         outcome !== null &&

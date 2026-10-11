@@ -34,6 +34,14 @@ export function versionHref(folder: string, file: string): string {
   return `../../${urlPath(["experiments", folder, ...file.split("/")])}`;
 }
 
+/**
+ * Link to a captured version file from a page in a run's folder,
+ * `_notebook/exports/html/<stamp>/`, which is one level deeper.
+ */
+export function runVersionHref(folder: string, file: string): string {
+  return `../${versionHref(folder, file)}`;
+}
+
 /** The project-relative path of a captured version file, as the assets are keyed. */
 export function versionKey(folder: string, file: string): string {
   return `${experimentFolderPath(folder)}/${file}`;
@@ -59,6 +67,15 @@ export function latestVersion(artefact: CopyArtefact): CopyVersion {
 
 const link = (href: string, inner: string): string =>
   `<a href="${escapeHtml(href)}">${inner}</a>`;
+
+/** Link to a linked project file from a page in a run's folder; `null` for any other. */
+export function runLinkedHref(source: {
+  root: string;
+  path: string;
+}): string | null {
+  const href = linkedHref(source);
+  return href === null ? null : `../${href}`;
+}
 
 function tableHtml(asset: Extract<ExportAsset, { kind: "table" }>): string {
   const head = asset.header.map((h) => `<th>${escapeHtml(h)}</th>`).join("");
@@ -88,7 +105,7 @@ function preview(
   latest: CopyVersion,
   asset: ExportAsset | undefined,
 ): string {
-  const original = versionHref(folder, latest.file);
+  const original = runVersionHref(folder, latest.file);
   const alt = escapeHtml(artefact.name);
   if (artefact.type === "svg") {
     // Shown as an image, which a browser never lets run scripts, and not downscaled: it is vector.
@@ -108,7 +125,7 @@ function preview(
 function versionItem(folder: string, version: CopyVersion): string {
   const label = `${T.version} ${version.v}: ${escapeHtml(version.file)}`;
   const facts = `${T.captured} ${escapeHtml(version.captured)}, ${version.size} ${T.bytes}`;
-  return `<li>${link(versionHref(folder, version.file), label)} (${facts})</li>`;
+  return `<li>${link(runVersionHref(folder, version.file), label)} (${facts})</li>`;
 }
 
 function artefactHtml(
@@ -118,7 +135,7 @@ function artefactHtml(
 ): string {
   const name = `<figcaption>${escapeHtml(artefact.name)}</figcaption>`;
   if (artefact.mode === "link") {
-    const href = linkedHref(artefact.source);
+    const href = runLinkedHref(artefact.source);
     const path = `<code>${escapeHtml(artefact.source.path)}</code>`;
     const shown = href === null ? path : link(href, path);
     return `<figure class="artefact">${name}<p>${T.linked}: ${shown}</p></figure>`;

@@ -35,6 +35,7 @@ const input = (api: HtmlExportApi, withFigures = true) => ({
   arranged: withFigures ? arrangedWithFigures() : arranged(),
   projectName: "Yeast",
   locale: "en-GB",
+  now: () => new Date("2026-10-11T14:30:05.789Z"),
   formatBibliography: (clusters: readonly CitationCluster[]) =>
     Promise.resolve({
       entries: ["1. Smith J. *A study*."],
@@ -45,7 +46,7 @@ const input = (api: HtmlExportApi, withFigures = true) => ({
 
 const imageOutcome: HtmlAssetOutcome = {
   kind: "image",
-  file: `_notebook/exports/html/assets/${"3".repeat(64)}-800.png`,
+  file: `_notebook/exports/html/2026-10-11T14-30-05Z/assets/${"3".repeat(64)}-800.png`,
   width: 800,
   height: 400,
 };
@@ -70,6 +71,7 @@ describe("exportHtml (FR-ARC-05)", () => {
     expect(prepareCalls).toEqual([
       [
         7,
+        "2026-10-11T14-30-05Z",
         [
           { file: IMAGE, sha256: "3".repeat(64), kind: "image" },
           {
@@ -80,7 +82,7 @@ describe("exportHtml (FR-ARC-05)", () => {
         ],
       ],
     ]);
-    const pages = (writeCalls[0]?.[1] ?? []) as {
+    const pages = (writeCalls[0]?.[2] ?? []) as {
       name: string;
       html: string;
     }[];
@@ -88,8 +90,27 @@ describe("exportHtml (FR-ARC-05)", () => {
     expect(pages[0]?.html).toContain('<img src="assets/');
     expect(result).toEqual({
       ok: true,
-      value: { pages: 2, failedPages: [], notPrepared: 0, unresolved: [] },
+      value: {
+        pages: 2,
+        failedPages: [],
+        notPrepared: 0,
+        unresolved: [],
+        location: "exports/html/2026-10-11T14-30-05Z/index.html",
+      },
     });
+  });
+
+  it("writes every page into this run's own folder, dated, so an earlier export is kept", async () => {
+    const { api, writeCalls } = fakeApi(
+      { status: "ok", data: [imageOutcome, tableOutcome] },
+      { status: "ok", data: ["written", "written"] },
+    );
+
+    await exportHtml(input(api));
+
+    expect(writeCalls[0]?.[1]).toBe("2026-10-11T14-30-05Z");
+    const pages = (writeCalls[0]?.[2] ?? []) as { html: string }[];
+    expect(pages[0]?.html).toContain('<time datetime="2026-10-11T14:30:05Z">');
   });
 
   it("does not ask for assets when there are no images or tables", async () => {
@@ -113,9 +134,15 @@ describe("exportHtml (FR-ARC-05)", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { pages: 2, failedPages: [], notPrepared: 1, unresolved: [] },
+      value: {
+        pages: 2,
+        failedPages: [],
+        notPrepared: 1,
+        unresolved: [],
+        location: "exports/html/2026-10-11T14-30-05Z/index.html",
+      },
     });
-    const pages = (writeCalls[0]?.[1] ?? []) as { html: string }[];
+    const pages = (writeCalls[0]?.[2] ?? []) as { html: string }[];
     expect(pages[0]?.html).toContain("Preview not available");
     expect(pages[0]?.html).not.toContain('<img src="assets/');
   });
@@ -134,7 +161,7 @@ describe("exportHtml (FR-ARC-05)", () => {
 
     await exportHtml(input(api));
 
-    const pages = (writeCalls[0]?.[1] ?? []) as { html: string }[];
+    const pages = (writeCalls[0]?.[2] ?? []) as { html: string }[];
     expect(pages[0]?.html).not.toContain("elsewhere");
   });
 
@@ -151,6 +178,7 @@ describe("exportHtml (FR-ARC-05)", () => {
         failedPages: ["EXP-001.html"],
         notPrepared: 0,
         unresolved: [],
+        location: "exports/html/2026-10-11T14-30-05Z/index.html",
       },
     });
   });
@@ -226,7 +254,7 @@ describe("exportHtml (FR-ARC-05)", () => {
 
       await exportHtml({ ...input(api, false), arranged: citing() });
 
-      const pages = (writeCalls[0]?.[1] ?? []) as {
+      const pages = (writeCalls[0]?.[2] ?? []) as {
         name: string;
         html: string;
       }[];

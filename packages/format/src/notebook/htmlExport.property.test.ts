@@ -43,6 +43,7 @@ function pagesFor(title: string, note: string, name: string): string[] {
     arranged,
     projectName: title,
     locale: "en-GB",
+    generated: "2026-10-11T14:30:05Z",
     assets: new Map(),
   }).map((page) => page.html);
 }

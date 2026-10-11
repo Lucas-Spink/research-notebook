@@ -108,7 +108,9 @@ describe("PdfExportPanel", () => {
     await flush();
 
     expect(writes).toHaveLength(1);
-    expect(view.textContent).toContain("exports/pdf/project.pdf");
+    expect(view.textContent).toContain(
+      "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+    );
     expect(view.textContent).toContain("written to");
     expect(button(view).textContent).toBe("Write again");
   });

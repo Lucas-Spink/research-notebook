@@ -187,17 +187,18 @@ export const commands = {
 	writeGitBundles: (folder: FolderHandle, repos: RepoPath[]) => typedError<GitBundleOutcome[], ProjectError>(__TAURI_INVOKE("write_git_bundles", { folder, repos })),
 	/**
 	 *  Reduces figures and samples tables for the HTML export, writing reduced
-	 *  figures under `_notebook/exports/html/assets/` (FR-ARC-05). The captured
+	 *  figures under `_notebook/exports/html/<stamp>/assets/` (FR-ARC-05). The captured
 	 *  files are only read. Refused, with nothing written, unless this
 	 *  application holds the project's lock.
 	 */
-	prepareHtmlAssets: (folder: FolderHandle, requests: HtmlAssetRequest[]) => typedError<HtmlAssetOutcome[], ProjectError>(__TAURI_INVOKE("prepare_html_assets", { folder, requests })),
+	prepareHtmlAssets: (folder: FolderHandle, run: ExportRun, requests: HtmlAssetRequest[]) => typedError<HtmlAssetOutcome[], ProjectError>(__TAURI_INVOKE("prepare_html_assets", { folder, run, requests })),
 	/**
-	 *  Writes the export's pages into `_notebook/exports/html/` (FR-ARC-05),
-	 *  replacing those of an earlier run. Refused, with nothing written, unless
-	 *  this application holds the project's lock.
+	 *  Writes the export's pages into this run's folder,
+	 *  `_notebook/exports/html/<stamp>/` (FR-ARC-05); an earlier run's folder is
+	 *  not touched. Refused, with nothing written, unless this application holds
+	 *  the project's lock.
 	 */
-	writeHtmlPages: (folder: FolderHandle, pages: HtmlPageInput[]) => typedError<HtmlPageOutcome[], ProjectError>(__TAURI_INVOKE("write_html_pages", { folder, pages })),
+	writeHtmlPages: (folder: FolderHandle, run: ExportRun, pages: HtmlPageInput[]) => typedError<HtmlPageOutcome[], ProjectError>(__TAURI_INVOKE("write_html_pages", { folder, run, pages })),
 	/**
 	 *  Writes the machine-readable export into `_notebook/exports/machine/`
 	 *  (FR-ARC-07), replacing the files of an earlier run. Refused, with nothing
@@ -205,11 +206,12 @@ export const commands = {
 	 */
 	writeMachineExport: (folder: FolderHandle, files: MachineFileInput[]) => typedError<MachineFileOutcome[], ProjectError>(__TAURI_INVOKE("write_machine_export", { folder, files })),
 	/**
-	 *  Writes the project PDF/A-3b into `_notebook/exports/pdf/` (FR-ARC-06),
-	 *  replacing the one of an earlier run. Refused, with nothing written, unless
-	 *  this application holds the project's lock.
+	 *  Writes the project PDF/A-3b into `_notebook/exports/pdf/` as
+	 *  `project-<stamp>.pdf` (FR-ARC-06); the PDF of an earlier run is kept.
+	 *  Refused, with nothing written, unless this application holds the
+	 *  project's lock.
 	 */
-	writePdfExport: (folder: FolderHandle, input: PdfExportInput) => typedError<PdfExportOutcome, ProjectError>(__TAURI_INVOKE("write_pdf_export", { folder, input })),
+	writePdfExport: (folder: FolderHandle, run: ExportRun, input: PdfExportInput) => typedError<PdfExportOutcome, ProjectError>(__TAURI_INVOKE("write_pdf_export", { folder, run, input })),
 	/**  The manifest's text, for `packages/format` to parse. Read-only. */
 	readManifest: (folder: FolderHandle) => typedError<ManifestText, ProjectError>(__TAURI_INVOKE("read_manifest", { folder })),
 	/**
@@ -645,6 +647,12 @@ export type ExpectedFile = { kind: "absent" } | { kind: "sha256"; sha256: string
  *  capture can only ever land in that experiment's own folders.
  */
 export type ExperimentFolder = string;
+
+/**
+ *  An export run's stamp, such as `2026-10-11T14-30-05Z`: the UTC instant it
+ *  was made, with `-` for the colons.
+ */
+export type ExportRun = string;
 
 /**  Where an external root of a project is on this machine (FR-PRJ-07). */
 export type ExternalRootStatus = {

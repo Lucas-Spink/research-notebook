@@ -81,7 +81,7 @@ type Sent = {
   notebookJson: string;
   bibliographyJson: string;
 };
-const sentOf = (call: unknown[] | undefined): Sent => call?.[1] as Sent;
+const sentOf = (call: unknown[] | undefined): Sent => call?.[2] as Sent;
 
 describe("exportPdf (FR-ARC-06)", () => {
   it("formats the whole project's citations as one context and sends the three texts", async () => {
@@ -92,7 +92,11 @@ describe("exportPdf (FR-ARC-06)", () => {
 
     expect(result).toEqual({
       ok: true,
-      value: { written: true, unresolved: [] },
+      value: {
+        written: true,
+        unresolved: [],
+        location: "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+      },
     });
     expect(asked).toHaveLength(1);
     expect(asked[0]?.flatMap((c) => c.items.map((i) => i.citekey))).toEqual([
@@ -103,6 +107,17 @@ describe("exportPdf (FR-ARC-06)", () => {
     expect(sent.bibliographyJson).toBe('[{"id":"z:u:7XK2PQ9M"}]\n');
     expect(sent.inputJson).toContain("A study");
     expect(sent.notebookJson).toContain('"generatedBy": "0.2.0"');
+  });
+
+  it("names the PDF by the instant it was made, which is also the date inside it", async () => {
+    const { api, writes } = fakeApi();
+
+    await exportPdf(input(api).value);
+
+    expect(writes[0]?.[1]).toBe("2026-10-09T12-00-00Z");
+    expect(sentOf(writes[0]).inputJson).toContain(
+      '"generated": "2026-10-09T12:00:00Z"',
+    );
   });
 
   it("writes the citations as the engine formatted them, not as keys", async () => {
@@ -121,7 +136,11 @@ describe("exportPdf (FR-ARC-06)", () => {
 
     expect(await exportPdf(value)).toEqual({
       ok: true,
-      value: { written: true, unresolved: ["z:u:GONE2222"] },
+      value: {
+        written: true,
+        unresolved: ["z:u:GONE2222"],
+        location: "exports/pdf/project-2026-10-09T12-00-00Z.pdf",
+      },
     });
   });
 

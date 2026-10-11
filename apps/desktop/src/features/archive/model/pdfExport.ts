@@ -1,5 +1,6 @@
 import {
   buildPdfExport,
+  exportStamp,
   projectCitationClusters,
   type Arranged,
   type ProjectYamlModel,
@@ -19,6 +20,8 @@ export type PdfExportOutcome = {
   written: true;
   /** Citekeys cited but not in `bibliography.json`; the PDF marks each citation of them. */
   unresolved: readonly string[];
+  /** Where to open the PDF, relative to `_notebook/`: this run's own, dated, file. */
+  location: string;
 };
 
 /** Why no PDF was written. Nothing is claimed in any case. */
@@ -74,6 +77,9 @@ export async function exportPdf(
       : await input.formatBibliography(clusters).catch(() => null);
   if (bibliography === null) return { ok: false, error: "bibliographyFailed" };
 
+  // One reading of the clock: the file name and the date inside the PDF agree.
+  const instant = input.now();
+  const stamp = exportStamp(instant);
   const built = buildPdfExport({
     arranged: input.arranged,
     project: input.project,
@@ -82,10 +88,10 @@ export async function exportPdf(
       entries: bibliography.entries,
       clusterTexts: bibliography.clusterTexts,
     },
-    now: input.now,
+    now: () => instant,
   });
   const written = await input.api
-    .writePdfExport(input.folder, {
+    .writePdfExport(input.folder, stamp, {
       inputJson: built.input,
       notebookJson: built.notebookJson,
       bibliographyJson,
@@ -103,7 +109,11 @@ export async function exportPdf(
     case "written":
       return {
         ok: true,
-        value: { written: true, unresolved: bibliography.unresolved },
+        value: {
+          written: true,
+          unresolved: bibliography.unresolved,
+          location: `exports/pdf/project-${stamp}.pdf`,
+        },
       };
     case "notBuilt":
       return { ok: false, error: "notBuilt" };

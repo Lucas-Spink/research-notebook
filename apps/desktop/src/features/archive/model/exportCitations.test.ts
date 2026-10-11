@@ -58,7 +58,11 @@ async function pdfInput(): Promise<string> {
         status: "ok",
         data: { kind: "text", text: "[]\n", sha256: "a".repeat(64) },
       }),
-    writePdfExport: (_folder: number, input: { inputJson: string }) => {
+    writePdfExport: (
+      _folder: number,
+      _run: string,
+      input: { inputJson: string },
+    ) => {
       sent = input.inputJson;
       return Promise.resolve({ status: "ok", data: "written" });
     },
@@ -77,12 +81,16 @@ async function pdfInput(): Promise<string> {
 async function htmlPages(): Promise<string> {
   let sent: { html: string }[] = [];
   const api = {
-    prepareHtmlAssets: (_folder: number, requests: unknown[]) =>
+    prepareHtmlAssets: (_folder: number, _run: string, requests: unknown[]) =>
       Promise.resolve({
         status: "ok",
         data: requests.map(() => ({ kind: "unsupported" })),
       }),
-    writeHtmlPages: (_folder: number, pages: { html: string }[]) => {
+    writeHtmlPages: (
+      _folder: number,
+      _run: string,
+      pages: { html: string }[],
+    ) => {
       sent = pages;
       return Promise.resolve({
         status: "ok",
@@ -97,6 +105,7 @@ async function htmlPages(): Promise<string> {
     projectName: "Yeast",
     locale: "en-GB",
     formatBibliography: format,
+    now: () => new Date("2026-10-11T14:30:05Z"),
   });
   return sent.map((p) => p.html).join("\n");
 }

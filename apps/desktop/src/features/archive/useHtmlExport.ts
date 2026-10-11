@@ -28,6 +28,7 @@ type Options = {
   project: { name: string; locale: string } | null;
   writable: boolean;
   formatBibliography: FormatBibliography;
+  now: () => Date;
 };
 
 /** Writes the static HTML export on request (FR-ARC-05). Never runs by itself. */
@@ -39,8 +40,15 @@ export function useHtmlExport(options: Options): HtmlExportModel {
   latest.current = options;
 
   const run = useCallback(() => {
-    const { api, folder, arranged, project, writable, formatBibliography } =
-      latest.current;
+    const {
+      api,
+      folder,
+      arranged,
+      project,
+      writable,
+      formatBibliography,
+      now,
+    } = latest.current;
     if (arranged === null || project === null || !writable) return;
     setState("running");
     void exportHtml({
@@ -50,6 +58,7 @@ export function useHtmlExport(options: Options): HtmlExportModel {
       projectName: project.name,
       locale: project.locale,
       formatBibliography,
+      now,
     })
       .then((result) => {
         setOutcome(result.ok ? result.value : null);

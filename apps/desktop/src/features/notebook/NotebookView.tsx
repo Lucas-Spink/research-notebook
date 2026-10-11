@@ -327,6 +327,7 @@ function NotebookViewBody({
         : { name: loadedProject.name, locale: loadedProject.locale },
     writable,
     formatBibliography,
+    now: () => new Date(),
   });
   const archive = useArchiveProject({
     api: commands,

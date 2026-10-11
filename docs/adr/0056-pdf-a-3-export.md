@@ -156,3 +156,19 @@ Keeping the argument true:
   grows with it); non-Latin scripts; the typical fixture has an empty
   `bibliography.json`, so the combined bibliography is covered by the unit tests
   and the richer sample, not by the nightly fixture; macOS.
+
+## Update from issue #102 (2026-10-11)
+
+- **Point 1, dated files.** The PDF is written as
+  `_notebook/exports/pdf/project-<stamp>.pdf`, where `<stamp>` is the UTC
+  instant of the run (for example `2026-10-11T14-30-05Z`), the same instant as
+  the `generated` date inside the PDF. An earlier PDF is kept and never
+  replaced; only a run in the same second replaces itself. Exports made before
+  this change, as `project.pdf`, are left in place.
+- **Point 5, citations.** In-text citations are now formatted too, from the same
+  single engine run as the bibliography, in the style's wording (for example
+  `(Smith 2020)`). The citations are taken in the order the export shows them
+  (Motivations, then each experiment's sections as stored), so **Results notes
+  count** in the PDF's numbering and bibliography, although an experiment's own
+  Literature block (FR-CIT-09) still leaves them out. A citation whose source
+  is not in `bibliography.json` shows as `[key?]` and is named after the export.

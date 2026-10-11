@@ -64,6 +64,7 @@ function Harness(props: {
       : null,
     project: loaded ? { name: "Yeast", locale: "en-GB" } : null,
     writable: props.writable ?? true,
+    now: () => new Date("2026-10-11T14:30:05Z"),
     formatBibliography: () =>
       Promise.resolve({
         entries: [],
@@ -112,7 +113,9 @@ describe("HtmlExportPanel", () => {
     await flush();
 
     expect(writes).toHaveLength(1);
-    expect(view.textContent).toContain("2 pages written to exports/html/");
+    expect(view.textContent).toContain(
+      "2 pages written to exports/html/2026-10-11T14-30-05Z/",
+    );
     expect(view.textContent).toContain(
       "1 figure or table could not be reduced",
     );

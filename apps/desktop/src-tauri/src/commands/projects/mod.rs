@@ -10,6 +10,7 @@
 pub mod archive;
 pub mod bundle;
 pub mod evidence;
+pub mod export_run;
 pub mod files;
 mod folders;
 pub mod git_bundle;

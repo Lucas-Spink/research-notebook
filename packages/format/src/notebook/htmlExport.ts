@@ -3,8 +3,8 @@ import type { Arranged, ArrangedExperiment, ArrangedQuestion } from "./arrange";
 import {
   artefactsHtml,
   latestVersion,
-  linkedHref,
-  versionHref,
+  runLinkedHref,
+  runVersionHref,
   versionKey,
   type ExportAsset,
 } from "./htmlArtefacts";
@@ -38,6 +38,8 @@ export interface HtmlExportInput {
   projectName: string;
   /** BCP 47, from `project.yaml`; becomes the pages' `lang`. */
   locale: string;
+  /** When the export was made, UTC to the second (`2026-10-11T14:30:05Z`); shown on every page. */
+  generated: string;
   /** By project-relative path of the version file, as `htmlAssetRequests` listed them. */
   assets: ReadonlyMap<string, ExportAsset>;
   /**
@@ -134,7 +136,7 @@ function shell(input: HtmlExportInput, title: string, body: string): string {
 <main>
 ${body}
 </main>
-<footer>${T.generated}</footer>
+<footer>${T.generated} ${T.exportedAt} <time datetime="${escapeHtml(input.generated)}">${escapeHtml(input.generated)}</time>.</footer>
 </body>
 </html>
 `;
@@ -325,12 +327,12 @@ function referenceLinks(shown: Exported): RefLinks {
     const hit = found.get(ulid);
     if (hit === undefined) return null;
     const { artefact, folder } = hit;
-    if (artefact.mode === "link") return linkedHref(artefact.source);
+    if (artefact.mode === "link") return runLinkedHref(artefact.source);
     const chosen =
       version === null
         ? latestVersion(artefact)
         : artefact.versions.find((v) => v.v === version);
-    return chosen === undefined ? null : versionHref(folder, chosen.file);
+    return chosen === undefined ? null : runVersionHref(folder, chosen.file);
   };
 }
 

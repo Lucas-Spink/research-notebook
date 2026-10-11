@@ -1,8 +1,10 @@
 //! The files side of the static HTML export (FR-ARC-05, ADR-0054): reduced
-//! copies of figures, samples of tables, and the pages themselves. Which
+//! copies of figures, samples of tables, and the pages themselves. Each run
+//! has its own folder, `_notebook/exports/html/<stamp>/`, so an earlier export
+//! is kept whole (issue #102). Which
 //! pages exist and what they say comes from `packages/format`; this module
 //! only reads captured version files through `nb-fs`, hands them to
-//! `nb-preview`, and writes under `_notebook/exports/html/` through `nb-fs`.
+//! `nb-preview`, and writes under `_notebook/exports/html/<stamp>/` through `nb-fs`.
 //! The captured files are never changed.
 
 use std::io::BufReader;
@@ -12,12 +14,19 @@ use nb_preview::cache::{ContentHash, ThumbnailSize};
 use nb_preview::raster::raster_thumbnail;
 use nb_preview::table::{sample_table_file, TableExtent, TableFormat};
 
-/// The folder the export is written to, inside `_notebook/`.
-const HTML_DIR: &str = "_notebook/exports/html";
+use crate::ExportStamp;
+
+/// The folder every HTML export run is written under, inside `_notebook/`.
+const HTML_ROOT: &str = "_notebook/exports/html";
 /// Longest edge of a reduced figure, in pixels.
 const FIGURE_EDGE: u32 = 800;
 /// Bytes before the width and height in a PNG: signature, length, `IHDR`.
 const PNG_SIZE_OFFSET: usize = 16;
+
+/// The folder of one run: `_notebook/exports/html/<stamp>`.
+fn run_dir(stamp: &ExportStamp) -> String {
+    format!("{HTML_ROOT}/{}", stamp.as_str())
+}
 
 /// What to prepare for one captured file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,11 +83,18 @@ pub enum AssetVerdict {
 
 /// Prepares each request, in order, and says what became of each. One that
 /// cannot be prepared never stops the others.
-pub fn prepare_html_assets(root: &ProjectRoot, requests: &[AssetRequest]) -> Vec<AssetVerdict> {
-    requests.iter().map(|r| prepare_one(root, r)).collect()
+pub fn prepare_html_assets(
+    root: &ProjectRoot,
+    stamp: &ExportStamp,
+    requests: &[AssetRequest],
+) -> Vec<AssetVerdict> {
+    requests
+        .iter()
+        .map(|r| prepare_one(root, stamp, r))
+        .collect()
 }
 
-fn prepare_one(root: &ProjectRoot, request: &AssetRequest) -> AssetVerdict {
+fn prepare_one(root: &ProjectRoot, stamp: &ExportStamp, request: &AssetRequest) -> AssetVerdict {
     let Ok(hash) = ContentHash::parse(&request.sha256) else {
         return AssetVerdict::Refused;
     };
@@ -94,13 +110,14 @@ fn prepare_one(root: &ProjectRoot, request: &AssetRequest) -> AssetVerdict {
         Err(_) => return AssetVerdict::Unavailable,
     };
     match request.kind {
-        AssetKind::Image => reduce_image(root, opened, &hash),
+        AssetKind::Image => reduce_image(root, stamp, opened, &hash),
         AssetKind::Table => sample(&file, opened),
     }
 }
 
 fn reduce_image(
     root: &ProjectRoot,
+    stamp: &ExportStamp,
     opened: nb_fs::VersionFile,
     hash: &ContentHash,
 ) -> AssetVerdict {
@@ -113,7 +130,11 @@ fn reduce_image(
     let Some((width, height)) = png_size(&png) else {
         return AssetVerdict::Unavailable;
     };
-    let file = format!("{HTML_DIR}/assets/{}-{FIGURE_EDGE}.png", hash.as_str());
+    let file = format!(
+        "{}/assets/{}-{FIGURE_EDGE}.png",
+        run_dir(stamp),
+        hash.as_str()
+    );
     let Ok(destination) = ProjectRelPath::parse(&file) else {
         return AssetVerdict::WriteFailed;
     };
@@ -173,17 +194,21 @@ fn valid_page_name(name: &str) -> bool {
     })
 }
 
-/// Writes each `(name, html)` page into `_notebook/exports/html/`, in order,
-/// replacing a page of the same name. Pages of an earlier run that are no
-/// longer exported are left, because the application never deletes.
-pub fn write_html_pages(root: &ProjectRoot, pages: &[(String, String)]) -> Vec<PageVerdict> {
+/// Writes each `(name, html)` page into this run's folder,
+/// `_notebook/exports/html/<stamp>/`, in order, replacing a page of the same
+/// name in that folder only. Other runs are never touched.
+pub fn write_html_pages(
+    root: &ProjectRoot,
+    stamp: &ExportStamp,
+    pages: &[(String, String)],
+) -> Vec<PageVerdict> {
     pages
         .iter()
         .map(|(name, html)| {
             if !valid_page_name(name) {
                 return PageVerdict::Refused;
             }
-            let Ok(path) = ProjectRelPath::parse(&format!("{HTML_DIR}/{name}")) else {
+            let Ok(path) = ProjectRelPath::parse(&format!("{}/{name}", run_dir(stamp))) else {
                 return PageVerdict::Refused;
             };
             match root.write_atomic(&path, html.as_bytes()) {
