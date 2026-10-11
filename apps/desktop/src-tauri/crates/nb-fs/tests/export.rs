@@ -285,3 +285,30 @@ fn only_a_single_safe_file_name_is_accepted() {
     }
     assert_eq!(fs::read_dir(target.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn what_is_in_the_bin_is_kept_in_both_archive_scopes() {
+    // Exports are built from the live notebook, which never lists `.trash/`;
+    // an archive is a copy of the folder, so it keeps the bin (ADR-0062).
+    let project = project_with_notebook_files();
+    for file in [
+        "_notebook/.trash/2026-09-21T10-15-00Z/questions/Q-001.md",
+        "_notebook/.trash/2026-09-21T10-15-00Z/experiments/EXP-001/evidence/a.png",
+        "_notebook/.trash/2026-09-21T10-15-00Z/experiments/EXP-001/artefacts.yaml",
+    ] {
+        let path = project.on_disk(file);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, b"binned").unwrap();
+    }
+
+    for scope in [ArchiveScope::Notebook, ArchiveScope::Project] {
+        let listed = paths(&project, scope);
+        for kept in [
+            "_notebook/.trash/2026-09-21T10-15-00Z/questions/Q-001.md",
+            "_notebook/.trash/2026-09-21T10-15-00Z/experiments/EXP-001/evidence/a.png",
+            "_notebook/.trash/2026-09-21T10-15-00Z/experiments/EXP-001/artefacts.yaml",
+        ] {
+            assert!(listed.contains(&kept.to_owned()), "{kept}");
+        }
+    }
+}

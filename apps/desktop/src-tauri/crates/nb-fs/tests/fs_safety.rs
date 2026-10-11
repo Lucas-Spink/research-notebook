@@ -504,6 +504,33 @@ fn history_scenario(project: &TestProject, root: &ProjectRoot) {
         assert!(root.move_to_trash(&path(kept), &clock).is_err(), "{kept}");
     }
 
+    // The bin (ADR-0062): removing an artefact's files, listing and restoring
+    // them move files only inside `_notebook/`; a path outside it is refused.
+    root.write_atomic(&path("_notebook/experiments/EXP-010/evidence/x.png"), b"x")
+        .unwrap();
+    root.bin_artefact_files(
+        "EXP-010",
+        &[path("_notebook/experiments/EXP-010/evidence/x.png")],
+        b"record",
+        &clock,
+    )
+    .unwrap();
+    for outside in ["scripts/run.R", "data/counts.bin", "_notebook/../README.md"] {
+        // A path that does not even parse is refused too.
+        let refused = ProjectRelPath::parse(outside).map_or(true, |p| {
+            root.bin_artefact_files("EXP-010", &[p], b"record", &clock)
+                .is_err()
+        });
+        assert!(refused, "{outside}");
+    }
+    let in_bin = root.list_bin().unwrap();
+    assert!(!in_bin.is_empty());
+    for entry in &in_bin {
+        let _ = root.restore_from_bin(&entry.stamp, entry.kind, &entry.name);
+    }
+    assert!(project.exists("scripts/run.R"));
+    assert!(project.exists("data/counts.bin"));
+
     // A backup with a link to analysis results inside the notebook.
     let backup = root.backup_before_version("0.2.0", &clock).unwrap();
     assert!(backup.copied >= 1);
