@@ -25,7 +25,7 @@ const SHARED_MACROS = `
   </macro>
   <macro name="author-short">
     <names variable="author">
-      <name form="short" and="symbol" delimiter=", " delimiter-precedes-last="never"/>
+      <name form="short" and="symbol" delimiter=", " delimiter-precedes-last="never" et-al-min="3" et-al-use-first="1"/>
     </names>
   </macro>
   <macro name="container">
