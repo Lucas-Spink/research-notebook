@@ -4,6 +4,9 @@ import type {
 } from "@research-notebook/format";
 import type { Extent, Point } from "./nodes";
 
+/** A side of a card a line is drawn at. */
+export type Side = "top" | "right" | "bottom" | "left";
+
 /** A note card as stored in a canvas file (format-v1.md 4.9). */
 export type NoteNode = Extract<CanvasNodeModel, { type: "note" }>;
 
@@ -64,6 +67,7 @@ export function connectNodes(
   from: string,
   to: string,
   newId: () => string,
+  sides: { from?: Side | undefined; to?: Side | undefined } = {},
 ): CanvasFileModel {
   if (from === to) return file;
   const a = file.nodes.find((node) => node.id === from);
@@ -71,7 +75,11 @@ export function connectNodes(
   if (a === undefined || b === undefined) return file;
   if (a.type === "region" || b.type === "region") return file;
   if (a.type !== "note" && b.type !== "note") return file;
-  const [source, target] = a.type === "note" ? [a, b] : [b, a];
+  const flipped = a.type !== "note";
+  const [source, target] = flipped ? [b, a] : [a, b];
+  const [sourceSide, targetSide] = flipped
+    ? [sides.to, sides.from]
+    : [sides.from, sides.to];
   const joined = file.edges.some(
     (edge) =>
       (edge.source === source.id && edge.target === target.id) ||
@@ -82,7 +90,13 @@ export function connectNodes(
     ...file,
     edges: [
       ...file.edges,
-      { id: newId(), source: source.id, target: target.id },
+      {
+        id: newId(),
+        source: source.id,
+        target: target.id,
+        ...(sourceSide === undefined ? {} : { source_handle: sourceSide }),
+        ...(targetSide === undefined ? {} : { target_handle: targetSide }),
+      },
     ],
   };
 }

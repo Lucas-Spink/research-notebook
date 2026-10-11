@@ -146,6 +146,43 @@ describe("connectNodes", () => {
   });
 });
 
+describe("connectNodes remembers where the line was drawn", () => {
+  it("keeps the side of each card, note first", () => {
+    const { file, a, figure } = sample();
+    const next = connectNodes(file, a, figure, newId, {
+      from: "right",
+      to: "left",
+    });
+    expect(next.edges[0]).toMatchObject({
+      source: a,
+      target: figure,
+      source_handle: "right",
+      target_handle: "left",
+    });
+  });
+
+  it("swaps the sides with the cards when the line is drawn from the figure", () => {
+    const { file, a, figure } = sample();
+    const next = connectNodes(file, figure, a, newId, {
+      from: "top",
+      to: "bottom",
+    });
+    expect(next.edges[0]).toMatchObject({
+      source: a,
+      target: figure,
+      source_handle: "bottom",
+      target_handle: "top",
+    });
+  });
+
+  it("leaves the sides out when none were given", () => {
+    const { file, a, figure } = sample();
+    const edge = connectNodes(file, a, figure, newId).edges[0];
+    expect(edge).not.toHaveProperty("source_handle");
+    expect(edge).not.toHaveProperty("target_handle");
+  });
+});
+
 describe("removeEdges", () => {
   it("removes only the lines named", () => {
     const { file, a, b, figure } = sample();

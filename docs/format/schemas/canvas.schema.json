@@ -224,6 +224,24 @@
             "type": "string",
             "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
           },
+          "source_handle": {
+            "type": "string",
+            "enum": [
+              "top",
+              "right",
+              "bottom",
+              "left"
+            ]
+          },
+          "target_handle": {
+            "type": "string",
+            "enum": [
+              "top",
+              "right",
+              "bottom",
+              "left"
+            ]
+          },
           "label": {
             "type": "string",
             "enum": [

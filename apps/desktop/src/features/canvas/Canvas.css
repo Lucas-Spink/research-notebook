@@ -402,3 +402,51 @@
   margin: 0;
   padding-inline-start: var(--space-4);
 }
+
+/* The citation picker over a note: a dialog over the window, as over a section. */
+.canvas-cite-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4vh 3vw;
+  background: rgb(2 6 23 / 55%);
+}
+
+.canvas-cite-overlay .citation-picker {
+  width: min(1100px, 100%);
+  max-width: none;
+  height: min(780px, 100%);
+  max-height: none;
+  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-dialog);
+  border-top: 4px solid var(--palette-accent);
+}
+
+.canvas-cite-overlay .citation-picker__body {
+  flex: 1;
+  flex-direction: row;
+  gap: 1.25rem;
+}
+
+.canvas-cite-overlay .citation-picker__column {
+  flex: 1 1 0;
+}
+
+.canvas-cite-overlay .citation-picker__results,
+.canvas-cite-overlay .citation-picker__selected ul {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.canvas-cite-overlay .citation-picker__selected {
+  padding: 0 0 0 1.25rem;
+  border-top: 0;
+  border-left: 1px solid var(--color-border);
+}

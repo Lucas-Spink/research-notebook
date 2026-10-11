@@ -1,6 +1,8 @@
 import type { CanvasFileModel } from "@research-notebook/format";
 import { useMemo } from "react";
+import { useSources } from "../citations";
 import { canvasMessages as m } from "./messages";
+import { readableCitations } from "./model/cite";
 import type { ArtefactNode } from "./model/nodes";
 import type { ResultInfo } from "./model/results";
 import { summarise } from "./model/summary";
@@ -33,10 +35,14 @@ function figureText(info: ResultInfo): string {
  * is shown beside the canvas and in the table view.
  */
 export function NotesSummary({ file, resolve, onSelectNote }: Props) {
+  const { lookup } = useSources();
   const notes = useMemo(
     () => (file === null ? [] : summarise(file, resolve)),
     [file, resolve],
   );
+  // Citations read as author and year here; the note keeps the citekey.
+  const readable = (text: string) =>
+    readableCitations(text, (key) => lookup(key)?.label ?? null);
   if (notes.length === 0) {
     return <p className="canvas-summary__empty">{m.summaryEmpty}</p>;
   }
@@ -46,7 +52,7 @@ export function NotesSummary({ file, resolve, onSelectNote }: Props) {
         const text = note.text.trim();
         const body = (
           <span className={text === "" ? "canvas-summary__blank" : undefined}>
-            {text === "" ? m.emptyNote : note.text}
+            {text === "" ? m.emptyNote : readable(note.text)}
           </span>
         );
         return (
@@ -57,7 +63,9 @@ export function NotesSummary({ file, resolve, onSelectNote }: Props) {
               <button
                 type="button"
                 className="canvas-summary__select"
-                aria-label={m.selectNote(excerpt(note.text) || m.emptyNote)}
+                aria-label={m.selectNote(
+                  excerpt(readable(note.text)) || m.emptyNote,
+                )}
                 onClick={() => onSelectNote(note.id)}
               >
                 {body}
@@ -78,7 +86,9 @@ export function NotesSummary({ file, resolve, onSelectNote }: Props) {
                 <span>{m.linkedNotes}</span>
                 <ul>
                   {note.notes.map((other) => (
-                    <li key={other.id}>{excerpt(other.text) || m.emptyNote}</li>
+                    <li key={other.id}>
+                      {excerpt(readable(other.text)) || m.emptyNote}
+                    </li>
                   ))}
                 </ul>
               </div>

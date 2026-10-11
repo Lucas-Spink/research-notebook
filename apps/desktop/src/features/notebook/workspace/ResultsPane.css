@@ -111,3 +111,16 @@
   font-size: 10px;
   line-height: 14px;
 }
+
+/* The folder's heading is the control that folds it away. */
+.code-folder__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}

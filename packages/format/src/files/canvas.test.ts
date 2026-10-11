@@ -133,6 +133,44 @@ describe("parseCanvas", () => {
     ).toMatch(/not a node on this canvas/);
   });
 
+  it("keeps which side of each card a line was drawn from and to", () => {
+    const file = base();
+    const edges = listOf(file, "edges");
+    const edge = at(edges, 0);
+    edge["source_handle"] = "left";
+    edge["target_handle"] = "bottom";
+    const parsed = parseCanvas(text(file));
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    const out = serialiseCanvas(parsed.value);
+    expect(parsed.value.edges[0]).toMatchObject({
+      source_handle: "left",
+      target_handle: "bottom",
+    });
+    // Written after the line's ends and before its label.
+    expect(
+      Object.keys((JSON.parse(out) as { edges: Obj[] }).edges[0] ?? {}),
+    ).toEqual([
+      "id",
+      "source",
+      "target",
+      "source_handle",
+      "target_handle",
+      "label",
+    ]);
+  });
+
+  it("accepts a line with no sides, as the first lines were drawn", () => {
+    expect(parseCanvas(text(base())).ok).toBe(true);
+  });
+
+  it.each(["middle", "", 3])("rejects the side %j", (side) => {
+    expect(
+      messageFor((file) => {
+        at(listOf(file, "edges"), 0)["source_handle"] = side;
+      }),
+    ).toBeTruthy();
+  });
+
   it("rejects an unknown relationship label", () => {
     expect(
       messageFor((file) => {
