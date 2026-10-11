@@ -413,3 +413,14 @@ body.results-dragging * {
 .results--root-no-drop {
   cursor: not-allowed;
 }
+
+.results__badge--pinned {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* While a result is being dragged, anything that takes it shows where. */
+.results-dragging [data-drop-zone] {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -4px;
+}

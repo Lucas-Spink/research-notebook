@@ -66,6 +66,19 @@ type Options = {
   ) => Promise<boolean>;
   /** Leave out the Ungrouped area while it holds nothing, so a small tree stays small. */
   hideEmptyUngrouped?: boolean;
+  /**
+   * Somewhere else in the window that takes a result dragged out of the
+   * tree: the element carrying `data-drop-zone` equal to `zone`. The result
+   * stays in its groups (ADR-0064).
+   */
+  outside?: {
+    zone: string;
+    onDrop: (drop: { artefactIds: string[]; x: number; y: number }) => void;
+  };
+  /** Pins results to the canvas from a row's menu, for anyone who cannot drag. */
+  onPin?: (artefactIds: string[]) => void;
+  /** The results already pinned, to mark them. */
+  pinned?: ReadonlySet<string>;
 };
 
 /** Copy rather than move: Ctrl on Windows, Option on macOS. */
@@ -104,6 +117,9 @@ export function useResultsTree({
   removeWarning,
   onFileAction,
   hideEmptyUngrouped = false,
+  outside,
+  onPin,
+  pinned,
 }: Options) {
   const [expansion, setExpansion] = useState<Expansion>({});
   const [focus, setFocus] = useState<string | null>(null);
@@ -280,6 +296,19 @@ export function useResultsTree({
           .elementFromPoint(x, y)
           ?.closest("[data-row-key]")
           ?.getAttribute("data-row-key") ?? null;
+      // Only results can leave the tree, never a folder.
+      const carried =
+        source.kind === "item"
+          ? [source.artefactId]
+          : source.kind === "items"
+            ? source.items.map((item) => item.artefactId)
+            : [];
+      const overZone = (x: number, y: number): boolean =>
+        outside !== undefined &&
+        carried.length > 0 &&
+        document
+          .elementFromPoint(x, y)
+          ?.closest(`[data-drop-zone="${outside.zone}"]`) != null;
       const actionAt = (e: PointerEvent) => {
         const key = keyAt(e.clientX, e.clientY);
         if (key === ROOT_KEY) return { key, action: dropOnRoot(source) };
@@ -324,15 +353,22 @@ export function useResultsTree({
           x: e.clientX,
           y: e.clientY,
           over: key,
-          valid: action !== null,
+          valid: action !== null || overZone(e.clientX, e.clientY),
           copy: copyKey(e),
         });
       }
       function up(e: PointerEvent) {
         const wasDragging = started;
         const { action } = actionAt(e);
+        const dropped = wasDragging && overZone(e.clientX, e.clientY);
         finish();
-        if (wasDragging && action !== null) void run(action);
+        if (dropped && action === null) {
+          outside?.onDrop({
+            artefactIds: carried,
+            x: e.clientX,
+            y: e.clientY,
+          });
+        } else if (wasDragging && action !== null) void run(action);
       }
       function cancel() {
         finish();
@@ -374,6 +410,9 @@ export function useResultsTree({
     dragState,
     /** Opens an artefact's preview, or `undefined` when the tree has none to open. */
     open: onOpen,
+    /** Pins results to the canvas, or `undefined` when there is no canvas to pin to. */
+    pin: onPin,
+    pinned,
     /** Removes a file to the bin, or `undefined` when the tree cannot. */
     removeFile:
       onRemoveFile === undefined

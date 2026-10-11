@@ -2,6 +2,9 @@ import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { CanvasPicker } from "./CanvasPicker";
 import { CanvasSurface } from "./CanvasSurface";
 import { canvasMessages as m } from "./messages";
+import { applyEdits } from "./model/flowChanges";
+import { setViewport, updatePinnedVersion } from "./model/nodes";
+import type { CardServices } from "./model/results";
 import {
   LEFT_LIMITS,
   RIGHT_LIMITS,
@@ -18,6 +21,8 @@ const UNMEASURED_WIDTH = 1280;
 
 type Props = {
   canvases: CanvasesModel;
+  /** What a result card needs from the rest of the application: finding, drawing and opening the result. */
+  cards: CardServices;
   /** The results of every experiment, to drag onto the canvas. Its own feature fills this in. */
   resultsPanel?: ReactNode;
   /** The Methods, Results Notes and Interpretation of the active experiment. */
@@ -48,7 +53,12 @@ function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
  * canvas keeps a minimum width. It shows the same notebook as the table, so
  * nothing here owns experiment text.
  */
-export function CanvasView({ canvases, resultsPanel, writingPanel }: Props) {
+export function CanvasView({
+  canvases,
+  cards,
+  resultsPanel,
+  writingPanel,
+}: Props) {
   const [layout, dispatch] = useReducer(layoutReducer, initialLayout);
   const [ref, total] = useWidth();
   const widths = visibleWidths(layout, total);
@@ -127,7 +137,22 @@ export function CanvasView({ canvases, resultsPanel, writingPanel }: Props) {
         )}
         <div className="canvas-view__centre">
           {selected?.file != null ? (
-            <CanvasSurface key={selected.fileName} canvas={selected.file} />
+            <CanvasSurface
+              key={selected.fileName}
+              canvas={selected.file}
+              services={cards}
+              editable={canvases.writable}
+              onEdits={(edits) =>
+                canvases.edit((file) => applyEdits(file, edits))
+              }
+              onViewport={(view) =>
+                canvases.edit((file) => setViewport(file, view))
+              }
+              onUpdateVersion={(id, version) =>
+                canvases.edit((file) => updatePinnedVersion(file, id, version))
+              }
+              registerSurface={canvases.registerSurface}
+            />
           ) : (
             status === "ready" && (
               <div className="canvas-view__empty">

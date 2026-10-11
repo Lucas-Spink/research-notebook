@@ -139,3 +139,108 @@
   margin-left: auto;
   color: var(--color-text-muted);
 }
+
+.canvas-surface {
+  position: relative;
+}
+
+.canvas-surface__hint {
+  position: absolute;
+  inset: 40% 0 auto;
+  margin: 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.canvas-card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border-control);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.react-flow__node.selected .canvas-card {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+}
+
+.canvas-card--missing {
+  border-style: dashed;
+  background: var(--color-surface-alt);
+}
+
+.canvas-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-card__head strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-card__head button {
+  padding: 0 var(--space-2);
+}
+
+.canvas-card__meta,
+.canvas-card__reason {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.canvas-card__body {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: var(--space-1);
+}
+
+/* A picture keeps its proportions inside the card, however the card is sized. */
+.canvas-card__body img,
+.canvas-card__body canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.canvas-note,
+.canvas-region {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-control);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.canvas-note {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.canvas-region {
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-muted);
+}

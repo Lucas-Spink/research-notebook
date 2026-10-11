@@ -137,17 +137,18 @@ export async function createCanvas(
   };
 }
 
-/** Gives a canvas another name; everything else in the file is kept as it was. */
-export async function renameCanvas(
+/**
+ * Saves `file` over the canvas `entry` was read from, expecting the file on
+ * disk to still be what was read. If something else changed it, nothing is
+ * written (`changed`): a save never overwrites an outside edit.
+ */
+export async function saveCanvas(
   api: CanvasApi,
   folder: FolderHandle,
   entry: CanvasEntry,
-  rawName: string,
+  file: CanvasFileModel,
 ): Promise<CanvasResult<CanvasEntry>> {
   if (entry.file === null) return { ok: false, error: "invalid" };
-  const name = canvasName(rawName);
-  if (!name.ok) return { ok: false, error: "invalidName" };
-  const file = renamed(entry.file, name.value);
   const text = serialiseCanvas(file);
   const written = await api
     .writeNotebookFile(folder, entry.path, text, {
@@ -162,8 +163,21 @@ export async function renameCanvas(
   if (written.data.kind === "changed") return { ok: false, error: "changed" };
   return {
     ok: true,
-    value: { ...entry, sha256: sha256Hex(text), name: name.value, file },
+    value: { ...entry, sha256: sha256Hex(text), name: file.name, file },
   };
+}
+
+/** Gives a canvas another name; everything else in the file is kept as it was. */
+export async function renameCanvas(
+  api: CanvasApi,
+  folder: FolderHandle,
+  entry: CanvasEntry,
+  rawName: string,
+): Promise<CanvasResult<CanvasEntry>> {
+  if (entry.file === null) return { ok: false, error: "invalid" };
+  const name = canvasName(rawName);
+  if (!name.ok) return { ok: false, error: "invalidName" };
+  return saveCanvas(api, folder, entry, renamed(entry.file, name.value));
 }
 
 /** Moves a canvas to the trash, from where it can be restored by hand. Nothing else is touched. */

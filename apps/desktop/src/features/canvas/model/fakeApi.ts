@@ -1,6 +1,7 @@
 import { serialiseCanvas } from "@research-notebook/format";
 import { sha256Hex } from "../../../shared/sha256";
 import { canvasPathOfFile, newCanvasFile } from "./canvasFiles";
+import { pinResults, type PinRef } from "./nodes";
 import type { CanvasApi } from "./store";
 
 /** An in-memory project for the canvas tests: the commands the store uses, over a map of files. */
@@ -12,6 +13,17 @@ export const fileOf = (id: string) => `${id}.canvas.json`;
 export const pathOf = (id: string) => canvasPathOfFile(fileOf(id));
 export const textOf = (id: string, name: string) =>
   serialiseCanvas(newCanvasFile(id, name));
+
+/** A canvas file with one result card on it, pinned at the middle of (400, 300). */
+export const textWithCard = (id: string, name: string, ref: PinRef) =>
+  serialiseCanvas(
+    pinResults(
+      newCanvasFile(id, name),
+      [ref],
+      { x: 400, y: 300 },
+      () => "01JAXN00000000000000000001",
+    ),
+  );
 
 export type Faults = {
   writable?: boolean;

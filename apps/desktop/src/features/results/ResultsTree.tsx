@@ -51,6 +51,12 @@ type Props = {
   header?: ReactNode;
   /** Hovering a result: its id and row, or `null` when the pointer leaves. */
   onHover?: (artefactId: string | null, row?: HTMLElement) => void;
+  /** Somewhere a result can be dragged out to (the canvas); see `useResultsTree`. */
+  outside?: Parameters<typeof useResultsTree>[0]["outside"];
+  /** Pins results to the canvas from a row's menu. */
+  onPin?: (artefactIds: string[]) => void;
+  /** The results already on the canvas, marked in words. */
+  pinned?: ReadonlySet<string>;
 };
 
 /**
@@ -72,12 +78,18 @@ export function ResultsTree({
   tabStops = true,
   header,
   onHover,
+  outside,
+  onPin,
+  pinned,
 }: Props) {
   const tree = useResultsTree({
     file,
     disabled,
     onAction,
     hideEmptyUngrouped: compact,
+    ...(outside === undefined ? {} : { outside }),
+    ...(onPin === undefined ? {} : { onPin }),
+    ...(pinned === undefined ? {} : { pinned }),
     ...(onOpen === undefined ? {} : { onOpen }),
     ...(onRemoveFile === undefined ? {} : { onRemoveFile }),
     ...(removeWarning === undefined ? {} : { removeWarning }),

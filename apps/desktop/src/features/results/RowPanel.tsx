@@ -31,7 +31,17 @@ export function RowPanel({ file, panel, disabled, tree }: Props) {
   function choose(entry: MenuEntry) {
     const { run } = entry;
     if (run.kind === "open") tree.open?.(run.artefactId);
-    else if (run.kind === "file" && panel.row.kind === "item") {
+    else if (run.kind === "pin") {
+      const rows = chosenWith(tree, panel.row);
+      tree.pin?.(
+        rows.length > 1
+          ? rows.map((row) => row.artefactId)
+          : panel.row.kind === "item"
+            ? [panel.row.artefactId]
+            : [],
+      );
+      tree.closePanel();
+    } else if (run.kind === "file" && panel.row.kind === "item") {
       void tree.fileAction?.(panel.row.artefactId, run.action);
       tree.closePanel();
     } else if (run.kind === "renameResult" && panel.row.kind === "item")
@@ -102,6 +112,7 @@ function PanelBody({
             canOpen: tree.open !== undefined,
             canOpenFiles: tree.fileAction !== undefined,
             canRemoveFiles: tree.removeFile !== undefined,
+            canPin: tree.pin !== undefined,
             selected: chosenWith(tree, panel.row),
           }).map((entry) => (
             <li key={entry.label}>

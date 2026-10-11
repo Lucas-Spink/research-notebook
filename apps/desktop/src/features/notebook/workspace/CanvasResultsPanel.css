@@ -1,0 +1,31 @@
+.canvas-results__search input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-2);
+}
+
+.canvas-results__question h4 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: 0.9rem;
+  color: var(--color-text-strong);
+}
+
+.canvas-results__experiment h5 {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.canvas-results__experiment h5 button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  padding: var(--space-1) 0;
+}
+
+.canvas-results__count {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+}

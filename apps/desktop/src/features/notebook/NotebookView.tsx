@@ -13,6 +13,7 @@ import {
   useCallback,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -48,7 +49,14 @@ import {
   VerifyPanel,
 } from "../archive";
 import { BinPanel } from "../bin";
-import { CanvasView, ViewSwitch, useCanvases, type ViewMode } from "../canvas";
+import {
+  CanvasView,
+  ViewSwitch,
+  useCanvases,
+  type CanvasApi,
+  type CardServices,
+  type ViewMode,
+} from "../canvas";
 import {
   IntegrityPanel,
   useIntegrityCheck,
@@ -89,6 +97,9 @@ import {
 import { attachedCitekeys } from "./workspace/model/attach";
 import { restoreEntry } from "./workspace/model/restoreEntry";
 import { AddResultPane } from "./workspace/AddResultPane";
+import { CanvasResultPreview } from "./workspace/CanvasResultPreview";
+import { CanvasResultsPanel } from "./workspace/CanvasResultsPanel";
+import { resolveResult } from "./workspace/model/canvasResults";
 import { PaneHost } from "./workspace/PaneHost";
 import { PaneTabIcon } from "./workspace/PaneTabIcon";
 import { ResultPane } from "./workspace/ResultPane";
@@ -173,6 +184,8 @@ type NotebookViewProps = {
   onCloseProject?: () => void;
   /** Height of the table's window before it is measured. Only tests set it. */
   viewportHeight?: number;
+  /** The commands the canvases are read and written with. Only tests set it. */
+  canvasApi?: CanvasApi;
   /** The ribbon's Project group, which belongs to the projects feature. */
   projectControls?: ReactNode;
   /** The ribbon's Settings tab project controls. */
@@ -189,6 +202,7 @@ function NotebookViewBody({
   onProjectFileChanged,
   onCloseProject,
   viewportHeight,
+  canvasApi = commands,
   projectControls,
   settingsControls,
   projectBanners,
@@ -244,7 +258,7 @@ function NotebookViewBody({
   // Table or Canvas: two views of the same notebook (ADR-0064). View state only.
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const canvases = useCanvases({
-    api: commands,
+    api: canvasApi,
     folder,
     writable,
     enabled: viewMode === "canvas",
@@ -252,6 +266,8 @@ function NotebookViewBody({
   /** Whatever is being typed in the table is saved before the table goes away; if that fails, the table stays. */
   async function changeView(next: ViewMode) {
     if (next === "canvas" && !(await live.activate(null))) return;
+    // Layout changes still waiting for their quiet moment are written before the table takes over.
+    if (next === "table") await canvases.flush();
     setViewMode(next);
   }
 
@@ -486,6 +502,33 @@ function NotebookViewBody({
   const selected = useMemo(
     () => findSelected(arranged, selectedKey),
     [selectedKey, arranged],
+  );
+
+  // The latest editing, for a click that happens after the cards were last built.
+  const editingNow = useRef(editing);
+  editingNow.current = editing;
+  /** What a result card on the canvas needs: finding its result again, drawing it, and opening the original. */
+  const cards = useMemo<CardServices>(
+    () => ({
+      resolve: (node) =>
+        arranged === null
+          ? { status: "missing", reason: "experiment" }
+          : resolveResult(arranged, {
+              experimentId: node.experiment_id,
+              artefactId: node.artefact_id,
+              ...(node.version === undefined ? {} : { version: node.version }),
+            }),
+      renderPreview: (result) => (
+        <CanvasResultPreview folder={folder} result={result} />
+      ),
+      onOpen: (result) =>
+        editingNow.current.onOpenResult(
+          result.experimentFolder,
+          result.artefactId,
+          result.shownVersion,
+        ),
+    }),
+    [arranged, folder],
   );
 
   function toggle(row: HeaderRow) {
@@ -870,7 +913,19 @@ function NotebookViewBody({
           <div className="workspace__main">
             <div className="workspace__table">
               {viewMode === "canvas" ? (
-                <CanvasView canvases={canvases} />
+                <CanvasView
+                  canvases={canvases}
+                  cards={cards}
+                  resultsPanel={
+                    <CanvasResultsPanel
+                      arranged={arranged}
+                      folder={folder}
+                      editing={editing}
+                      pinned={canvases.pinned}
+                      onPin={(refs, screen) => canvases.pinAt(refs, screen)}
+                    />
+                  }
+                />
               ) : rows.length === 0 ? (
                 <p className="workspace__empty">{messages.empty}</p>
               ) : (

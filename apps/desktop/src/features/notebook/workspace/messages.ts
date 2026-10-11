@@ -130,6 +130,20 @@ export const resultsBrowserMessages = {
   linked: "linked",
 };
 
+/** Text of the results list beside the canvas (ADR-0064). */
+export const canvasResultsMessages = {
+  searchLabel: "Search results",
+  searchPlaceholder: "Search experiments and results",
+  nothing: "This project has no experiments yet.",
+  noMatch: "No experiment or result matches.",
+  unassigned: "Unassigned",
+  unreadable:
+    "This experiment's results could not be read, so they cannot be pinned.",
+  noResults: "No results yet.",
+  count: (n: number) => (n === 1 ? "1 result" : `${n} results`),
+  resultsOf: (ref: string) => `Results of ${ref}`,
+};
+
 /** Text of the project header: breadcrumbs, key figures and the main action (issue #101). */
 export const headerMessages = {
   breadcrumbs: "Where you are",

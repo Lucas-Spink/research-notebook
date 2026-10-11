@@ -50,6 +50,23 @@ export const canvasMessages = {
   resetView: "Reset view",
   credit: "Pan and zoom by React Flow (MIT licence)",
 
+  cardLabel: (name: string, experiment: string) =>
+    `${name}, from ${experiment}`,
+  openOriginal: (name: string) => `Open ${name}`,
+  removeCard: "Remove from canvas",
+  newerVersion: (version: number) => `v${version} is available`,
+  updateTo: (version: number) => `Update to v${version}`,
+  missingCard: "Result not available",
+  missingReasons: {
+    experiment: "Its experiment is no longer in the project.",
+    artefact: "The result is no longer in its experiment.",
+    version: "The version shown here is no longer one of its versions.",
+  },
+  missingKept:
+    "The card is kept so you can see what was here. Removing it does not affect any result.",
+  pinHint: "Drag a result here, or choose Pin to canvas from its menu.",
+  pinFailed: "Nothing was pinned. Choose a canvas first.",
+
   failures: {
     unreadable: "The canvases could not be read. Nothing was changed.",
     invalidName:
