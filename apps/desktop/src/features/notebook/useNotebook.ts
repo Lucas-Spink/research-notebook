@@ -5,6 +5,7 @@ import {
   changeCitationStyle,
   changeTableSettings,
   createExperiment,
+  adoptIntoOrder,
   createQuestion,
   editArtefacts as editArtefactsFile,
   editExperiment,
@@ -23,6 +24,7 @@ import {
   type NotebookState,
   type Plan,
   type RecognisedSectionKey,
+  type Restored,
   type Result,
   type SourceReplacement,
   type TableSettingsChange,
@@ -95,6 +97,11 @@ export type NotebookActions = {
   moveExperiment(id: string, questionId: string): Promise<boolean>;
   removeExperiment(id: string): Promise<boolean>;
   removeQuestion(id: string): Promise<boolean>;
+  /**
+   * Lists a question or experiment restored from the bin in the saved order
+   * again, which deleting it dropped it from. Run after the notebook is reloaded.
+   */
+  adoptRestored(restored: Restored): Promise<boolean>;
   refresh(): Promise<void>;
   /**
    * Saves one recognised section's text (FR-EDT-03), the expanded view's
@@ -382,6 +389,8 @@ export function useNotebook({ folder, writable, changes }: Options) {
         run((s, e) => removeExperiment(s, id, e)).then(isDone),
       removeQuestion: (id) =>
         run((s, e) => removeQuestion(s, id, e)).then(isDone),
+      adoptRestored: (restored) =>
+        run((s, e) => adoptIntoOrder(s, restored, e)).then(isDone),
       refresh: () =>
         enqueue(reload).catch(() => setNotice(messages.unexpected)),
       editExperimentSection: async (id, key, text, literature) => {

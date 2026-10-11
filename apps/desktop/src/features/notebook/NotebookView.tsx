@@ -673,6 +673,7 @@ function NotebookViewBody({
                 folder,
                 entry,
                 refresh: () => actions.refresh(),
+                adoptRestored: (restored) => actions.adoptRestored(restored),
                 editArtefacts: (experimentFolder, change) =>
                   actions.editArtefacts(experimentFolder, change),
               })

@@ -1,5 +1,6 @@
 import type {
   ArtefactsFileModel,
+  Restored,
   NotebookEnv,
   NotebookError,
   Result,
@@ -15,6 +16,8 @@ type Request = {
   entry: BinItem;
   /** Reads the notebook from disk again, so a restored question or experiment appears. */
   refresh: () => Promise<void>;
+  /** Lists a restored question or experiment in the saved order again; run after `refresh`. */
+  adoptRestored: (restored: Restored) => Promise<boolean>;
   editArtefacts: (
     experimentFolder: string,
     change: (
@@ -38,6 +41,7 @@ export async function restoreEntry({
   folder,
   entry,
   refresh,
+  adoptRestored,
   editArtefacts,
 }: Request): Promise<RestoreText> {
   if (entry.kind === "files") {
@@ -75,5 +79,11 @@ export async function restoreEntry({
     };
   }
   await refresh();
+  // Deleting dropped it from the saved order; put it back so it is not flagged.
+  await adoptRestored(
+    entry.kind === "question"
+      ? { questionFile: entry.name }
+      : { experimentFolder: entry.name },
+  );
   return { ok: true, text: `${label} was restored.` };
 }

@@ -21,6 +21,7 @@ const actions: NotebookActions = {
   moveExperiment: () => Promise.resolve(true),
   removeExperiment: () => Promise.resolve(true),
   removeQuestion: () => Promise.resolve(true),
+  adoptRestored: () => Promise.resolve(true),
   refresh: () => Promise.resolve(),
   editExperimentSection: () => Promise.resolve({ ok: true }),
   changeSettings: () => undefined,
