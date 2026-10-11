@@ -13,11 +13,36 @@ export interface Migration {
   run: (files: MigrationFiles) => MigrationFiles;
 }
 
+/** `project.yaml` and each experiment's `artefacts.yaml`: the files that carry `format_version`. */
+const VERSIONED_FILE =
+  /^_notebook\/(?:project\.yaml|experiments\/[^/]+\/artefacts\.yaml)$/;
+
+// Only the first-level key at the start of a line, so a look-alike inside a
+// quoted or block value is left alone. The lookahead keeps CRLF intact.
+const VERSION_ONE = new RegExp("^(\\uFEFF?)format_version: 1(?=\\r?$)", "m");
+
 /**
- * Every released step, oldest first. Format version 1 is the only version, so
- * the table is empty; the first change to chapter 5 adds its step here.
+ * ADR-0064: version 2 adds canvas files and changes no existing file except
+ * its `format_version`. The edit is on the text, not on a parsed model, so
+ * unknown keys, comments, CRLF and a byte-order mark survive untouched. Inbox
+ * requests are transient and not migrated (readers accept both versions).
  */
-export const MIGRATIONS: readonly Migration[] = [];
+const toVersion2: Migration = {
+  from: 1,
+  to: 2,
+  run: (files) =>
+    Object.fromEntries(
+      Object.entries(files).map(([path, text]) => [
+        path,
+        VERSIONED_FILE.test(path)
+          ? text.replace(VERSION_ONE, "$1format_version: 2")
+          : text,
+      ]),
+    ),
+};
+
+/** Every released step, oldest first (spec 5.13 rule 3). */
+export const MIGRATIONS: readonly Migration[] = [toVersion2];
 
 export type MigrationPlanError =
   /** The project is newer than the build, which cannot migrate it. */

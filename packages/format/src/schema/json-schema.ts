@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ArtefactsFile } from "./artefacts";
 import { BibliographyFile } from "./bibliography";
+import { CanvasFile } from "./canvas";
 import { ExperimentFrontmatter } from "./experiment";
 import { LockFile } from "./lock";
 import { ProjectYaml } from "./project";
@@ -16,6 +17,10 @@ const SCHEMAS = {
   bibliography: {
     schema: BibliographyFile,
     title: "bibliography.json (format version 1)",
+  },
+  canvas: {
+    schema: CanvasFile,
+    title: "*.canvas.json (format version 2)",
   },
   experiment: {
     schema: ExperimentFrontmatter,

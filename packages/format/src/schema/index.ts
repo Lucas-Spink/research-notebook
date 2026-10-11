@@ -1,5 +1,6 @@
 export * from "./artefacts";
 export * from "./bibliography";
+export * from "./canvas";
 export * from "./common";
 export * from "./experiment";
 export * from "./json-schema";

@@ -1,9 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { artefactsModel, requestModel } from "../../test/evidence-arbitraries";
+import { canvasModel } from "../../test/canvas-arbitraries";
 import { experimentFile, questionFile } from "../../test/file-arbitraries";
 import type { Result } from "../result";
 import { parseArtefacts, serialiseArtefacts } from "./artefacts";
+import { parseCanvas, serialiseCanvas } from "./canvas";
 import { parseExperiment, serialiseExperiment } from "./experiment";
 import { parseQuestion, serialiseQuestion } from "./question";
 import { parseRequest, serialiseRequest } from "./request";
@@ -56,3 +58,4 @@ roundTrips(
   serialiseArtefacts,
 );
 roundTrips("request.json", requestModel, parseRequest, serialiseRequest);
+roundTrips("canvas file", canvasModel, parseCanvas, serialiseCanvas);
