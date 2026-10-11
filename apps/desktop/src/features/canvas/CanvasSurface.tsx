@@ -4,7 +4,12 @@ import {
   Controls,
   ReactFlow,
   ReactFlowProvider,
+  applyEdgeChanges,
   applyNodeChanges,
+  ConnectionMode,
+  type Connection,
+  type Edge,
+  type EdgeChange,
   useReactFlow,
   useViewport,
   type NodeChange,
@@ -23,8 +28,13 @@ import { useTheme } from "../../shared/theme";
 import { ArtefactCard } from "./ArtefactCard";
 import { CardProvider } from "./CardContext";
 import { canvasMessages as m } from "./messages";
-import { editsFrom, type CanvasEdit } from "./model/flowChanges";
-import { toFlowNodes, type CanvasFlowNode } from "./model/flowNodes";
+import { edgeEditsFrom, editsFrom, type CanvasEdit } from "./model/flowChanges";
+import {
+  toFlowEdges,
+  toFlowNodes,
+  type CanvasFlowNode,
+} from "./model/flowNodes";
+import { connectNodes } from "./model/notes";
 import type { CardServices } from "./model/results";
 import { NoteCard, RegionCard } from "./OtherCards";
 import type { SurfaceBridge } from "./useCanvases";
@@ -55,6 +65,8 @@ type Props = {
   onEdits: (edits: CanvasEdit[]) => void;
   onViewport: (view: Viewport) => void;
   onUpdateVersion: (id: string, version: number) => void;
+  /** Makes an id for a new line. */
+  newId: () => string;
   registerSurface: (bridge: SurfaceBridge | null) => void;
 };
 
@@ -80,6 +92,7 @@ function ViewportBar({ home }: { home: CanvasFileModel["viewport"] }) {
 function useBridge(
   container: RefObject<HTMLDivElement | null>,
   register: Props["registerSurface"],
+  focusNode: (id: string) => void,
 ) {
   const flow = useReactFlow();
   useEffect(() => {
@@ -92,9 +105,10 @@ function useBridge(
           y: (box?.top ?? 0) + (box?.height ?? 0) / 2,
         });
       },
+      focusNode,
     });
     return () => register(null);
-  }, [flow, container, register]);
+  }, [flow, container, register, focusNode]);
 }
 
 function Flow({
@@ -104,11 +118,12 @@ function Flow({
   onEdits,
   onViewport,
   onUpdateVersion,
+  newId,
   registerSurface,
 }: Props) {
   const { theme } = useTheme();
   const container = useRef<HTMLDivElement>(null);
-  useBridge(container, registerSurface);
+  const flow = useReactFlow();
 
   const [nodes, setNodes] = useState<CanvasFlowNode[]>(() =>
     toFlowNodes(canvas, services.resolve, new Set()),
@@ -124,6 +139,27 @@ function Flow({
     );
   }, [canvas.nodes, services]);
 
+  const [edges, setEdges] = useState<Edge[]>(() => toFlowEdges(canvas));
+  useEffect(() => {
+    setEdges((now) => {
+      const selected = new Set(now.filter((e) => e.selected).map((e) => e.id));
+      return toFlowEdges(canvas).map((edge) => ({
+        ...edge,
+        selected: selected.has(edge.id),
+      }));
+    });
+  }, [canvas.edges]);
+
+  // Selects one card and brings it into view, from the notes summary.
+  const focusNode = useCallback(
+    (id: string) => {
+      setNodes((now) => now.map((n) => ({ ...n, selected: n.id === id })));
+      void flow.fitView({ nodes: [{ id }], duration: 250, maxZoom: 1.2 });
+    },
+    [flow],
+  );
+  useBridge(container, registerSurface, focusNode);
+
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
   const onNodesChange = useCallback(
@@ -138,13 +174,48 @@ function Flow({
     [editable, onEdits],
   );
 
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges((now) => applyEdgeChanges(changes, now));
+      if (!editable) return;
+      const edits = edgeEditsFrom(changes);
+      if (edits.length > 0) onEdits(edits);
+    },
+    [editable, onEdits],
+  );
+  const onConnect = useCallback(
+    (connection: Connection) =>
+      onEdits([
+        {
+          kind: "connect",
+          id: newId(),
+          from: connection.source,
+          to: connection.target,
+        },
+      ]),
+    [onEdits, newId],
+  );
+  // A line is only drawn where the model would keep it: not figure to figure, not to itself, not twice.
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) =>
+      connectNodes(canvas, connection.source, connection.target, () => "x") !==
+      canvas,
+    [canvas],
+  );
   const remove = useCallback(
     (id: string) => onEdits([{ kind: "remove", ids: [id] }]),
     [onEdits],
   );
   const context = useMemo(
-    () => ({ services, editable, onRemove: remove, onUpdateVersion }),
-    [services, editable, remove, onUpdateVersion],
+    () => ({
+      services,
+      editable,
+      onRemove: remove,
+      onUpdateVersion,
+      onNoteText: (id: string, text: string) =>
+        onEdits([{ kind: "noteText", id, text }]),
+    }),
+    [services, editable, remove, onUpdateVersion, onEdits],
   );
 
   return (
@@ -158,7 +229,11 @@ function Flow({
       <CardProvider value={context}>
         <ReactFlow
           nodes={nodes}
-          edges={[]}
+          edges={edges}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          isValidConnection={isValidConnection}
+          connectionMode={ConnectionMode.Loose}
           nodeTypes={NODE_TYPES}
           onNodesChange={onNodesChange}
           onMoveEnd={(_event, view) => onViewport(view)}
@@ -170,7 +245,7 @@ function Flow({
           // that cannot navigate the window away from the application.
           proOptions={{ hideAttribution: true }}
           nodesDraggable={editable}
-          nodesConnectable={false}
+          nodesConnectable={editable}
           deleteKeyCode={editable ? DELETE_KEYS : null}
           onlyRenderVisibleElements
         >

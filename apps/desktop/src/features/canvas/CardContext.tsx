@@ -8,6 +8,8 @@ export type CardContextValue = {
   editable: boolean;
   onRemove: (id: string) => void;
   onUpdateVersion: (id: string, version: number) => void;
+  /** A note's text, as typed. */
+  onNoteText: (id: string, text: string) => void;
 };
 
 const CardContext = createContext<CardContextValue | null>(null);

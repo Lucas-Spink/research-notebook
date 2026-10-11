@@ -39,12 +39,10 @@ export type Faults = {
   list?: boolean;
   read?: string[];
   write?: "error";
-  trash?: "error";
 };
 
 export function fakeApi(initial: Record<string, string>, faults: Faults = {}) {
   const disk: Record<string, string> = { ...initial };
-  const trashed: string[] = [];
   const writes: string[] = [];
   const api = {
     listNotebookFiles: () =>
@@ -112,20 +110,6 @@ export function fakeApi(initial: Record<string, string>, faults: Faults = {}) {
         data: { kind: "saved", snapshot: null },
       });
     },
-    moveToTrash: (_folder: unknown, path: string) => {
-      if (faults.trash === "error") {
-        return Promise.resolve({
-          status: "error",
-          error: { kind: "writeFailed" },
-        });
-      }
-      trashed.push(path);
-      delete disk[path];
-      return Promise.resolve({
-        status: "ok",
-        data: { location: `_notebook/.trash/x/${path}` },
-      });
-    },
   };
-  return { api: api as unknown as CanvasApi, disk, trashed, writes };
+  return { api: api as unknown as CanvasApi, disk, writes };
 }

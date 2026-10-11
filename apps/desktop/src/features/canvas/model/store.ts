@@ -9,43 +9,34 @@ import type {
   ProjectError,
 } from "../../../ipc/bindings";
 import { sha256Hex } from "../../../shared/sha256";
-import {
-  canvasName,
-  canvasPathOfFile,
-  newCanvasFile,
-  renamed,
-  sortEntries,
-} from "./canvasFiles";
+import { canvasFileName, canvasPathOfFile, newCanvasFile } from "./canvasFiles";
 
 /** The commands the canvas files need, so tests can supply a fake with the same shape. */
 export type CanvasApi = Pick<
   typeof commands,
-  "listNotebookFiles" | "readNotebookFile" | "writeNotebookFile" | "moveToTrash"
+  "listNotebookFiles" | "readNotebookFile" | "writeNotebookFile"
 >;
 
 /**
- * One canvas file as read. `file` is `null` when it could not be read or did
- * not parse (including one from a newer format): it is then listed by its
- * file name, never rewritten, and can only be removed (AGENTS.md rule 5).
+ * One canvas file. `file` is `null` when it could not be read or did not parse
+ * (including one from a newer format): it is then never rewritten (AGENTS.md
+ * rule 5). `sha256` is the hash of the bytes read, which a later save expects
+ * to still be on disk, or `null` for a canvas that has not been written yet.
  */
 export type CanvasEntry = {
   fileName: string;
   path: string;
-  /** Hash of the bytes read, which a later save expects to still be on disk. */
-  sha256: string;
+  sha256: string | null;
   name: string | null;
   file: CanvasFileModel | null;
 };
 
 export type CanvasFailure =
   | "unreadable"
-  | "invalidName"
   /** The canvas did not parse, so it is not changed. */
   | "invalid"
-  /** The file was changed by something else; nothing was written. */
+  /** The file was changed by something else, or appeared meanwhile; nothing was written. */
   | "changed"
-  /** A file with that name is already there; nothing was written. */
-  | "exists"
   | "notWritable"
   | "writeFailed";
 
@@ -83,7 +74,7 @@ async function readEntry(
   };
 }
 
-/** Every canvas of the project, by name. Reads only; nothing is written. */
+/** Every canvas file of the project. Reads only; nothing is written. */
 export async function loadCanvases(
   api: CanvasApi,
   folder: FolderHandle,
@@ -97,50 +88,36 @@ export async function loadCanvases(
     const entry = await readEntry(api, folder, fileName);
     if (entry !== null) entries.push(entry);
   }
-  return { ok: true, value: sortEntries(entries) };
+  return { ok: true, value: entries };
 }
 
 /**
- * Writes a new, empty canvas named `name` as a file that must not exist yet,
- * so an existing canvas is never replaced. `id` comes from the caller's
- * generator, which keeps this deterministic in tests.
+ * A question's canvas (ADR-0065): the file named by its id if there is one, as
+ * it was read, else an empty canvas that is not on disk yet and is written on
+ * its first change. A file that did not parse is returned as it is, so it is
+ * shown and left alone.
  */
-export async function createCanvas(
-  api: CanvasApi,
-  folder: FolderHandle,
-  input: { id: string; name: string },
-): Promise<CanvasResult<CanvasEntry>> {
-  const name = canvasName(input.name);
-  if (!name.ok) return { ok: false, error: "invalidName" };
-  const file = newCanvasFile(input.id, name.value);
-  const text = serialiseCanvas(file);
-  const fileName = `${input.id}.canvas.json`;
-  const written = await api
-    .writeNotebookFile(folder, canvasPathOfFile(fileName), text, {
-      kind: "absent",
-    })
-    .catch(() => null);
-  if (written === null) return { ok: false, error: "writeFailed" };
-  if (written.status === "error") {
-    return { ok: false, error: writeFailure(written.error) };
-  }
-  if (written.data.kind === "changed") return { ok: false, error: "exists" };
+export function canvasEntryOf(
+  entries: readonly CanvasEntry[],
+  question: { id: string; name: string },
+): CanvasEntry {
+  const fileName = canvasFileName(question.id);
+  const found = entries.find((entry) => entry.fileName === fileName);
+  if (found !== undefined) return found;
   return {
-    ok: true,
-    value: {
-      fileName,
-      path: canvasPathOfFile(fileName),
-      sha256: sha256Hex(text),
-      name: name.value,
-      file,
-    },
+    fileName,
+    path: canvasPathOfFile(fileName),
+    sha256: null,
+    name: question.name,
+    file: newCanvasFile(question.id, question.name),
   };
 }
 
 /**
  * Saves `file` over the canvas `entry` was read from, expecting the file on
- * disk to still be what was read. If something else changed it, nothing is
- * written (`changed`): a save never overwrites an outside edit.
+ * disk to still be what was read, or not to exist yet for a new one. If
+ * something else changed it, nothing is written (`changed`): a save never
+ * overwrites an outside edit.
  */
 export async function saveCanvas(
   api: CanvasApi,
@@ -151,10 +128,14 @@ export async function saveCanvas(
   if (entry.file === null) return { ok: false, error: "invalid" };
   const text = serialiseCanvas(file);
   const written = await api
-    .writeNotebookFile(folder, entry.path, text, {
-      kind: "sha256",
-      sha256: entry.sha256,
-    })
+    .writeNotebookFile(
+      folder,
+      entry.path,
+      text,
+      entry.sha256 === null
+        ? { kind: "absent" }
+        : { kind: "sha256", sha256: entry.sha256 },
+    )
     .catch(() => null);
   if (written === null) return { ok: false, error: "writeFailed" };
   if (written.status === "error") {
@@ -165,33 +146,4 @@ export async function saveCanvas(
     ok: true,
     value: { ...entry, sha256: sha256Hex(text), name: file.name, file },
   };
-}
-
-/** Gives a canvas another name; everything else in the file is kept as it was. */
-export async function renameCanvas(
-  api: CanvasApi,
-  folder: FolderHandle,
-  entry: CanvasEntry,
-  rawName: string,
-): Promise<CanvasResult<CanvasEntry>> {
-  if (entry.file === null) return { ok: false, error: "invalid" };
-  const name = canvasName(rawName);
-  if (!name.ok) return { ok: false, error: "invalidName" };
-  return saveCanvas(api, folder, entry, renamed(entry.file, name.value));
-}
-
-/** Moves a canvas to the trash, from where it can be restored by hand. Nothing else is touched. */
-export async function deleteCanvas(
-  api: CanvasApi,
-  folder: FolderHandle,
-  entry: CanvasEntry,
-): Promise<CanvasResult<undefined>> {
-  const moved = await api
-    .moveToTrash(folder, entry.path, null)
-    .catch(() => null);
-  if (moved === null) return { ok: false, error: "writeFailed" };
-  if (moved.status === "error") {
-    return { ok: false, error: writeFailure(moved.error) };
-  }
-  return { ok: true, value: undefined };
 }

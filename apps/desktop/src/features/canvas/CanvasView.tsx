@@ -1,10 +1,7 @@
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
-import { CanvasPicker } from "./CanvasPicker";
 import { CanvasSurface } from "./CanvasSurface";
 import { canvasMessages as m } from "./messages";
 import { applyEdits } from "./model/flowChanges";
-import { setViewport, updatePinnedVersion } from "./model/nodes";
-import type { CardServices } from "./model/results";
 import {
   LEFT_LIMITS,
   RIGHT_LIMITS,
@@ -12,6 +9,10 @@ import {
   layoutReducer,
   visibleWidths,
 } from "./model/layout";
+import { setViewport, updatePinnedVersion } from "./model/nodes";
+import type { CardServices } from "./model/results";
+import { NotesSummary } from "./NotesSummary";
+import { QuestionTabs, type QuestionChoice } from "./QuestionTabs";
 import { Splitter } from "./Splitter";
 import type { CanvasesModel } from "./useCanvases";
 import "./Canvas.css";
@@ -23,10 +24,12 @@ type Props = {
   canvases: CanvasesModel;
   /** What a result card needs from the rest of the application: finding, drawing and opening the result. */
   cards: CardServices;
+  /** The questions, one tab each, and the one whose canvas is showing. */
+  questions: readonly QuestionChoice[];
+  question: string | null;
+  onChooseQuestion: (key: string) => void;
   /** The results of every experiment, to drag onto the canvas. Its own feature fills this in. */
   resultsPanel?: ReactNode;
-  /** The Methods, Results Notes and Interpretation of the active experiment. */
-  writingPanel?: ReactNode;
 };
 
 /** The width of the element, kept up to date as the window is resized. */
@@ -47,28 +50,43 @@ function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
 }
 
 /**
- * The canvas view (ADR-0064): a results browser on the left, the canvas in
- * the middle and the writing panels on the right, with a picker for the
- * project's canvases above them. The side panels resize and collapse; the
- * canvas keeps a minimum width. It shows the same notebook as the table, so
- * nothing here owns experiment text.
+ * The canvas view (ADR-0065): a row of tabs, one for each question, then a
+ * results browser on the left, the question's canvas in the middle and the
+ * summary of its notes on the right. The canvas is for drafting: notes, figures
+ * and the lines between them. It shows the same notebook as the table, and
+ * owns no experiment text. The side panels resize and collapse; the canvas
+ * keeps a minimum width.
  */
 export function CanvasView({
   canvases,
   cards,
+  questions,
+  question,
+  onChooseQuestion,
   resultsPanel,
-  writingPanel,
 }: Props) {
   const [layout, dispatch] = useReducer(layoutReducer, initialLayout);
   const [ref, total] = useWidth();
   const widths = visibleWidths(layout, total);
-  const { status, selected, notice } = canvases;
+  const { status, current, notice, writable } = canvases;
+  const file = current?.file ?? null;
 
   return (
     <section className="canvas-view" aria-label={m.canvas}>
       <div className="canvas-view__bar">
-        <CanvasPicker model={canvases} />
+        <QuestionTabs
+          questions={questions}
+          current={question}
+          onChoose={onChooseQuestion}
+        />
         <div className="canvas-view__toggles">
+          <button
+            type="button"
+            disabled={!writable || file === null}
+            onClick={() => canvases.addNote()}
+          >
+            {m.addNote}
+          </button>
           <button
             type="button"
             aria-pressed={!layout.leftCollapsed}
@@ -81,16 +99,14 @@ export function CanvasView({
             aria-pressed={!layout.rightCollapsed}
             onClick={() => dispatch({ type: "toggle", side: "right" })}
           >
-            {layout.rightCollapsed ? m.showWriting : m.hideWriting}
+            {layout.rightCollapsed ? m.showNotes : m.hideNotes}
           </button>
         </div>
       </div>
       <div role="status" aria-live="polite" className="canvas-view__notices">
         {status === "loading" && <p>{m.loading}</p>}
-        {!canvases.writable && <p>{m.readOnlyProject}</p>}
-        {selected !== null && selected.file === null && (
-          <p>{m.unreadableNotice}</p>
-        )}
+        {!writable && <p>{m.readOnlyProject}</p>}
+        {current !== null && file === null && <p>{m.unreadableNotice}</p>}
         {notice !== null && (
           <p className="notice">
             <span>{notice}</span>
@@ -136,28 +152,29 @@ export function CanvasView({
           </>
         )}
         <div className="canvas-view__centre">
-          {selected?.file != null ? (
+          {current !== null && file !== null ? (
             <CanvasSurface
-              key={selected.fileName}
-              canvas={selected.file}
+              key={current.fileName}
+              canvas={file}
               services={cards}
-              editable={canvases.writable}
+              editable={writable}
+              newId={canvases.newId}
               onEdits={(edits) =>
-                canvases.edit((file) => applyEdits(file, edits))
+                canvases.edit((now) => applyEdits(now, edits))
               }
               onViewport={(view) =>
-                canvases.edit((file) => setViewport(file, view))
+                canvases.edit((now) => setViewport(now, view))
               }
               onUpdateVersion={(id, version) =>
-                canvases.edit((file) => updatePinnedVersion(file, id, version))
+                canvases.edit((now) => updatePinnedVersion(now, id, version))
               }
               registerSurface={canvases.registerSurface}
             />
           ) : (
-            status === "ready" && (
+            status !== "loading" && (
               <div className="canvas-view__empty">
-                <p>{selected === null ? m.noCanvases : m.unreadableNotice}</p>
-                {selected === null && <p>{m.noCanvasesHint}</p>}
+                <p>{question === null ? m.noQuestions : m.unreadableNotice}</p>
+                {question === null && <p>{m.noQuestionsHint}</p>}
               </div>
             )
           )}
@@ -165,7 +182,7 @@ export function CanvasView({
         {widths.right > 0 && (
           <>
             <Splitter
-              label={m.resizeWriting}
+              label={m.resizeNotes}
               value={layout.right}
               min={RIGHT_LIMITS.min}
               max={RIGHT_LIMITS.max}
@@ -180,14 +197,14 @@ export function CanvasView({
             <aside
               className="canvas-view__panel"
               style={{ width: widths.right }}
-              aria-labelledby="canvas-writing-heading"
+              aria-labelledby="canvas-notes-heading"
             >
-              <h3 id="canvas-writing-heading">{m.writingHeading}</h3>
-              {writingPanel ?? (
-                <p className="canvas-view__placeholder">
-                  {m.writingPlaceholder}
-                </p>
-              )}
+              <h3 id="canvas-notes-heading">{m.notesHeading}</h3>
+              <NotesSummary
+                file={file}
+                resolve={cards.resolve}
+                onSelectNote={canvases.focusNode}
+              />
             </aside>
           </>
         )}

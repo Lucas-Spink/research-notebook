@@ -1,7 +1,13 @@
 import type { NodeChange } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { newCanvasFile } from "./canvasFiles";
-import { applyEdits, editsFrom, type CanvasEdit } from "./flowChanges";
+import {
+  applyEdits,
+  edgeEditsFrom,
+  editsFrom,
+  type CanvasEdit,
+} from "./flowChanges";
+import { addNote, noteNodes } from "./notes";
 import { pinResults } from "./nodes";
 
 /**
@@ -126,5 +132,58 @@ describe("applyEdits", () => {
       { kind: "remove", ids: ["01JAXN00000000000000000001"] },
     ]);
     expect(next.nodes).toEqual([]);
+  });
+});
+
+describe("edgeEditsFrom", () => {
+  it("keeps the removal of lines and ignores their selection", () => {
+    expect(
+      edgeEditsFrom([
+        { id: "e1", type: "select", selected: true },
+        { id: "e1", type: "remove" },
+        { id: "e2", type: "remove" },
+      ]),
+    ).toEqual([{ kind: "removeEdges", ids: ["e1", "e2"] }]);
+  });
+
+  it("is nothing when no line was removed", () => {
+    expect(
+      edgeEditsFrom([{ id: "e1", type: "select", selected: false }]),
+    ).toEqual([]);
+  });
+});
+
+describe("applyEdits for notes and lines", () => {
+  const base = () => {
+    let file = addNote(
+      { ...newCanvasFile("01JAXQ0000000000000000000A", "Q"), nodes: [] },
+      { x: 0, y: 0 },
+      () => "01JAXN00000000000000000001",
+    );
+    file = addNote(file, { x: 500, y: 0 }, () => "01JAXN00000000000000000002");
+    return file;
+  };
+
+  it("writes a note's text", () => {
+    const file = applyEdits(base(), [
+      { kind: "noteText", id: "01JAXN00000000000000000001", text: "hello" },
+    ]);
+    expect(noteNodes(file)[0]?.text).toBe("hello");
+  });
+
+  it("joins two cards, and removes the line again", () => {
+    const joined = applyEdits(base(), [
+      {
+        kind: "connect",
+        id: "01JAXD00000000000000000001",
+        from: "01JAXN00000000000000000001",
+        to: "01JAXN00000000000000000002",
+      },
+    ]);
+    expect(joined.edges).toHaveLength(1);
+    const edgeId = joined.edges[0]?.id ?? "";
+    expect(
+      applyEdits(joined, [{ kind: "removeEdges", ids: [edgeId] }]).edges,
+    ).toEqual([]);
   });
 });

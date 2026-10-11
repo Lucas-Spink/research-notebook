@@ -6,43 +6,27 @@ export const canvasMessages = {
   table: "Table",
   canvas: "Canvas",
 
-  pickerLabel: "Canvas",
-  newCanvas: "New canvas",
-  rename: "Rename",
-  remove: "Delete",
-  nameLabel: "Canvas name",
-  newSubmit: "Create canvas",
-  renameSubmit: "Save name",
-  cancel: "Cancel",
-  /** Shown for a canvas file that could not be read, in place of its name. */
-  unreadableOption: (fileName: string) => `${fileName} (cannot be read)`,
+  questionsLabel: "Questions",
+  noQuestions: "This project has no questions yet.",
+  noQuestionsHint:
+    "Add a question in the Table. Each question has its own canvas for drafting ideas.",
   unreadableNotice:
-    "This canvas file could not be read, so it is shown as it is and has not been changed. It can still be deleted.",
-  deleteHeading: (name: string) => `Delete “${name}”?`,
-  deleteBody:
-    "Only this canvas is removed, by moving its file to the project’s trash folder. Results, experiments and their text are not touched.",
-  deleteConfirm: "Move to trash",
-
-  loading: "Loading canvases…",
-  noCanvases: "This project has no canvases yet.",
-  noCanvasesHint:
-    "A canvas lets you arrange results from any experiment side by side while you write.",
-  emptyCanvas: "This canvas is empty.",
+    "This question's canvas file could not be read, so it is shown as it is and has not been changed.",
+  loading: "Loading the canvas…",
   readOnlyProject:
-    "This project is read-only, so canvases can be viewed but not created or changed.",
+    "This project is read-only, so the canvas can be viewed but not changed.",
 
   resultsHeading: "Results",
   resultsPlaceholder:
     "The results of every experiment in the project will be listed here.",
-  writingHeading: "Writing",
-  writingPlaceholder:
-    "The Methods, Results Notes and Interpretation of an experiment will be edited here.",
+  notesHeading: "Notes",
   hideResults: "Hide results",
   showResults: "Show results",
-  hideWriting: "Hide writing",
-  showWriting: "Show writing",
+  hideNotes: "Hide notes",
+  showNotes: "Show notes",
   resizeResults: "Resize the results panel",
-  resizeWriting: "Resize the writing panel",
+  resizeNotes: "Resize the notes panel",
+  addNote: "Add note",
 
   surfaceLabel: "Canvas",
   zoom: (percent: number) => `Zoom: ${percent}%`,
@@ -64,18 +48,32 @@ export const canvasMessages = {
   },
   missingKept:
     "The card is kept so you can see what was here. Removing it does not affect any result.",
-  pinHint: "Drag a result here, or choose Pin to canvas from its menu.",
-  pinFailed: "Nothing was pinned. Choose a canvas first.",
+  pinHint:
+    "Drag a result here, or choose Pin to canvas from its menu. Add a note and join it to a figure with a line.",
+  pinFailed: "Nothing was added. Choose a question first.",
+
+  noteLabel: "Note",
+  notePlaceholder: "Write a note…",
+  removeNote: "Remove note",
+  noteHandle: "Draw a line from this card",
+
+  summaryEmpty:
+    "No notes on this canvas yet. Add a note, then join it to the figures it is about with a line.",
+  emptyNote: "Empty note",
+  refersTo: "Refers to",
+  linkedNotes: "Linked to notes",
+  selectNote: (excerpt: string) => `Show this note on the canvas: ${excerpt}`,
+  figureLine: (name: string, experiment: string, version: number | null) =>
+    version === null
+      ? `${name} (${experiment})`
+      : `${name} (${experiment}, v${version})`,
+  missingFigure: "A result that is no longer available",
 
   failures: {
     unreadable: "The canvases could not be read. Nothing was changed.",
-    invalidName:
-      "Enter a name on a single line, without line breaks or other control characters.",
     invalid: "That canvas file could not be read, so it was not changed.",
     changed:
-      "That canvas file was changed outside the application, so nothing was saved. Reloaded.",
-    exists:
-      "A canvas with that identifier already exists, so nothing was written. Try again.",
+      "The canvas file was changed outside the application, so your latest change was not saved. It is shown as it is now.",
     notWritable:
       "This project is read-only in this window, so nothing was saved.",
     writeFailed: "The canvas could not be saved. Nothing was lost.",

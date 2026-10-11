@@ -1,5 +1,5 @@
 import type { CanvasFileModel } from "@research-notebook/format";
-import type { Node } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
 import { assertNever } from "../../../shared/assertNever";
 import type { ArtefactNode } from "./nodes";
 import type { ResultInfo } from "./results";
@@ -15,6 +15,15 @@ export type ArtefactFlowNode = Node<ArtefactFlowData, "artefact">;
 export type NoteFlowNode = Node<NoteFlowData, "note">;
 export type RegionFlowNode = Node<RegionFlowData, "region">;
 export type CanvasFlowNode = ArtefactFlowNode | NoteFlowNode | RegionFlowNode;
+
+/** The canvas file's lines as React Flow draws them. */
+export function toFlowEdges(file: CanvasFileModel): Edge[] {
+  return file.edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+  }));
+}
 
 /**
  * The canvas file's cards as React Flow draws them. `resolve` says what each
