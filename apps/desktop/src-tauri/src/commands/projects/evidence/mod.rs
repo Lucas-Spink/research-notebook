@@ -17,7 +17,7 @@ use std::path::PathBuf;
 
 use nb_fs::settings::SettingsStore;
 use tauri::ipc::Channel;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, State, Window};
 use tauri_plugin_dialog::DialogExt;
 
 use super::folders::{FolderHandle, PickedFolders};
@@ -211,10 +211,11 @@ pub async fn observe_evidence(
 }
 
 /// Starts receiving files dropped on the window for the open project
-/// (ADR-0044 point 2). Replaces any earlier target.
+/// (ADR-0044 point 2). Replaces any earlier target of the calling window.
 #[tauri::command]
 #[specta::specta]
 pub fn watch_drops(
+    window: Window,
     targets: State<'_, DropTargets>,
     folders: State<'_, PickedFolders>,
     folder: FolderHandle,
@@ -222,19 +223,22 @@ pub fn watch_drops(
     external_roots: Vec<Ulid>,
 ) -> Result<(), EvidenceFailure> {
     project_root(&folders, folder)?;
-    targets.set(Some(DropTarget {
-        folder,
-        project_id,
-        external_roots,
-    }));
+    targets.set(
+        window.label(),
+        Some(DropTarget {
+            folder,
+            project_id,
+            external_roots,
+        }),
+    );
     Ok(())
 }
 
 /// Stops receiving drops, so a file dropped on the window does nothing.
 #[tauri::command]
 #[specta::specta]
-pub fn unwatch_drops(targets: State<'_, DropTargets>) {
-    targets.set(None);
+pub fn unwatch_drops(window: Window, targets: State<'_, DropTargets>) {
+    targets.set(window.label(), None);
 }
 
 /// The requests waiting in the project's inbox (spec 5.10), by folder name.

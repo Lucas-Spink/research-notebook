@@ -4,6 +4,7 @@
 //! does, and only that is sent on to the webview, with where the pointer
 //! was. The webview never holds a path (AGENTS.md rule 8).
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
 
@@ -27,25 +28,36 @@ pub(super) struct DropTarget {
     pub(super) external_roots: Vec<Ulid>,
 }
 
-/// Where drops go, if anywhere. Empty until the webview asks to receive them
-/// and again when it stops, so a drop with nothing open is ignored.
+/// Where drops go, by the label of the window that asked. A window is absent
+/// until its webview asks to receive drops and again when it stops, so a drop
+/// on a window with nothing open, or on one that only arranges cards such as
+/// the canvas window, is ignored.
 #[derive(Debug, Default)]
 pub struct DropTargets {
-    inner: Mutex<Option<DropTarget>>,
+    inner: Mutex<HashMap<String, DropTarget>>,
 }
 
 impl DropTargets {
-    pub(super) fn set(&self, target: Option<DropTarget>) {
-        // Replacing the whole value cannot leave it half-updated, so a
+    pub(super) fn set(&self, window: &str, target: Option<DropTarget>) {
+        // An insert or a remove cannot leave the map half-updated, so a
         // poisoned lock is still safe to use.
-        *self.inner.lock().unwrap_or_else(PoisonError::into_inner) = target;
+        let mut targets = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
+        match target {
+            Some(target) => {
+                targets.insert(window.to_owned(), target);
+            }
+            None => {
+                targets.remove(window);
+            }
+        }
     }
 
-    fn get(&self) -> Option<DropTarget> {
+    fn get(&self, window: &str) -> Option<DropTarget> {
         self.inner
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .clone()
+            .get(window)
+            .cloned()
     }
 }
 
@@ -69,12 +81,15 @@ pub struct EvidenceDropped {
     pub files: Vec<ChosenFile>,
 }
 
-/// Handles the window's drag and drop event: tells the webview where the
-/// pointer is, and, for a drop, what was dropped. Called from the window
+/// Handles the window's drag and drop event: tells that window's webview where
+/// the pointer is, and, for a drop, what was dropped. Other windows are not
+/// told: the position belongs to this window and a drop is for its project
+/// target alone. Called from the window
 /// event handler, which runs on the main thread, so the file system work
 /// is moved off it.
 pub fn on_drag(window: &Window, event: &DragDropEvent) {
     let app = window.app_handle().clone();
+    let label = window.label().to_owned();
     match event {
         DragDropEvent::Enter { position, .. } | DragDropEvent::Over { position } => {
             report(
@@ -83,21 +98,21 @@ pub fn on_drag(window: &Window, event: &DragDropEvent) {
                     x: position.x,
                     y: position.y,
                 }
-                .emit(&app),
+                .emit_to(&app, label.as_str()),
             );
         }
         DragDropEvent::Drop { paths, position } => {
             let (x, y) = (position.x, position.y);
-            report(EvidenceDragged { over: false, x, y }.emit(&app));
+            report(EvidenceDragged { over: false, x, y }.emit_to(&app, label.as_str()));
             let paths = paths.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                let Some(target) = app.state::<DropTargets>().get() else {
+                let Some(target) = app.state::<DropTargets>().get(&label) else {
                     return;
                 };
                 let Some(files) = resolve(&app, &target, &paths) else {
                     return;
                 };
-                report(EvidenceDropped { x, y, files }.emit(&app));
+                report(EvidenceDropped { x, y, files }.emit_to(&app, label.as_str()));
             });
         }
         DragDropEvent::Leave => {
@@ -107,7 +122,7 @@ pub fn on_drag(window: &Window, event: &DragDropEvent) {
                     x: 0.0,
                     y: 0.0,
                 }
-                .emit(&app),
+                .emit_to(&app, label.as_str()),
             );
         }
         _ => {}
@@ -153,23 +168,45 @@ mod tests {
         let folders = PickedFolders::default();
         let handle = folders.insert(PathBuf::from("/p"));
         let targets = DropTargets::default();
-        assert_eq!(targets.get(), None);
+        assert_eq!(targets.get("main"), None);
 
-        targets.set(Some(target(handle)));
-        assert_eq!(targets.get(), Some(target(handle)));
+        targets.set("main", Some(target(handle)));
+        assert_eq!(targets.get("main"), Some(target(handle)));
 
-        targets.set(None);
-        assert_eq!(targets.get(), None);
+        targets.set("main", None);
+        assert_eq!(targets.get("main"), None);
     }
 
     #[test]
-    fn a_later_target_replaces_the_earlier_one() {
+    fn a_later_target_replaces_the_earlier_one_for_the_same_window() {
         let folders = PickedFolders::default();
         let first = folders.insert(PathBuf::from("/a"));
         let second = folders.insert(PathBuf::from("/b"));
         let targets = DropTargets::default();
-        targets.set(Some(target(first)));
-        targets.set(Some(target(second)));
-        assert_eq!(targets.get(), Some(target(second)));
+        targets.set("main", Some(target(first)));
+        targets.set("main", Some(target(second)));
+        assert_eq!(targets.get("main"), Some(target(second)));
+    }
+
+    #[test]
+    fn a_window_that_never_asked_ignores_drops_even_when_another_did() {
+        let folders = PickedFolders::default();
+        let handle = folders.insert(PathBuf::from("/p"));
+        let targets = DropTargets::default();
+        targets.set("main", Some(target(handle)));
+        // The canvas window only arranges cards; a file dropped on it must not
+        // be captured as evidence.
+        assert_eq!(targets.get("canvas"), None);
+    }
+
+    #[test]
+    fn stopping_one_window_leaves_the_other_receiving() {
+        let folders = PickedFolders::default();
+        let handle = folders.insert(PathBuf::from("/p"));
+        let targets = DropTargets::default();
+        targets.set("main", Some(target(handle)));
+        targets.set("other", Some(target(handle)));
+        targets.set("other", None);
+        assert_eq!(targets.get("main"), Some(target(handle)));
     }
 }

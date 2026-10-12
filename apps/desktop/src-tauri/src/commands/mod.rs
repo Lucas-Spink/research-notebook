@@ -2,6 +2,7 @@
 //! business logic itself (AGENTS.md section 4).
 
 pub mod app;
+pub mod canvas_window;
 pub mod preview;
 pub mod projects;
 pub mod zotero;
