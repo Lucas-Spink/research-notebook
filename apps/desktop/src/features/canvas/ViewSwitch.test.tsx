@@ -32,6 +32,17 @@ describe("ViewSwitch", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("can turn off one view and leave the other, such as the canvas while it is in its own window", () => {
+    const onChange = vi.fn();
+    const view = mount(
+      <ViewSwitch mode="table" unavailable={["canvas"]} onChange={onChange} />,
+    );
+    expect(buttonNamed(view, "Canvas").disabled).toBe(true);
+    expect(buttonNamed(view, "Table").disabled).toBe(false);
+    click(buttonNamed(view, "Canvas"));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("can be turned off", () => {
     const view = mount(
       <ViewSwitch mode="table" disabled onChange={() => undefined} />,

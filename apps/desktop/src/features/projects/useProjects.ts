@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commands, type RecentEntry } from "../../ipc/bindings";
+import { relayChanges } from "./model/relay";
 import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { useExternalChanges, type Reload } from "../conflicts";
 import type { ChangesPort } from "../notebook";
@@ -103,6 +104,8 @@ export function useProjects() {
 
   const changes = useExternalChanges({
     folder: opened?.folder ?? null,
+    // This window polls the watcher for the pop-out canvas window too (ADR-0066).
+    onChanges: relayChanges,
     onReload: (reload) => {
       reloadListeners.current.forEach((listener) => listener(reload));
       if (reload.path !== PROJECT_YAML) return;
