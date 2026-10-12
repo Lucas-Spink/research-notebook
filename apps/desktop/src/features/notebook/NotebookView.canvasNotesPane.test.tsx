@@ -56,7 +56,7 @@ const withFigure: NotebookState = {
 
 const pathOf = (id: string) => `_notebook/canvases/${id}.canvas.json`;
 
-function seeded(): string {
+function seeded(text = "The dotplot is flat"): string {
   return serialiseCanvas({
     format_version: 2,
     id: first,
@@ -65,7 +65,7 @@ function seeded(): string {
       {
         id: "01JAXN00000000000000000001",
         type: "note",
-        text: "The dotplot is flat",
+        text,
         position: { x: 0, y: 0 },
         size: { width: 260, height: 160 },
       },
@@ -274,5 +274,16 @@ describe("the Canvas notes pane in the table view", () => {
     await click(tab);
     await flush();
     expect(shownQuestion(view)).toBe("Q-002 Second");
+  });
+
+  it("lists a source cited in a note in the table's Bibliography, with no pane open", async () => {
+    const { view } = await mount(
+      { [pathOf(first)]: seeded("As in [@z:u:7XK2PQ9M]") },
+      { open: false },
+    );
+    await flush();
+    expect(
+      view.querySelector('.bibliography [data-citekey="z:u:7XK2PQ9M"]'),
+    ).not.toBeNull();
   });
 });

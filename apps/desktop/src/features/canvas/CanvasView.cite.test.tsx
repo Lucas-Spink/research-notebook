@@ -59,13 +59,15 @@ function Harness({ api }: { api: ReturnType<typeof fakeApi>["api"] }) {
     saveDelayMs: 0,
   });
   return (
-    <CanvasView
-      canvases={canvases}
-      cards={fakeCards({})}
-      questions={TABS}
-      question="Q-001.md"
-      onChooseQuestion={() => undefined}
-    />
+    <div data-cited={[...canvases.noteCitekeys].join(" ")}>
+      <CanvasView
+        canvases={canvases}
+        cards={fakeCards({})}
+        questions={TABS}
+        question="Q-001.md"
+        onChooseQuestion={() => undefined}
+      />
+    </div>
   );
 }
 
@@ -141,5 +143,16 @@ describe("/cite in a note", () => {
     await flush();
     expect(view.querySelector(".canvas-note__read")).toBeNull();
     expect(box.value).toBe("As shown by [@z:u:7XK2PQ9M]");
+  });
+
+  it("reports the cited source to the model as soon as it is inserted", async () => {
+    const { view, box } = await openNote();
+    type(box, "As shown by /cite");
+    await flush();
+    click(buttonNamed(view, "Pick"));
+    await flush();
+    expect(view.querySelector("[data-cited]")?.getAttribute("data-cited")).toBe(
+      "z:u:7XK2PQ9M",
+    );
   });
 });
