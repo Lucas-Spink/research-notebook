@@ -13,7 +13,6 @@ import {
   useCallback,
   useMemo,
   useReducer,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -54,7 +53,6 @@ import {
   ViewSwitch,
   useCanvases,
   type CanvasApi,
-  type CardServices,
   type ViewMode,
 } from "../canvas";
 import {
@@ -97,9 +95,8 @@ import {
 import { attachedCitekeys } from "./workspace/model/attach";
 import { restoreEntry } from "./workspace/model/restoreEntry";
 import { AddResultPane } from "./workspace/AddResultPane";
-import { CanvasResultPreview } from "./workspace/CanvasResultPreview";
 import { CanvasResultsPanel } from "./workspace/CanvasResultsPanel";
-import { resolveResult } from "./workspace/model/canvasResults";
+import { useCanvasCards } from "./workspace/useCanvasCards";
 import {
   questionsOf,
   reconcileQuestion,
@@ -545,32 +542,7 @@ function NotebookViewBody({
     [selectedKey, arranged],
   );
 
-  // The latest editing, for a click that happens after the cards were last built.
-  const editingNow = useRef(editing);
-  editingNow.current = editing;
-  /** What a result card on the canvas needs: finding its result again, drawing it, and opening the original. */
-  const cards = useMemo<CardServices>(
-    () => ({
-      resolve: (node) =>
-        arranged === null
-          ? { status: "missing", reason: "experiment" }
-          : resolveResult(arranged, {
-              experimentId: node.experiment_id,
-              artefactId: node.artefact_id,
-              ...(node.version === undefined ? {} : { version: node.version }),
-            }),
-      renderPreview: (result, detail) => (
-        <CanvasResultPreview folder={folder} result={result} detail={detail} />
-      ),
-      onOpen: (result) =>
-        editingNow.current.onOpenResult(
-          result.experimentFolder,
-          result.artefactId,
-          result.shownVersion,
-        ),
-    }),
-    [arranged, folder],
-  );
+  const cards = useCanvasCards(arranged, folder, editing.onOpenResult);
 
   function toggle(row: HeaderRow) {
     if (row.questionId === null) {
