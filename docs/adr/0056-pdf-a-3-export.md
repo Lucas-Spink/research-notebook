@@ -98,6 +98,7 @@ printed literally (`pdfa3.rs`, `injection.rs`).
 | RUSTSEC-2025-0141 | `bincode` 1.3.3 via `syntect` | Unmaintained | No. It decodes syntax sets compiled into the binary. | `syntect` or `two-face` no longer use `bincode` 1 |
 | RUSTSEC-2024-0320 | `yaml-rust` 0.4.5 via `syntect` | Unmaintained | No. `SyntaxDefinition::load_from_str` (`raw.rs:732`) runs only for custom syntaxes passed to `raw(syntaxes: ...)`; the template passes none. Code blocks use `raw` with no language. | `syntect` moves to a maintained YAML parser |
 | RUSTSEC-2026-0206 | `rustybuzz` 0.20.1 via `typst-layout`, `krilla` | Unmaintained | Shapes researcher text, but there is no known vulnerability. Fonts are the embedded ones. | Typst moves to `harfrust` or a maintained `rustybuzz` |
+| RUSTSEC-2024-0449 | `unsafe-libyaml` 0.2.11 via `serde_yaml`, used by `typst-library` (the `yaml()` function) and `hayagriva` (`from_yaml_str`) | Unmaintained (repository archived) | No. YAML is parsed only for a `yaml(...)` call in Typst source or a Hayagriva `.yaml` bibliography given to `bibliography(...)` (`bibliography.rs:433`). The template has neither (`template_surface.rs` fails if it gains either), the `World` serves only JSON and one SVG, and nothing serves YAML. There is no known vulnerability. | `hayagriva` and `typst-library` stop using `serde_yaml` |
 | RUSTSEC-2026-0192 | `ttf-parser` 0.25.1 via `fontdb`, `typst` | Unmaintained | Parses font files, and only the embedded fonts are ever loaded: no system or user fonts (`typst-kit` has `embedded-fonts` only). There is no known vulnerability. | Typst moves to a maintained font parser |
 
 Latest releases on 2026-10-10: `typst` 0.15.1, `hayagriva` 0.10.1,
@@ -135,7 +136,7 @@ Keeping the argument true:
 
 - **Dependency graph.** The desktop crate now depends on `nb-export`, so Typst
   and its dependencies are in the application, and `cargo deny check advisories`
-  reports six advisories on them. They are ignored in `deny.toml`, each with a
+  reports seven advisories on them. They are ignored in `deny.toml`, each with a
   reason, on the grounds set out under "Advisories ignored in `deny.toml`".
 - **Tests.** `nb-export/tests/pdfa3.rs` (PDF/A-3b markers, both attachments with
   type and relationship, text reaches the page, hostile wording stays literal,
