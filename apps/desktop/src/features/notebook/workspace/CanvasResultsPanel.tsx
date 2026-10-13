@@ -4,20 +4,23 @@ import type { FolderHandle } from "../../../ipc/bindings";
 import type { PinRef } from "../../canvas";
 import { ResultsTree } from "../../results";
 import { evidenceOf } from "../model/evidence";
-import type { TableEditing } from "../table/EditableSectionCell";
 import { previewVersion } from "../table/model/resultVersion";
 import { LazyMount } from "../../../shared/LazyMount";
 import { CanvasResultPreview } from "./CanvasResultPreview";
 import { resolveInItem } from "./model/canvasResults";
 import { currentFirst } from "./model/resultsOrder";
-import { useResultsCellTree } from "../table/useResultsCellTree";
+import {
+  useResultsCellTree,
+  type ResultsAccess,
+} from "../table/useResultsCellTree";
 import { canvasResultsMessages as m } from "./messages";
 import "./CanvasResultsPanel.css";
 
 type Props = {
   arranged: Arranged;
   folder: FolderHandle;
-  editing: TableEditing;
+  /** What the trees need; with `writable: false` they only browse and pin. */
+  editing: ResultsAccess;
   /** The results already on the canvas being shown. */
   pinned: ReadonlySet<string>;
   /** Pins results at a point of the window (a drop) or, with `null`, in the middle of the canvas. */

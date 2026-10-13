@@ -12,6 +12,16 @@ import type { TableEditing } from "./EditableSectionCell";
 import { previewVersion } from "./model/resultVersion";
 
 /**
+ * The part of the table's editing a Results tree uses. Narrow so a window that
+ * only browses results (the pop-out canvas) can supply it with `writable: false`
+ * and never reach the table's editors.
+ */
+export type ResultsAccess = Pick<
+  TableEditing,
+  "projectId" | "references" | "writable" | "editArtefacts" | "onOpenResult"
+>;
+
+/**
  * What the Results tree inside one Results cell needs (issue #101): saving a
  * change to this experiment's `artefacts.yaml`, opening a result's preview,
  * opening its file outside the application, and which linked files are
@@ -21,7 +31,7 @@ export function useResultsCellTree(
   folder: FolderHandle,
   experimentFolder: string,
   file: ArtefactsFileModel | null,
-  editing: TableEditing,
+  editing: ResultsAccess,
 ) {
   const missing = useMissingLinks(commands, folder, editing.projectId, file);
   const fileAction = useResultFileActions(
