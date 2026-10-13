@@ -12,6 +12,33 @@ export const commands = {
 	 */
 	appVersion: () => __TAURI_INVOKE<string>("app_version"),
 	/**
+	 *  Opens the canvas window for the project open in the calling window, or
+	 *  brings it to the front if it is already open.
+	 */
+	openCanvasWindow: (folder: FolderHandle, writable: boolean) => typedError<null, CanvasWindowError>(__TAURI_INVOKE("open_canvas_window", { folder, writable })),
+	/**
+	 *  What the canvas window opens, or `None` when it was not opened by
+	 *  [`open_canvas_window`].
+	 */
+	canvasWindowContext: () => __TAURI_INVOKE<{
+	folder: FolderHandle,
+	/**
+	 *  Whether the main window holds the project lock. The canvas window
+	 *  never takes it, so when this is false it only reads.
+	 */
+	writable: boolean,
+} | null>("canvas_window_context"),
+	/**
+	 *  Closes the canvas window if it is open. The main window does this when its
+	 *  project closes, since the canvas window belongs to that project.
+	 */
+	closeCanvasWindow: () => __TAURI_INVOKE<void>("close_canvas_window"),
+	/**
+	 *  Brings the main window to the front, for a request made in the canvas
+	 *  window to open a result.
+	 */
+	focusMainWindow: () => __TAURI_INVOKE<void>("focus_main_window"),
+	/**
 	 *  Generates a 256px-bounded PNG thumbnail for a PNG or JPEG image (spec
 	 *  section 8). Spike for S1-T05: the first typed command in the app,
 	 *  establishing the `apps/desktop/src/ipc/` generated-bindings boundary
@@ -287,7 +314,7 @@ export const commands = {
 	observeEvidence: (folder: FolderHandle, projectId: Ulid, root: SourceRoot, path: SourcePath) => typedError<LinkObservationDto, EvidenceFailure>(__TAURI_INVOKE("observe_evidence", { folder, projectId, root, path })),
 	/**
 	 *  Starts receiving files dropped on the window for the open project
-	 *  (ADR-0044 point 2). Replaces any earlier target.
+	 *  (ADR-0044 point 2). Replaces any earlier target of the calling window.
 	 */
 	watchDrops: (folder: FolderHandle, projectId: Ulid, externalRoots: Ulid[]) => typedError<null, EvidenceFailure>(__TAURI_INVOKE("watch_drops", { folder, projectId, externalRoots })),
 	/**  Stops receiving drops, so a file dropped on the window does nothing. */
@@ -374,8 +401,11 @@ export const commands = {
 
 /** Events */
 export const events = {
+	canvasWindowChanged: makeEvent<CanvasWindowChanged>("canvas-window-changed"),
 	evidenceDragged: makeEvent<EvidenceDragged>("evidence-dragged"),
 	evidenceDropped: makeEvent<EvidenceDropped>("evidence-dropped"),
+	openResultRequested: makeEvent<OpenResultRequested>("open-result-requested"),
+	projectFilesChanged: makeEvent<ProjectFilesChanged>("project-files-changed"),
 };
 
 /* Types */
@@ -471,6 +501,36 @@ export type BundleSummary = {
 	/**  The files together may not fit in one file on a FAT32 drive. */
 	exceedsFat32Limit: boolean,
 };
+
+/**
+ *  The canvas window opened or closed. Sent to the main window, so its canvas
+ *  view can hand over to the pop-out and take back on closing, however the
+ *  window was closed.
+ */
+export type CanvasWindowChanged = {
+	open: boolean,
+};
+
+/**
+ *  What the canvas window needs to open the project the main window has open.
+ *  The webview asks for it once it starts, so the folder travels as a handle
+ *  and never as a path (AGENTS.md rule 8).
+ */
+export type CanvasWindowContext = {
+	folder: FolderHandle,
+	/**
+	 *  Whether the main window holds the project lock. The canvas window
+	 *  never takes it, so when this is false it only reads.
+	 */
+	writable: boolean,
+};
+
+/**  Why the canvas window could not be opened. */
+export type CanvasWindowError = 
+/**  The folder handle was not issued in this run. */
+{ kind: "folderUnavailable" } | 
+/**  The operating system would not create the window. */
+{ kind: "windowFailed" };
 
 /**
  *  How the captured file is named (FR-EVD-04): from the source's own name
@@ -943,6 +1003,16 @@ export type OpenFailure =
 /**  The action itself failed to start. */
 { kind: "actionFailed" };
 
+/**
+ *  The canvas window asks the main window to open one result's original,
+ *  since the canvas window never edits or previews the table.
+ */
+export type OpenResultRequested = {
+	experimentFolder: string,
+	artefactId: string,
+	version: number | null,
+};
+
 /**  Why a link did not open. */
 export type OpenSourceLinkError = 
 /**  The parts were not a valid library, key or DOI; nothing was launched. */
@@ -1045,6 +1115,17 @@ export type ProjectError =
 { kind: "settingsUnavailable" } | 
 /**  A background task failed. Not caused by the person's input. */
 { kind: "internal" };
+
+/**
+ *  Project files changed on disk. The main window is the only one that polls
+ *  the watcher, which hands each batch out once, so it passes what it found
+ *  on to the canvas window with this. Paths are project-relative.
+ */
+export type ProjectFilesChanged = {
+	paths: string[],
+	/**  Events may have been lost, so everything should be read again. */
+	needsRescan: boolean,
+};
 
 /**  A recent project as listed on the start screen. */
 export type RecentEntry = {

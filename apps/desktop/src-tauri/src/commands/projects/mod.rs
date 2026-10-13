@@ -34,8 +34,7 @@ use nb_fs::{NewProject, ProjectRoot};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
-use folders::FolderHandle;
-pub use folders::PickedFolders;
+pub use folders::{FolderHandle, PickedFolders};
 use ids::Ulid;
 use types::{
     CreatedProject, ExternalRootStatus, HygieneReport, OpenedProject, ProjectError, RecentEntry,

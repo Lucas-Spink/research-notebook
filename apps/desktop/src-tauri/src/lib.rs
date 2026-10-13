@@ -17,6 +17,10 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             commands::app::app_version,
+            commands::canvas_window::open_canvas_window,
+            commands::canvas_window::canvas_window_context,
+            commands::canvas_window::close_canvas_window,
+            commands::canvas_window::focus_main_window,
             commands::preview::preview_thumbnail_png,
             commands::projects::create_project,
             commands::projects::open_project,
@@ -87,6 +91,9 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         .events(collect_events![
             commands::projects::evidence::EvidenceDragged,
             commands::projects::evidence::EvidenceDropped,
+            commands::canvas_window::CanvasWindowChanged,
+            commands::canvas_window::ProjectFilesChanged,
+            commands::canvas_window::OpenResultRequested,
         ])
 }
 
@@ -115,6 +122,8 @@ pub fn run() {
         // Where files dropped on the window go, once the webview asks.
         .manage(commands::projects::evidence::DropTargets::default())
         .manage(commands::projects::evidence::DiscoveryScans::default())
+        // What the canvas window opens, while that window exists.
+        .manage(commands::canvas_window::CanvasWindowState::default())
         // The locks this run holds, released when it exits.
         .manage(LockRegistry::new(Arc::new(SystemEnv::new(env!(
             "CARGO_PKG_VERSION"
@@ -126,6 +135,7 @@ pub fn run() {
             if let tauri::WindowEvent::DragDrop(drag) = event {
                 commands::projects::evidence::on_drag(window, drag);
             }
+            commands::canvas_window::on_window_event(window, event);
         })
         .setup(move |app| {
             builder.mount_events(app);
