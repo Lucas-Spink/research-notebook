@@ -49,6 +49,8 @@ export type SourcesModel = {
   select: (citekey: string | null) => void;
   /** Shows a bibliography another operation has just written (a source repaired, FR-CIT-08). */
   adopt: (file: BibliographyFileModel) => void;
+  /** Reads `bibliography.json` again, for when another window has changed it (ADR-0066). */
+  reload: () => void;
 };
 
 /** What a component outside any provider sees: nothing cached and nothing to do. */
@@ -67,6 +69,7 @@ const INERT: SourcesModel = {
   selected: null,
   select: () => undefined,
   adopt: () => undefined,
+  reload: () => undefined,
 };
 
 const SourcesContext = createContext<SourcesModel>(INERT);
@@ -149,15 +152,19 @@ export function SourcesProvider({
   const alive = useRef(true);
   const returnFocusTo = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    alive.current = true;
+  const reload = useCallback(() => {
     void readBibliography(api, folder).then((read) => {
       if (alive.current) setFile(read);
     });
+  }, [api, folder]);
+
+  useEffect(() => {
+    alive.current = true;
+    reload();
     return () => {
       alive.current = false;
     };
-  }, [api, folder]);
+  }, [reload]);
 
   const run = useCallback(
     async (citekeys: readonly string[], confirmed: ReadonlySet<string>) => {
@@ -228,6 +235,7 @@ export function SourcesProvider({
       selected,
       select,
       adopt: setFile,
+      reload,
     }),
     [
       file,
@@ -241,6 +249,7 @@ export function SourcesProvider({
       decline,
       selected,
       select,
+      reload,
     ],
   );
 

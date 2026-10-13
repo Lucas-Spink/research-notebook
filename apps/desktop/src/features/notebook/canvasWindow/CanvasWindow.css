@@ -1,0 +1,17 @@
+/* The pop-out window is all canvas: no ribbon, so the view fills the window. */
+.canvas-window {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.canvas-window .canvas-view {
+  height: 100%;
+  min-height: 0;
+}
+
+.canvas-window__message {
+  margin: var(--space-6);
+  max-width: 40rem;
+}

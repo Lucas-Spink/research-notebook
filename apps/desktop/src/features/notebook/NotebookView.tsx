@@ -13,6 +13,7 @@ import {
   useCallback,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -53,6 +54,7 @@ import {
   ViewSwitch,
   useCanvases,
   type CanvasApi,
+  type CanvasesModel,
   type ViewMode,
 } from "../canvas";
 import {
@@ -96,7 +98,10 @@ import { attachedCitekeys } from "./workspace/model/attach";
 import { restoreEntry } from "./workspace/model/restoreEntry";
 import { AddResultPane } from "./workspace/AddResultPane";
 import { CanvasResultsPanel } from "./workspace/CanvasResultsPanel";
-import { useCanvasCards } from "./workspace/useCanvasCards";
+import type { PopOutApi } from "./canvasWindow/api";
+import { PopOutButton } from "./canvasWindow/PopOutButton";
+import { useCanvasPopOut } from "./canvasWindow/useCanvasPopOut";
+import { useCanvasCards, type OpenResult } from "./workspace/useCanvasCards";
 import {
   questionsOf,
   reconcileQuestion,
@@ -189,6 +194,8 @@ type NotebookViewProps = {
   viewportHeight?: number;
   /** The commands the canvases are read and written with. Only tests set it. */
   canvasApi?: CanvasApi;
+  /** The commands that pop the canvas out into its own window. Only tests set it. */
+  popOutApi?: PopOutApi;
   /** The ribbon's Project group, which belongs to the projects feature. */
   projectControls?: ReactNode;
   /** The ribbon's Settings tab project controls. */
@@ -206,6 +213,7 @@ function NotebookViewBody({
   onCloseProject,
   viewportHeight,
   canvasApi = commands,
+  popOutApi,
   projectControls,
   settingsControls,
   projectBanners,
@@ -281,15 +289,38 @@ function NotebookViewBody({
   // One canvas is read at a time: the canvas view's question, or else the pane's.
   const shownKey = viewMode === "canvas" ? canvasKey : notesKey;
   const shownTab = canvasTabs.find((tab) => tab.key === shownKey);
+  // The canvas can be popped out into its own window (ADR-0066). While it is,
+  // that window is the only one that edits canvases and this one shows the table.
+  const canvasesRef = useRef<CanvasesModel | null>(null);
+  const openResultRef = useRef<OpenResult>(() => undefined);
+  const popOut = useCanvasPopOut({
+    ...(popOutApi === undefined ? {} : { api: popOutApi }),
+    folder,
+    writable,
+    beforeOpen: async () => {
+      // Whatever is being typed, and any canvas edit waiting its turn, is saved before the other window reads.
+      if (!(await live.activate(null))) return false;
+      await canvasesRef.current?.flush();
+      setViewMode("table");
+      return true;
+    },
+    onClosed: () => canvasesRef.current?.reload(),
+    onCanvasFilesChanged: () => canvasesRef.current?.reload(),
+    // A citation inserted in the other window added a source to bibliography.json.
+    onBibliographyChanged: () => sources.reload(),
+    onOpenResult: (experimentFolder, artefactId, version) =>
+      openResultRef.current(experimentFolder, artefactId, version),
+  });
   const canvases = useCanvases({
     api: canvasApi,
     folder,
-    writable,
+    writable: writable && !popOut.open,
     // Always: the notes' citations belong in the Bibliography, whichever view is showing.
     enabled: true,
     question:
       shownTab === undefined ? null : { id: shownTab.id, name: shownTab.label },
   });
+  canvasesRef.current = canvases;
   /** Shows a question's canvas, and the table's selection follows, so going back lands on the same question. */
   function chooseCanvasQuestion(key: string) {
     setCanvasChoice(key);
@@ -526,6 +557,7 @@ function NotebookViewBody({
         },
       }),
   });
+  openResultRef.current = editing.onOpenResult;
   const questions = useMemo<QuestionChoice[]>(
     () =>
       (arranged?.questions ?? [])
@@ -755,6 +787,11 @@ function NotebookViewBody({
             }
             resolve={cards.resolve}
             onOpenCanvas={() => {
+              if (popOut.open) {
+                // The canvas is in its own window: bring that forward.
+                void popOut.popOut();
+                return;
+              }
               if (shownKey === null) return;
               chooseCanvasQuestion(shownKey);
               void changeView("canvas", shownKey);
@@ -947,8 +984,10 @@ function NotebookViewBody({
           <div className="workspace__views">
             <ViewSwitch
               mode={viewMode}
+              unavailable={popOut.open ? ["canvas"] : []}
               onChange={(next) => void changeView(next)}
             />
+            <PopOutButton popOut={popOut} />
           </div>
         )}
         {arranged !== null && (

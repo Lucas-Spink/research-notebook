@@ -8,6 +8,8 @@ type Props = {
   onChange: (mode: ViewMode) => void;
   /** Turns the switch off while a change of view would be lost, such as while saving. */
   disabled?: boolean;
+  /** Views that cannot be chosen now, such as the canvas while it is in its own window. */
+  unavailable?: readonly ViewMode[];
 };
 
 const MODES: readonly { mode: ViewMode; label: string }[] = [
@@ -19,7 +21,12 @@ const MODES: readonly { mode: ViewMode; label: string }[] = [
  * Table or Canvas. Both show the same experiments and text; choosing one
  * changes only how they are laid out, so nothing is lost by switching.
  */
-export function ViewSwitch({ mode, onChange, disabled = false }: Props) {
+export function ViewSwitch({
+  mode,
+  onChange,
+  disabled = false,
+  unavailable = [],
+}: Props) {
   return (
     <div role="group" aria-label={m.viewLabel} className="view-switch">
       {MODES.map((option) => (
@@ -28,7 +35,7 @@ export function ViewSwitch({ mode, onChange, disabled = false }: Props) {
           type="button"
           className="view-switch__button"
           aria-pressed={mode === option.mode}
-          disabled={disabled}
+          disabled={disabled || unavailable.includes(option.mode)}
           onClick={() => {
             if (mode !== option.mode) onChange(option.mode);
           }}

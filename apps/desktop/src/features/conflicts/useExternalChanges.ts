@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { commands, type FolderHandle } from "../../ipc/bindings";
+import {
+  commands,
+  type ChangeReport,
+  type FolderHandle,
+} from "../../ipc/bindings";
 import {
   applyReport,
   recheck,
@@ -25,6 +29,12 @@ type Options = {
   onReload: (reload: Reload) => void;
   /** The person chose a side of a conflict; the owner carries it out. */
   onResolved?: (path: string, resolution: Resolution) => void;
+  /**
+   * Called with what each round of the watcher found, before it is applied. The
+   * watcher hands each batch out once, so this is how another window hears of
+   * it (ADR-0066).
+   */
+  onChanges?: (report: ChangeReport) => void;
 };
 
 /**
@@ -38,16 +48,21 @@ type Options = {
  * `model/tracker`). A file with unsaved edits is never replaced: an outside
  * change to it becomes a conflict in `files`, shown by `ConflictPanel`.
  */
-export function useExternalChanges({ folder, onReload, onResolved }: Options) {
+export function useExternalChanges({
+  folder,
+  onReload,
+  onResolved,
+  onChanges,
+}: Options) {
   const filesRef = useRef<Files>({});
   const retryRef = useRef<string[]>([]);
   const [files, setFiles] = useState<Files>({});
   const [watchFailed, setWatchFailed] = useState(false);
 
   // The latest callbacks, without restarting the watch when they change.
-  const callbacks = useRef({ onReload, onResolved });
+  const callbacks = useRef({ onReload, onResolved, onChanges });
   useEffect(() => {
-    callbacks.current = { onReload, onResolved };
+    callbacks.current = { onReload, onResolved, onChanges };
   });
 
   // Every change is made to the latest state, never to a copy taken before a
@@ -86,6 +101,9 @@ export function useExternalChanges({ folder, onReload, onResolved }: Options) {
         const restarted = await commands.startProjectWatch(project);
         if (restarted.status === "error") return;
         report = { ...report, watching: true, needsRescan: true };
+      }
+      if (report.changes.length > 0 || report.needsRescan) {
+        callbacks.current.onChanges?.(report);
       }
       const applied = await applyReport(commands, project, store, report);
       const again =

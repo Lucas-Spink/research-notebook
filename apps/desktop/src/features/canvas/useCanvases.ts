@@ -72,6 +72,8 @@ export type CanvasesModel = {
   registerSurface: (bridge: SurfaceBridge | null) => void;
   /** Writes whatever is waiting to be saved now. */
   flush: () => Promise<void>;
+  /** Reads the canvas files again, for when another window has changed them. */
+  reload: () => void;
   dismissNotice: () => void;
 };
 
@@ -268,6 +270,7 @@ export function useCanvases({
     focusNode,
     registerSurface,
     flush: () => saver.flush(),
+    reload: () => void load(),
     dismissNotice: () => setNotice(null),
   };
 }
