@@ -41,38 +41,21 @@ async function pickExperiment(
   return picked?.experiment;
 }
 
-async function pickRole(): Promise<"result" | "method" | undefined> {
-  const picked = await vscode.window.showQuickPick(
-    [
-      { label: "Result", role: "result" as const },
-      { label: "Method", role: "method" as const },
-    ],
-    { placeHolder: "Role" },
-  );
-  return picked?.role;
+/** What a right-click entry asks for; mode is automatic unless it says otherwise (FR-VSC-04). */
+interface Capture {
+  role: "result" | "method";
+  override: "copy" | "link" | undefined;
 }
 
-async function pickModeOverride(): Promise<
-  { chosen: true; override: "copy" | "link" | undefined } | { chosen: false }
-> {
-  const picked = await vscode.window.showQuickPick(
-    [
-      {
-        label: "Automatic",
-        detail: "Copy or link based on the project's threshold",
-        override: undefined,
-      },
-      { label: "Copy", override: "copy" as const },
-      { label: "Link", override: "link" as const },
-    ],
-    { placeHolder: "Mode" },
-  );
-  if (picked === undefined) return { chosen: false };
-  return { chosen: true, override: picked.override };
-}
+const CAPTURES = {
+  "researchNotebook.addAsResult": { role: "result", override: undefined },
+  "researchNotebook.addAsMethod": { role: "method", override: undefined },
+  "researchNotebook.addAsLink": { role: "result", override: "link" },
+} as const satisfies Record<string, Capture>;
 
 async function addFileToExperiment(
   clicked: vscode.Uri | undefined,
+  { role, override }: Capture,
 ): Promise<void> {
   const fileUri = targetFileUri(clicked);
   if (fileUri === undefined) {
@@ -95,14 +78,12 @@ async function addFileToExperiment(
     );
     return;
   }
-  const experiment = await pickExperiment(experiments);
+  // Nothing to choose between when the project has a single experiment.
+  const experiment =
+    experiments.length === 1
+      ? experiments[0]
+      : await pickExperiment(experiments);
   if (experiment === undefined) return;
-
-  const role = await pickRole();
-  if (role === undefined) return;
-
-  const modePick = await pickModeOverride();
-  if (!modePick.chosen) return;
 
   const projectYamlText = await readFile(
     `${projectRoot}/_notebook/project.yaml`,
@@ -115,11 +96,7 @@ async function addFileToExperiment(
 
   const bytes = await readFile(fileUri.fsPath);
   const fileStat = await stat(fileUri.fsPath);
-  const mode = decideCaptureMode(
-    fileStat.size,
-    copyThresholdMb,
-    modePick.override,
-  );
+  const mode = decideCaptureMode(fileStat.size, copyThresholdMb, override);
   const sha256 = createHash("sha256").update(bytes).digest("hex");
 
   const facts = getRepositoryFacts(fileUri);
@@ -151,16 +128,20 @@ async function addFileToExperiment(
   await writeInboxRequest(projectRoot, request, mode === "copy" ? bytes : null);
 
   void vscode.window.showInformationMessage(
-    `Added to ${experiment.ref}. It will import next time this project is open in Research Notebook.`,
+    `Added to ${experiment.ref}. It imports within a couple of seconds if the project is open in Research Notebook, otherwise next time it is opened.`,
   );
 }
 
-export function activate(context: vscode.ExtensionContext): void {
+function register(
+  context: vscode.ExtensionContext,
+  commandId: string,
+  capture: Capture,
+): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      COMMAND_ID,
+      commandId,
       (uri: vscode.Uri | undefined) => {
-        void addFileToExperiment(uri).catch((error: unknown) => {
+        void addFileToExperiment(uri, capture).catch((error: unknown) => {
           const message =
             error instanceof Error ? error.message : String(error);
           void vscode.window.showErrorMessage(
@@ -170,6 +151,14 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     ),
   );
+}
+
+export function activate(context: vscode.ExtensionContext): void {
+  for (const [commandId, capture] of Object.entries(CAPTURES)) {
+    register(context, commandId, capture);
+  }
+  // The original command, kept for the Command Palette: a result, automatic mode.
+  register(context, COMMAND_ID, CAPTURES["researchNotebook.addAsResult"]);
 }
 
 export function deactivate(): void {
