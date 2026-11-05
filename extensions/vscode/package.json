@@ -19,19 +19,56 @@
         "command": "researchNotebook.addFileToExperiment",
         "title": "Research Notebook: Add file to experiment",
         "category": "Research Notebook"
+      },
+      {
+        "command": "researchNotebook.addAsResult",
+        "title": "Add to STRATA as result",
+        "category": "Research Notebook"
+      },
+      {
+        "command": "researchNotebook.addAsMethod",
+        "title": "Add to STRATA as method",
+        "category": "Research Notebook"
+      },
+      {
+        "command": "researchNotebook.addAsLink",
+        "title": "Add to STRATA as link (no copy)",
+        "category": "Research Notebook"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "researchNotebook.addFileToExperiment",
-          "when": "resourceScheme == file"
+          "command": "researchNotebook.addAsResult",
+          "when": "resourceScheme == file",
+          "group": "researchNotebook@0"
+        },
+        {
+          "command": "researchNotebook.addAsMethod",
+          "when": "resourceScheme == file",
+          "group": "researchNotebook@1"
+        },
+        {
+          "command": "researchNotebook.addAsLink",
+          "when": "resourceScheme == file",
+          "group": "researchNotebook@2"
         }
       ],
       "editor/title/context": [
         {
-          "command": "researchNotebook.addFileToExperiment",
-          "when": "resourceScheme == file"
+          "command": "researchNotebook.addAsResult",
+          "when": "resourceScheme == file",
+          "group": "researchNotebook@0"
+        },
+        {
+          "command": "researchNotebook.addAsMethod",
+          "when": "resourceScheme == file",
+          "group": "researchNotebook@1"
+        },
+        {
+          "command": "researchNotebook.addAsLink",
+          "when": "resourceScheme == file",
+          "group": "researchNotebook@2"
         }
       ]
     }

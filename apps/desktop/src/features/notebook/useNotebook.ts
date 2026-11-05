@@ -46,6 +46,7 @@ import { holdFiles } from "./model/held";
 import { chooseBlock, literatureOptions } from "./model/sectionLiterature";
 import {
   importInboxOnOpen,
+  importNewInboxRequests,
   type InvalidInboxRequest,
 } from "./model/inboxImport";
 import type { Performed } from "./model/perform";
@@ -81,6 +82,9 @@ type View =
  * saved. Every save keeps a snapshot (ADR-0025), so a burst is one write.
  */
 export const SETTINGS_DELAY_MS = 1000;
+
+/** How often an open, writable project looks for newly arrived inbox requests. */
+export const INBOX_POLL_MS = 1500;
 
 /** The operations the view can ask for. Each resolves `true` when it was carried out. */
 export type NotebookActions = {
@@ -166,6 +170,10 @@ export function useNotebook({ folder, writable, changes }: Options) {
   const [invalidInboxRequests, setInvalidInboxRequests] = useState<
     InvalidInboxRequest[]
   >([]);
+  const invalidInboxRef = useRef(invalidInboxRequests);
+  useEffect(() => {
+    invalidInboxRef.current = invalidInboxRequests;
+  }, [invalidInboxRequests]);
   const committerRef = useRef<SettingsCommitter | null>(null);
 
   const loadedRef = useRef<Loaded | null>(null);
@@ -353,6 +361,39 @@ export function useNotebook({ folder, writable, changes }: Options) {
     }).catch(() => undefined);
     return () => {
       stale = true;
+    };
+  }, [folder, writable, enqueue, editArtefacts]);
+
+  // Requests that arrive while the project is open (the VS Code extension adds
+  // one at any time) are imported on the next tick, polled like the change
+  // watcher is (ADR-0024 point 7). One look at a time; the queue keeps it
+  // from overlapping an edit.
+  useEffect(() => {
+    if (folder === null || !writable) return;
+    let stale = false;
+    let looking = false;
+    const timer = setInterval(() => {
+      if (looking || !inboxImportedRef.current) return;
+      looking = true;
+      void enqueue(async () => {
+        if (stale) return;
+        const invalid = await importNewInboxRequests(
+          commands,
+          folder,
+          () => loadedRef.current?.state ?? null,
+          editArtefacts,
+          invalidInboxRef.current,
+        );
+        if (!stale) setInvalidInboxRequests(invalid);
+      })
+        .catch(() => undefined)
+        .finally(() => {
+          looking = false;
+        });
+    }, INBOX_POLL_MS);
+    return () => {
+      stale = true;
+      clearInterval(timer);
     };
   }, [folder, writable, enqueue, editArtefacts]);
 
