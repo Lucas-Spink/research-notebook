@@ -228,12 +228,14 @@ export async function importInboxOnOpen(
   folder: FolderHandle,
   state: () => NotebookState | null,
   editArtefacts: EditArtefacts,
+  skip: ReadonlySet<string> = new Set(),
 ): Promise<InvalidInboxRequest[]> {
   const listed = await api.listInboxRequests(folder);
   if (listed.status === "error") return [];
 
   const invalid: InvalidInboxRequest[] = [];
   for (const requestId of listed.data) {
+    if (skip.has(requestId)) continue;
     const current = state();
     if (current === null) break;
     const result = await importOne(
@@ -246,4 +248,36 @@ export async function importInboxOnOpen(
     if (result !== null) invalid.push(result);
   }
   return invalid;
+}
+
+/**
+ * Imports whatever has arrived in the inbox since the last look, for a
+ * project that is already open. `known` are the requests that earlier looks
+ * found invalid and left in place; they are not read again, so a request that
+ * can never import is not retried on every tick. Returns the invalid
+ * requests now waiting: the known ones still there, plus any new failures.
+ */
+export async function importNewInboxRequests(
+  api: InboxApi,
+  folder: FolderHandle,
+  state: () => NotebookState | null,
+  editArtefacts: EditArtefacts,
+  known: readonly InvalidInboxRequest[],
+): Promise<InvalidInboxRequest[]> {
+  const listed = await api.listInboxRequests(folder);
+  if (listed.status === "error") return [...known];
+
+  const waiting = new Set(listed.data);
+  const stillInvalid = known.filter((k) => waiting.has(k.request));
+  const knownIds = new Set(known.map((k) => k.request));
+  if (listed.data.every((id) => knownIds.has(id))) return stillInvalid;
+
+  const fresh = await importInboxOnOpen(
+    api,
+    folder,
+    state,
+    editArtefacts,
+    knownIds,
+  );
+  return [...stillInvalid, ...fresh];
 }

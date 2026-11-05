@@ -7,7 +7,11 @@ import { describe, expect, it } from "vitest";
 import type { CaptureOutcomeDto, EvidenceFailure } from "../../../ipc/bindings";
 import type { EditArtefacts } from "./api";
 import { FOLDER, sampleNotebook, testEnv } from "./fakeApi";
-import { importInboxOnOpen, type InboxApi } from "./inboxImport";
+import {
+  importInboxOnOpen,
+  importNewInboxRequests,
+  type InboxApi,
+} from "./inboxImport";
 
 /**
  * S3-G04 (ADR-0044 point 6): each request waiting in the inbox is planned,
@@ -250,5 +254,65 @@ describe("importInboxOnOpen", () => {
 
     expect(invalid).toEqual([]);
     expect(calls.removed).toEqual([REQUEST_ID, secondId]);
+  });
+});
+
+describe("importNewInboxRequests", () => {
+  const invalidOne = { request: REQUEST_ID, reason: "it could not be read" };
+
+  it("does nothing, and reads nothing, when only known-invalid requests wait", async () => {
+    const { state } = sampleNotebook();
+    const { api, calls } = fakeInboxApi([REQUEST_ID], {});
+    const { edit, state: after } = fakeEditArtefacts(state);
+
+    const result = await importNewInboxRequests(
+      api,
+      FOLDER,
+      () => after(),
+      edit,
+      [invalidOne],
+    );
+
+    expect(result).toEqual([invalidOne]);
+    expect(calls.read).toEqual([]);
+  });
+
+  it("imports a new request beside a known-invalid one without rereading it", async () => {
+    const { state, one } = sampleNotebook();
+    const secondId = "01JAXT0C4D6E8F0G2H4J6K8M0P";
+    const { api, calls } = fakeInboxApi(
+      [REQUEST_ID, secondId],
+      { [secondId]: requestJson({ request_id: secondId, experiment_id: one }) },
+      [created("evidence/pca.csv")],
+    );
+    const { edit, state: after } = fakeEditArtefacts(state);
+
+    const result = await importNewInboxRequests(
+      api,
+      FOLDER,
+      () => after(),
+      edit,
+      [invalidOne],
+    );
+
+    expect(result).toEqual([invalidOne]);
+    expect(calls.read).toEqual([secondId]);
+    expect(calls.removed).toEqual([secondId]);
+  });
+
+  it("forgets a known-invalid request that has left the inbox", async () => {
+    const { state } = sampleNotebook();
+    const { api } = fakeInboxApi([], {});
+    const { edit, state: after } = fakeEditArtefacts(state);
+
+    const result = await importNewInboxRequests(
+      api,
+      FOLDER,
+      () => after(),
+      edit,
+      [invalidOne],
+    );
+
+    expect(result).toEqual([]);
   });
 });
