@@ -233,73 +233,88 @@ export function useNotebook({ folder, writable, changes }: Options) {
       {
         quiet = false,
         silent = false,
-      }: { quiet?: boolean; silent?: boolean } = {},
+        queued = true,
+      }: { quiet?: boolean; silent?: boolean; queued?: boolean } = {},
     ): Promise<RunOutcome> =>
-      enqueue(async (): Promise<RunOutcome> => {
-        const {
-          folder: project,
-          writable: canWrite,
-          changes: port,
-        } = latest.current;
-        const loaded = loadedRef.current;
-        const guard = guardRef.current;
-        if (project === null || loaded === null || guard === null) {
-          return { kind: "unexpected" };
-        }
-        if (!quiet) {
-          setBusy(true);
-          setNotice(null);
-        }
-        try {
-          const version = await appVersion();
-          const done = await perform(
-            {
-              api: commands,
-              folder: project,
-              guard,
-              changes: port,
-              writable: canWrite,
-            },
-            loaded,
-            (state) => operation(state, { ...env, appVersion: version }),
-          );
-          if (done.kind === "done") {
-            loadedRef.current = done.loaded;
-            setView({ status: "ready", loaded: done.loaded });
-            return done;
+      // `queued: false` is for work already running inside the queue, which
+      // would otherwise wait for itself.
+      (queued ? enqueue : (task: () => Promise<RunOutcome>) => task())(
+        async (): Promise<RunOutcome> => {
+          const {
+            folder: project,
+            writable: canWrite,
+            changes: port,
+          } = latest.current;
+          const loaded = loadedRef.current;
+          const guard = guardRef.current;
+          if (project === null || loaded === null || guard === null) {
+            return { kind: "unexpected" };
           }
-          if (!silent) setNotice(outcomeMessage(done));
-          // What was written may differ from what is held: read it back.
-          const gone =
-            done.kind === "refused" && done.error.kind === "notFound";
-          if (done.kind === "interrupted" || gone) await reload();
-          return done;
-        } catch {
-          if (!silent) setNotice(messages.unexpected);
-          await reload().catch(() => undefined);
-          return { kind: "unexpected" };
-        } finally {
-          if (!quiet) setBusy(false);
-        }
-      }),
+          if (!quiet) {
+            setBusy(true);
+            setNotice(null);
+          }
+          try {
+            const version = await appVersion();
+            const done = await perform(
+              {
+                api: commands,
+                folder: project,
+                guard,
+                changes: port,
+                writable: canWrite,
+              },
+              loaded,
+              (state) => operation(state, { ...env, appVersion: version }),
+            );
+            if (done.kind === "done") {
+              loadedRef.current = done.loaded;
+              setView({ status: "ready", loaded: done.loaded });
+              return done;
+            }
+            if (!silent) setNotice(outcomeMessage(done));
+            // What was written may differ from what is held: read it back.
+            const gone =
+              done.kind === "refused" && done.error.kind === "notFound";
+            if (done.kind === "interrupted" || gone) await reload();
+            return done;
+          } catch {
+            if (!silent) setNotice(messages.unexpected);
+            await reload().catch(() => undefined);
+            return { kind: "unexpected" };
+          } finally {
+            if (!quiet) setBusy(false);
+          }
+        },
+      ),
     [appVersion, enqueue, env, reload],
   );
 
   // Changes one experiment's artefacts.yaml (ADR-0044): shared by the
   // person adding or organising evidence and by importing the inbox on open.
-  const editArtefacts = useCallback<EditArtefacts>(
-    (experimentFolder, change) =>
-      run(
-        (s, e) =>
-          editArtefactsFile(s, experimentFolder, (f) => change(f, e), e),
-        { silent: true },
-      ).then((done): ArtefactsOutcome => {
-        if (done.kind === "done") return { ok: true };
-        if (done.kind === "refused") return { ok: false, error: done.error };
-        setNotice(outcomeMessage(done) ?? messages.unexpected);
-        return { ok: false, error: null };
-      }),
+  const editArtefactsWith = useCallback(
+    (queued: boolean): EditArtefacts =>
+      (experimentFolder, change) =>
+        run(
+          (s, e) =>
+            editArtefactsFile(s, experimentFolder, (f) => change(f, e), e),
+          { silent: true, queued },
+        ).then((done): ArtefactsOutcome => {
+          if (done.kind === "done") return { ok: true };
+          if (done.kind === "refused") return { ok: false, error: done.error };
+          setNotice(outcomeMessage(done) ?? messages.unexpected);
+          return { ok: false, error: null };
+        }),
     [run],
+  );
+  const editArtefacts = useMemo(
+    () => editArtefactsWith(true),
+    [editArtefactsWith],
+  );
+  // The inbox import already runs inside the queue, so its saves must not join it.
+  const editArtefactsInQueue = useMemo(
+    () => editArtefactsWith(false),
+    [editArtefactsWith],
   );
 
   // Layout changes are coalesced into few writes; a new one for each project.
@@ -355,14 +370,14 @@ export function useNotebook({ folder, writable, changes }: Options) {
         commands,
         folder,
         () => loadedRef.current?.state ?? null,
-        editArtefacts,
+        editArtefactsInQueue,
       );
       if (!stale) setInvalidInboxRequests(invalid);
     }).catch(() => undefined);
     return () => {
       stale = true;
     };
-  }, [folder, writable, enqueue, editArtefacts]);
+  }, [folder, writable, enqueue, editArtefactsInQueue]);
 
   // Requests that arrive while the project is open (the VS Code extension adds
   // one at any time) are imported on the next tick, polled like the change
@@ -381,7 +396,7 @@ export function useNotebook({ folder, writable, changes }: Options) {
           commands,
           folder,
           () => loadedRef.current?.state ?? null,
-          editArtefacts,
+          editArtefactsInQueue,
           invalidInboxRef.current,
         );
         if (!stale) setInvalidInboxRequests(invalid);
@@ -395,7 +410,7 @@ export function useNotebook({ folder, writable, changes }: Options) {
       stale = true;
       clearInterval(timer);
     };
-  }, [folder, writable, enqueue, editArtefacts]);
+  }, [folder, writable, enqueue, editArtefactsInQueue]);
 
   // A file the notebook holds was changed by someone else: read everything again.
   useEffect(() => {

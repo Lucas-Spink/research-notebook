@@ -9,9 +9,18 @@ import { FOLDER, fakeChanges, sampleNotebook } from "./model/fakeApi";
  * these tests check only when the hook looks, not what an import does.
  */
 
+type Edit = (
+  folder: string,
+  change: (file: unknown) => unknown,
+) => Promise<{ ok: boolean }>;
+
 const imports = vi.hoisted(() => ({
-  onOpen: vi.fn(() => Promise.resolve([])),
-  fresh: vi.fn(() => Promise.resolve([])),
+  onOpen: vi.fn<(...args: unknown[]) => Promise<never[]>>(() =>
+    Promise.resolve([]),
+  ),
+  fresh: vi.fn<(...args: unknown[]) => Promise<never[]>>(() =>
+    Promise.resolve([]),
+  ),
 }));
 
 vi.mock("../../ipc/bindings", () => ({
@@ -102,5 +111,26 @@ describe("useNotebook inbox polling", () => {
     void rerender({ folder: null, writable: true });
     await advance(INBOX_POLL_MS * 3);
     expect(imports.fresh).toHaveBeenCalledTimes(calls);
+  });
+});
+
+describe("useNotebook inbox import records what it places", () => {
+  it("lets the import save through editArtefacts without waiting on itself", async () => {
+    vi.useFakeTimers();
+    const folder = sampleNotebook().state.experiments[0]?.folder;
+    if (folder === undefined) throw new Error("sample");
+    let recorded: { ok: boolean } | undefined;
+    imports.onOpen.mockImplementationOnce(async (...args: unknown[]) => {
+      const edit = args[3] as Edit;
+      // A change that alters nothing still goes through the same queue as a real one.
+      recorded = await edit(folder, (file) => ({ ok: true, value: file }));
+      return [];
+    });
+
+    renderHook<Props>(open, { folder: FOLDER, writable: true });
+    await advance(100);
+
+    expect(recorded).toEqual({ ok: true });
+    vi.useRealTimers();
   });
 });
