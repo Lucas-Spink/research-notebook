@@ -49,7 +49,7 @@ $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
 if (-not $cert) { Fail "No valid code-signing certificate with subject '$Subject' in Cert:\CurrentUser\My." }
 
 $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe -ErrorAction SilentlyContinue |
-  Where-Object { $_.FullName -match '\x64\' } | Sort-Object FullName -Descending | Select-Object -First 1
+  Where-Object { $_.FullName -like '*\x64\*' } | Sort-Object FullName -Descending | Select-Object -First 1
 if (-not $signtool) { Fail 'signtool.exe not found (install the Windows SDK).' }
 
 Write-Host "Building $tag"
