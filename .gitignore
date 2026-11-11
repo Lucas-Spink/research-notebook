@@ -83,3 +83,4 @@ $RECYCLE.BIN/
 # ── AI tools (personal, not shared) ─────────────────
 .claude/settings.local.json
 CLAUDE.local.md
+release-out/
