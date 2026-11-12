@@ -321,3 +321,82 @@ describe("planInboxImport, link mode", () => {
     });
   });
 });
+
+describe("planInboxImport: a source in an external root", () => {
+  const ROOT = "01JAXS6E9M3P5R7T9V1X3Z5B7D";
+
+  it("records a copy's source with the root and the path inside it", () => {
+    const plan = planInboxImport({
+      requestId: REQUEST_ID,
+      requestText: requestJson({
+        source: { root: ROOT, path: "runs/a/pca.pdf" },
+      }),
+      file: EMPTY,
+    });
+    expect(plan).toMatchObject({
+      ok: true,
+      value: {
+        kind: "copy",
+        target: {
+          kind: "new",
+          source: { root: ROOT, path: "runs/a/pca.pdf" },
+        },
+      },
+    });
+  });
+
+  it("records a link's source with the root and the path inside it", () => {
+    const plan = planInboxImport({
+      requestId: REQUEST_ID,
+      requestText: requestJson({
+        mode: "link",
+        payload: null,
+        source: { root: ROOT, path: "runs/a/counts.csv" },
+      }),
+      file: EMPTY,
+    });
+    expect(plan).toMatchObject({
+      ok: true,
+      value: {
+        kind: "link",
+        target: {
+          type: "table",
+          source: { root: ROOT, path: "runs/a/counts.csv" },
+        },
+      },
+    });
+  });
+
+  it("does not match the same path under another root", () => {
+    // The artefact's source is `project`/`results/pca/pca.pdf`; the same
+    // relative path under an external root is a different file.
+    const plan = planInboxImport({
+      requestId: REQUEST_ID,
+      requestText: requestJson({
+        source: { root: ROOT, path: "results/pca/pca.pdf" },
+      }),
+      file: withCopyArtefact(),
+    });
+    expect(plan).toMatchObject({
+      ok: true,
+      value: { kind: "copy", target: { kind: "new" } },
+    });
+  });
+
+  it("matches the same path under the same root as the same artefact", () => {
+    const file = withLinkArtefact();
+    const [artefact] = file.artefacts;
+    if (artefact === undefined) throw new Error("fixture has an artefact");
+    artefact.source = { root: ROOT, path: "runs/a/counts.csv" };
+    const plan = planInboxImport({
+      requestId: REQUEST_ID,
+      requestText: requestJson({
+        mode: "link",
+        payload: null,
+        source: { root: ROOT, path: "runs/a/counts.csv" },
+      }),
+      file,
+    });
+    expect(plan).toMatchObject({ ok: true, value: { kind: "relink" } });
+  });
+});

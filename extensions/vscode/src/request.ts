@@ -13,10 +13,10 @@ function formatTimestamp(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-/** `filePath` relative to `projectRoot`, forward-slash separated. `filePath`
- * must already be inside `projectRoot` (guaranteed by `findProjectRoot`). */
-function toProjectRelativePath(projectRoot: string, filePath: string): string {
-  return relative(projectRoot, filePath).split(sep).join("/");
+/** `filePath` relative to `folder`, forward-slash separated. `filePath`
+ * must already be inside `folder` (guaranteed by `locateFile`). */
+function toProjectRelativePath(folder: string, filePath: string): string {
+  return relative(folder, filePath).split(sep).join("/");
 }
 
 /** What `buildInboxRequest` needs: values already decided elsewhere (the
@@ -31,6 +31,8 @@ export interface BuildRequestInput {
   extensionVersion: string;
   projectRoot: string;
   filePath: string;
+  /** The folder `filePath`'s source is recorded against: the project (the default) or one of its external roots (ADR-0069). */
+  sourceRoot?: { id: string; folder: string };
   experimentId: string;
   role: "result" | "method";
   mode: "copy" | "link";
@@ -59,8 +61,11 @@ export function buildInboxRequest(input: BuildRequestInput): InboxRequestModel {
     role: input.role,
     mode: input.mode,
     source: {
-      root: "project" as const,
-      path: toProjectRelativePath(input.projectRoot, input.filePath),
+      root: input.sourceRoot?.id ?? "project",
+      path: toProjectRelativePath(
+        input.sourceRoot?.folder ?? input.projectRoot,
+        input.filePath,
+      ),
     },
     payload: input.payload,
     sha256: input.sha256,
