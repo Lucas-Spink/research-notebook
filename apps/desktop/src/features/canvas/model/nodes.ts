@@ -20,6 +20,45 @@ export type PinRef = {
 export const DEFAULT_CARD: Extent = { width: 360, height: 280 };
 export const MIN_CARD: Extent = { width: 160, height: 120 };
 
+/** The longer side, in pixels, of the picture area of a card made to fit its picture. */
+export const FIT_LONGEST = 360;
+
+/**
+ * The size of a card whose picture area has the shape `aspect` (width over
+ * height) and so leaves no empty space beside it: the longer side of the
+ * picture is `FIT_LONGEST`, and `chrome` is what the card adds around the
+ * picture (the name and version lines above it, its padding and border). An
+ * aspect that is not a usable number gives the default size.
+ */
+export function fitSize(aspect: number, chrome: Extent): Extent {
+  if (!Number.isFinite(aspect) || aspect <= 0) return { ...DEFAULT_CARD };
+  const width = aspect >= 1 ? FIT_LONGEST : FIT_LONGEST * aspect;
+  const height = aspect >= 1 ? FIT_LONGEST / aspect : FIT_LONGEST;
+  return {
+    width: Math.max(MIN_CARD.width, Math.round(width + chrome.width)),
+    height: Math.max(MIN_CARD.height, Math.round(height + chrome.height)),
+  };
+}
+
+/** The height that keeps a card `width` wide, with a picture of shape `aspect`, free of empty space. */
+export function fitHeight(
+  width: number,
+  aspect: number,
+  chrome: Extent,
+): number {
+  return Math.max(
+    MIN_CARD.height,
+    Math.round((width - chrome.width) / aspect + chrome.height),
+  );
+}
+
+/** Whether a card still has the size it was pinned with, so nobody has arranged it yet. */
+export function isDefaultSize(size: Extent): boolean {
+  return (
+    size.width === DEFAULT_CARD.width && size.height === DEFAULT_CARD.height
+  );
+}
+
 /** How far each further card of one drop is shifted, so a stack stays readable. */
 const CASCADE = 28;
 
