@@ -7,11 +7,8 @@ import { captureFile, type Capture } from "./capture";
 import { filesFromUriList } from "./drop";
 import { listExperiments, type ExperimentChoice } from "./experiments";
 import type { KnownProject } from "./known-projects";
-import {
-  groupByQuestion,
-  isInsideProject,
-  type QuestionGroup,
-} from "./project-tree";
+import { groupByQuestion, type QuestionGroup } from "./project-tree";
+import { locateFile } from "./source";
 import { arrivalNote } from "./notes";
 import { readKnownProjects } from "./read-known";
 
@@ -207,8 +204,8 @@ class StrataView
     const problems: string[] = [];
     for (const path of paths) {
       const name = basename(path);
-      if (!isInsideProject(root, path)) {
-        problems.push(`${name} is outside the project`);
+      if (locateFile(path, root, project.externalRoots) === undefined) {
+        problems.push(`${name} is outside the project and its external roots`);
         continue;
       }
       try {
@@ -216,7 +213,7 @@ class StrataView
           problems.push(`${name} is a folder`);
           continue;
         }
-        await captureFile(vscode.Uri.file(path), root, experiment, capture);
+        await captureFile(vscode.Uri.file(path), project, experiment, capture);
         added += 1;
       } catch (error) {
         const why = error instanceof Error ? error.message : String(error);

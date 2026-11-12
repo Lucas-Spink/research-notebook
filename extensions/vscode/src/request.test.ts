@@ -68,4 +68,28 @@ describe("buildInboxRequest", () => {
   it("throws when the assembled request would not validate", () => {
     expect(() => buildInboxRequest(input({ sha256: "not a hash" }))).toThrow();
   });
+
+  it("records a file in an external root against that root, relative to its folder", () => {
+    const request = buildInboxRequest(
+      input({
+        filePath: "/data/raw/run1/counts.csv",
+        sourceRoot: { id: "01JAXS6E9M3P5R7T9V1X3Z5B7D", folder: "/data/raw" },
+      }),
+    );
+    expect(request.source).toEqual({
+      root: "01JAXS6E9M3P5R7T9V1X3Z5B7D",
+      path: "run1/counts.csv",
+    });
+    expect(InboxRequest.safeParse(request).success).toBe(true);
+  });
+
+  it("still records the project when the source root is the project", () => {
+    const request = buildInboxRequest(
+      input({ sourceRoot: { id: "project", folder: "/home/user/project" } }),
+    );
+    expect(request.source).toEqual({
+      root: "project",
+      path: "results/pca/pca.pdf",
+    });
+  });
 });
