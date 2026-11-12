@@ -18,9 +18,7 @@ export interface Capture {
   override: "copy" | "link" | undefined;
 }
 
-/** What the confirmation says, shared by every way of adding a file (FR-VSC-07). */
-export const IMPORT_NOTE =
-  "It imports within a couple of seconds if the project is open in Research Notebook, otherwise next time it is opened.";
+export { IMPORT_NOTE } from "./notes";
 
 /**
  * Writes one inbox request for `fileUri` into `experiment` of the project at
