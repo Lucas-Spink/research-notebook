@@ -51,7 +51,11 @@ fn dispatch(path: &Path, action: FileActionKind) -> Result<(), OpenFailure> {
             nb_opener::perform(&mut launcher, path, nb_opener::FileAction::OpenInVsCode)
         }
         FileActionKind::CopyPath => {
-            nb_opener::copy_to_clipboard(&mut launcher, &path.to_string_lossy())
+            // The clipboard is not covered by `perform`, so the prefix goes here.
+            nb_opener::copy_to_clipboard(
+                &mut launcher,
+                &nb_opener::plain_path(path).to_string_lossy(),
+            )
         }
     };
     outcome.map_err(|_| OpenFailure::ActionFailed)
