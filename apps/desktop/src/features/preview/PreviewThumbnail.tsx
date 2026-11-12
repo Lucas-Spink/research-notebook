@@ -38,6 +38,7 @@ export function PreviewThumbnail({ name, thumbnail, icon = "other" }: Props) {
           className="preview-thumb__image"
           src={thumbnail.url}
           alt={m.thumbnailAlt(name)}
+          draggable={false}
         />
       );
     case "pdf":

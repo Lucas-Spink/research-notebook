@@ -69,6 +69,22 @@ describe("PreviewPicture", () => {
     expect(view.querySelector("img")?.getAttribute("src")).toBe("asset://svg");
   });
 
+  // A picture inside a result's row is pressed to drag the result; if the
+  // browser may drag the image itself, its own drag takes over from the
+  // application's pointer drag and the canvas shows a stop cursor.
+  it.each([
+    ["a thumbnail", { kind: "image" as const }, "thumbnail" as const],
+    ["a full raster image", { kind: "image" as const }, "full" as const],
+    ["an SVG", { kind: "svg" as const }, "full" as const],
+  ])("cannot be dragged away as a picture: %s", async (_name, plan, detail) => {
+    const view = await show(fakePreviewApi(), plan, detail);
+    const images = [...view.querySelectorAll("img")];
+    expect(images.length).toBeGreaterThan(0);
+    for (const image of images) {
+      expect(image.getAttribute("draggable")).toBe("false");
+    }
+  });
+
   it("falls back to the thumbnail when the file cannot be read", async () => {
     const api = fakePreviewApi();
     const failing: PreviewApi = {

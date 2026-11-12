@@ -105,6 +105,10 @@
 }
 
 .preview-thumb__image {
+  /* Pressing a picture drags its result, by pointer; the browser's own
+     image drag would take over and show a stop cursor on the canvas. */
+  -webkit-user-drag: none;
+  user-select: none;
   display: block;
   max-width: 256px;
   max-height: 256px;
