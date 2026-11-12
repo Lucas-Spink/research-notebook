@@ -55,6 +55,8 @@ type Props = {
   outside?: Parameters<typeof useResultsTree>[0]["outside"];
   /** Pins results to the canvas from a row's menu. */
   onPin?: (artefactIds: string[]) => void;
+  /** Read-only, results can still be dragged out to `outside` (see `useResultsTree`). */
+  carryWhenReadOnly?: boolean;
   /** The results already on the canvas, marked in words. */
   pinned?: ReadonlySet<string>;
   /** A picture drawn beside each result, before its name, to scan figures by; left out, rows are text only. */
@@ -84,6 +86,7 @@ export function ResultsTree({
   onPin,
   pinned,
   renderThumbnail,
+  carryWhenReadOnly,
 }: Props) {
   const tree = useResultsTree({
     file,
@@ -92,6 +95,7 @@ export function ResultsTree({
     hideEmptyUngrouped: compact,
     ...(outside === undefined ? {} : { outside }),
     ...(onPin === undefined ? {} : { onPin }),
+    ...(carryWhenReadOnly === undefined ? {} : { carryWhenReadOnly }),
     ...(pinned === undefined ? {} : { pinned }),
     ...(onOpen === undefined ? {} : { onOpen }),
     ...(onRemoveFile === undefined ? {} : { onRemoveFile }),
