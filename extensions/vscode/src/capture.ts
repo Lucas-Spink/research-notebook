@@ -8,6 +8,8 @@ import * as vscode from "vscode";
 import type { ExperimentChoice } from "./experiments";
 import { computeProvenance } from "./git-provenance";
 import { buildInboxRequest } from "./request";
+import type { SourceBase } from "./source";
+import { locateFile } from "./source";
 import { newUlid } from "./ulid";
 import { getRepositoryFacts } from "./vscode-git";
 import { writeInboxRequest } from "./write-request";
@@ -18,9 +20,13 @@ export interface Capture {
   override: "copy" | "link" | undefined;
 }
 
-/** What the confirmation says, shared by every way of adding a file (FR-VSC-07). */
-export const IMPORT_NOTE =
-  "It imports within a couple of seconds if the project is open in Research Notebook, otherwise next time it is opened.";
+export { IMPORT_NOTE } from "./notes";
+
+/** The project a file is added to: its folder and the external roots that have a folder on this machine. */
+export interface CaptureProject {
+  root: string;
+  externalRoots: readonly SourceBase[];
+}
 
 /**
  * Writes one inbox request for `fileUri` into `experiment` of the project at
@@ -31,10 +37,21 @@ export const IMPORT_NOTE =
  */
 export async function captureFile(
   fileUri: vscode.Uri,
-  projectRoot: string,
+  target: CaptureProject,
   experiment: ExperimentChoice,
   { role, override }: Capture,
 ): Promise<void> {
+  const projectRoot = target.root;
+  const sourceRoot = locateFile(
+    fileUri.fsPath,
+    projectRoot,
+    target.externalRoots,
+  );
+  if (sourceRoot === undefined) {
+    throw new Error(
+      "the file is neither in the project nor in one of its external root folders",
+    );
+  }
   const projectYamlText = await readFile(
     `${projectRoot}/_notebook/project.yaml`,
     "utf8",
@@ -66,6 +83,7 @@ export async function captureFile(
       )?.version ?? "0.0.0",
     projectRoot,
     filePath: fileUri.fsPath,
+    sourceRoot,
     experimentId: experiment.id,
     role,
     mode,

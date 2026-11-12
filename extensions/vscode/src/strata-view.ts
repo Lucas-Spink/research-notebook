@@ -1,18 +1,16 @@
-import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { basename } from "node:path";
 
 import * as vscode from "vscode";
 
-import { captureFile, IMPORT_NOTE, type Capture } from "./capture";
+import { captureFile, type Capture } from "./capture";
 import { filesFromUriList } from "./drop";
 import { listExperiments, type ExperimentChoice } from "./experiments";
-import {
-  groupByQuestion,
-  isInsideProject,
-  projectRootsOf,
-  type QuestionGroup,
-} from "./project-tree";
+import type { KnownProject } from "./known-projects";
+import { groupByQuestion, type QuestionGroup } from "./project-tree";
+import { locateFile } from "./source";
+import { arrivalNote } from "./notes";
+import { readKnownProjects } from "./read-known";
 
 export const VIEW_ID = "researchNotebook.projectView";
 export const CHOOSE_MODE_COMMAND = "researchNotebook.chooseDropMode";
@@ -21,6 +19,9 @@ export const REFRESH_COMMAND = "researchNotebook.refreshView";
 /** The Explorer's drop payload: the dragged files as `toString()`ed URIs. */
 const URI_LIST = "text/uri-list";
 const MODE_KEY = "researchNotebook.dropMode";
+
+/** How often the view looks at the app's settings and locks while it is visible (ADR-0069). */
+const FOLLOW_MS = 3000;
 
 type DropMode = "result" | "method" | "link";
 
@@ -41,9 +42,10 @@ const MODES: Record<DropMode, { label: string; capture: Capture }> = {
 };
 
 type Node =
-  | { kind: "project"; root: string }
-  | { kind: "question"; root: string; group: QuestionGroup }
-  | { kind: "experiment"; root: string; experiment: ExperimentChoice };
+  | { kind: "group"; group: "open" | "recent"; projects: KnownProject[] }
+  | { kind: "project"; project: KnownProject }
+  | { kind: "question"; project: KnownProject; group: QuestionGroup }
+  | { kind: "experiment"; project: KnownProject; experiment: ExperimentChoice };
 
 /**
  * The STRATA view in the Explorer: each project in the workspace, its
@@ -79,33 +81,44 @@ class StrataView
     this.refresh();
   }
 
-  private projectRoots(): string[] {
+  /** The projects now: the workspace's and the app's (ADR-0069). */
+  projects(): { open: KnownProject[]; recent: KnownProject[] } {
     const folders = (vscode.workspace.workspaceFolders ?? []).map(
       (folder) => folder.uri.fsPath,
     );
-    return projectRootsOf(folders, existsSync);
+    return readKnownProjects(folders);
   }
 
-  private async questionNodes(root: string): Promise<Node[]> {
-    const groups = groupByQuestion(await listExperiments(root));
-    return groups.map((group) => ({ kind: "question", root, group }));
+  private async questionNodes(project: KnownProject): Promise<Node[]> {
+    const groups = groupByQuestion(await listExperiments(project.root));
+    return groups.map((group) => ({ kind: "question", project, group }));
   }
 
   async getChildren(node?: Node): Promise<Node[]> {
     if (node === undefined) {
-      const roots = this.projectRoots();
-      const [only] = roots;
+      const { open, recent } = this.projects();
+      const [only] = [...open, ...recent];
       // A single project needs no heading of its own.
-      if (roots.length === 1 && only !== undefined) {
+      if (open.length + recent.length === 1 && only !== undefined) {
         return this.questionNodes(only);
       }
-      return roots.map((root) => ({ kind: "project", root }));
+      const groups: Node[] = [];
+      if (open.length > 0) {
+        groups.push({ kind: "group", group: "open", projects: open });
+      }
+      if (recent.length > 0) {
+        groups.push({ kind: "group", group: "recent", projects: recent });
+      }
+      return groups;
     }
-    if (node.kind === "project") return this.questionNodes(node.root);
+    if (node.kind === "group") {
+      return node.projects.map((project) => ({ kind: "project", project }));
+    }
+    if (node.kind === "project") return this.questionNodes(node.project);
     if (node.kind === "question") {
       return node.group.experiments.map((experiment) => ({
         kind: "experiment",
-        root: node.root,
+        project: node.project,
         experiment,
       }));
     }
@@ -114,13 +127,31 @@ class StrataView
 
   getTreeItem(node: Node): vscode.TreeItem {
     switch (node.kind) {
-      case "project": {
+      case "group": {
+        const open = node.group === "open";
         const item = new vscode.TreeItem(
-          basename(node.root),
+          open ? "Open in STRATA" : "Recent",
+          open
+            ? vscode.TreeItemCollapsibleState.Expanded
+            : vscode.TreeItemCollapsibleState.Collapsed,
+        );
+        item.contextValue = "group";
+        item.iconPath = new vscode.ThemeIcon(
+          open ? "circle-filled" : "history",
+        );
+        return item;
+      }
+      case "project": {
+        const { project } = node;
+        const item = new vscode.TreeItem(
+          project.name,
           vscode.TreeItemCollapsibleState.Expanded,
         );
         item.contextValue = "project";
         item.iconPath = new vscode.ThemeIcon("notebook");
+        item.description =
+          project.state === "open" ? "open in STRATA" : "not open";
+        item.tooltip = project.root;
         return item;
       }
       case "question": {
@@ -159,21 +190,22 @@ class StrataView
     const payload = dataTransfer.get(URI_LIST);
     if (payload === undefined) return;
     const paths = filesFromUriList(await payload.asString());
-    await this.addFiles(target.root, target.experiment, paths);
+    await this.addFiles(target.project, target.experiment, paths);
   }
 
   private async addFiles(
-    root: string,
+    project: KnownProject,
     experiment: ExperimentChoice,
     paths: readonly string[],
   ): Promise<void> {
+    const root = project.root;
     const capture = MODES[this.mode].capture;
     let added = 0;
     const problems: string[] = [];
     for (const path of paths) {
       const name = basename(path);
-      if (!isInsideProject(root, path)) {
-        problems.push(`${name} is outside the project`);
+      if (locateFile(path, root, project.externalRoots) === undefined) {
+        problems.push(`${name} is outside the project and its external roots`);
         continue;
       }
       try {
@@ -181,7 +213,7 @@ class StrataView
           problems.push(`${name} is a folder`);
           continue;
         }
-        await captureFile(vscode.Uri.file(path), root, experiment, capture);
+        await captureFile(vscode.Uri.file(path), project, experiment, capture);
         added += 1;
       } catch (error) {
         const why = error instanceof Error ? error.message : String(error);
@@ -191,7 +223,7 @@ class StrataView
     if (added > 0) {
       const files = added === 1 ? "1 file" : `${added} files`;
       void vscode.window.showInformationMessage(
-        `Added ${files} to ${experiment.ref}. ${IMPORT_NOTE}`,
+        `Added ${files} to ${experiment.ref}. ${arrivalNote(project.state)}`,
       );
     }
     if (problems.length > 0) {
@@ -229,6 +261,19 @@ export function registerStrataView(context: vscode.ExtensionContext): void {
     clearTimeout(timer);
     timer = setTimeout(() => view.refresh(), 300);
   };
+  // The app's open projects change outside the workspace, where no watcher
+  // reaches, so look every few seconds while the view is on screen and
+  // redraw only when what it would show has changed (ADR-0069).
+  let shown = JSON.stringify(view.projects());
+  const follow = () => {
+    if (!tree.visible) return;
+    const now = JSON.stringify(view.projects());
+    if (now === shown) return;
+    shown = now;
+    view.refresh();
+  };
+  const poll = setInterval(follow, FOLLOW_MS);
+
   watcher.onDidCreate(refreshSoon);
   watcher.onDidChange(refreshSoon);
   watcher.onDidDelete(refreshSoon);
@@ -237,6 +282,8 @@ export function registerStrataView(context: vscode.ExtensionContext): void {
     tree,
     watcher,
     { dispose: () => clearTimeout(timer) },
+    { dispose: () => clearInterval(poll) },
+    tree.onDidChangeVisibility(follow),
     vscode.workspace.onDidChangeWorkspaceFolders(() => view.refresh()),
     vscode.commands.registerCommand(REFRESH_COMMAND, () => view.refresh()),
     vscode.commands.registerCommand(CHOOSE_MODE_COMMAND, async () => {
