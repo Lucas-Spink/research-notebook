@@ -301,6 +301,58 @@ describe("cellMarkdownParts", () => {
   });
 });
 
+/** A cell keeps the line and paragraph breaks the person wrote, so it reads like the editor it was typed in. */
+describe("cellMarkdownParts: line breaks", () => {
+  const flat = (parts: readonly CellPart[]) =>
+    parts
+      .map((p) =>
+        p.kind === "ref" ? p.label : p.kind === "cite" ? p.raw : p.text,
+      )
+      .join("");
+
+  it("keeps each line on its own line", () => {
+    expect(flat(cellMarkdownParts("First line\nSecond line"))).toBe(
+      "First line\nSecond line",
+    );
+  });
+
+  it("keeps a blank line between paragraphs, once however many were typed", () => {
+    expect(flat(cellMarkdownParts("One\n\n\n\nTwo\r\n\r\nThree"))).toBe(
+      "One\n\nTwo\n\nThree",
+    );
+  });
+
+  it("removes markup line by line", () => {
+    expect(flat(cellMarkdownParts("# Title\n- **one**\n- two\n1. three"))).toBe(
+      "Title\none\ntwo\nthree",
+    );
+  });
+
+  it("collapses runs of spaces inside a line and trims every line", () => {
+    expect(flat(cellMarkdownParts("  a    b  \n   c   "))).toBe("a b\nc");
+  });
+
+  it("keeps a reference as a part on its own line", () => {
+    const parts = cellMarkdownParts(
+      'Before\nSee [PCA](evidence/pca.png "art:01JAXR5D8K2M4N6P8Q0R2S4T6V v2") here\nAfter',
+    );
+    expect(parts.map((p) => p.kind)).toEqual(["text", "ref", "text"]);
+    expect(flat(parts)).toBe("Before\nSee PCA here\nAfter");
+  });
+
+  it("leaves a summary on one line, as before", () => {
+    expect(
+      flat(summariseMarkdownParts("First line\n\nSecond line\nThird")),
+    ).toBe("First line Second line Third");
+  });
+
+  it("still bounds a section of many short lines, ending in an ellipsis", () => {
+    const text = flat(cellMarkdownParts("word\n".repeat(50_000)));
+    expect([...text].length).toBeLessThanOrEqual(20_000);
+    expect(text.endsWith("…")).toBe(true);
+  });
+});
+
 /** S6-T01: a cell shows a citation as an interactive reference, so the cell's parts carry it whole. */
 describe("cellMarkdownParts: citations", () => {
   const text = (value: string): CellPart => ({ kind: "text", text: value });
