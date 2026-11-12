@@ -101,6 +101,7 @@ export function SvgView({ name, url, onRenderFailed }: SvgProps) {
       className="preview__image preview__image--fit"
       src={url}
       alt={m.imageAlt(name)}
+      draggable={false}
       onError={onRenderFailed}
     />
   );

@@ -41,6 +41,7 @@ function FullPicture({
         className="preview-thumb__image"
         src={content.url}
         alt={m.thumbnailAlt(name)}
+        draggable={false}
         decoding="async"
         loading="lazy"
       />
