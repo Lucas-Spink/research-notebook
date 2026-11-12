@@ -29,6 +29,7 @@ function mount(
     onPin?: (artefactIds: string[]) => void;
     pinned?: ReadonlySet<string>;
     disabled?: boolean;
+    carryWhenReadOnly?: boolean;
     onAction?: (action: GroupAction) => void;
   } = {},
 ) {
@@ -48,6 +49,9 @@ function mount(
         {...(options.onDrop === undefined
           ? {}
           : { outside: { zone: "canvas", onDrop: options.onDrop } })}
+        {...(options.carryWhenReadOnly === undefined
+          ? {}
+          : { carryWhenReadOnly: options.carryWhenReadOnly })}
         {...(options.onPin === undefined ? {} : { onPin: options.onPin })}
         {...(options.pinned === undefined ? {} : { pinned: options.pinned })}
       />,
@@ -225,5 +229,50 @@ describe("the on-canvas mark", () => {
     expect(rowNamed(view, "Loose figure").textContent).not.toContain(
       "On canvas",
     );
+  });
+});
+
+describe("dragging out of a read-only tree where that is allowed", () => {
+  const readOnly = { disabled: true, carryWhenReadOnly: true };
+
+  it("carries a result to the zone, as the pop-out canvas window needs", () => {
+    const drops: Drop[] = [];
+    const view = mount({ ...readOnly, onDrop: (d) => drops.push(d) });
+    dragTo(rowNamed(view, "Counts"), zone());
+    expect(drops).toEqual([{ artefactIds: [ids.r(3)], x: 300, y: 200 }]);
+  });
+
+  it("still moves nothing inside the tree", () => {
+    const actions: GroupAction[] = [];
+    const drops: Drop[] = [];
+    const view = mount({
+      ...readOnly,
+      onDrop: (d) => drops.push(d),
+      onAction: (a) => actions.push(a),
+    });
+    dragTo(rowNamed(view, "Counts"), rowNamed(view, "Figures"));
+    expect(actions).toEqual([]);
+    expect(drops).toEqual([]);
+  });
+
+  it("does not let a folder be carried, only results", () => {
+    const drops: Drop[] = [];
+    const view = mount({ ...readOnly, onDrop: (d) => drops.push(d) });
+    dragTo(rowNamed(view, "Figures"), zone());
+    expect(drops).toEqual([]);
+  });
+
+  it("marks only results as draggable", () => {
+    const view = mount({ ...readOnly, onDrop: () => undefined });
+    expect(rowNamed(view, "Counts").dataset["draggable"]).toBe("true");
+    expect(rowNamed(view, "Figures").dataset["draggable"]).toBeUndefined();
+  });
+
+  it("does nothing without the option, as before", () => {
+    const drops: Drop[] = [];
+    const view = mount({ disabled: true, onDrop: (d) => drops.push(d) });
+    expect(rowNamed(view, "Counts").dataset["draggable"]).toBeUndefined();
+    dragTo(rowNamed(view, "Counts"), zone());
+    expect(drops).toEqual([]);
   });
 });
