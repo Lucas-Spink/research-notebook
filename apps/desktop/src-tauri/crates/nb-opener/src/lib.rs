@@ -15,7 +15,7 @@
 #![allow(clippy::disallowed_methods)]
 
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// Starts one process. Tests supply a fake that records the call instead of
@@ -73,8 +73,33 @@ pub enum FileAction {
     OpenInVsCode,
 }
 
+/// `path` without Windows' verbatim prefix. A canonicalised path comes back
+/// as `\\?\C:\...` (or `\\?\UNC\server\share\...`), which `vscode://file/`
+/// URIs, the clipboard and `cmd` do not understand, so it is turned back into
+/// `C:\...` (or `\\server\share\...`) before it is shown or launched. A
+/// verbatim path that is neither, such as a volume GUID, is returned as it is:
+/// dropping its prefix would change which file it names. Pure text work, so it
+/// behaves the same on every platform.
+pub fn plain_path(path: &Path) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(unc) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{unc}"));
+    }
+    if let Some(rest) = text.strip_prefix(r"\\?\") {
+        let mut chars = rest.chars();
+        if let (Some(letter), Some(':')) = (chars.next(), chars.next()) {
+            if letter.is_ascii_alphabetic() {
+                return PathBuf::from(rest);
+            }
+        }
+    }
+    path.to_path_buf()
+}
+
 /// Carries out `action` on `path` through `launcher`.
 pub fn perform<L: Launcher>(launcher: &mut L, path: &Path, action: FileAction) -> io::Result<()> {
+    let path = plain_path(path);
+    let path = path.as_path();
     match action {
         FileAction::OpenFile => open_file(launcher, path),
         FileAction::Reveal => reveal_file(launcher, path),
@@ -112,7 +137,10 @@ pub fn reveal_file<L: Launcher>(launcher: &mut L, path: &Path) -> io::Result<()>
 /// Opens `path` itself (a folder) in the file manager.
 #[cfg(windows)]
 pub fn open_folder<L: Launcher>(launcher: &mut L, path: &Path) -> io::Result<()> {
-    launcher.spawn("explorer", &[path.to_string_lossy().into_owned()])
+    launcher.spawn(
+        "explorer",
+        &[plain_path(path).to_string_lossy().into_owned()],
+    )
 }
 
 #[cfg(not(windows))]
