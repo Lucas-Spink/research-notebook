@@ -1,18 +1,12 @@
-import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
-import { basename, dirname } from "node:path";
+import { dirname } from "node:path";
 
-import { decideCaptureMode, parseProject } from "@research-notebook/format";
 import * as vscode from "vscode";
 
-import { computeProvenance } from "./git-provenance";
+import { captureFile, IMPORT_NOTE, type Capture } from "./capture";
 import { listExperiments, type ExperimentChoice } from "./experiments";
 import { findProjectRoot } from "./project";
-import { buildInboxRequest } from "./request";
-import { newUlid } from "./ulid";
-import { getRepositoryFacts } from "./vscode-git";
-import { writeInboxRequest } from "./write-request";
+import { registerStrataView } from "./strata-view";
 
 const COMMAND_ID = "researchNotebook.addFileToExperiment";
 
@@ -41,12 +35,6 @@ async function pickExperiment(
   return picked?.experiment;
 }
 
-/** What a right-click entry asks for; mode is automatic unless it says otherwise (FR-VSC-04). */
-interface Capture {
-  role: "result" | "method";
-  override: "copy" | "link" | undefined;
-}
-
 const CAPTURES = {
   "researchNotebook.addAsResult": { role: "result", override: undefined },
   "researchNotebook.addAsMethod": { role: "method", override: undefined },
@@ -55,7 +43,7 @@ const CAPTURES = {
 
 async function addFileToExperiment(
   clicked: vscode.Uri | undefined,
-  { role, override }: Capture,
+  capture: Capture,
 ): Promise<void> {
   const fileUri = targetFileUri(clicked);
   if (fileUri === undefined) {
@@ -85,50 +73,10 @@ async function addFileToExperiment(
       : await pickExperiment(experiments);
   if (experiment === undefined) return;
 
-  const projectYamlText = await readFile(
-    `${projectRoot}/_notebook/project.yaml`,
-    "utf8",
-  );
-  const project = parseProject(projectYamlText);
-  const copyThresholdMb = project.ok
-    ? project.value.capture.copy_threshold_mb
-    : 0;
-
-  const bytes = await readFile(fileUri.fsPath);
-  const fileStat = await stat(fileUri.fsPath);
-  const mode = decideCaptureMode(fileStat.size, copyThresholdMb, override);
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-
-  const facts = getRepositoryFacts(fileUri);
-  const provenance =
-    facts === undefined
-      ? null
-      : computeProvenance(fileUri.fsPath, projectRoot, facts);
-
-  const request = buildInboxRequest({
-    requestId: newUlid(),
-    createdAt: new Date(),
-    extensionVersion:
-      (
-        vscode.extensions.getExtension(
-          "research-notebook.research-notebook-vscode",
-        )?.packageJSON as { version?: string } | undefined
-      )?.version ?? "0.0.0",
-    projectRoot,
-    filePath: fileUri.fsPath,
-    experimentId: experiment.id,
-    role,
-    mode,
-    sha256,
-    size: fileStat.size,
-    payload: mode === "copy" ? basename(fileUri.fsPath) : null,
-    provenance,
-  });
-
-  await writeInboxRequest(projectRoot, request, mode === "copy" ? bytes : null);
+  await captureFile(fileUri, projectRoot, experiment, capture);
 
   void vscode.window.showInformationMessage(
-    `Added to ${experiment.ref}. It imports within a couple of seconds if the project is open in Research Notebook, otherwise next time it is opened.`,
+    `Added to ${experiment.ref}. ${IMPORT_NOTE}`,
   );
 }
 
@@ -157,6 +105,7 @@ export function activate(context: vscode.ExtensionContext): void {
   for (const [commandId, capture] of Object.entries(CAPTURES)) {
     register(context, commandId, capture);
   }
+  registerStrataView(context);
   // The original command, kept for the Command Palette: a result, automatic mode.
   register(context, COMMAND_ID, CAPTURES["researchNotebook.addAsResult"]);
 }
