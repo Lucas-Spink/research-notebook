@@ -100,16 +100,14 @@
       "explorer": [
         {
           "id": "researchNotebook.projectView",
-          "name": "STRATA",
-          "when": "workspaceFolderCount > 0"
+          "name": "STRATA"
         }
       ]
     },
     "viewsWelcome": [
       {
         "view": "researchNotebook.projectView",
-        "contents": "No Research Notebook project found in this workspace. A project is a folder with _notebook/project.yaml in it.",
-        "when": "workspaceFolderCount > 0"
+        "contents": "No Research Notebook project found. Open a project in STRATA, or add a project folder (one with _notebook/project.yaml in it) to this workspace."
       }
     ]
   },
