@@ -463,6 +463,11 @@
   background: var(--color-hover);
 }
 
+/* A section keeps the lines and paragraphs that were typed; long lines still wrap. */
+.wtable__text {
+  white-space: pre-line;
+}
+
 /* Compact overview: a section's text is cut after a few lines; the row's
    expanded view and the cell editor still show all of it. */
 .wtable--compact .wtable__text {

@@ -269,12 +269,13 @@ export function summariseMarkdownParts(
 /**
  * A section's text for a table cell: `summariseMarkdownParts` with a bound
  * (20,000 characters) far above any real section, so the cell shows all of
- * it and wraps (S6-T01). Only a pathological section is cut, ending in an
- * ellipsis.
+ * it and wraps (S6-T01). Unlike a summary it keeps the lines and paragraph
+ * breaks that were typed, as `\n` in the text parts, so the cell reads like
+ * the editor did. Only a pathological section is cut, ending in an ellipsis.
  */
 export function cellMarkdownParts(markdown: string): CellPart[] {
-  return partsOf(markdown, CELL_MAX_LENGTH, CELL_MAX_LENGTH).flatMap((part) =>
-    part.kind === "text" ? splitCitations(part.text) : [part],
+  return partsOf(markdown, CELL_MAX_LENGTH, CELL_MAX_LENGTH, true).flatMap(
+    (part) => (part.kind === "text" ? splitCitations(part.text) : [part]),
   );
 }
 
@@ -333,10 +334,21 @@ function splitCitations(text: string): CellPart[] {
   return parts;
 }
 
+/** `text` with each line's spaces collapsed and trimmed, and any run of blank lines reduced to one, so the paragraphs a person typed stay apart. */
+function withLineBreaks(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/[^\S\n]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function partsOf(
   markdown: string,
   maxLength: number,
   limit: number,
+  keepLines = false,
 ): SummaryPart[] {
   const max = Math.min(Math.max(Math.trunc(maxLength) || 1, 1), limit);
   const window = markdown
@@ -347,7 +359,9 @@ function partsOf(
       protect(char),
     );
   const refs: RefTag[] = [];
-  const text = pieces(withoutComments(window), true, refs).join(" ");
-  const flat = restore(text).replace(/\s+/g, " ").trim();
+  const lines = pieces(withoutComments(window), true, refs);
+  const flat = keepLines
+    ? withLineBreaks(restore(lines.join("\n")))
+    : restore(lines.join(" ")).replace(/\s+/g, " ").trim();
   return toParts(cut(flat, max), refs);
 }

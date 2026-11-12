@@ -213,8 +213,9 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
     expect(flat(first?.summaries.methods ?? [])).toBe(
       "PCA on variance-stabilised counts [@z:u:7XK2PQ9M].",
     );
+    // A cell keeps the lines that were typed (it used to join them with spaces).
     expect(flat(first?.summaries.interpretation ?? [])).toBe(
-      "PC1 separates by treatment",
+      "PC1 separates\nby treatment",
     );
     expect(first?.summaries.results_notes).toEqual([]);
   });
@@ -251,8 +252,9 @@ describe("buildRows: cell summaries (FR-TBL-05)", () => {
         },
       },
     }));
+    // The heading, the blank line and the entry stay on their own lines.
     expect(flat(experiments(rowsOf(s))[0]?.summaries.literature ?? [])).toBe(
-      "Literature Love et al. (2014).",
+      "Literature\n\nLove et al. (2014).",
     );
   });
 
