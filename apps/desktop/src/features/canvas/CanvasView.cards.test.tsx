@@ -2,6 +2,7 @@ import { parseCanvas } from "@research-notebook/format";
 import { act } from "react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CanvasView } from "./CanvasView";
+import { fitSize } from "./model/nodes";
 import {
   A,
   FOLDER,
@@ -399,5 +400,110 @@ describe("the canvas grid", () => {
     expect(
       view.querySelector(".react-flow__background.canvas-grid--coarse"),
     ).not.toBeNull();
+  });
+});
+
+describe("figures fitting their pictures", () => {
+  /** Nothing is laid out in the test, so a card adds this much around its picture. */
+  const CHROME = { width: 10, height: 60 };
+  const ARRANGED = { width: 500, height: 300 };
+
+  /** Cards whose picture is a real `<img>`, which the tests then "load". */
+  const withPicture = (answers: Parameters<typeof fakeCards>[0]) => ({
+    ...fakeCards(answers),
+    renderPreview: (result: { name: string }) => <img alt={result.name} />,
+  });
+
+  async function openWithPicture(text: string, writable = true) {
+    const fake = fakeApi({ [pathOf(A)]: text });
+    const view = mount(
+      <Harness
+        api={fake.api}
+        cards={withPicture({ [ART]: foundResult() })}
+        writable={writable}
+      />,
+    );
+    await flush();
+    return { view, ...fake };
+  }
+
+  /** The picture finishes loading, with the size it has in the file. */
+  async function loaded(view: HTMLElement, width: number, height: number) {
+    const picture = view.querySelector("img");
+    if (picture === null) throw new Error("no picture");
+    Object.defineProperty(picture, "naturalWidth", { value: width });
+    Object.defineProperty(picture, "naturalHeight", { value: height });
+    await act(async () => {
+      picture.dispatchEvent(new Event("load"));
+      await Promise.resolve();
+    });
+    await flush();
+  }
+
+  const sizeOf = (disk: Record<string, string>) => saved(disk).nodes[0]?.size;
+
+  it("takes the shape of its picture when the picture loads in a card just pinned", async () => {
+    const { view, disk } = await openWithPicture(withCard(1));
+    await loaded(view, 800, 400);
+    expect(sizeOf(disk)).toEqual(fitSize(2, CHROME));
+  });
+
+  it("does the same for a tall picture", async () => {
+    const { view, disk } = await openWithPicture(withCard(1));
+    await loaded(view, 300, 600);
+    expect(sizeOf(disk)).toEqual(fitSize(0.5, CHROME));
+  });
+
+  it("leaves a card that has been arranged as it is", async () => {
+    const { view, disk } = await openWithPicture(withCard(1, ARRANGED));
+    await loaded(view, 800, 400);
+    expect(sizeOf(disk)).toEqual(ARRANGED);
+  });
+
+  it("changes nothing when the canvas cannot be changed", async () => {
+    const { view, writes } = await openWithPicture(withCard(1), false);
+    await loaded(view, 800, 400);
+    expect(writes).toEqual([]);
+  });
+
+  it("ignores a picture that reports no size", async () => {
+    const { view, writes } = await openWithPicture(withCard(1));
+    await loaded(view, 0, 0);
+    expect(writes).toEqual([]);
+  });
+
+  it("fits an arranged card when its Fit button is pressed, and only then", async () => {
+    const { view, disk } = await openWithPicture(withCard(1, ARRANGED));
+    expect(
+      view.querySelector('button[aria-label="Fit the box to the picture"]'),
+    ).toBeNull();
+    await loaded(view, 800, 400);
+    click(
+      view.querySelector('button[aria-label="Fit the box to the picture"]'),
+    );
+    await flush();
+    expect(sizeOf(disk)).toEqual(fitSize(2, CHROME));
+  });
+
+  it("fits every figure at once with Fit all figures", async () => {
+    const { view, disk } = await openWithPicture(withCard(1, ARRANGED));
+    await loaded(view, 800, 400);
+    expect(sizeOf(disk)).toEqual(ARRANGED);
+    click(buttonNamed(view, "Fit all figures"));
+    await flush();
+    expect(sizeOf(disk)).toEqual(fitSize(2, CHROME));
+  });
+
+  it("offers no fitting where the canvas cannot be changed", async () => {
+    const { view } = await openWithPicture(withCard(1), false);
+    await loaded(view, 800, 400);
+    expect(
+      view.querySelector('button[aria-label="Fit the box to the picture"]'),
+    ).toBeNull();
+    expect(
+      [...view.querySelectorAll("button")].some(
+        (b) => b.textContent === "Fit all figures",
+      ),
+    ).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
 
 /** What a card needs from the surface that draws it, without it travelling in every node's data. */
@@ -8,6 +9,10 @@ export type CardContextValue = {
   editable: boolean;
   onRemove: (id: string) => void;
   onUpdateVersion: (id: string, version: number) => void;
+  /** Gives a card the size that fits its picture. */
+  onFit: (id: string, size: Extent) => void;
+  /** Changes each time the surface asks every figure to fit its picture. */
+  fitSignal: number;
   /** A note's text, as typed. */
   onNoteText: (id: string, text: string) => void;
 };

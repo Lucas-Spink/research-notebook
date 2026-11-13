@@ -38,6 +38,8 @@ export const canvasMessages = {
     `${name}, from ${experiment}`,
   openOriginal: (name: string) => `Open ${name}`,
   removeCard: "Remove from canvas",
+  fitToImage: "Fit the box to the picture",
+  fitAllFigures: "Fit all figures",
   newerVersion: (version: number) => `v${version} is available`,
   updateTo: (version: number) => `Update to v${version}`,
   missingCard: "Result not available",
