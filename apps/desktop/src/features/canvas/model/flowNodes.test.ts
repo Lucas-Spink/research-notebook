@@ -96,6 +96,31 @@ describe("toFlowNodes", () => {
   });
 });
 
+describe("toFlowNodes: a table", () => {
+  it("is not drawn yet, and is still in the file the cards were taken from", () => {
+    const withTable = {
+      ...file,
+      format_version: 3 as const,
+      nodes: [
+        ...file.nodes,
+        {
+          id: "01JAXN00000000000000000002",
+          type: "table" as const,
+          rows: [],
+          columns: [],
+          cells: [],
+          fit: "row" as const,
+          position: { x: 0, y: 0 },
+          size: { width: 300, height: 200 },
+        },
+      ],
+    };
+    const drawn = toFlowNodes(withTable, () => found, new Set());
+    expect(drawn.map((node) => node.type)).toEqual(["artefact"]);
+    expect(withTable.nodes).toHaveLength(2);
+  });
+});
+
 describe("toFlowEdges", () => {
   it("draws a line from and to the sides it was drawn at", () => {
     const edges = toFlowEdges({
