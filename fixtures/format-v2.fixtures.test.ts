@@ -152,3 +152,51 @@ describe("canvases fixture (format version 2)", () => {
     }
   });
 });
+
+describe("canvas-tables fixture (canvas format version 3, ADR-0071)", () => {
+  const fixture = openFixture("canvas-tables");
+  const canvases = () =>
+    fixture
+      .canvasFiles()
+      .map((relative) => ({ relative, text: fixture.read(relative) }));
+
+  it("is listed with the other fixtures, and the released canvases fixture is untouched", () => {
+    expect(listFixtures()).toContain("canvas-tables");
+    expect(listFixtures()).toContain("canvases");
+  });
+
+  it("round-trips every canvas file byte for byte, each at the version its content needs", () => {
+    for (const { relative, text } of canvases()) {
+      expect(serialiseCanvas(must(parseCanvas(text))), relative).toBe(text);
+    }
+  });
+
+  it("has a canvas at version 3 with a table, and one with none at version 2", () => {
+    const parsed = canvases().map(({ text }) => must(parseCanvas(text)));
+    const withTable = parsed.find((c) =>
+      c.nodes.some((n) => n.type === "table"),
+    );
+    const without = parsed.find(
+      (c) => !c.nodes.some((n) => n.type === "table"),
+    );
+    expect(withTable?.format_version).toBe(3);
+    expect(without?.format_version).toBe(2);
+  });
+
+  it("holds a line that ends at one cell of the table, and cells that are empty or missing", () => {
+    const parsed = canvases().map(({ text }) => must(parseCanvas(text)));
+    const canvas = parsed.find((c) => c.nodes.some((n) => n.type === "table"));
+    const table = canvas?.nodes.find((n) => n.type === "table");
+    if (table?.type !== "table") throw new Error("no table");
+    expect(table.rows).toHaveLength(2);
+    expect(table.columns).toHaveLength(2);
+    expect(table.cells).toHaveLength(3);
+    expect(canvas?.edges[0]?.target_cell).toBeDefined();
+  });
+
+  it("is only the project's own files besides: nothing was migrated", () => {
+    expect(fixture.read("_notebook/project.yaml")).toBe(
+      fixture.readSource("_notebook/project.yaml"),
+    );
+  });
+});

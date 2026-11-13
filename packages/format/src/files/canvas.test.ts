@@ -84,7 +84,8 @@ describe("parseCanvas", () => {
   });
 
   it("accepts format version 2 and reports a newer one as unsupported", () => {
-    const newer = errorOf(parseCanvas(text({ ...base(), format_version: 3 })));
+    // Version 3 (tables, ADR-0071) is now read; the first newer one is 4.
+    const newer = errorOf(parseCanvas(text({ ...base(), format_version: 4 })));
     expect(newer.kind).toBe("unsupported-version");
   });
 

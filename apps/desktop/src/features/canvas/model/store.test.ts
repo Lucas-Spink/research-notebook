@@ -50,7 +50,8 @@ describe("loadCanvases", () => {
   it("treats a canvas from a newer format as one it cannot read", async () => {
     const newer = textOf(A, "Future").replace(
       '"format_version": 2',
-      '"format_version": 3',
+      // Version 3 is read now (tables, ADR-0071); 4 is the first newer one.
+      '"format_version": 4',
     );
     const { api } = fakeApi({ [pathOf(A)]: newer });
     const [entry] = must(await loadCanvases(api, FOLDER));

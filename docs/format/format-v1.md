@@ -407,23 +407,37 @@ Schema: `lock.schema.json`. Spec 5.11. JSON, present while a writer has the proj
 - `README.md` (generated guide, spec A.3), `styles/*.csl` (CSL XML), `.history/`, `backups/`, `.trash/`, `exports/` and captured files under `evidence/` and `methods/` are not notebook data files. They are written by `nb-fs` and the export code and are never parsed by `packages/format`, except `styles/*.csl` for validation in `packages/citations`.
 - `.gitignore` and `.gitattributes` entries follow spec 5.12.
 
-### 4.9 Canvas files (format version 2)
+### 4.9 Canvas files (format versions 2 and 3)
 
-Schema: `canvas.schema.json`. ADR-0064, ADR-0065. One JSON file per canvas at `canvases/<ULID>.canvas.json`, where `<ULID>` equals `id`. The application gives each question one canvas, whose `id` is the question's own ULID (ADR-0065); a canvas with any other `id` is valid and is kept, but is not shown. A canvas holds presentation only: which result sits where, how large, and the viewport. It never holds experiment text or evidence bytes. Version 1 applications do not read canvases; they open a version 2 project read-only (section 6).
+Schema: `canvas.schema.json`. ADR-0064, ADR-0065. One JSON file per canvas at `canvases/<ULID>.canvas.json`, where `<ULID>` equals `id`. The application gives each question one canvas, whose `id` is the question's own ULID (ADR-0065); a canvas with any other `id` is valid and is kept, but is not shown. A canvas holds presentation only: which result sits where, how large, and the viewport. It never holds experiment text or evidence bytes. Version 1 applications do not read canvases; they open a version 2 project read-only (section 6). A canvas that holds a table (ADR-0071) is version 3 and every other canvas stays version 2, so an application that knows only version 2 opens every canvas without a table and shows one with a table as unreadable (read-only, untouched, section 6).
 
 | Key                         | Type                | Req.       | Notes                                                                                 |
 | --------------------------- | ------------------- | ---------- | ------------------------------------------------------------------------------------- |
-| `format_version`            | integer             | Yes        | `2`.                                                                                  |
+| `format_version`            | integer             | Yes        | `2`, or `3` when the canvas holds a table or a line to a table cell. A writer uses `3` only for those and `2` otherwise. |
 | `id`                        | `ulid`              | Yes        | Equals the file name.                                                                 |
 | `name`                      | `text`              | Yes        | Shown in the canvas picker. Renaming changes only this value.                         |
 | `nodes`                     | list                | Yes        | May be empty. Node ids are unique in the file.                                        |
 | `nodes[].id`                | `ulid`              | Yes        |                                                                                       |
-| `nodes[].type`              | enum                | Yes        | `artefact`, `note` or `region`.                                                       |
+| `nodes[].type`              | enum                | Yes        | `artefact`, `note`, `region` or `table` (version 3).                                  |
 | `nodes[].experiment_id`     | `ulid`              | `artefact` | The experiment that owns the result.                                                  |
 | `nodes[].artefact_id`       | `ulid`              | `artefact` | The pinned result.                                                                    |
 | `nodes[].version`           | integer, at least 1 | `artefact` | The pinned version number `v` of a copy-mode artefact; omitted for a link-mode one, which has no versions. Never advances automatically. |
 | `nodes[].text`              | string              | `note`     | Canvas-only text; may be empty or span lines.                                         |
 | `nodes[].label`             | `text`              | `region`   | The region's title.                                                                   |
+| `nodes[].rows` | list | `table` | Row headings, top to bottom. May be empty. |
+| `rows[].id` | `ulid` | `table` | Unique among the table's rows. Cells and lines name a row by this, so a heading can be renamed without disturbing them. |
+| `rows[].label` | `text` | `table` | The row's heading. |
+| `nodes[].columns` | list | `table` | Column headings, left to right. May be empty. |
+| `columns[].id` | `ulid` | `table` | Unique among the table's columns. |
+| `columns[].label` | `text` | `table` | The column's heading. |
+| `nodes[].cells` | list | `table` | The figures in the table, at most one per cell. A cell that is not listed is empty. |
+| `cells[].row` | `ulid` | `table` | A row id of this table. |
+| `cells[].column` | `ulid` | `table` | A column id of this table. |
+| `cells[].experiment_id` | `ulid` | `table` | The experiment that owns the result, as for an `artefact` node. |
+| `cells[].artefact_id` | `ulid` | `table` | The result in the cell. |
+| `cells[].version` | integer, at least 1 | No | The pinned version of a copy-mode result; omitted for a link-mode one, as for an `artefact` node. |
+| `cells[].aspect` | number, above 0 | No | Finite. The picture's width over its height once known, so the table lays out the same on reopening. |
+| `nodes[].fit`               | enum                | `table`    | `row` or `column`: whether the cells of a row, or of a column, take the shape of their largest figure. |
 | `nodes[].position`          | object              | Yes        | Canvas coordinates of the top-left corner.                                            |
 | `position.x`, `position.y`  | number              | Yes        | Finite.                                                                               |
 | `nodes[].size`              | object              | Yes        |                                                                                       |
@@ -434,12 +448,16 @@ Schema: `canvas.schema.json`. ADR-0064, ADR-0065. One JSON file per canvas at `c
 | `edges[].target`            | `ulid`              | Yes        | A node id in this file.                                                               |
 | `edges[].source_handle`     | enum                | No         | `top`, `right`, `bottom` or `left`: the side of the source card the line was drawn from. Left out, the application chooses. |
 | `edges[].target_handle`     | enum                | No         | The side of the target card the line was drawn to; as `source_handle`.                |
+| `edges[].source_cell` | object | No | Version 3. The cell of a table the line starts at. The source node must be that table and the cell's row and column ids must be in it. |
+| `source_cell.row`, `source_cell.column` | `ulid` | Yes | A row id and a column id of that table. |
+| `edges[].target_cell` | object | No | Version 3. As `source_cell`, for the target. |
+| `target_cell.row`, `target_cell.column` | `ulid` | Yes | A row id and a column id of that table. |
 | `edges[].label`             | enum                | No         | `supports`, `contradicts`, `derived-from`, `related-to` or `requires-investigation`.  |
 | `viewport`                  | object              | Yes        | Last pan and zoom.                                                                    |
 | `viewport.x`, `viewport.y`  | number              | Yes        | Finite.                                                                               |
 | `viewport.zoom`             | number, above 0     | Yes        | `1` is 100 per cent.                                                                  |
 
-Unknown keys are accepted and kept, on the file and inside every object. Canonical key order is the order of the table; a node's keys run `id`, `type`, the type's own keys, `position`, `size`. A reference to an experiment, artefact or version that does not exist is not a schema error: the card is shown as missing and the file is not rewritten (section 5).
+Unknown keys are accepted and kept, on the file and inside every object. Canonical key order is the order of the table; a node's keys run `id`, `type`, the type's own keys, `position`, `size`; an edge's run `id`, `source`, `target`, `source_handle`, `target_handle`, `source_cell`, `target_cell`, `label`. A reference to an experiment, artefact or version that does not exist, including one in a table cell, is not a schema error: the card or cell is shown as missing and the file is not rewritten (section 5). A table's row, column and cell ids, a table in a version 2 file, and a cell on a line whose end is not a table are schema errors.
 
 ## 5. Constraints that a schema cannot check
 
@@ -463,7 +481,7 @@ The Zod schemas check everything inside one file. The rules below span files or 
 
 - `packages/format` exports `FormatVersionProbe`, which reads only `format_version`. The project opener applies it to `project.yaml` first. A value above 1 opens the whole project read-only with the reason "newer format" and no further validation; the file is not touched (spec 5.13 rule 2, gate S2-G10).
 - Any file that fails its schema, or breaks a rule in section 4, opens read-only for that file and is never rewritten (AGENTS.md section 2, rule 5).
-- Migrations are pure functions in `packages/format/src/migrations.ts`, one per version step, never deleted (spec 5.13). Version 2 (ADR-0064) adds canvas files. Its step from 1 changes only `format_version` in `project.yaml` and each `artefacts.yaml`, as a text edit that leaves every other byte alone. Inbox requests are not migrated; readers accept `format_version` 1 or 2 there. A project is migrated only after the version-change backup and the person's confirmation.
+- Migrations are pure functions in `packages/format/src/migrations.ts`, one per version step, never deleted (spec 5.13). Version 2 (ADR-0064) adds canvas files. Its step from 1 changes only `format_version` in `project.yaml` and each `artefacts.yaml`, as a text edit that leaves every other byte alone. Version 3 of a canvas file (ADR-0071) needs no migration: a version 2 canvas is already valid, and a canvas is written at 3 only once it holds a table. Inbox requests are not migrated; readers accept `format_version` 1 or 2 there. A project is migrated only after the version-change backup and the person's confirmation.
 
 ## 7. Inline syntax in Markdown sections
 
