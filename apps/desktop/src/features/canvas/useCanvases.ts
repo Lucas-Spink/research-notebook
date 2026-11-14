@@ -5,6 +5,7 @@ import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { canvasMessages } from "./messages";
 import { notesCitekeys } from "./model/cite";
 import { addNote } from "./model/notes";
+import { addTable, fillCells } from "./model/tables";
 import { pinResults, pinnedIds, type PinRef, type Point } from "./model/nodes";
 import { createCanvasSaver, type SaveReport } from "./model/saver";
 import {
@@ -41,6 +42,10 @@ export type SurfaceBridge = {
   centre: () => Point;
   /** Selects a card and brings it into view. */
   focusNode: (id: string) => void;
+  /** The table cell under a point of the window, if any. */
+  cellAt: (
+    screen: Point,
+  ) => { table: string; row: string; column: string } | null;
 };
 
 /** What the canvas view shows and can ask for. */
@@ -66,6 +71,8 @@ export type CanvasesModel = {
   pinAt: (refs: readonly PinRef[], screen: Point | null) => boolean;
   /** Adds an empty note in the middle of what is showing and selects it. Returns its id, or `null` when it could not be added. */
   addNote: () => string | null;
+  /** Adds a table of two rows and two columns in the middle of what is showing. Returns its id, or `null` when it could not be added. */
+  addTable: () => string | null;
   /** Selects a card and brings it into view. */
   focusNode: (id: string) => void;
   /** The drawn surface says where things are on screen while it is showing. */
@@ -222,6 +229,22 @@ export function useCanvases({
       if (refs.length === 0) return false;
       const surface = place();
       if (surface === null) return false;
+      // A result dropped on a table's cell goes into the table, not onto the canvas.
+      const cell = screen === null ? null : surface.cellAt(screen);
+      if (cell !== null) {
+        const asked = questionRef.current;
+        const now =
+          asked === null ? null : canvasEntryOf(entriesRef.current, asked).file;
+        const room =
+          now === null ? { placed: 0 } : fillCells(now, cell.table, cell, refs);
+        if (room.placed === 0) {
+          setNotice(canvasMessages.pinFailed);
+          return false;
+        }
+        if (room.placed < refs.length) setNotice(canvasMessages.tableFull);
+        edit((file) => fillCells(file, cell.table, cell, refs).file);
+        return true;
+      }
       const at = screen === null ? surface.centre() : surface.toCanvas(screen);
       edit((file) => pinResults(file, refs, at, newId));
       return true;
@@ -235,6 +258,27 @@ export function useCanvases({
     const id = newId();
     edit((file) => addNote(file, surface.centre(), () => id));
     return id;
+  }, [place, edit, newId]);
+
+  const addTableHere = useCallback<CanvasesModel["addTable"]>(() => {
+    const surface = place();
+    if (surface === null) return null;
+    const labels = {
+      rows: [1, 2].map((n) => canvasMessages.tableRowLabel(n)),
+      columns: [1, 2].map((n) => canvasMessages.tableColumnLabel(n)),
+    };
+    // The table, then each row, then each column. Made here, once, so that the
+    // change gives the same ids however many times it is applied.
+    const ids = Array.from(
+      { length: 1 + labels.rows.length + labels.columns.length },
+      () => newId(),
+    );
+    const centre = surface.centre();
+    edit((file) => {
+      let next = 0;
+      return addTable(file, centre, () => ids[next++] ?? newId(), labels);
+    });
+    return ids[0] ?? null;
   }, [place, edit, newId]);
 
   const registerSurface = useCallback((next: SurfaceBridge | null) => {
@@ -267,6 +311,7 @@ export function useCanvases({
     edit,
     pinAt,
     addNote: addNoteHere,
+    addTable: addTableHere,
     focusNode,
     registerSurface,
     flush: () => saver.flush(),
