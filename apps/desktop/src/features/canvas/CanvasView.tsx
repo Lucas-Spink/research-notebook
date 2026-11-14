@@ -89,6 +89,13 @@ export function CanvasView({
           </button>
           <button
             type="button"
+            disabled={!writable || file === null}
+            onClick={() => canvases.addTable()}
+          >
+            {m.addTable}
+          </button>
+          <button
+            type="button"
             aria-pressed={!layout.leftCollapsed}
             onClick={() => dispatch({ type: "toggle", side: "left" })}
           >

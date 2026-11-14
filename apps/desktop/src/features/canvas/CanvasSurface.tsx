@@ -27,6 +27,7 @@ import {
 import { useTheme } from "../../shared/theme";
 import { ArtefactCard } from "./ArtefactCard";
 import { CardProvider } from "./CardContext";
+import { TableCard } from "./TableCard";
 import { canvasMessages as m } from "./messages";
 import { edgeEditsFrom, editsFrom, type CanvasEdit } from "./model/flowChanges";
 import {
@@ -36,6 +37,7 @@ import {
 } from "./model/flowNodes";
 import { connectNodes, type Side } from "./model/notes";
 import type { CardServices } from "./model/results";
+import type { TableChange } from "./model/tables";
 import { NoteCard, RegionCard } from "./OtherCards";
 import type { SurfaceBridge } from "./useCanvases";
 import "@xyflow/react/dist/style.css";
@@ -49,6 +51,7 @@ const NODE_TYPES = {
   artefact: ArtefactCard,
   note: NoteCard,
   region: RegionCard,
+  table: TableCard,
 };
 const DELETE_KEYS = ["Backspace", "Delete"];
 
@@ -116,6 +119,20 @@ function useBridge(
         });
       },
       focusNode,
+      cellAt: (screen) => {
+        // Not every environment can say what is under a point (jsdom cannot).
+        if (typeof document.elementFromPoint !== "function") return null;
+        const cell = document
+          .elementFromPoint(screen.x, screen.y)
+          ?.closest<HTMLElement>("[data-table-cell]");
+        const { table, row, column } = cell?.dataset ?? {};
+        return cell != null &&
+          table !== undefined &&
+          row !== undefined &&
+          column !== undefined
+          ? { table, row, column }
+          : null;
+      },
     });
     return () => register(null);
   }, [flow, container, register, focusNode]);
@@ -224,10 +241,13 @@ function Flow({
       editable,
       onRemove: remove,
       onUpdateVersion,
+      onTable: (id: string, change: TableChange) =>
+        onEdits([{ kind: "table", id, change }]),
+      newId,
       onNoteText: (id: string, text: string) =>
         onEdits([{ kind: "noteText", id, text }]),
     }),
-    [services, editable, remove, onUpdateVersion, onEdits],
+    [services, editable, remove, onUpdateVersion, onEdits, newId],
   );
 
   return (

@@ -437,7 +437,7 @@ Schema: `canvas.schema.json`. ADR-0064, ADR-0065. One JSON file per canvas at `c
 | `cells[].artefact_id` | `ulid` | `table` | The result in the cell. |
 | `cells[].version` | integer, at least 1 | No | The pinned version of a copy-mode result; omitted for a link-mode one, as for an `artefact` node. |
 | `cells[].aspect` | number, above 0 | No | Finite. The picture's width over its height once known, so the table lays out the same on reopening. |
-| `nodes[].fit`               | enum                | `table`    | `row` or `column`: whether the cells of a row, or of a column, take the shape of their largest figure. |
+| `nodes[].fit`               | enum                | `table`    | `row` or `column`: whether the cells of a row, or of a column, take the shape of their tallest figure (the smallest `aspect`), so none is cut off. |
 | `nodes[].position`          | object              | Yes        | Canvas coordinates of the top-left corner.                                            |
 | `position.x`, `position.y`  | number              | Yes        | Finite.                                                                               |
 | `nodes[].size`              | object              | Yes        |                                                                                       |
