@@ -415,6 +415,35 @@
   color: var(--color-text-muted);
 }
 
+.canvas-summary__table {
+  margin-bottom: var(--space-3);
+  overflow-x: auto;
+}
+
+.canvas-summary__table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.canvas-summary__table caption {
+  text-align: left;
+  color: var(--color-text-muted);
+  padding-bottom: var(--space-1);
+}
+
+.canvas-summary__table th,
+.canvas-summary__table td {
+  border: 1px solid var(--color-border);
+  padding: 2px var(--space-1);
+  text-align: left;
+  font-weight: normal;
+}
+
+.canvas-summary__table th {
+  font-weight: 600;
+}
+
 .canvas-summary__refs {
   margin-top: var(--space-1);
   font-size: 0.85rem;
