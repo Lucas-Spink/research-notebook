@@ -16,3 +16,4 @@ export type {
   ResultInfo,
 } from "./model/results";
 export type { ArtefactNode, PinRef } from "./model/nodes";
+export type { GroupLine } from "./model/tables";

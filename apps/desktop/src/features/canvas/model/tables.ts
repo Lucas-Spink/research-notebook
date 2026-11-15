@@ -364,3 +364,67 @@ export function tableExtent(table: TableNode): Extent {
   const layout = layoutTable(table);
   return { width: layout.width, height: layout.height };
 }
+
+/** One group's worth of figures for a table: the heading it gives its line, and its results in order. */
+export type GroupLine = { label: string; refs: readonly PinRef[] };
+
+/**
+ * Adds a table made from groups of results: each group is one line, a row or
+ * a column as `lines` says, headed with the group's name and holding its
+ * results in order along it. The other kind of line is numbered and as long
+ * as the longest group, so shorter groups leave their last cells empty. A
+ * group that is a row makes the table fit by row (and a column, by column),
+ * since the results of one group are meant to be alike. `newId` is injected.
+ */
+export function tableFromGroups(
+  file: CanvasFileModel,
+  at: Point,
+  newId: () => string,
+  groups: readonly GroupLine[],
+  lines: "row" | "column",
+  numbered: (n: number) => string,
+): CanvasFileModel {
+  if (groups.length === 0) return file;
+  const longest = Math.max(1, ...groups.map((g) => g.refs.length));
+  const grouped = groups.map((g) => ({ id: newId(), label: g.label }));
+  const across = Array.from({ length: longest }, (_, n) => ({
+    id: newId(),
+    label: numbered(n + 1),
+  }));
+  const rows = lines === "row" ? grouped : across;
+  const columns = lines === "row" ? across : grouped;
+  const cells: TableCell[] = groups.flatMap((group, g) =>
+    group.refs.map((ref, n) => {
+      const line = grouped[g];
+      const place = across[n];
+      if (line === undefined || place === undefined) {
+        throw new Error("a group result has no cell");
+      }
+      return {
+        row: lines === "row" ? line.id : place.id,
+        column: lines === "row" ? place.id : line.id,
+        experiment_id: ref.experimentId,
+        artefact_id: ref.artefactId,
+        ...(ref.version === undefined ? {} : { version: ref.version }),
+      };
+    }),
+  );
+  const table: TableNode = {
+    id: newId(),
+    type: "table",
+    rows,
+    columns,
+    cells,
+    fit: lines,
+    position: {
+      x: Math.round(at.x - DEFAULT_TABLE.width / 2),
+      y: Math.round(at.y - DEFAULT_TABLE.height / 2),
+    },
+    size: { ...DEFAULT_TABLE },
+  };
+  return {
+    ...file,
+    format_version: CANVAS_TABLE_FORMAT_VERSION,
+    nodes: [...file.nodes, table],
+  };
+}
