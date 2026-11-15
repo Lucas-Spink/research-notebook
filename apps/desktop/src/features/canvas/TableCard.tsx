@@ -1,4 +1,9 @@
-import { NodeResizeControl, type NodeProps } from "@xyflow/react";
+import {
+  Handle,
+  NodeResizeControl,
+  Position,
+  type NodeProps,
+} from "@xyflow/react";
 import { memo, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
@@ -8,6 +13,7 @@ import {
   COLUMN_HEADER_HEIGHT,
   MIN_TABLE_WIDTH,
   ROW_HEADER_WIDTH,
+  cellHandleId,
 } from "./model/tables";
 import type { PictureDetail, ResultInfo } from "./model/results";
 
@@ -345,6 +351,15 @@ function RowCells({
               <span className="canvas-table__empty">{m.dropHere}</span>
             ) : info?.status === "found" ? (
               <>
+                {editable && (
+                  <Handle
+                    id={cellHandleId({ row: row.id, column: column.id })}
+                    type="source"
+                    position={Position.Right}
+                    className="canvas-handle canvas-table__handle nodrag"
+                    aria-label={m.cellHandle}
+                  />
+                )}
                 {renderPreview(info, wide ? "full" : "thumbnail")}
                 <span className="canvas-table__cell-actions nodrag nopan">
                   <button

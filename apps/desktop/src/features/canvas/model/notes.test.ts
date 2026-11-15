@@ -10,6 +10,12 @@ import {
   setNoteText,
 } from "./notes";
 import { pinResults } from "./nodes";
+import {
+  addTable,
+  applyTableChange,
+  cellHandleId,
+  cellOfHandle,
+} from "./tables";
 
 /**
  * ADR-0065: a question's canvas holds notes and figure cards. A line from a
@@ -180,6 +186,112 @@ describe("connectNodes remembers where the line was drawn", () => {
     const edge = connectNodes(file, a, figure, newId).edges[0];
     expect(edge).not.toHaveProperty("source_handle");
     expect(edge).not.toHaveProperty("target_handle");
+  });
+});
+
+/** A canvas with a note and a 2x2 table; returns their ids and the table's rows and columns. */
+function withTable() {
+  let file = addNote(empty(), { x: 100, y: 100 }, newId);
+  file = addTable(file, { x: 500, y: 300 }, newId, {
+    rows: ["A", "B"],
+    columns: ["X", "Y"],
+  });
+  const note = file.nodes[0]?.id ?? "";
+  const table = file.nodes[1];
+  if (table?.type !== "table") throw new Error("no table");
+  const [r1, r2] = table.rows.map((r) => r.id);
+  const [c1, c2] = table.columns.map((c) => c.id);
+  return {
+    file,
+    note,
+    table: table.id,
+    r1: r1 ?? "",
+    r2: r2 ?? "",
+    c1: c1 ?? "",
+    c2: c2 ?? "",
+  };
+}
+
+describe("connectNodes to a table cell (ADR-0071)", () => {
+  it("records the cell at the table end, with the note as the source", () => {
+    const { file, note, table, r1, c2 } = withTable();
+    const cell = { row: r1, column: c2 };
+    const next = connectNodes(file, note, table, newId, {
+      toCell: cell,
+    });
+    expect(next.edges[0]).toMatchObject({
+      source: note,
+      target: table,
+      target_cell: cell,
+    });
+    expect(next.edges[0]).not.toHaveProperty("source_cell");
+  });
+
+  it("moves the cell to the target when the line is drawn from the table", () => {
+    const { file, note, table, r2, c1 } = withTable();
+    const cell = { row: r2, column: c1 };
+    const next = connectNodes(file, table, note, newId, { fromCell: cell });
+    expect(next.edges[0]).toMatchObject({
+      source: note,
+      target: table,
+      target_cell: cell,
+    });
+  });
+
+  it("lets one note point at several cells of the same table, but not the same one twice", () => {
+    const { file, note, table, r1, r2, c1 } = withTable();
+    let next = connectNodes(file, note, table, newId, {
+      toCell: { row: r1, column: c1 },
+    });
+    next = connectNodes(next, note, table, newId, {
+      toCell: { row: r2, column: c1 },
+    });
+    expect(next.edges).toHaveLength(2);
+    expect(
+      connectNodes(next, note, table, newId, {
+        toCell: { row: r1, column: c1 },
+      }),
+    ).toBe(next);
+  });
+
+  it("refuses a cell the table does not have", () => {
+    const { file, note, table, r1 } = withTable();
+    const next = connectNodes(file, note, table, newId, {
+      toCell: { row: r1, column: "01JAXC000000000000000000ZZ" },
+    });
+    expect(next).toBe(file);
+  });
+
+  it("refuses a table to table line", () => {
+    const { file, table } = withTable();
+    const more = addTable(file, { x: 900, y: 300 }, newId, {
+      rows: ["A"],
+      columns: ["X"],
+    });
+    const other = more.nodes[2]?.id ?? "";
+    expect(connectNodes(more, table, other, newId)).toBe(more);
+  });
+
+  it("drops the line when its cell's row is removed", () => {
+    const { file, note, table, r1, r2, c1 } = withTable();
+    const joined = connectNodes(file, note, table, newId, {
+      toCell: { row: r1, column: c1 },
+    });
+    const after = applyTableChange(joined, table, {
+      kind: "removeRow",
+      id: r1,
+    });
+    expect(after.edges).toHaveLength(0);
+    const kept = applyTableChange(joined, table, { kind: "removeRow", id: r2 });
+    expect(kept.edges).toHaveLength(1);
+  });
+
+  it("writes and reads a cell handle id", () => {
+    const { r1, c1 } = withTable();
+    const id = cellHandleId({ row: r1, column: c1 });
+    expect(cellOfHandle(id)).toEqual({ row: r1, column: c1 });
+    expect(cellOfHandle("right")).toBeUndefined();
+    expect(cellOfHandle(null)).toBeUndefined();
   });
 });
 

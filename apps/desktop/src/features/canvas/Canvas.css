@@ -581,6 +581,18 @@
   object-fit: contain;
 }
 
+/* A cell's own point for a line, inside the cell so its clipping does not hide it. */
+.canvas-table__handle {
+  top: auto;
+  right: 6px;
+  bottom: 6px;
+  transform: none;
+}
+
+.canvas-table__cell:hover .canvas-handle {
+  opacity: 1;
+}
+
 .canvas-table__empty {
   padding: var(--space-1);
   font-size: 0.8rem;

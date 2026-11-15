@@ -3,6 +3,7 @@ import type {
   CanvasNodeModel,
 } from "@research-notebook/format";
 import type { Extent, Point } from "./nodes";
+import type { CellRef } from "./tables";
 
 /** A side of a card a line is drawn at. */
 export type Side = "top" | "right" | "bottom" | "left";
@@ -59,15 +60,22 @@ export function setNoteText(
  * Joins two cards with a line (ADR-0065). A line from a note to a figure is
  * the note's reference to that figure, so at least one end must be a note and
  * neither a region; a card is not joined to itself or twice to the same card.
- * The note is always the line's source, whichever way it was drawn. The file is
- * returned as it was when the line is not allowed.
+ * The note is always the line's source, whichever way it was drawn. A line to a
+ * table may end at one of its cells (ADR-0071), and one note may point at
+ * several cells of a table. The file is returned as it was when the line is not
+ * allowed.
  */
 export function connectNodes(
   file: CanvasFileModel,
   from: string,
   to: string,
   newId: () => string,
-  sides: { from?: Side | undefined; to?: Side | undefined } = {},
+  sides: {
+    from?: Side | undefined;
+    to?: Side | undefined;
+    fromCell?: CellRef | undefined;
+    toCell?: CellRef | undefined;
+  } = {},
 ): CanvasFileModel {
   if (from === to) return file;
   const a = file.nodes.find((node) => node.id === from);
@@ -80,9 +88,18 @@ export function connectNodes(
   const [sourceSide, targetSide] = flipped
     ? [sides.to, sides.from]
     : [sides.from, sides.to];
+  const cell =
+    target.type === "table"
+      ? flipped
+        ? sides.fromCell
+        : sides.toCell
+      : undefined;
+  if (cell !== undefined && !hasCell(target, cell)) return file;
   const joined = file.edges.some(
     (edge) =>
-      (edge.source === source.id && edge.target === target.id) ||
+      (edge.source === source.id &&
+        edge.target === target.id &&
+        sameCell(edge.target_cell, cell)) ||
       (edge.source === target.id && edge.target === source.id),
   );
   if (joined) return file;
@@ -96,10 +113,20 @@ export function connectNodes(
         target: target.id,
         ...(sourceSide === undefined ? {} : { source_handle: sourceSide }),
         ...(targetSide === undefined ? {} : { target_handle: targetSide }),
+        ...(cell === undefined ? {} : { target_cell: cell }),
       },
     ],
   };
 }
+
+const sameCell = (a: CellRef | undefined, b: CellRef | undefined): boolean =>
+  a?.row === b?.row && a?.column === b?.column;
+
+/** Whether a table has a row and a column with these ids. */
+const hasCell = (node: CanvasNodeModel, cell: CellRef): boolean =>
+  node.type === "table" &&
+  node.rows.some((r) => r.id === cell.row) &&
+  node.columns.some((c) => c.id === cell.column);
 
 /** Removes lines. The cards they joined are not touched. */
 export function removeEdges(
