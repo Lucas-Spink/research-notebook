@@ -37,6 +37,7 @@ import {
 } from "./model/flowNodes";
 import { connectNodes, type Side } from "./model/notes";
 import { cellOfHandle } from "./model/tables";
+import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
 import type { TableChange } from "./model/tables";
 import { NoteCard, RegionCard } from "./OtherCards";
@@ -85,7 +86,14 @@ type Props = {
 };
 
 /** The strip under the canvas: zoom, Fit to view and Reset. Inside the flow's provider. */
-function ViewportBar({ home }: { home: CanvasFileModel["viewport"] }) {
+function ViewportBar({
+  home,
+  onFitAll,
+}: {
+  home: CanvasFileModel["viewport"];
+  /** Asks every figure to fit its picture; left out where the canvas cannot be changed. */
+  onFitAll?: (() => void) | undefined;
+}) {
   const { zoom } = useViewport();
   const flow = useReactFlow();
   return (
@@ -97,6 +105,11 @@ function ViewportBar({ home }: { home: CanvasFileModel["viewport"] }) {
       <button type="button" onClick={() => void flow.setViewport(home)}>
         {m.resetView}
       </button>
+      {onFitAll !== undefined && (
+        <button type="button" onClick={onFitAll}>
+          {m.fitAllFigures}
+        </button>
+      )}
       <span className="canvas-viewbar__credit">{m.credit}</span>
     </div>
   );
@@ -168,6 +181,8 @@ function Flow({
   }, [canvas.nodes, services]);
 
   const [edges, setEdges] = useState<Edge[]>(() => toFlowEdges(canvas));
+  // Counts the requests to fit every figure to its picture; each card answers a new count.
+  const [fitSignal, setFitSignal] = useState(0);
   useEffect(() => {
     setEdges((now) => {
       const selected = new Set(now.filter((e) => e.selected).map((e) => e.id));
@@ -249,10 +264,12 @@ function Flow({
       onTable: (id: string, change: TableChange) =>
         onEdits([{ kind: "table", id, change }]),
       newId,
+      onFit: (id: string, to: Extent) => onEdits([{ kind: "resize", id, to }]),
+      fitSignal,
       onNoteText: (id: string, text: string) =>
         onEdits([{ kind: "noteText", id, text }]),
     }),
-    [services, editable, remove, onUpdateVersion, onEdits, newId],
+    [services, editable, remove, onUpdateVersion, onEdits, newId, fitSignal],
   );
 
   return (
@@ -310,7 +327,10 @@ function Flow({
           <p className="canvas-surface__hint">{m.pinHint}</p>
         )}
       </CardProvider>
-      <ViewportBar home={canvas.viewport} />
+      <ViewportBar
+        home={canvas.viewport}
+        onFitAll={editable ? () => setFitSignal((n) => n + 1) : undefined}
+      />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { NodeResizer, useStore, type NodeProps } from "@xyflow/react";
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
 import { canvasMessages as m } from "./messages";
 import type { ArtefactFlowNode } from "./model/flowNodes";
 import { MIN_CARD } from "./model/nodes";
 import type { PictureDetail } from "./model/results";
+import { useFitToImage } from "./useFitToImage";
 
 /** A picture wider than this on screen, in device pixels, is drawn from the file; a 256 px thumbnail would be blurred. */
 const FULL_ABOVE = 240;
@@ -22,7 +23,8 @@ function ArtefactCardView({
   selected,
   width,
 }: NodeProps<ArtefactFlowNode>) {
-  const { services, editable, onRemove, onUpdateVersion } = useCard();
+  const { services, editable, onRemove, onUpdateVersion, onFit, fitSignal } =
+    useCard();
   const { node, info } = data;
   // Only the answer is subscribed to, so a card re-renders when it crosses the line, not on every step of a zoom.
   const wide = useStore(
@@ -33,6 +35,17 @@ function ArtefactCardView({
       FULL_ABOVE,
   );
   const detail: PictureDetail = wide ? "full" : "thumbnail";
+  const card = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const fitting = useFitToImage({
+    id: node.id,
+    size: node.size,
+    editable,
+    fitSignal,
+    onFit,
+    card,
+    body,
+  });
 
   if (info.status === "missing") {
     return (
@@ -73,10 +86,13 @@ function ArtefactCardView({
         isVisible={selected && editable}
         minWidth={MIN_CARD.width}
         minHeight={MIN_CARD.height}
+        keepAspectRatio={fitting.aspect !== null}
+        onResizeEnd={fitting.noteResized}
         handleClassName="canvas-resize-handle"
         lineClassName="canvas-resize-line"
       />
       <div
+        ref={card}
         className="canvas-card"
         role="group"
         aria-label={m.cardLabel(info.name, info.experimentRef)}
@@ -92,6 +108,17 @@ function ArtefactCardView({
           >
             ↗
           </button>
+          {editable && fitting.aspect !== null && (
+            <button
+              type="button"
+              className="nodrag nopan"
+              aria-label={m.fitToImage}
+              title={m.fitToImage}
+              onClick={fitting.fit}
+            >
+              ⤢
+            </button>
+          )}
           {editable && (
             <button
               type="button"
@@ -125,7 +152,11 @@ function ArtefactCardView({
             </span>
           )}
         </p>
-        <div className="canvas-card__body">
+        <div
+          ref={body}
+          className="canvas-card__body"
+          onLoadCapture={fitting.onPictureLoad}
+        >
           {services.renderPreview(info, detail)}
         </div>
         <CardHandles />

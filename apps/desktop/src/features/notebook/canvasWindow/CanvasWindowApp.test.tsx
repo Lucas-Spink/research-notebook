@@ -1,7 +1,11 @@
 import {
+  ArtefactsFile,
+  EMPTY_ARTEFACTS,
+  parseCanvas,
   serialiseBibliography,
   serialiseCanvas,
   type BibliographyFileModel,
+  type NotebookState,
 } from "@research-notebook/format";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -188,5 +192,138 @@ describe("the pop-out canvas window", () => {
       await flush();
       expect(view.textContent).toContain("Smith 2024");
     });
+  });
+});
+
+/** A result in EXP-001, for dragging in the pop-out's own Results list. */
+const PLOT = "01JB0000000000000000000001";
+const figure = ArtefactsFile.parse({
+  ...EMPTY_ARTEFACTS,
+  artefacts: [
+    {
+      id: PLOT,
+      name: "PCA plot",
+      role: "result",
+      mode: "copy",
+      type: "image",
+      source: { root: "project", path: "results/pca.png" },
+      created: "2026-09-26T10:00:00Z",
+      versions: [
+        {
+          v: 1,
+          file: "evidence/pca.png",
+          sha256: "a".repeat(64),
+          size: 10,
+          captured: "2026-09-26T10:00:00Z",
+        },
+      ],
+    },
+  ],
+});
+
+function notebookWithFigure(): Record<string, string> {
+  const { state } = sampleNotebook();
+  const withFigure: NotebookState = {
+    ...state,
+    artefacts: {
+      ...state.artefacts,
+      "EXP-001": { kind: "file", file: figure },
+    },
+  };
+  return filesOf(withFigure);
+}
+
+const click = (el: Element) =>
+  act(() => {
+    el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+
+const pointer = (target: EventTarget, type: string, x: number, y: number) =>
+  act(() => {
+    target.dispatchEvent(
+      new MouseEvent(type, {
+        bubbles: true,
+        clientX: x,
+        clientY: y,
+        button: 0,
+      }),
+    );
+  });
+
+function resultRow(view: HTMLElement): HTMLElement {
+  const found = [
+    ...view.querySelectorAll<HTMLElement>('[role="treeitem"]'),
+  ].find(
+    (row) =>
+      row.querySelector(".results__name-text")?.textContent === "PCA plot",
+  );
+  if (found === undefined) throw new Error("no PCA plot row");
+  return found;
+}
+
+/** The current question's experiments open by themselves; this opens one that is not. */
+async function showResults(view: HTMLElement) {
+  if (view.querySelector('[role="tree"]') !== null) return;
+  const open = [...view.querySelectorAll("button")].find((b) =>
+    b.textContent?.includes("EXP-001"),
+  );
+  if (open === undefined) throw new Error("no EXP-001 button");
+  click(open);
+  await flush();
+}
+
+describe("dragging a result onto the pop-out canvas", () => {
+  it("pins it as a card, as in the main window, though the window changes no evidence", async () => {
+    const { view, project } = await mountWindow(
+      { folder: 1, writable: true },
+      notebookWithFigure(),
+    );
+    await showResults(view);
+    const zone = view.querySelector('[data-drop-zone="canvas"]');
+    if (zone === null) throw new Error("no canvas");
+    Object.defineProperty(document, "elementFromPoint", {
+      configurable: true,
+      value: () => zone,
+    });
+    pointer(resultRow(view), "pointerdown", 10, 10);
+    pointer(window, "pointermove", 400, 300);
+    pointer(window, "pointerup", 400, 300);
+    await flush();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    });
+    expect(view.querySelector(".canvas-card")?.textContent).toContain(
+      "PCA plot",
+    );
+    const canvasWrites = Object.keys(project.disk).filter((path) =>
+      path.includes("/canvases/"),
+    );
+    expect(canvasWrites).toHaveLength(1);
+    const saved = parseCanvas(project.disk[canvasWrites[0] ?? ""] ?? "");
+    expect(saved.ok && saved.value.nodes[0]).toMatchObject({
+      type: "artefact",
+      artefact_id: PLOT,
+    });
+  });
+
+  it("still cannot regroup results by dragging them within the list", async () => {
+    const { view, project } = await mountWindow(
+      { folder: 1, writable: true },
+      notebookWithFigure(),
+    );
+    await showResults(view);
+    const before = { ...project.disk };
+    // The pointer ends over the Results list itself, not the canvas.
+    const tree = view.querySelector('[role="tree"]');
+    if (tree === null) throw new Error("no tree");
+    Object.defineProperty(document, "elementFromPoint", {
+      configurable: true,
+      value: () => tree,
+    });
+    pointer(resultRow(view), "pointerdown", 10, 10);
+    pointer(window, "pointermove", 20, 200);
+    pointer(window, "pointerup", 20, 200);
+    await flush();
+    expect(project.disk).toEqual(before);
   });
 });

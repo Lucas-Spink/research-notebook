@@ -30,6 +30,8 @@ type Props = {
   currentQuestion: string | null;
   /** Adds a table made from groups of results; without it the option is not offered. */
   onMakeTable?: (groups: GroupLine[], lines: "row" | "column") => void;
+  /** Results can be dragged onto the canvas though the trees are read-only, as in the pop-out window (ADR-0066). */
+  dragWhenReadOnly?: boolean;
 };
 
 type ExperimentProps = Omit<Props, "arranged" | "currentQuestion"> & {
@@ -75,6 +77,7 @@ function ExperimentResults({
   onPin,
   onMakeTable,
   startOpen,
+  dragWhenReadOnly = false,
 }: ExperimentProps) {
   const [open, setOpen] = useState(startOpen);
   const file = evidenceOf(item);
@@ -139,6 +142,7 @@ function ExperimentResults({
               onOpen={tree.onOpen}
               missing={tree.missing}
               pinned={pinned}
+              carryWhenReadOnly={dragWhenReadOnly}
               onPin={(ids) => onPin(refsFor(item, ids), null)}
               renderThumbnail={(artefactId) => {
                 const found = resolveInItem(item, { artefactId });

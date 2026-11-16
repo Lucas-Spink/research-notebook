@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
 import type { TableChange } from "./model/tables";
 
@@ -13,6 +14,10 @@ export type CardContextValue = {
   onTable: (id: string, change: TableChange) => void;
   /** Makes an id for a new row or column. */
   newId: () => string;
+  /** Gives a card the size that fits its picture. */
+  onFit: (id: string, size: Extent) => void;
+  /** Changes each time the surface asks every figure to fit its picture. */
+  fitSignal: number;
   /** A note's text, as typed. */
   onNoteText: (id: string, text: string) => void;
 };

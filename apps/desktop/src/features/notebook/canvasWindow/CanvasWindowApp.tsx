@@ -129,6 +129,7 @@ function ReadyCanvas({
             canvases.addTableFromGroups(groups, lines)
           }
           currentQuestion={key}
+          dragWhenReadOnly
         />
       }
     />
