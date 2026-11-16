@@ -4,7 +4,8 @@ import { newCanvasFile } from "./canvasFiles";
 import { addNote, connectNodes, setNoteText } from "./notes";
 import { pinResults, removeNodes, type ArtefactNode } from "./nodes";
 import type { ResultInfo } from "./results";
-import { summarise } from "./summary";
+import { summarise, summariseTables } from "./summary";
+import { addTable, applyTableChange, tableNodes } from "./tables";
 
 /**
  * ADR-0065: a question's notes, and the figures each refers to, read off the
@@ -159,5 +160,95 @@ describe("summarise", () => {
     file = connectNodes(file, note ?? "", figure ?? "", newId);
     file = removeNodes(file, [figure ?? ""]);
     expect(summarise(file, resolve)[0]?.figures).toEqual([]);
+  });
+});
+
+describe("tables in the summary (ADR-0071)", () => {
+  /** A note, and a 2x2 table with ART_1 at row 1/column 1 and ART_2 at row 2/column 2. */
+  function sample() {
+    let file = addNote(empty(), { x: 0, y: 0 }, newId);
+    file = setNoteText(file, file.nodes[0]?.id ?? "", "Looks flat");
+    file = addTable(file, { x: 500, y: 400 }, newId, {
+      rows: ["Control", "Treated"],
+      columns: ["Day 1", "Day 2"],
+    });
+    const note = file.nodes[0]?.id ?? "";
+    const table = tableNodes(file)[0];
+    if (table === undefined) throw new Error("no table");
+    const [r1, r2] = table.rows.map((r) => r.id);
+    const [c1, c2] = table.columns.map((c) => c.id);
+    file = applyTableChange(file, table.id, {
+      kind: "setCell",
+      row: r1 ?? "",
+      column: c1 ?? "",
+      ref: { experimentId: EXP, artefactId: ART_1, version: 1 },
+    });
+    file = applyTableChange(file, table.id, {
+      kind: "setCell",
+      row: r2 ?? "",
+      column: c2 ?? "",
+      ref: { experimentId: EXP, artefactId: ART_2 },
+    });
+    return {
+      file,
+      note,
+      table: table.id,
+      r1: r1 ?? "",
+      r2: r2 ?? "",
+      c1: c1 ?? "",
+      c2: c2 ?? "",
+    };
+  }
+
+  it("lists a table's headings and the figure in each cell, empty ones as null", () => {
+    const { file } = sample();
+    const [table] = summariseTables(file, resolve);
+    expect(table?.columns).toEqual(["Day 1", "Day 2"]);
+    expect(table?.rows.map((r) => r.label)).toEqual(["Control", "Treated"]);
+    const names = table?.rows.map((r) =>
+      r.cells.map((c) => (c?.status === "found" ? c.name : null)),
+    );
+    expect(names).toEqual([
+      ["PCA plot", null],
+      [null, "Volcano"],
+    ]);
+  });
+
+  it("orders tables down the canvas and gives none for a canvas without one", () => {
+    expect(summariseTables(empty(), resolve)).toEqual([]);
+    const { file } = sample();
+    const more = addTable(file, { x: 500, y: -900 }, newId, {
+      rows: ["Only"],
+      columns: ["One"],
+    });
+    expect(summariseTables(more, resolve).map((t) => t.rows[0]?.label)).toEqual(
+      ["Only", "Control"],
+    );
+  });
+
+  it("shows a note joined to a cell with the cell's figure and where it is", () => {
+    const { file, note, table, r2, c2 } = sample();
+    const joined = connectNodes(file, note, table, newId, {
+      toCell: { row: r2, column: c2 },
+    });
+    const [entry] = summarise(joined, resolve);
+    expect(entry?.figures).toHaveLength(1);
+    expect(entry?.figures[0]).toMatchObject({
+      nodeId: table,
+      cell: { row: "Treated", column: "Day 2" },
+    });
+    expect(entry?.figures[0]?.info).toMatchObject({ name: "Volcano" });
+  });
+
+  it("skips a cell that holds no figure, and notes a note joined to the table as a whole", () => {
+    const { file, note, table, r1, c2 } = sample();
+    const cell = connectNodes(file, note, table, newId, {
+      toCell: { row: r1, column: c2 },
+    });
+    expect(summarise(cell, resolve)[0]?.figures).toEqual([]);
+    const whole = connectNodes(file, note, table, newId);
+    const [entry] = summarise(whole, resolve);
+    expect(entry?.figures).toEqual([]);
+    expect(entry?.tables).toEqual([{ nodeId: table, rows: 2, columns: 2 }]);
   });
 });

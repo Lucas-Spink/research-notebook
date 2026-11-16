@@ -489,3 +489,29 @@ describe("figures in cells", () => {
     expect(cards.opened).toEqual([[ART, 1]]);
   });
 });
+
+describe("tables in the notes summary", () => {
+  it("lists the table with its headings and figures, beside the notes", async () => {
+    const { text } = tableCanvas((file, t) => {
+      const [r1] = t.rows;
+      const [, c2] = t.columns;
+      if (r1 === undefined || c2 === undefined) throw new Error("no cell");
+      return applyTableChange(file, t.id, {
+        kind: "setCell",
+        row: r1.id,
+        column: c2.id,
+        ref: refOf(ART),
+      });
+    });
+    const { view } = await open(
+      { [pathOf(A)]: text },
+      { [ART]: foundResult() },
+    );
+    const summary = view.querySelector(".canvas-summary__table");
+    expect(summary?.textContent).toContain("Table of 2 rows by 2 columns");
+    expect(summary?.textContent).toContain("Replicate 1");
+    expect(summary?.textContent).toContain("Treated");
+    expect(summary?.textContent).toContain("PCA plot");
+    expect(summary?.querySelectorAll("tbody tr")).toHaveLength(2);
+  });
+});

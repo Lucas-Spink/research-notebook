@@ -92,6 +92,10 @@ export const canvasMessages = {
       ? `${name} (${experiment})`
       : `${name} (${experiment}, v${version})`,
   missingFigure: "A result that is no longer available",
+  inCell: (row: string, column: string) => `${row}, ${column}`,
+  refersToTable: "Refers to the table",
+  tableLine: (rows: number, columns: number) =>
+    `Table of ${rows === 1 ? "1 row" : `${rows} rows`} by ${columns === 1 ? "1 column" : `${columns} columns`}`,
 
   failures: {
     unreadable: "The canvases could not be read. Nothing was changed.",

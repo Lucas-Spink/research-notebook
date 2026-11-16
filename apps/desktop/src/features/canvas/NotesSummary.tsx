@@ -5,7 +5,7 @@ import { canvasMessages as m } from "./messages";
 import { readableCitations } from "./model/cite";
 import type { ArtefactNode } from "./model/nodes";
 import type { ResultInfo } from "./model/results";
-import { summarise } from "./model/summary";
+import { summarise, summariseTables } from "./model/summary";
 
 type Props = {
   /** The question's canvas, or `null` when it has none to read. */
@@ -40,62 +40,119 @@ export function NotesSummary({ file, resolve, onSelectNote }: Props) {
     () => (file === null ? [] : summarise(file, resolve)),
     [file, resolve],
   );
+  const tables = useMemo(
+    () => (file === null ? [] : summariseTables(file, resolve)),
+    [file, resolve],
+  );
   // Citations read as author and year here; the note keeps the citekey.
   const readable = (text: string) =>
     readableCitations(text, (key) => lookup(key)?.label ?? null);
-  if (notes.length === 0) {
+  if (notes.length === 0 && tables.length === 0) {
     return <p className="canvas-summary__empty">{m.summaryEmpty}</p>;
   }
   return (
-    <ol className="canvas-summary">
-      {notes.map((note) => {
-        const text = note.text.trim();
-        const body = (
-          <span className={text === "" ? "canvas-summary__blank" : undefined}>
-            {text === "" ? m.emptyNote : readable(note.text)}
-          </span>
-        );
-        return (
-          <li key={note.id} className="canvas-summary__note">
-            {onSelectNote === undefined ? (
-              body
-            ) : (
-              <button
-                type="button"
-                className="canvas-summary__select"
-                aria-label={m.selectNote(
-                  excerpt(readable(note.text)) || m.emptyNote,
-                )}
-                onClick={() => onSelectNote(note.id)}
+    <>
+      {notes.length > 0 && (
+        <ol className="canvas-summary">
+          {notes.map((note) => {
+            const text = note.text.trim();
+            const body = (
+              <span
+                className={text === "" ? "canvas-summary__blank" : undefined}
               >
-                {body}
-              </button>
-            )}
-            {note.figures.length > 0 && (
-              <div className="canvas-summary__refs">
-                <span>{m.refersTo}</span>
-                <ul>
-                  {note.figures.map((figure) => (
-                    <li key={figure.nodeId}>{figureText(figure.info)}</li>
+                {text === "" ? m.emptyNote : readable(note.text)}
+              </span>
+            );
+            return (
+              <li key={note.id} className="canvas-summary__note">
+                {onSelectNote === undefined ? (
+                  body
+                ) : (
+                  <button
+                    type="button"
+                    className="canvas-summary__select"
+                    aria-label={m.selectNote(
+                      excerpt(readable(note.text)) || m.emptyNote,
+                    )}
+                    onClick={() => onSelectNote(note.id)}
+                  >
+                    {body}
+                  </button>
+                )}
+                {note.figures.length > 0 && (
+                  <div className="canvas-summary__refs">
+                    <span>{m.refersTo}</span>
+                    <ul>
+                      {note.figures.map((figure) => (
+                        <li
+                          key={`${figure.nodeId}:${figure.cell?.row}:${figure.cell?.column}`}
+                        >
+                          {figureText(figure.info)}
+                          {figure.cell !== undefined &&
+                            ` — ${m.inCell(figure.cell.row, figure.cell.column)}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {note.tables !== undefined && (
+                  <div className="canvas-summary__refs">
+                    <span>{m.refersToTable}</span>
+                    <ul>
+                      {note.tables.map((table) => (
+                        <li key={table.nodeId}>
+                          {m.tableLine(table.rows, table.columns)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {note.notes.length > 0 && (
+                  <div className="canvas-summary__refs">
+                    <span>{m.linkedNotes}</span>
+                    <ul>
+                      {note.notes.map((other) => (
+                        <li key={other.id}>
+                          {excerpt(readable(other.text)) || m.emptyNote}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {tables.map((table) => (
+        <section key={table.id} className="canvas-summary__table">
+          <table>
+            <caption>
+              {m.tableLine(table.rows.length, table.columns.length)}
+            </caption>
+            <thead>
+              <tr>
+                <td />
+                {table.columns.map((column, c) => (
+                  <th key={c} scope="col">
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {table.rows.map((row, r) => (
+                <tr key={r}>
+                  <th scope="row">{row.label}</th>
+                  {row.cells.map((cell, c) => (
+                    <td key={c}>{cell === null ? "" : figureText(cell)}</td>
                   ))}
-                </ul>
-              </div>
-            )}
-            {note.notes.length > 0 && (
-              <div className="canvas-summary__refs">
-                <span>{m.linkedNotes}</span>
-                <ul>
-                  {note.notes.map((other) => (
-                    <li key={other.id}>
-                      {excerpt(readable(other.text)) || m.emptyNote}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ol>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ))}
+    </>
   );
 }
