@@ -9,6 +9,8 @@ import type { ArtefactNode, Point } from "./nodes";
 import type { ResultInfo } from "./results";
 import {
   TABLE_TOOLBAR_HEIGHT,
+  cellHandleId,
+  type CellRef,
   layoutTable,
   type TableLayout,
   type TableNode,
@@ -44,11 +46,16 @@ export function toFlowEdges(file: CanvasFileModel): Edge[] {
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      sourceHandle: edge.source_handle ?? facing.from,
-      targetHandle: edge.target_handle ?? facing.to,
+      sourceHandle:
+        handleOf(edge.source_cell) ?? edge.source_handle ?? facing.from,
+      targetHandle:
+        handleOf(edge.target_cell) ?? edge.target_handle ?? facing.to,
     };
   });
 }
+
+const handleOf = (cell: CellRef | undefined) =>
+  cell === undefined ? undefined : cellHandleId(cell);
 
 const centre = (node: CanvasNodeModel): Point => ({
   x: node.position.x + node.size.width / 2,
