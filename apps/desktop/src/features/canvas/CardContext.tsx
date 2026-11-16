@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
+import type { TableChange } from "./model/tables";
 
 /** What a card needs from the surface that draws it, without it travelling in every node's data. */
 export type CardContextValue = {
@@ -9,6 +10,10 @@ export type CardContextValue = {
   editable: boolean;
   onRemove: (id: string) => void;
   onUpdateVersion: (id: string, version: number) => void;
+  /** Changes one table: its rows, columns, headings or cells. */
+  onTable: (id: string, change: TableChange) => void;
+  /** Makes an id for a new row or column. */
+  newId: () => string;
   /** Gives a card the size that fits its picture. */
   onFit: (id: string, size: Extent) => void;
   /** Changes each time the surface asks every figure to fit its picture. */

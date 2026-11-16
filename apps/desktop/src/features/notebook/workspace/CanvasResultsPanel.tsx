@@ -1,12 +1,13 @@
 import type { Arranged, ArrangedExperiment } from "@research-notebook/format";
 import { useState } from "react";
 import type { FolderHandle } from "../../../ipc/bindings";
-import type { PinRef } from "../../canvas";
+import type { GroupLine, PinRef } from "../../canvas";
 import { ResultsTree } from "../../results";
 import { evidenceOf } from "../model/evidence";
 import { previewVersion } from "../table/model/resultVersion";
 import { LazyMount } from "../../../shared/LazyMount";
 import { CanvasResultPreview } from "./CanvasResultPreview";
+import { GroupTableForm, groupChoices } from "./GroupTableForm";
 import { resolveInItem } from "./model/canvasResults";
 import { currentFirst } from "./model/resultsOrder";
 import {
@@ -27,6 +28,8 @@ type Props = {
   onPin: (refs: PinRef[], screen: { x: number; y: number } | null) => void;
   /** The question being worked on, listed first with its experiments open; `null` for none. */
   currentQuestion: string | null;
+  /** Adds a table made from groups of results; without it the option is not offered. */
+  onMakeTable?: (groups: GroupLine[], lines: "row" | "column") => void;
   /** Results can be dragged onto the canvas though the trees are read-only, as in the pop-out window (ADR-0066). */
   dragWhenReadOnly?: boolean;
 };
@@ -72,6 +75,7 @@ function ExperimentResults({
   editing,
   pinned,
   onPin,
+  onMakeTable,
   startOpen,
   dragWhenReadOnly = false,
 }: ExperimentProps) {
@@ -102,37 +106,67 @@ function ExperimentResults({
         ) : count === 0 ? (
           <p className="wtable__muted">{m.noResults}</p>
         ) : (
-          <ResultsTree
-            file={file}
-            disabled={readOnly}
-            onAction={tree.onAction}
-            onOpen={tree.onOpen}
-            missing={tree.missing}
-            pinned={pinned}
-            carryWhenReadOnly={dragWhenReadOnly}
-            onPin={(ids) => onPin(refsFor(item, ids), null)}
-            renderThumbnail={(artefactId) => {
-              const found = resolveInItem(item, { artefactId });
-              return found.status === "found" ? (
-                <LazyMount
-                  placeholder={<span className="results__thumb-wait" />}
-                >
-                  <CanvasResultPreview
-                    folder={folder}
-                    result={found}
-                    detail="thumbnail"
-                  />
-                </LazyMount>
-              ) : null;
-            }}
-            outside={{
-              zone: "canvas",
-              onDrop: ({ artefactIds, x, y }) =>
-                onPin(refsFor(item, artefactIds), { x, y }),
-            }}
-            compact
-            header={<span>{m.resultsOf(front.ref)}</span>}
-          />
+          <>
+            {onMakeTable !== undefined && (
+              <GroupTableForm
+                choices={groupChoices(file.groups)}
+                onMake={(ids, lines) => {
+                  const names = new Map(
+                    file.artefacts.map((a) => [a.id, a.name]),
+                  );
+                  const wanted = new Set(ids);
+                  const found: GroupLine[] = [];
+                  const visit = (list: typeof file.groups) => {
+                    for (const group of list) {
+                      if (wanted.has(group.id)) {
+                        found.push({
+                          label: group.name,
+                          refs: refsFor(
+                            item,
+                            group.items.filter((id) => names.has(id)),
+                          ),
+                        });
+                      }
+                      visit(group.groups);
+                    }
+                  };
+                  visit(file.groups);
+                  onMakeTable(found, lines);
+                }}
+              />
+            )}
+            <ResultsTree
+              file={file}
+              disabled={readOnly}
+              onAction={tree.onAction}
+              onOpen={tree.onOpen}
+              missing={tree.missing}
+              pinned={pinned}
+              carryWhenReadOnly={dragWhenReadOnly}
+              onPin={(ids) => onPin(refsFor(item, ids), null)}
+              renderThumbnail={(artefactId) => {
+                const found = resolveInItem(item, { artefactId });
+                return found.status === "found" ? (
+                  <LazyMount
+                    placeholder={<span className="results__thumb-wait" />}
+                  >
+                    <CanvasResultPreview
+                      folder={folder}
+                      result={found}
+                      detail="thumbnail"
+                    />
+                  </LazyMount>
+                ) : null;
+              }}
+              outside={{
+                zone: "canvas",
+                onDrop: ({ artefactIds, x, y }) =>
+                  onPin(refsFor(item, artefactIds), { x, y }),
+              }}
+              compact
+              header={<span>{m.resultsOf(front.ref)}</span>}
+            />
+          </>
         ))}
     </section>
   );

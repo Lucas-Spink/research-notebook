@@ -125,6 +125,9 @@ function ReadyCanvas({
           editing={access}
           pinned={canvases.pinned}
           onPin={(refs, screen) => canvases.pinAt(refs, screen)}
+          onMakeTable={(groups, lines) =>
+            canvases.addTableFromGroups(groups, lines)
+          }
           currentQuestion={key}
           dragWhenReadOnly
         />

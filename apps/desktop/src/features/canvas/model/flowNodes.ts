@@ -7,6 +7,14 @@ import { assertNever } from "../../../shared/assertNever";
 import type { Side } from "./notes";
 import type { ArtefactNode, Point } from "./nodes";
 import type { ResultInfo } from "./results";
+import {
+  TABLE_TOOLBAR_HEIGHT,
+  cellHandleId,
+  type CellRef,
+  layoutTable,
+  type TableLayout,
+  type TableNode,
+} from "./tables";
 
 export type ArtefactFlowData = {
   node: ArtefactNode;
@@ -14,11 +22,19 @@ export type ArtefactFlowData = {
 };
 export type NoteFlowData = { text: string };
 export type RegionFlowData = { label: string };
+export type TableFlowData = {
+  node: TableNode;
+  layout: TableLayout;
+  /** What each filled cell points at now, by `row/column`. */
+  infos: Record<string, ResultInfo>;
+};
 
 export type ArtefactFlowNode = Node<ArtefactFlowData, "artefact">;
 export type NoteFlowNode = Node<NoteFlowData, "note">;
 export type RegionFlowNode = Node<RegionFlowData, "region">;
-export type CanvasFlowNode = ArtefactFlowNode | NoteFlowNode | RegionFlowNode;
+export type TableFlowNode = Node<TableFlowData, "table">;
+export type CanvasFlowNode =
+  ArtefactFlowNode | NoteFlowNode | RegionFlowNode | TableFlowNode;
 
 /** The canvas file's lines as React Flow draws them. */
 export function toFlowEdges(file: CanvasFileModel): Edge[] {
@@ -30,11 +46,16 @@ export function toFlowEdges(file: CanvasFileModel): Edge[] {
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      sourceHandle: edge.source_handle ?? facing.from,
-      targetHandle: edge.target_handle ?? facing.to,
+      sourceHandle:
+        handleOf(edge.source_cell) ?? edge.source_handle ?? facing.from,
+      targetHandle:
+        handleOf(edge.target_cell) ?? edge.target_handle ?? facing.to,
     };
   });
 }
+
+const handleOf = (cell: CellRef | undefined) =>
+  cell === undefined ? undefined : cellHandleId(cell);
 
 const centre = (node: CanvasNodeModel): Point => ({
   x: node.position.x + node.size.width / 2,
@@ -100,10 +121,31 @@ export function toFlowNodes(
             data: { label: node.label },
           },
         ];
-      case "table":
-        // Drawn by the table card (ADR-0071, a later change). Until then a
-        // table is kept in the file exactly as it is and is not drawn.
-        return [];
+      case "table": {
+        // A table's width is kept; its height follows from the pictures in it.
+        const layout = layoutTable(node);
+        const infos: Record<string, ResultInfo> = {};
+        for (const cell of node.cells) {
+          infos[`${cell.row}/${cell.column}`] = resolve({
+            id: `${cell.row}/${cell.column}`,
+            type: "artefact",
+            experiment_id: cell.experiment_id,
+            artefact_id: cell.artefact_id,
+            ...(cell.version === undefined ? {} : { version: cell.version }),
+            position: { x: 0, y: 0 },
+            size: { width: 1, height: 1 },
+          });
+        }
+        return [
+          {
+            ...common,
+            type: "table",
+            width: layout.width,
+            height: layout.height + TABLE_TOOLBAR_HEIGHT,
+            data: { node, layout, infos },
+          },
+        ];
+      }
       default:
         return assertNever(node);
     }

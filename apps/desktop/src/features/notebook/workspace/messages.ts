@@ -144,6 +144,13 @@ export const canvasResultsMessages = {
   noResults: "No results yet.",
   count: (n: number) => (n === 1 ? "1 result" : `${n} results`),
   resultsOf: (ref: string) => `Results of ${ref}`,
+  makeTable: "Make a table from groups…",
+  makeTableGroups: "Groups to put in the table",
+  makeTableEach: "Each group becomes",
+  makeTableRow: "A row",
+  makeTableColumn: "A column",
+  makeTableCreate: "Make table",
+  makeTableCancel: "Cancel",
 };
 
 /** Text of the project header: breadcrumbs, key figures and the main action (issue #101). */

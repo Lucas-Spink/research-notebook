@@ -27,6 +27,29 @@ export const canvasMessages = {
   resizeResults: "Resize the results panel",
   resizeNotes: "Resize the notes panel",
   addNote: "Add note",
+  addTable: "Add table",
+  tableLabel: "Table of figures",
+  tableRowLabel: (n: number) => `Row ${n}`,
+  tableColumnLabel: (n: number) => `Column ${n}`,
+  /** The heading of each place along a line made from a group. */
+  tableLineLabel: (n: number) => `Result ${n}`,
+  addRow: "Add row",
+  addColumn: "Add column",
+  cellShape: "Cells fit",
+  fitByRow: "each row's figures",
+  fitByColumn: "each column's figures",
+  removeTable: "Remove the table from the canvas",
+  removeTableConfirm: "Remove table and its figures",
+  keepTable: "Keep",
+  rowHeading: (n: number) => `Heading of row ${n}`,
+  columnHeading: (n: number) => `Heading of column ${n}`,
+  removeRow: (label: string) => `Remove row ${label}`,
+  removeColumn: (label: string) => `Remove column ${label}`,
+  cellLabel: (row: number, column: number) => `Row ${row}, column ${column}`,
+  dropHere: "Drop a result here",
+  clearCell: "Remove from the table",
+  missingCell: "Result not available",
+  tableFull: "The table has no empty cells left for the rest.",
 
   surfaceLabel: "Canvas",
   zoom: (percent: number) => `Zoom: ${percent}%`,
@@ -58,6 +81,7 @@ export const canvasMessages = {
   notePlaceholder: "Write a note… (type /cite to cite a source)",
   removeNote: "Delete note",
   noteHandle: "Draw a line from this card",
+  cellHandle: "Draw a line to this cell",
 
   summaryEmpty:
     "No notes on this canvas yet. Add a note, then join it to the figures it is about with a line.",
@@ -70,6 +94,10 @@ export const canvasMessages = {
       ? `${name} (${experiment})`
       : `${name} (${experiment}, v${version})`,
   missingFigure: "A result that is no longer available",
+  inCell: (row: string, column: string) => `${row}, ${column}`,
+  refersToTable: "Refers to the table",
+  tableLine: (rows: number, columns: number) =>
+    `Table of ${rows === 1 ? "1 row" : `${rows} rows`} by ${columns === 1 ? "1 column" : `${columns} columns`}`,
 
   failures: {
     unreadable: "The canvases could not be read. Nothing was changed.",

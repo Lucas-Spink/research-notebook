@@ -27,6 +27,7 @@ import {
 import { useTheme } from "../../shared/theme";
 import { ArtefactCard } from "./ArtefactCard";
 import { CardProvider } from "./CardContext";
+import { TableCard } from "./TableCard";
 import { canvasMessages as m } from "./messages";
 import { edgeEditsFrom, editsFrom, type CanvasEdit } from "./model/flowChanges";
 import {
@@ -35,8 +36,10 @@ import {
   type CanvasFlowNode,
 } from "./model/flowNodes";
 import { connectNodes, type Side } from "./model/notes";
+import { cellOfHandle } from "./model/tables";
 import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
+import type { TableChange } from "./model/tables";
 import { NoteCard, RegionCard } from "./OtherCards";
 import type { SurfaceBridge } from "./useCanvases";
 import "@xyflow/react/dist/style.css";
@@ -50,6 +53,7 @@ const NODE_TYPES = {
   artefact: ArtefactCard,
   note: NoteCard,
   region: RegionCard,
+  table: TableCard,
 };
 const DELETE_KEYS = ["Backspace", "Delete"];
 
@@ -129,6 +133,20 @@ function useBridge(
         });
       },
       focusNode,
+      cellAt: (screen) => {
+        // Not every environment can say what is under a point (jsdom cannot).
+        if (typeof document.elementFromPoint !== "function") return null;
+        const cell = document
+          .elementFromPoint(screen.x, screen.y)
+          ?.closest<HTMLElement>("[data-table-cell]");
+        const { table, row, column } = cell?.dataset ?? {};
+        return cell != null &&
+          table !== undefined &&
+          row !== undefined &&
+          column !== undefined
+          ? { table, row, column }
+          : null;
+      },
     });
     return () => register(null);
   }, [flow, container, register, focusNode]);
@@ -218,6 +236,8 @@ function Flow({
           to: connection.target,
           fromHandle: sideOf(connection.sourceHandle),
           toHandle: sideOf(connection.targetHandle),
+          fromCell: cellOfHandle(connection.sourceHandle),
+          toCell: cellOfHandle(connection.targetHandle),
         },
       ]),
     [onEdits, newId],
@@ -225,8 +245,10 @@ function Flow({
   // A line is only drawn where the model would keep it: not figure to figure, not to itself, not twice.
   const isValidConnection = useCallback(
     (connection: Connection | Edge) =>
-      connectNodes(canvas, connection.source, connection.target, () => "x") !==
-      canvas,
+      connectNodes(canvas, connection.source, connection.target, () => "x", {
+        fromCell: cellOfHandle(connection.sourceHandle),
+        toCell: cellOfHandle(connection.targetHandle),
+      }) !== canvas,
     [canvas],
   );
   const remove = useCallback(
@@ -239,12 +261,15 @@ function Flow({
       editable,
       onRemove: remove,
       onUpdateVersion,
+      onTable: (id: string, change: TableChange) =>
+        onEdits([{ kind: "table", id, change }]),
+      newId,
       onFit: (id: string, to: Extent) => onEdits([{ kind: "resize", id, to }]),
       fitSignal,
       onNoteText: (id: string, text: string) =>
         onEdits([{ kind: "noteText", id, text }]),
     }),
-    [services, editable, remove, onUpdateVersion, onEdits, fitSignal],
+    [services, editable, remove, onUpdateVersion, onEdits, newId, fitSignal],
   );
 
   return (

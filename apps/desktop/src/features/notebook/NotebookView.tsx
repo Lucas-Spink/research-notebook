@@ -1007,6 +1007,9 @@ function NotebookViewBody({
                       editing={editing}
                       pinned={canvases.pinned}
                       onPin={(refs, screen) => canvases.pinAt(refs, screen)}
+                      onMakeTable={(groups, lines) =>
+                        canvases.addTableFromGroups(groups, lines)
+                      }
                       currentQuestion={canvasKey}
                     />
                   }

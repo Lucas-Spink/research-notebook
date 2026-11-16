@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { newCanvasFile } from "./canvasFiles";
 import { toFlowEdges, toFlowNodes } from "./flowNodes";
 import { pinResults } from "./nodes";
+import { TABLE_TOOLBAR_HEIGHT } from "./tables";
 import type { ResultInfo } from "./results";
 
 /** The canvas file's cards, as React Flow draws them. */
@@ -97,27 +98,49 @@ describe("toFlowNodes", () => {
 });
 
 describe("toFlowNodes: a table", () => {
-  it("is not drawn yet, and is still in the file the cards were taken from", () => {
-    const withTable = {
-      ...file,
-      format_version: 3 as const,
-      nodes: [
-        ...file.nodes,
-        {
-          id: "01JAXN00000000000000000002",
-          type: "table" as const,
-          rows: [],
-          columns: [],
-          cells: [],
-          fit: "row" as const,
-          position: { x: 0, y: 0 },
-          size: { width: 300, height: 200 },
-        },
-      ],
-    };
+  const withTable = {
+    ...file,
+    format_version: 3 as const,
+    nodes: [
+      ...file.nodes,
+      {
+        id: "01JAXN00000000000000000002",
+        type: "table" as const,
+        rows: [{ id: "01JAXN0000000000000000R001", label: "Rep 1" }],
+        columns: [{ id: "01JAXN0000000000000000C001", label: "Control" }],
+        cells: [
+          {
+            row: "01JAXN0000000000000000R001",
+            column: "01JAXN0000000000000000C001",
+            experiment_id: "01JAXE000000000000000000A1",
+            artefact_id: "01JAXA000000000000000000A1",
+            aspect: 2,
+          },
+        ],
+        fit: "row" as const,
+        position: { x: 10, y: 20 },
+        size: { width: 600, height: 100 },
+      },
+    ],
+  };
+
+  it("is drawn after the cards, at its place, at the width kept and the height its pictures give", () => {
     const drawn = toFlowNodes(withTable, () => found, new Set());
-    expect(drawn.map((node) => node.type)).toEqual(["artefact"]);
-    expect(withTable.nodes).toHaveLength(2);
+    expect(drawn.map((node) => node.type)).toEqual(["artefact", "table"]);
+    const table = drawn[1];
+    if (table?.type !== "table") throw new Error("no table");
+    expect(table.position).toEqual({ x: 10, y: 20 });
+    expect(table.width).toBe(table.data.layout.width);
+    expect(table.height).toBe(table.data.layout.height + TABLE_TOOLBAR_HEIGHT);
+  });
+
+  it("carries what each filled cell points at now", () => {
+    const drawn = toFlowNodes(withTable, () => found, new Set());
+    const table = drawn[1];
+    if (table?.type !== "table") throw new Error("no table");
+    expect(
+      table.data.infos["01JAXN0000000000000000R001/01JAXN0000000000000000C001"],
+    ).toBe(found);
   });
 });
 
