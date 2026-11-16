@@ -10,12 +10,7 @@ import {
   setNoteText,
 } from "./notes";
 import { pinResults } from "./nodes";
-import {
-  addTable,
-  applyTableChange,
-  cellHandleId,
-  cellOfHandle,
-} from "./tables";
+import { addTable, applyTableChange } from "./tables";
 
 /**
  * ADR-0065: a question's canvas holds notes and figure cards. A line from a
@@ -284,14 +279,6 @@ describe("connectNodes to a table cell (ADR-0071)", () => {
     expect(after.edges).toHaveLength(0);
     const kept = applyTableChange(joined, table, { kind: "removeRow", id: r2 });
     expect(kept.edges).toHaveLength(1);
-  });
-
-  it("writes and reads a cell handle id", () => {
-    const { r1, c1 } = withTable();
-    const id = cellHandleId({ row: r1, column: c1 });
-    expect(cellOfHandle(id)).toEqual({ row: r1, column: c1 });
-    expect(cellOfHandle("right")).toBeUndefined();
-    expect(cellOfHandle(null)).toBeUndefined();
   });
 });
 

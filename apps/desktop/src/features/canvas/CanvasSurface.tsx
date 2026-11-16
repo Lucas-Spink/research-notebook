@@ -36,7 +36,6 @@ import {
   type CanvasFlowNode,
 } from "./model/flowNodes";
 import { connectNodes, type Side } from "./model/notes";
-import { cellOfHandle } from "./model/tables";
 import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
 import type { TableChange } from "./model/tables";
@@ -236,8 +235,6 @@ function Flow({
           to: connection.target,
           fromHandle: sideOf(connection.sourceHandle),
           toHandle: sideOf(connection.targetHandle),
-          fromCell: cellOfHandle(connection.sourceHandle),
-          toCell: cellOfHandle(connection.targetHandle),
         },
       ]),
     [onEdits, newId],
@@ -245,10 +242,8 @@ function Flow({
   // A line is only drawn where the model would keep it: not figure to figure, not to itself, not twice.
   const isValidConnection = useCallback(
     (connection: Connection | Edge) =>
-      connectNodes(canvas, connection.source, connection.target, () => "x", {
-        fromCell: cellOfHandle(connection.sourceHandle),
-        toCell: cellOfHandle(connection.targetHandle),
-      }) !== canvas,
+      connectNodes(canvas, connection.source, connection.target, () => "x") !==
+      canvas,
     [canvas],
   );
   const remove = useCallback(

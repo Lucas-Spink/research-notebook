@@ -1,9 +1,4 @@
-import {
-  Handle,
-  NodeResizeControl,
-  Position,
-  type NodeProps,
-} from "@xyflow/react";
+import { NodeResizeControl, type NodeProps } from "@xyflow/react";
 import { memo, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
@@ -13,7 +8,6 @@ import {
   COLUMN_HEADER_HEIGHT,
   MIN_TABLE_WIDTH,
   ROW_HEADER_WIDTH,
-  cellHandleId,
 } from "./model/tables";
 import type { PictureDetail, ResultInfo } from "./model/results";
 
@@ -107,7 +101,7 @@ function TableCardView({ data, selected }: NodeProps<TableFlowNode>) {
       {/* Only the width is the person's to set: the height follows from the pictures. */}
       {selected && editable && (
         <NodeResizeControl
-          position="right"
+          position="bottom-right"
           resizeDirection="horizontal"
           minWidth={MIN_TABLE_WIDTH}
           className="canvas-resize-handle"
@@ -256,8 +250,9 @@ function TableCardView({ data, selected }: NodeProps<TableFlowNode>) {
             />
           ))}
         </div>
-        <CardHandles />
       </div>
+      {/* Outside the table, whose edges clip what is drawn past them. */}
+      <CardHandles />
     </>
   );
 }
@@ -351,15 +346,6 @@ function RowCells({
               <span className="canvas-table__empty">{m.dropHere}</span>
             ) : info?.status === "found" ? (
               <>
-                {editable && (
-                  <Handle
-                    id={cellHandleId({ row: row.id, column: column.id })}
-                    type="source"
-                    position={Position.Right}
-                    className="canvas-handle canvas-table__handle nodrag"
-                    aria-label={m.cellHandle}
-                  />
-                )}
                 {renderPreview(info, wide ? "full" : "thumbnail")}
                 <span className="canvas-table__cell-actions nodrag nopan">
                   <button

@@ -13,27 +13,6 @@ export type TableCell = TableNode["cells"][number];
 /** One cell of a table, by the ids of its row and column. */
 export type CellRef = { row: string; column: string };
 
-const CELL_HANDLE = "cell:";
-
-/** The id of the handle a line is drawn at to end at one cell. Ids are ULIDs, so they hold no colon. */
-export const cellHandleId = (cell: CellRef): string =>
-  `${CELL_HANDLE}${cell.row}:${cell.column}`;
-
-/** The cell a handle id names, or undefined for any other handle (a side of a card). */
-export function cellOfHandle(
-  handle: string | null | undefined,
-): CellRef | undefined {
-  if (handle == null || !handle.startsWith(CELL_HANDLE)) return undefined;
-  const [row, column, ...rest] = handle.slice(CELL_HANDLE.length).split(":");
-  return row !== undefined &&
-    row !== "" &&
-    column !== undefined &&
-    column !== "" &&
-    rest.length === 0
-    ? { row, column }
-    : undefined;
-}
-
 /** The size a new table has: its width is the one that is kept, its height follows from the pictures in it. */
 export const DEFAULT_TABLE: Extent = { width: 640, height: 400 };
 

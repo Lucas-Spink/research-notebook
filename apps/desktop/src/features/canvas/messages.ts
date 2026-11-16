@@ -81,7 +81,6 @@ export const canvasMessages = {
   notePlaceholder: "Write a note… (type /cite to cite a source)",
   removeNote: "Delete note",
   noteHandle: "Draw a line from this card",
-  cellHandle: "Draw a line to this cell",
 
   summaryEmpty:
     "No notes on this canvas yet. Add a note, then join it to the figures it is about with a line.",

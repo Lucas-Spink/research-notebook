@@ -7,7 +7,7 @@ import { useCard } from "./CardContext";
 import { canvasMessages as m } from "./messages";
 import type { NoteFlowNode, RegionFlowNode } from "./model/flowNodes";
 import { citeTrigger, readableCitations, spliceCitation } from "./model/cite";
-import { NOTE_CARD } from "./model/notes";
+import { MIN_CARD } from "./model/nodes";
 import { NoteCitationPicker } from "./NoteCitationPicker";
 
 /**
@@ -47,8 +47,8 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
     <>
       <NodeResizer
         isVisible={selected && editable}
-        minWidth={NOTE_CARD.width / 2}
-        minHeight={NOTE_CARD.height / 2}
+        minWidth={MIN_CARD.width}
+        minHeight={MIN_CARD.height}
         handleClassName="canvas-resize-handle"
         lineClassName="canvas-resize-line"
       />
@@ -123,8 +123,9 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
             }}
           />
         )}
-        <CardHandles />
       </div>
+      {/* Outside the note, whose edges clip what is drawn past them. */}
+      <CardHandles />
     </>
   );
 }
