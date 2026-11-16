@@ -126,6 +126,7 @@ function ReadyCanvas({
           pinned={canvases.pinned}
           onPin={(refs, screen) => canvases.pinAt(refs, screen)}
           currentQuestion={key}
+          dragWhenReadOnly
         />
       }
     />

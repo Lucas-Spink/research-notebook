@@ -77,6 +77,13 @@ type Options = {
   };
   /** Pins results to the canvas from a row's menu, for anyone who cannot drag. */
   onPin?: (artefactIds: string[]) => void;
+  /**
+   * Read-only, still let a result be carried out of the tree to `outside`.
+   * Nothing in the tree can change: no moving, regrouping or dropping on rows.
+   * For the pop-out canvas window, which browses and pins but edits no
+   * results (ADR-0066).
+   */
+  carryWhenReadOnly?: boolean;
   /** The results already pinned, to mark them. */
   pinned?: ReadonlySet<string>;
 };
@@ -120,6 +127,7 @@ export function useResultsTree({
   outside,
   onPin,
   pinned,
+  carryWhenReadOnly = false,
 }: Options) {
   const [expansion, setExpansion] = useState<Expansion>({});
   const [focus, setFocus] = useState<string | null>(null);
@@ -264,9 +272,17 @@ export function useResultsTree({
    * (ADR-0044 point 2), and on Windows that switches the page's own drag
    * events off, so a drag between rows would never start.
    */
+  /** Whether a press on `row` may start a drag: any row, or only a result being carried out when read-only. */
+  const canDrag = (row: TreeRow): boolean =>
+    row.kind !== "ungrouped" &&
+    (!disabled ||
+      (carryWhenReadOnly && outside !== undefined && row.kind === "item"));
+
   const drag = {
+    canDrag,
     start(row: TreeRow, event: ReactPointerEvent) {
-      if (disabled || row.kind === "ungrouped" || event.button !== 0) return;
+      if (row.kind === "ungrouped" || !canDrag(row) || event.button !== 0)
+        return;
       if (
         event.target instanceof Element &&
         event.target.closest("button, input, select, a") !== null
@@ -284,6 +300,7 @@ export function useResultsTree({
             }
           : draggedFrom(row);
       if (source === null) return;
+      if (disabled && source.kind !== "item" && source.kind !== "items") return;
       stopDrag.current?.();
       const label =
         source.kind === "items" ? `${source.items.length} items` : row.name;
@@ -311,6 +328,8 @@ export function useResultsTree({
           ?.closest(`[data-drop-zone="${outside.zone}"]`) != null;
       const actionAt = (e: PointerEvent) => {
         const key = keyAt(e.clientX, e.clientY);
+        // Read-only, the tree takes no drop; only the canvas does.
+        if (disabled) return { key, action: null };
         if (key === ROOT_KEY) return { key, action: dropOnRoot(source) };
         const target = rowsRef.current.find((r) => r.key === key) ?? null;
         return {

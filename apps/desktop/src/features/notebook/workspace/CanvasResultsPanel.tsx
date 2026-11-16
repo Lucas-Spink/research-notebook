@@ -27,6 +27,8 @@ type Props = {
   onPin: (refs: PinRef[], screen: { x: number; y: number } | null) => void;
   /** The question being worked on, listed first with its experiments open; `null` for none. */
   currentQuestion: string | null;
+  /** Results can be dragged onto the canvas though the trees are read-only, as in the pop-out window (ADR-0066). */
+  dragWhenReadOnly?: boolean;
 };
 
 type ExperimentProps = Omit<Props, "arranged" | "currentQuestion"> & {
@@ -71,6 +73,7 @@ function ExperimentResults({
   pinned,
   onPin,
   startOpen,
+  dragWhenReadOnly = false,
 }: ExperimentProps) {
   const [open, setOpen] = useState(startOpen);
   const file = evidenceOf(item);
@@ -106,6 +109,7 @@ function ExperimentResults({
             onOpen={tree.onOpen}
             missing={tree.missing}
             pinned={pinned}
+            carryWhenReadOnly={dragWhenReadOnly}
             onPin={(ids) => onPin(refsFor(item, ids), null)}
             renderThumbnail={(artefactId) => {
               const found = resolveInItem(item, { artefactId });

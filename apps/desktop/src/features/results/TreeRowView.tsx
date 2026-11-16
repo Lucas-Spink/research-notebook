@@ -83,9 +83,7 @@ export function TreeRowView({
       tabIndex={tabbable ? 0 : -1}
       style={{ paddingInlineStart: `${4 + (row.depth - 1) * 14}px` }}
       data-row-key={row.key}
-      data-draggable={
-        !disabled && row.kind !== "ungrouped" ? "true" : undefined
-      }
+      data-draggable={tree.drag.canDrag(row) ? "true" : undefined}
       onPointerDown={(event) => tree.drag.start(row, event)}
       onKeyDown={(event) => tree.onKeyDown(row, event)}
       onFocus={() => tree.noteFocus(row.key)}
