@@ -39,7 +39,13 @@ import {
 import { connectNodes, type Side } from "./model/notes";
 import type { Extent, Point } from "./model/nodes";
 import type { CardServices } from "./model/results";
-import type { TableChange } from "./model/tables";
+import {
+  cellCountByNote,
+  cellLineIds,
+  highlightedCells,
+  notesByCell,
+} from "./model/cellNotes";
+import type { CellRef, TableChange } from "./model/tables";
 import { NoteCard, RegionCard } from "./OtherCards";
 import type { SurfaceBridge } from "./useCanvases";
 import "@xyflow/react/dist/style.css";
@@ -226,6 +232,44 @@ function Flow({
     setWanted(null);
   }, [wanted, canvas.nodes]);
   const onFocused = useCallback(() => setFocusId(null), []);
+  // The cells picked in a table to make a note about; never saved.
+  const [picked, setPicked] = useState<{
+    table: string;
+    cells: CellRef[];
+  } | null>(null);
+  const onPick = useCallback(
+    (table: string, cells: CellRef[]) =>
+      setPicked(cells.length === 0 ? null : { table, cells }),
+    [],
+  );
+  const onNoteForCells = useCallback(
+    (table: string, cells: CellRef[]) => {
+      if (cells.length === 0) return;
+      // The note's id, then one for each line, made here so the edit is the same however often it is applied.
+      const ids = Array.from({ length: 1 + cells.length }, () => newId());
+      onEdits([{ kind: "noteForCells", table, cells, ids }]);
+      setPicked(null);
+      if (ids[0] !== undefined) setWanted(ids[0]);
+    },
+    [onEdits, newId],
+  );
+  const onUnlinkCells = useCallback(
+    (note: string) => {
+      const ids = cellLineIds(canvas, note);
+      if (ids.length > 0) onEdits([{ kind: "removeEdges", ids }]);
+    },
+    [canvas, onEdits],
+  );
+  const selectedIds = useMemo(
+    () => new Set(nodes.filter((n) => n.selected).map((n) => n.id)),
+    [nodes],
+  );
+  const highlight = useMemo(
+    () => highlightedCells(canvas, selectedIds),
+    [canvas, selectedIds],
+  );
+  const cellNotes = useMemo(() => notesByCell(canvas), [canvas]);
+  const noteCells = useMemo(() => cellCountByNote(canvas), [canvas]);
   useBridge(container, registerSurface, focusNode, setWanted);
 
   const nodesRef = useRef(nodes);
@@ -289,6 +333,14 @@ function Flow({
       fitSignal,
       focusId,
       onFocused,
+      picked,
+      onPick,
+      onNoteForCells,
+      highlight,
+      cellNotes,
+      noteCells,
+      onFocusNode: focusNode,
+      onUnlinkCells,
       onNoteText: (id: string, text: string) =>
         onEdits([{ kind: "noteText", id, text }]),
     }),
@@ -302,6 +354,14 @@ function Flow({
       fitSignal,
       focusId,
       onFocused,
+      picked,
+      onPick,
+      onNoteForCells,
+      highlight,
+      cellNotes,
+      noteCells,
+      focusNode,
+      onUnlinkCells,
     ],
   );
 
@@ -326,6 +386,7 @@ function Flow({
         }
       }}
       onKeyDown={(event) => {
+        if (event.key === "Escape") setPicked(null);
         // The arrow keys nudge what is selected, unless they are for a text box.
         const step = ARROWS[event.key];
         const target = event.target;
@@ -368,6 +429,7 @@ function Flow({
           edgesReconnectable={false}
           nodeTypes={NODE_TYPES}
           onNodesChange={onNodesChange}
+          onPaneClick={() => setPicked(null)}
           onMoveEnd={(_event, view) => onViewport(view)}
           defaultViewport={canvas.viewport}
           minZoom={MIN_ZOOM}

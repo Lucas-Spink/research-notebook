@@ -2,6 +2,7 @@ import type { CanvasFileModel } from "@research-notebook/format";
 import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { assertNever } from "../../../shared/assertNever";
 import { connectNodes, removeEdges, setNoteText, type Side } from "./notes";
+import { addNoteForCells } from "./cellNotes";
 import { applyTableChange, type CellRef, type TableChange } from "./tables";
 import {
   moveNode,
@@ -32,6 +33,8 @@ export type CanvasEdit =
       toCell?: CellRef | undefined;
     }
   | { kind: "removeEdges"; ids: string[] }
+  /** A note about some cells of a table; `ids` are the note's, then one for each line, made by the caller. */
+  | { kind: "noteForCells"; table: string; cells: CellRef[]; ids: string[] }
   /** A change to one table: its rows, columns, headings or cells (ADR-0071). */
   | { kind: "table"; id: string; change: TableChange };
 
@@ -121,6 +124,8 @@ export function applyEdits(
         });
       case "removeEdges":
         return removeEdges(current, edit.ids);
+      case "noteForCells":
+        return addNoteForCells(current, edit.table, edit.cells, edit.ids);
       case "table":
         return applyTableChange(current, edit.id, edit.change);
       default:

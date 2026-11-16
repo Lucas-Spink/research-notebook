@@ -79,6 +79,17 @@ export const canvasMessages = {
 
   noteLabel: "Note",
   noteGrip: "Drag to move this note",
+  noteAboutCells: (n: number) =>
+    n === 0
+      ? "Note about cells"
+      : n === 1
+        ? "Note about 1 cell"
+        : `Note about ${n} cells`,
+  notesOnCell: (n: number) =>
+    n === 1 ? "1 note about this cell" : `${n} notes about this cell`,
+  aboutCells: (n: number) =>
+    n === 1 ? "About 1 table cell" : `About ${n} table cells`,
+  unlinkCells: "Unlink",
   minimap: "Overview of the canvas",
   notePlaceholder: "Write a note… (type /cite to cite a source)",
   removeNote: "Delete note",

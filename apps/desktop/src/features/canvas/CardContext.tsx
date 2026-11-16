@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { Extent } from "./model/nodes";
 import type { CardServices } from "./model/results";
-import type { TableChange } from "./model/tables";
+import type { CellRef, TableChange } from "./model/tables";
 
 /** What a card needs from the surface that draws it, without it travelling in every node's data. */
 export type CardContextValue = {
@@ -22,6 +22,22 @@ export type CardContextValue = {
   focusId: string | null;
   /** The note has taken the cursor. */
   onFocused: () => void;
+  /** The cells picked in a table, if any (not saved). */
+  picked: { table: string; cells: CellRef[] } | null;
+  /** Picks cells of a table; an empty list clears the pick. */
+  onPick: (table: string, cells: CellRef[]) => void;
+  /** Makes a note about the picked cells. */
+  onNoteForCells: (table: string, cells: CellRef[]) => void;
+  /** The cells the selected notes are about, by table, as `row/column`. */
+  highlight: ReadonlyMap<string, ReadonlySet<string>>;
+  /** The notes about each cell, by `table:row/column`. */
+  cellNotes: ReadonlyMap<string, readonly string[]>;
+  /** How many cells each note is about. */
+  noteCells: ReadonlyMap<string, number>;
+  /** Selects a card and brings it into view. */
+  onFocusNode: (id: string) => void;
+  /** Removes the lines from a note to table cells. */
+  onUnlinkCells: (note: string) => void;
   /** A note's text, as typed. */
   onNoteText: (id: string, text: string) => void;
 };

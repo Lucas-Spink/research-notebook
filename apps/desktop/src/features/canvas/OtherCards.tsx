@@ -20,7 +20,16 @@ import { NoteCitationPicker } from "./NoteCitationPicker";
  * citekey again while the note is being written.
  */
 export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
-  const { editable, onNoteText, onRemove, focusId, onFocused } = useCard();
+  const {
+    editable,
+    onNoteText,
+    onRemove,
+    focusId,
+    onFocused,
+    noteCells,
+    onUnlinkCells,
+  } = useCard();
+  const linked = noteCells.get(id) ?? 0;
   const [draft, setDraft] = useState(data.text);
   const [seen, setSeen] = useState(data.text);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -110,6 +119,16 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
             if (trigger !== null) setCiteAt(trigger.start);
           }}
         />
+        {linked > 0 && (
+          <div className="canvas-note__links nodrag nopan">
+            <span>{m.aboutCells(linked)}</span>
+            {editable && (
+              <button type="button" onClick={() => onUnlinkCells(id)}>
+                {m.unlinkCells}
+              </button>
+            )}
+          </div>
+        )}
         {citeAt !== null && (
           <NoteCitationPicker
             onCancel={() => {

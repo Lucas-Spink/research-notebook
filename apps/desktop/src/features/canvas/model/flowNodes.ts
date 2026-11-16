@@ -37,19 +37,28 @@ export type CanvasFlowNode =
 /** The canvas file's lines as React Flow draws them. */
 export function toFlowEdges(file: CanvasFileModel): Edge[] {
   const nodes = new Map(file.nodes.map((node) => [node.id, node]));
-  return file.edges.map((edge) => {
-    // A line drawn without sides (the first ones were) goes between the two cards' facing sides, not from the top of each.
-    const facing = facingSides(nodes.get(edge.source), nodes.get(edge.target));
-    return {
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle: edge.source_handle ?? facing.from,
-      targetHandle: edge.target_handle ?? facing.to,
-      // Above the cards, so a line to a table is not hidden behind it.
-      zIndex: 1,
-    };
-  });
+  // A line to a table cell is not drawn: the note's cells are outlined when it is selected instead.
+  return file.edges
+    .filter(
+      (edge) =>
+        edge.source_cell === undefined && edge.target_cell === undefined,
+    )
+    .map((edge) => {
+      // A line drawn without sides (the first ones were) goes between the two cards' facing sides, not from the top of each.
+      const facing = facingSides(
+        nodes.get(edge.source),
+        nodes.get(edge.target),
+      );
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.source_handle ?? facing.from,
+        targetHandle: edge.target_handle ?? facing.to,
+        // Above the cards, so a line to a table is not hidden behind it.
+        zIndex: 1,
+      };
+    });
 }
 
 const centre = (node: CanvasNodeModel): Point => ({

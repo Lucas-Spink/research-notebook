@@ -2,6 +2,8 @@ import { NodeResizeControl, type NodeProps } from "@xyflow/react";
 import { memo, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { CardHandles } from "./CardHandles";
 import { useCard } from "./CardContext";
+import { cellId } from "./model/cellNotes";
+import { useCellPick } from "./useCellPick";
 import { canvasMessages as m } from "./messages";
 import type { TableFlowNode } from "./model/flowNodes";
 import {
@@ -67,8 +69,10 @@ function HeadingInput({
  * them, so identical figures in a line fill their cells with no empty space.
  */
 function TableCardView({ data, selected }: NodeProps<TableFlowNode>) {
-  const { editable, onRemove, onTable, newId, services } = useCard();
+  const { editable, onRemove, onTable, newId, services, onNoteForCells } =
+    useCard();
   const { node, layout, infos } = data;
+  const pick = useCellPick(node);
   const [confirming, setConfirming] = useState(false);
   const columnTemplate = [ROW_HEADER_WIDTH, ...layout.columnWidths]
     .map((w) => `${w}px`)
@@ -152,6 +156,14 @@ function TableCardView({ data, selected }: NodeProps<TableFlowNode>) {
                   <option value="column">{m.fitByColumn}</option>
                 </select>
               </label>
+              <button
+                type="button"
+                className="nodrag nopan"
+                disabled={pick.cells.length === 0}
+                onClick={() => onNoteForCells(node.id, pick.cells)}
+              >
+                {m.noteAboutCells(pick.cells.length)}
+              </button>
               <span className="canvas-table__spacer" />
               {confirming ? (
                 <>
@@ -247,6 +259,7 @@ function TableCardView({ data, selected }: NodeProps<TableFlowNode>) {
               }
               onTable={onTable}
               onPictureLoad={onPictureLoad}
+              pick={pick}
             />
           ))}
         </div>
@@ -279,6 +292,7 @@ type RowProps = {
     row: string,
     column: string,
   ) => (event: SyntheticEvent) => void;
+  pick: ReturnType<typeof useCellPick>;
 };
 
 /** One row of the table: its heading, then a cell for each column. */
@@ -295,7 +309,9 @@ function RowCells({
   onOpen,
   onTable,
   onPictureLoad,
+  pick,
 }: RowProps) {
+  const { highlight, cellNotes, onFocusNode } = useCard();
   return (
     <>
       <div className="canvas-table__head canvas-table__head--row">
@@ -331,10 +347,24 @@ function RowCells({
         const info =
           cell === undefined ? undefined : infos[`${row.id}/${column.id}`];
         const wide = (columnWidths[c] ?? 0) > FULL_ABOVE;
+        const here = { row: row.id, column: column.id };
+        const notes = cellNotes.get(`${tableId}:${cellId(here)}`) ?? [];
+        const classes = [
+          "canvas-table__cell",
+          "nodrag nopan",
+          pick.keys.has(cellId(here)) ? "canvas-table__cell--picked" : "",
+          highlight.get(tableId)?.has(cellId(here))
+            ? "canvas-table__cell--linked"
+            : "",
+        ]
+          .filter((x) => x !== "")
+          .join(" ");
         return (
           <div
             key={column.id}
-            className="canvas-table__cell"
+            className={classes}
+            onPointerDown={(event) => pick.down(here, event)}
+            onPointerEnter={(event) => pick.enter(here, event)}
             data-table-cell=""
             data-table={tableId}
             data-row={row.id}
@@ -342,6 +372,22 @@ function RowCells({
             aria-label={m.cellLabel(rowNumber, c + 1)}
             onLoadCapture={onPictureLoad(row.id, column.id)}
           >
+            {notes.length > 0 && (
+              <button
+                type="button"
+                className="canvas-table__badge nodrag nopan"
+                aria-label={m.notesOnCell(notes.length)}
+                title={m.notesOnCell(notes.length)}
+                onClick={(event) => {
+                  // Not a click on the table: it would select the table instead of the note.
+                  event.stopPropagation();
+                  const first = notes[0];
+                  if (first !== undefined) onFocusNode(first);
+                }}
+              >
+                {notes.length}
+              </button>
+            )}
             {cell === undefined ? (
               <span className="canvas-table__empty">{m.dropHere}</span>
             ) : info?.status === "found" ? (
