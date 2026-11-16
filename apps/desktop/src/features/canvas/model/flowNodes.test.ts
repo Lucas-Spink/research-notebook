@@ -165,8 +165,17 @@ describe("toFlowEdges", () => {
         target: "b",
         sourceHandle: "left",
         targetHandle: "bottom",
+        zIndex: 1,
       },
     ]);
+  });
+
+  it("draws every line above the cards, so one to a table is not hidden behind it", () => {
+    const edges = toFlowEdges({
+      ...file,
+      edges: [{ id: "01JAXD00000000000000000002", source: "a", target: "b" }],
+    });
+    expect(edges.every((edge) => edge.zIndex === 1)).toBe(true);
   });
 
   it("draws a line that has no sides between the sides of the two cards that face each other", () => {

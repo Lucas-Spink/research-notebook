@@ -490,6 +490,28 @@ describe("figures in cells", () => {
   });
 });
 
+describe("link points on a table", () => {
+  it("has no point for a line inside the table, whose edge would clip it, or in each cell", async () => {
+    const { text } = tableCanvas((file, t) => {
+      const [r1] = t.rows;
+      const [c1] = t.columns;
+      if (r1 === undefined || c1 === undefined) throw new Error("no cell");
+      return applyTableChange(file, t.id, {
+        kind: "setCell",
+        row: r1.id,
+        column: c1.id,
+        ref: refOf(ART),
+      });
+    });
+    const { view } = await open(
+      { [pathOf(A)]: text },
+      { [ART]: foundResult() },
+    );
+    expect(view.querySelectorAll(".react-flow__handle").length).toBe(4);
+    expect(view.querySelector(".canvas-table .react-flow__handle")).toBeNull();
+  });
+});
+
 describe("tables in the notes summary", () => {
   it("lists the table with its headings and figures, beside the notes", async () => {
     const { text } = tableCanvas((file, t) => {

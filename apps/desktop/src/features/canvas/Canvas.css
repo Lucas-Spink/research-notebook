@@ -165,7 +165,8 @@
 }
 
 /* Handles big enough to find with a pointer, on the edge of the selected card. */
-.canvas-resize-handle {
+.react-flow__resize-control.canvas-resize-handle {
+  z-index: 5;
   width: 10px;
   height: 10px;
   border: 1px solid var(--color-accent);
@@ -347,19 +348,25 @@
 
 /* The points a line is drawn from, shown on a selected or hovered card. */
 .canvas-handle {
-  width: 14px;
-  height: 14px;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
   border: 2px solid var(--color-accent);
   background: var(--color-surface);
   opacity: 0;
   z-index: 2;
 }
 
+/* Hidden dots are not there to the pointer either, so they do not steal a drag at a card's edge. */
+.react-flow__node:not(:hover):not(.selected) .canvas-handle {
+  pointer-events: none;
+}
+
 /* A larger area than the dot to aim at. */
 .canvas-handle::after {
   content: "";
   position: absolute;
-  inset: -8px;
+  inset: -5px;
 }
 
 .canvas-handle:hover {
@@ -608,18 +615,6 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-}
-
-/* A cell's own point for a line, inside the cell so its clipping does not hide it. */
-.canvas-table__handle {
-  top: auto;
-  right: 6px;
-  bottom: 6px;
-  transform: none;
-}
-
-.canvas-table__cell:hover .canvas-handle {
-  opacity: 1;
 }
 
 .canvas-table__empty {

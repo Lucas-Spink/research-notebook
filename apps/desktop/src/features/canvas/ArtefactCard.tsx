@@ -49,29 +49,32 @@ function ArtefactCardView({
 
   if (info.status === "missing") {
     return (
-      <div
-        className="canvas-card canvas-card--missing"
-        role="group"
-        aria-label={m.missingCard}
-      >
-        <header className="canvas-card__head">
-          <strong>{m.missingCard}</strong>
-          {editable && (
-            <button
-              type="button"
-              className="nodrag nopan"
-              aria-label={m.removeCard}
-              title={m.removeCard}
-              onClick={() => onRemove(node.id)}
-            >
-              ×
-            </button>
-          )}
-        </header>
-        <p className="canvas-card__reason">{m.missingReasons[info.reason]}</p>
-        <p className="canvas-card__reason">{m.missingKept}</p>
+      <>
+        <div
+          className="canvas-card canvas-card--missing"
+          role="group"
+          aria-label={m.missingCard}
+        >
+          <header className="canvas-card__head">
+            <strong>{m.missingCard}</strong>
+            {editable && (
+              <button
+                type="button"
+                className="nodrag nopan"
+                aria-label={m.removeCard}
+                title={m.removeCard}
+                onClick={() => onRemove(node.id)}
+              >
+                ×
+              </button>
+            )}
+          </header>
+          <p className="canvas-card__reason">{m.missingReasons[info.reason]}</p>
+          <p className="canvas-card__reason">{m.missingKept}</p>
+        </div>
+        {/* Outside the card, whose edges clip what is drawn past them. */}
         <CardHandles />
-      </div>
+      </>
     );
   }
 
@@ -159,8 +162,8 @@ function ArtefactCardView({
         >
           {services.renderPreview(info, detail)}
         </div>
-        <CardHandles />
       </div>
+      <CardHandles />
     </>
   );
 }
