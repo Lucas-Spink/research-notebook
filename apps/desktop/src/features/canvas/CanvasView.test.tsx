@@ -191,6 +191,72 @@ describe("notes", () => {
     expect(panel(view, "Notes").textContent).toContain("Empty note");
   });
 
+  it("selects a new note and gives it the cursor, with a grab bar to move it by", async () => {
+    const { view } = await open();
+    click(buttonNamed(view, "Add note"));
+    await flush();
+    const note = view.querySelector(".react-flow__node-note");
+    expect(note?.classList.contains("selected")).toBe(true);
+    expect(document.activeElement).toBe(view.querySelector("textarea"));
+    const grip = view.querySelector(".canvas-note__grip");
+    expect(grip).not.toBeNull();
+    expect(grip?.closest(".nodrag")).toBeNull();
+  });
+
+  it("does not put a second note exactly on top of the first", async () => {
+    const { view, disk } = await open();
+    click(buttonNamed(view, "Add note"));
+    await flush();
+    click(buttonNamed(view, "Add note"));
+    await flush();
+    const [one, two] = saved(disk).nodes;
+    expect(one?.position).not.toEqual(two?.position);
+  });
+
+  it("adds a note where the empty canvas is double-clicked, and not when a card is", async () => {
+    const { view, disk } = await open();
+    const pane = view.querySelector(".react-flow__pane");
+    if (pane === null) throw new Error("no canvas");
+    act(() => {
+      pane.dispatchEvent(
+        new MouseEvent("dblclick", { bubbles: true, clientX: 10, clientY: 10 }),
+      );
+    });
+    await flush();
+    expect(saved(disk).nodes).toHaveLength(1);
+    act(() => {
+      view
+        .querySelector(".canvas-note__grip")
+        ?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    await flush();
+    expect(saved(disk).nodes).toHaveLength(1);
+  });
+
+  it("nudges the selected note with the arrow keys, further with Shift, and leaves typing alone", async () => {
+    const { view, disk } = await open();
+    click(buttonNamed(view, "Add note"));
+    await flush();
+    const start = saved(disk).nodes[0]?.position ?? { x: 0, y: 0 };
+    const surface = view.querySelector(".canvas-surface");
+    const press = (key: string, shiftKey = false, from?: Element | null) =>
+      act(() => {
+        (from ?? surface)?.dispatchEvent(
+          new KeyboardEvent("keydown", { key, shiftKey, bubbles: true }),
+        );
+      });
+    press("ArrowRight", false, view.querySelector("textarea"));
+    await flush();
+    expect(saved(disk).nodes[0]?.position).toEqual(start);
+    press("ArrowRight");
+    press("ArrowDown", true);
+    await flush();
+    expect(saved(disk).nodes[0]?.position).toEqual({
+      x: start.x + 10,
+      y: start.y + 40,
+    });
+  });
+
   it("saves what is typed in a note and shows it in the summary", async () => {
     const { view, disk } = await open();
     click(buttonNamed(view, "Add note"));

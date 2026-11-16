@@ -20,7 +20,7 @@ import { NoteCitationPicker } from "./NoteCitationPicker";
  * citekey again while the note is being written.
  */
 export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
-  const { editable, onNoteText, onRemove } = useCard();
+  const { editable, onNoteText, onRemove, focusId, onFocused } = useCard();
   const [draft, setDraft] = useState(data.text);
   const [seen, setSeen] = useState(data.text);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -36,6 +36,14 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
   useEffect(() => {
     if (editing) box.current?.focus();
   }, [editing]);
+  // A note that has just been added takes the cursor, ready to type.
+  useEffect(() => {
+    if (focusId === id && editable) {
+      setEditing(true);
+      box.current?.focus();
+      onFocused();
+    }
+  }, [focusId, id, editable, onFocused]);
   // Where the citation goes once the picker is done, while it is open.
   const [citeAt, setCiteAt] = useState<number | null>(null);
   // The file changed underneath (reloaded, saved elsewhere): show it, unless it is just what was typed.
@@ -56,12 +64,19 @@ export function NoteCard({ id, data, selected }: NodeProps<NoteFlowNode>) {
         className="canvas-note"
         role="group"
         aria-label={m.noteLabel}
+        onDoubleClick={() => editable && setEditing(true)}
         onContextMenu={(event) => {
           if (!editable) return;
           event.preventDefault();
           setMenu({ x: event.clientX, y: event.clientY });
         }}
       >
+        {/* The one part of a note that is not for typing, so it can be picked up by. */}
+        <div
+          className="canvas-note__grip"
+          title={m.noteGrip}
+          aria-hidden="true"
+        />
         {showReadable && (
           <div
             className="canvas-note__text canvas-note__read nodrag nopan nowheel"

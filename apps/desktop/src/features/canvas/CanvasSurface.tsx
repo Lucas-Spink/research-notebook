@@ -2,6 +2,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   applyEdgeChanges,
@@ -36,7 +37,7 @@ import {
   type CanvasFlowNode,
 } from "./model/flowNodes";
 import { connectNodes, type Side } from "./model/notes";
-import type { Extent } from "./model/nodes";
+import type { Extent, Point } from "./model/nodes";
 import type { CardServices } from "./model/results";
 import type { TableChange } from "./model/tables";
 import { NoteCard, RegionCard } from "./OtherCards";
@@ -46,6 +47,16 @@ import "@xyflow/react/dist/style.css";
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 4;
 /** Grid spacing in canvas units: a faint fine grid, and a stronger one every fifth line of it. */
+/** How far an arrow key nudges a card, and with Shift. Cards snap to twice the small step. */
+const NUDGE = 10;
+const NUDGE_BIG = 40;
+const ARROWS: Record<string, { x: number; y: number } | undefined> = {
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+};
+
 const FINE_GRID = 40;
 const COARSE_GRID = FINE_GRID * 5;
 const NODE_TYPES = {
@@ -82,6 +93,8 @@ type Props = {
   /** Makes an id for a new line. */
   newId: () => string;
   registerSurface: (bridge: SurfaceBridge | null) => void;
+  /** Adds a note centred on a point of the canvas; left out where the canvas cannot be changed. */
+  onAddNote?: ((at: Point) => void) | undefined;
 };
 
 /** The strip under the canvas: zoom, Fit to view and Reset. Inside the flow's provider. */
@@ -119,6 +132,7 @@ function useBridge(
   container: RefObject<HTMLDivElement | null>,
   register: Props["registerSurface"],
   focusNode: (id: string) => void,
+  focusNew: (id: string) => void,
 ) {
   const flow = useReactFlow();
   useEffect(() => {
@@ -132,6 +146,7 @@ function useBridge(
         });
       },
       focusNode,
+      focusNew,
       cellAt: (screen) => {
         // Not every environment can say what is under a point (jsdom cannot).
         if (typeof document.elementFromPoint !== "function") return null;
@@ -148,7 +163,7 @@ function useBridge(
       },
     });
     return () => register(null);
-  }, [flow, container, register, focusNode]);
+  }, [flow, container, register, focusNode, focusNew]);
 }
 
 function Flow({
@@ -160,6 +175,7 @@ function Flow({
   onUpdateVersion,
   newId,
   registerSurface,
+  onAddNote,
 }: Props) {
   const { theme } = useTheme();
   const container = useRef<HTMLDivElement>(null);
@@ -200,7 +216,17 @@ function Flow({
     },
     [flow],
   );
-  useBridge(container, registerSurface, focusNode);
+  // A note just added: selected and given the cursor once it is on the surface.
+  const [wanted, setWanted] = useState<string | null>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  useEffect(() => {
+    if (wanted === null || !canvas.nodes.some((n) => n.id === wanted)) return;
+    setNodes((now) => now.map((n) => ({ ...n, selected: n.id === wanted })));
+    setFocusId(wanted);
+    setWanted(null);
+  }, [wanted, canvas.nodes]);
+  const onFocused = useCallback(() => setFocusId(null), []);
+  useBridge(container, registerSurface, focusNode, setWanted);
 
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
@@ -261,10 +287,22 @@ function Flow({
       newId,
       onFit: (id: string, to: Extent) => onEdits([{ kind: "resize", id, to }]),
       fitSignal,
+      focusId,
+      onFocused,
       onNoteText: (id: string, text: string) =>
         onEdits([{ kind: "noteText", id, text }]),
     }),
-    [services, editable, remove, onUpdateVersion, onEdits, newId, fitSignal],
+    [
+      services,
+      editable,
+      remove,
+      onUpdateVersion,
+      onEdits,
+      newId,
+      fitSignal,
+      focusId,
+      onFocused,
+    ],
   );
 
   return (
@@ -274,6 +312,47 @@ function Flow({
       aria-label={m.surfaceLabel}
       role="region"
       data-drop-zone="canvas"
+      onDoubleClick={(event) => {
+        // A double-click on the empty canvas adds a note there.
+        const target = event.target;
+        if (
+          onAddNote !== undefined &&
+          target instanceof Element &&
+          target.classList.contains("react-flow__pane")
+        ) {
+          onAddNote(
+            flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+          );
+        }
+      }}
+      onKeyDown={(event) => {
+        // The arrow keys nudge what is selected, unless they are for a text box.
+        const step = ARROWS[event.key];
+        const target = event.target;
+        if (
+          !editable ||
+          step === undefined ||
+          (target instanceof HTMLElement &&
+            (target.isContentEditable ||
+              ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)))
+        ) {
+          return;
+        }
+        const size = event.shiftKey ? NUDGE_BIG : NUDGE;
+        const moving = nodesRef.current.filter((n) => n.selected);
+        if (moving.length === 0) return;
+        event.preventDefault();
+        onEdits(
+          moving.map((n) => ({
+            kind: "move" as const,
+            id: n.id,
+            to: {
+              x: n.position.x + step.x * size,
+              y: n.position.y + step.y * size,
+            },
+          })),
+        );
+      }}
     >
       <CardProvider value={context}>
         <ReactFlow
@@ -297,6 +376,9 @@ function Flow({
           // The library's credit is shown in the strip below instead, as text
           // that cannot navigate the window away from the application.
           proOptions={{ hideAttribution: true }}
+          zoomOnDoubleClick={false}
+          snapToGrid
+          snapGrid={[NUDGE * 2, NUDGE * 2]}
           nodesDraggable={editable}
           nodesConnectable={editable}
           deleteKeyCode={editable ? DELETE_KEYS : null}
@@ -317,6 +399,12 @@ function Flow({
             lineWidth={1.25}
           />
           <Controls showInteractive={false} />
+          <MiniMap
+            className="canvas-minimap"
+            aria-label={m.minimap}
+            pannable
+            zoomable
+          />
         </ReactFlow>
         {nodes.length === 0 && (
           <p className="canvas-surface__hint">{m.pinHint}</p>

@@ -18,6 +18,10 @@ export type CardContextValue = {
   onFit: (id: string, size: Extent) => void;
   /** Changes each time the surface asks every figure to fit its picture. */
   fitSignal: number;
+  /** The note that has just been added and should take the cursor, or `null`. */
+  focusId: string | null;
+  /** The note has taken the cursor. */
+  onFocused: () => void;
   /** A note's text, as typed. */
   onNoteText: (id: string, text: string) => void;
 };

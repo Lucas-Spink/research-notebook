@@ -48,10 +48,16 @@ export function editsFrom(
 ): CanvasEdit[] {
   const edits: CanvasEdit[] = [];
   const removed: string[] = [];
+  // Resizing from the top or left moves the card too; those steps are part of the resize, not drags to keep.
+  const resizing = new Set(
+    changes.flatMap((c) =>
+      c.type === "dimensions" && c.resizing === true ? [c.id] : [],
+    ),
+  );
   for (const change of changes) {
     switch (change.type) {
       case "position": {
-        if (change.dragging === true) break;
+        if (change.dragging === true || resizing.has(change.id)) break;
         const now = nodes.find((node) => node.id === change.id);
         const to = now?.position ?? change.position;
         if (to !== undefined) edits.push({ kind: "move", id: change.id, to });
@@ -59,6 +65,11 @@ export function editsFrom(
       }
       case "dimensions":
         if (change.resizing === false && change.dimensions !== undefined) {
+          // Where the card ended up, since a resize from the top or left moved it.
+          const now = nodes.find((node) => node.id === change.id);
+          if (now !== undefined) {
+            edits.push({ kind: "move", id: change.id, to: now.position });
+          }
           edits.push({ kind: "resize", id: change.id, to: change.dimensions });
         }
         break;
