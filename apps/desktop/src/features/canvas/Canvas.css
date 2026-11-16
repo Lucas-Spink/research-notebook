@@ -316,6 +316,28 @@
   outline: 2px solid var(--color-accent);
 }
 
+.canvas-note__grip {
+  flex: none;
+  height: 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: radial-gradient(
+      circle,
+      var(--color-text-muted) 1px,
+      transparent 1.5px
+    )
+    center / 8px 8px repeat-x;
+  cursor: grab;
+}
+
+.canvas-note__grip:active {
+  cursor: grabbing;
+}
+
+.canvas-minimap {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
 .canvas-note__text {
   flex: 1;
   min-height: 0;

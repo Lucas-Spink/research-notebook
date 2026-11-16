@@ -58,6 +58,35 @@ describe("editsFrom", () => {
     ]);
   });
 
+  it("does not keep the steps a resize from the top or left moves the card by, only where it ended", () => {
+    const changes: NodeChange[] = [
+      { id: "n1", type: "position", position: { x: 5, y: 5 } },
+      {
+        id: "n1",
+        type: "dimensions",
+        resizing: true,
+        dimensions: { width: 300, height: 200 },
+      },
+    ];
+    expect(editsFrom(changes, [at("n1", 5, 5)])).toEqual([]);
+    expect(
+      editsFrom(
+        [
+          {
+            id: "n1",
+            type: "dimensions",
+            resizing: false,
+            dimensions: { width: 320, height: 210 },
+          },
+        ],
+        [at("n1", 3, 4)],
+      ),
+    ).toEqual([
+      { kind: "move", id: "n1", to: { x: 3, y: 4 } },
+      { kind: "resize", id: "n1", to: { width: 320, height: 210 } },
+    ]);
+  });
+
   it("ignores the measurements the library makes when a card first appears", () => {
     const changes: NodeChange[] = [
       { id: "n1", type: "dimensions", dimensions: { width: 360, height: 280 } },

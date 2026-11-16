@@ -47,6 +47,8 @@ export type SurfaceBridge = {
   centre: () => Point;
   /** Selects a card and brings it into view. */
   focusNode: (id: string) => void;
+  /** Selects a card that has just been added, once it is drawn, and gives a note the cursor. */
+  focusNew: (id: string) => void;
   /** The table cell under a point of the window, if any. */
   cellAt: (
     screen: Point,
@@ -75,7 +77,7 @@ export type CanvasesModel = {
    */
   pinAt: (refs: readonly PinRef[], screen: Point | null) => boolean;
   /** Adds an empty note in the middle of what is showing and selects it. Returns its id, or `null` when it could not be added. */
-  addNote: () => string | null;
+  addNote: (at?: Point) => string | null;
   /** Adds a table of two rows and two columns in the middle of what is showing. Returns its id, or `null` when it could not be added. */
   addTable: () => string | null;
   /** Adds a table made from groups of results: each group a row or a column. False when nothing could be added. */
@@ -262,13 +264,18 @@ export function useCanvases({
     [place, edit, newId],
   );
 
-  const addNoteHere = useCallback<CanvasesModel["addNote"]>(() => {
-    const surface = place();
-    if (surface === null) return null;
-    const id = newId();
-    edit((file) => addNote(file, surface.centre(), () => id));
-    return id;
-  }, [place, edit, newId]);
+  const addNoteHere = useCallback<CanvasesModel["addNote"]>(
+    (at) => {
+      const surface = place();
+      if (surface === null) return null;
+      const id = newId();
+      const where = at ?? surface.centre();
+      edit((file) => addNote(file, where, () => id));
+      surface.focusNew(id);
+      return id;
+    },
+    [place, edit, newId],
+  );
 
   const addTableHere = useCallback<CanvasesModel["addTable"]>(() => {
     const surface = place();

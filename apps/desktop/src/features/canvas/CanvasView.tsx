@@ -166,6 +166,7 @@ export function CanvasView({
               services={cards}
               editable={writable}
               newId={canvases.newId}
+              onAddNote={writable ? (at) => canvases.addNote(at) : undefined}
               onEdits={(edits) =>
                 canvases.edit((now) => applyEdits(now, edits))
               }

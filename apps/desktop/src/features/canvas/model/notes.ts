@@ -22,20 +22,41 @@ export function noteNodes(file: CanvasFileModel): NoteNode[] {
   return file.nodes.filter(isNote);
 }
 
+/** How far a new note is moved from one already close to its place, and how close counts. */
+const STACK_STEP = 32;
+const STACK_NEAR = 24;
+
+/** `place`, or the nearest place down and to the right of it that no note's corner is close to, so notes added one after another do not sit exactly on top of each other. */
+function freeSpot(file: CanvasFileModel, place: Point): Point {
+  const notes = noteNodes(file);
+  let spot = place;
+  while (
+    notes.some(
+      (n) =>
+        Math.abs(n.position.x - spot.x) < STACK_NEAR &&
+        Math.abs(n.position.y - spot.y) < STACK_NEAR,
+    )
+  ) {
+    spot = { x: spot.x + STACK_STEP, y: spot.y + STACK_STEP };
+  }
+  return spot;
+}
+
 /** Adds an empty note centred on `at`. `newId` is injected so tests are deterministic. */
 export function addNote(
   file: CanvasFileModel,
   at: Point,
   newId: () => string,
 ): CanvasFileModel {
+  const position = freeSpot(file, {
+    x: Math.round(at.x - NOTE_CARD.width / 2),
+    y: Math.round(at.y - NOTE_CARD.height / 2),
+  });
   const note: NoteNode = {
     id: newId(),
     type: "note",
     text: "",
-    position: {
-      x: Math.round(at.x - NOTE_CARD.width / 2),
-      y: Math.round(at.y - NOTE_CARD.height / 2),
-    },
+    position,
     size: { ...NOTE_CARD },
   };
   return { ...file, nodes: [...file.nodes, note] };

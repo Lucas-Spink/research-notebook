@@ -64,6 +64,26 @@ describe("addNote", () => {
   });
 });
 
+describe("addNote placement", () => {
+  it("moves a note off one already at that place, again for each further note", () => {
+    let file = addNote(empty(), { x: 500, y: 300 }, newId);
+    file = addNote(file, { x: 500, y: 300 }, newId);
+    file = addNote(file, { x: 500, y: 300 }, newId);
+    const spots = file.nodes.map((n) => [n.position.x, n.position.y]);
+    expect(spots).toEqual([
+      [370, 220],
+      [402, 252],
+      [434, 284],
+    ]);
+  });
+
+  it("does not move a note that is not near another", () => {
+    let file = addNote(empty(), { x: 500, y: 300 }, newId);
+    file = addNote(file, { x: 1500, y: 300 }, newId);
+    expect(file.nodes[1]?.position).toEqual({ x: 1370, y: 220 });
+  });
+});
+
 describe("setNoteText", () => {
   it("changes the text of a note", () => {
     const { file, a } = sample();

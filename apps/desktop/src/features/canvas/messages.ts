@@ -78,6 +78,8 @@ export const canvasMessages = {
   pinFailed: "Nothing was added. Choose a question first.",
 
   noteLabel: "Note",
+  noteGrip: "Drag to move this note",
+  minimap: "Overview of the canvas",
   notePlaceholder: "Write a note… (type /cite to cite a source)",
   removeNote: "Delete note",
   noteHandle: "Draw a line from this card",
