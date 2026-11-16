@@ -1,0 +1,94 @@
+{
+  "format_version": 3,
+  "id": "01JAXC0000000000000000TB01",
+  "name": "Replicates by treatment",
+  "nodes": [
+    {
+      "id": "01JAXC00000000000000000T01",
+      "type": "table",
+      "rows": [
+        {
+          "id": "01JAXC00000000000000000R01",
+          "label": "Replicate 1"
+        },
+        {
+          "id": "01JAXC00000000000000000R02",
+          "label": "Replicate 2"
+        }
+      ],
+      "columns": [
+        {
+          "id": "01JAXC00000000000000000C01",
+          "label": "Control"
+        },
+        {
+          "id": "01JAXC00000000000000000C02",
+          "label": "Treated"
+        }
+      ],
+      "cells": [
+        {
+          "row": "01JAXC00000000000000000R01",
+          "column": "01JAXC00000000000000000C01",
+          "experiment_id": "01JAX000000000000000000003",
+          "artefact_id": "01JAX0000000000000021N1SY4",
+          "version": 2,
+          "aspect": 1.5
+        },
+        {
+          "row": "01JAXC00000000000000000R01",
+          "column": "01JAXC00000000000000000C02",
+          "experiment_id": "01JAX000000000000000000003",
+          "artefact_id": "01JAX0000000000000021N1SY5"
+        },
+        {
+          "row": "01JAXC00000000000000000R02",
+          "column": "01JAXC00000000000000000C02",
+          "experiment_id": "01JAXC000000000000000000X1",
+          "artefact_id": "01JAXC000000000000000000X2",
+          "version": 1
+        }
+      ],
+      "fit": "row",
+      "position": {
+        "x": 200,
+        "y": 160
+      },
+      "size": {
+        "width": 720,
+        "height": 460
+      }
+    },
+    {
+      "id": "01JAXC00000000000000000N01",
+      "type": "note",
+      "text": "Replicate 2, control is missing: rerun it.",
+      "position": {
+        "x": 1000,
+        "y": 200
+      },
+      "size": {
+        "width": 260,
+        "height": 120
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "01JAXC00000000000000000E01",
+      "source": "01JAXC00000000000000000N01",
+      "target": "01JAXC00000000000000000T01",
+      "target_handle": "left",
+      "target_cell": {
+        "row": "01JAXC00000000000000000R02",
+        "column": "01JAXC00000000000000000C01"
+      },
+      "label": "requires-investigation"
+    }
+  ],
+  "viewport": {
+    "x": -80,
+    "y": -60,
+    "zoom": 0.8
+  }
+}

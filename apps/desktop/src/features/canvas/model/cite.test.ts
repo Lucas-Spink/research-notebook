@@ -112,8 +112,10 @@ describe("notesCitekeys", () => {
       size: { width: 1, height: 1 },
       text,
     }) as unknown as CanvasFileModel["nodes"][number];
-  const file = (...texts: string[]) =>
-    ({ ...newCanvasFile("Q", "Q"), nodes: texts.map(note) }) as CanvasFileModel;
+  const file = (...texts: string[]) => ({
+    ...newCanvasFile("Q", "Q"),
+    nodes: texts.map(note),
+  });
 
   it("collects the keys cited in notes of every canvas, once", () => {
     const keys = notesCitekeys([

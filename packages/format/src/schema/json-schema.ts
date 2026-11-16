@@ -20,7 +20,7 @@ const SCHEMAS = {
   },
   canvas: {
     schema: CanvasFile,
-    title: "*.canvas.json (format version 2)",
+    title: "*.canvas.json (format versions 2 and 3)",
   },
   experiment: {
     schema: ExperimentFrontmatter,

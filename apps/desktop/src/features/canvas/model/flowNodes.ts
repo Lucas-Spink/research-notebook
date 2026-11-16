@@ -71,7 +71,7 @@ export function toFlowNodes(
   resolve: (node: ArtefactNode) => ResultInfo,
   selected: ReadonlySet<string>,
 ): CanvasFlowNode[] {
-  return file.nodes.map((node): CanvasFlowNode => {
+  return file.nodes.flatMap((node): CanvasFlowNode[] => {
     const common = {
       id: node.id,
       position: { ...node.position },
@@ -81,21 +81,29 @@ export function toFlowNodes(
     };
     switch (node.type) {
       case "artefact":
-        return {
-          ...common,
-          type: "artefact",
-          data: { node, info: resolve(node) },
-        };
+        return [
+          {
+            ...common,
+            type: "artefact",
+            data: { node, info: resolve(node) },
+          },
+        ];
       case "note":
-        return { ...common, type: "note", data: { text: node.text } };
+        return [{ ...common, type: "note", data: { text: node.text } }];
       case "region":
         // A region sits behind the cards it holds.
-        return {
-          ...common,
-          type: "region",
-          zIndex: -1,
-          data: { label: node.label },
-        };
+        return [
+          {
+            ...common,
+            type: "region",
+            zIndex: -1,
+            data: { label: node.label },
+          },
+        ];
+      case "table":
+        // Drawn by the table card (ADR-0071, a later change). Until then a
+        // table is kept in the file exactly as it is and is not drawn.
+        return [];
       default:
         return assertNever(node);
     }
