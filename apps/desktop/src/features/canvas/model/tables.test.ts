@@ -11,6 +11,7 @@ import {
   applyTableChange,
   fillCells,
   layoutTable,
+  tableFromGroups,
   tableNodes,
   type TableNode,
 } from "./tables";
@@ -595,5 +596,91 @@ describe("layoutTable", () => {
       expect(Number.isInteger(n)).toBe(true);
       expect(n).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe("tableFromGroups", () => {
+  const groups = [
+    { label: "Control", refs: [ref(1), ref(2, 3), ref(3)] },
+    { label: "Treated", refs: [ref(4)] },
+  ];
+  const make = (lines: "row" | "column") =>
+    tableOf(
+      tableFromGroups(
+        newCanvasFile(CANVAS, "C"),
+        { x: 500, y: 400 },
+        newId,
+        groups,
+        lines,
+        (n) => `#${n}`,
+      ),
+    );
+
+  it("makes each group a row, headed with its name, and fits by row", () => {
+    const table = make("row");
+    expect(table.rows.map((r) => r.label)).toEqual(["Control", "Treated"]);
+    expect(table.columns.map((c) => c.label)).toEqual(["#1", "#2", "#3"]);
+    expect(table.fit).toBe("row");
+    const [control, treated] = table.rows.map((r) => r.id);
+    const [one, two] = table.columns.map((c) => c.id);
+    expect(table.cells).toHaveLength(4);
+    expect(table.cells).toContainEqual({
+      row: control,
+      column: two,
+      experiment_id: EXP,
+      artefact_id: art(2),
+      version: 3,
+    });
+    expect(table.cells).toContainEqual(
+      expect.objectContaining({
+        row: treated,
+        column: one,
+        artefact_id: art(4),
+      }),
+    );
+  });
+
+  it("makes each group a column and fits by column", () => {
+    const table = make("column");
+    expect(table.columns.map((c) => c.label)).toEqual(["Control", "Treated"]);
+    expect(table.rows.map((r) => r.label)).toEqual(["#1", "#2", "#3"]);
+    expect(table.fit).toBe("column");
+    const [first] = table.columns.map((c) => c.id);
+    expect(
+      table.cells.filter((c) => c.column === first).map((c) => c.artefact_id),
+    ).toEqual([art(1), art(2), art(3)]);
+  });
+
+  it("is a valid version 3 canvas that survives a round trip", () => {
+    const file = tableFromGroups(
+      newCanvasFile(CANVAS, "C"),
+      { x: 0, y: 0 },
+      newId,
+      groups,
+      "row",
+      (n) => `#${n}`,
+    );
+    expect(file.format_version).toBe(3);
+    const read = parseCanvas(serialiseCanvas(file));
+    expect(read.ok).toBe(true);
+  });
+
+  it("keeps one column for groups with no results, and changes nothing for no groups", () => {
+    const empty = tableOf(
+      tableFromGroups(
+        newCanvasFile(CANVAS, "C"),
+        { x: 0, y: 0 },
+        newId,
+        [{ label: "None", refs: [] }],
+        "row",
+        (n) => `#${n}`,
+      ),
+    );
+    expect(empty.columns).toHaveLength(1);
+    expect(empty.cells).toEqual([]);
+    const file = newCanvasFile(CANVAS, "C");
+    expect(
+      tableFromGroups(file, { x: 0, y: 0 }, newId, [], "row", (n) => `${n}`),
+    ).toBe(file);
   });
 });

@@ -31,6 +31,8 @@ export const canvasMessages = {
   tableLabel: "Table of figures",
   tableRowLabel: (n: number) => `Row ${n}`,
   tableColumnLabel: (n: number) => `Column ${n}`,
+  /** The heading of each place along a line made from a group. */
+  tableLineLabel: (n: number) => `Result ${n}`,
   addRow: "Add row",
   addColumn: "Add column",
   cellShape: "Cells fit",

@@ -5,7 +5,12 @@ import { browserRandomBytes, createUlidGenerator } from "../../shared/ulid";
 import { canvasMessages } from "./messages";
 import { notesCitekeys } from "./model/cite";
 import { addNote } from "./model/notes";
-import { addTable, fillCells } from "./model/tables";
+import {
+  addTable,
+  fillCells,
+  tableFromGroups,
+  type GroupLine,
+} from "./model/tables";
 import { pinResults, pinnedIds, type PinRef, type Point } from "./model/nodes";
 import { createCanvasSaver, type SaveReport } from "./model/saver";
 import {
@@ -73,6 +78,11 @@ export type CanvasesModel = {
   addNote: () => string | null;
   /** Adds a table of two rows and two columns in the middle of what is showing. Returns its id, or `null` when it could not be added. */
   addTable: () => string | null;
+  /** Adds a table made from groups of results: each group a row or a column. False when nothing could be added. */
+  addTableFromGroups: (
+    groups: readonly GroupLine[],
+    lines: "row" | "column",
+  ) => boolean;
   /** Selects a card and brings it into view. */
   focusNode: (id: string) => void;
   /** The drawn surface says where things are on screen while it is showing. */
@@ -281,6 +291,36 @@ export function useCanvases({
     return ids[0] ?? null;
   }, [place, edit, newId]);
 
+  const addTableFromGroupsHere = useCallback<
+    CanvasesModel["addTableFromGroups"]
+  >(
+    (groups, lines) => {
+      if (groups.length === 0) return false;
+      const surface = place();
+      if (surface === null) return false;
+      const centre = surface.centre();
+      // Ids are made once so that applying the change again gives the same table.
+      const total =
+        1 +
+        groups.length +
+        groups.reduce((n, g) => Math.max(n, g.refs.length), 1);
+      const ids = Array.from({ length: total }, () => newId());
+      edit((file) => {
+        let next = 0;
+        return tableFromGroups(
+          file,
+          centre,
+          () => ids[next++] ?? newId(),
+          groups,
+          lines,
+          canvasMessages.tableLineLabel,
+        );
+      });
+      return true;
+    },
+    [place, edit, newId],
+  );
+
   const registerSurface = useCallback((next: SurfaceBridge | null) => {
     bridge.current = next;
   }, []);
@@ -312,6 +352,7 @@ export function useCanvases({
     pinAt,
     addNote: addNoteHere,
     addTable: addTableHere,
+    addTableFromGroups: addTableFromGroupsHere,
     focusNode,
     registerSurface,
     flush: () => saver.flush(),
