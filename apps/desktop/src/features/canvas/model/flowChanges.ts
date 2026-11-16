@@ -2,6 +2,7 @@ import type { CanvasFileModel } from "@research-notebook/format";
 import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { assertNever } from "../../../shared/assertNever";
 import { connectNodes, removeEdges, setNoteText, type Side } from "./notes";
+import { applyTableChange, type TableChange } from "./tables";
 import {
   moveNode,
   removeNodes,
@@ -27,7 +28,9 @@ export type CanvasEdit =
       fromHandle?: Side | undefined;
       toHandle?: Side | undefined;
     }
-  | { kind: "removeEdges"; ids: string[] };
+  | { kind: "removeEdges"; ids: string[] }
+  /** A change to one table: its rows, columns, headings or cells (ADR-0071). */
+  | { kind: "table"; id: string; change: TableChange };
 
 /**
  * What of a batch of React Flow's changes belongs in the file. The library
@@ -102,6 +105,8 @@ export function applyEdits(
         });
       case "removeEdges":
         return removeEdges(current, edit.ids);
+      case "table":
+        return applyTableChange(current, edit.id, edit.change);
       default:
         return assertNever(edit);
     }

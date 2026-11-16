@@ -481,3 +481,122 @@
   overflow-wrap: anywhere;
   cursor: text;
 }
+
+/* A table of figures (ADR-0071): a bar of buttons above a grid of headings and cells. */
+.canvas-table {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border-control);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.react-flow__node.selected .canvas-table {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+}
+
+.canvas-table__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-table__fit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.canvas-table__spacer {
+  flex: 1;
+}
+
+.canvas-table__grid {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas-table__corner,
+.canvas-table__head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 var(--space-1);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.canvas-table__heading {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+.canvas-table__heading:focus {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.canvas-table__head button,
+.canvas-table__bar button {
+  padding: 0 var(--space-2);
+}
+
+.canvas-table__cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-table__cell img,
+.canvas-table__cell canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.canvas-table__empty {
+  padding: var(--space-1);
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.canvas-table__cell-actions {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: none;
+  gap: 2px;
+}
+
+.canvas-table__cell:hover .canvas-table__cell-actions,
+.canvas-table__cell:focus-within .canvas-table__cell-actions {
+  display: flex;
+}

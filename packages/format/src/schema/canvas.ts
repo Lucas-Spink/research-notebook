@@ -83,13 +83,13 @@ const TableCell = z.looseObject({
   aspect: z.number().finite().positive().optional(),
 });
 
-/** What sets the shape of a table's cells: each row's, or each column's, largest figure (ADR-0071). */
+/** What sets the shape of a table's cells: each row's, or each column's, tallest figure (ADR-0071). */
 export const TABLE_FITS = ["row", "column"] as const;
 
 /**
  * A table of figures (ADR-0071): rows and columns with headings, and at most
  * one figure per cell. `fit` says whether the cells of a row, or of a column,
- * take the shape of their largest figure.
+ * take the shape of their tallest figure.
  */
 const TableNode = z.looseObject({
   id: Ulid,
