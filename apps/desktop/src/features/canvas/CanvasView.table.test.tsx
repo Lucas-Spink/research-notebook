@@ -490,6 +490,133 @@ describe("figures in cells", () => {
   });
 });
 
+describe("notes about selected table cells", () => {
+  const cells = (view: HTMLElement) => [
+    ...view.querySelectorAll<HTMLElement>("[data-table-cell]"),
+  ];
+  const down = (el: Element | undefined, init: MouseEventInit = {}) =>
+    act(() => {
+      el?.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true, button: 0, ...init }),
+      );
+    });
+  const noteButton = (view: HTMLElement) =>
+    [
+      ...view.querySelectorAll<HTMLButtonElement>(".canvas-table__bar button"),
+    ].find((b) => b.textContent?.startsWith("Note about"));
+  const savedFile = (disk: Record<string, string>) => {
+    const parsed = parseCanvas(disk[pathOf(A)] ?? "");
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    return parsed.value;
+  };
+
+  it("makes a note linked to the picked cells, selected and ready to type, with no line drawn", async () => {
+    const { text, table } = tableCanvas();
+    const { view, disk } = await open({ [pathOf(A)]: text });
+    expect(noteButton(view)?.disabled).toBe(true);
+    down(cells(view)[0]);
+    down(cells(view)[3], { shiftKey: true });
+    expect(view.querySelectorAll(".canvas-table__cell--picked")).toHaveLength(
+      2,
+    );
+    expect(noteButton(view)?.textContent).toBe("Note about 2 cells");
+    click(noteButton(view));
+    await flush();
+    const file = savedFile(disk);
+    const note = file.nodes.find((n) => n.type === "note");
+    expect(note).toBeDefined();
+    expect(file.edges.map((e) => [e.source, e.target])).toEqual([
+      [note?.id, table.id],
+      [note?.id, table.id],
+    ]);
+    expect(file.edges.every((e) => e.target_cell !== undefined)).toBe(true);
+    expect(view.querySelector(".react-flow__edge")).toBeNull();
+    expect(
+      view
+        .querySelector(".react-flow__node-note")
+        ?.classList.contains("selected"),
+    ).toBe(true);
+    expect(view.querySelectorAll(".canvas-table__cell--picked")).toHaveLength(
+      0,
+    );
+  });
+
+  it("outlines a selected note's cells, and only while it is selected", async () => {
+    const { text } = tableCanvas();
+    const { view } = await open({ [pathOf(A)]: text });
+    down(cells(view)[1]);
+    click(noteButton(view));
+    await flush();
+    expect(view.querySelectorAll(".canvas-table__cell--linked")).toHaveLength(
+      1,
+    );
+    // Clicking the empty canvas deselects the note.
+    click(view.querySelector(".react-flow__pane"));
+    await flush();
+    expect(view.querySelectorAll(".canvas-table__cell--linked")).toHaveLength(
+      0,
+    );
+    // The cell keeps a badge for its note, which selects the note again.
+    const badge = view.querySelector<HTMLButtonElement>(".canvas-table__badge");
+    expect(badge?.textContent).toBe("1");
+    click(badge);
+    await flush();
+    expect(view.querySelectorAll(".canvas-table__cell--linked")).toHaveLength(
+      1,
+    );
+  });
+
+  it("drags across cells to pick a rectangle, and clears the pick with Escape", async () => {
+    const { text } = tableCanvas();
+    const { view } = await open({ [pathOf(A)]: text });
+    down(cells(view)[0]);
+    act(() => {
+      cells(view)[3]?.dispatchEvent(
+        new MouseEvent("pointerover", { bubbles: true, buttons: 1 }),
+      );
+    });
+    expect(view.querySelectorAll(".canvas-table__cell--picked")).toHaveLength(
+      4,
+    );
+    act(() => {
+      view
+        .querySelector(".canvas-surface")
+        ?.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+    });
+    expect(view.querySelectorAll(".canvas-table__cell--picked")).toHaveLength(
+      0,
+    );
+  });
+
+  it("unlinks a note from its cells without removing the note", async () => {
+    const { text } = tableCanvas();
+    const { view, disk } = await open({ [pathOf(A)]: text });
+    down(cells(view)[0]);
+    click(noteButton(view));
+    await flush();
+    expect(view.querySelector(".canvas-note__links")?.textContent).toContain(
+      "About 1 table cell",
+    );
+    click(buttonNamed(view, "Unlink"));
+    await flush();
+    const file = savedFile(disk);
+    expect(file.edges).toEqual([]);
+    expect(file.nodes.some((n) => n.type === "note")).toBe(true);
+    expect(view.querySelector(".canvas-note__links")).toBeNull();
+  });
+
+  it("offers no picking where the canvas cannot be changed", async () => {
+    const { text } = tableCanvas();
+    const { view } = await open({ [pathOf(A)]: text }, {}, false);
+    down(cells(view)[0]);
+    expect(view.querySelectorAll(".canvas-table__cell--picked")).toHaveLength(
+      0,
+    );
+  });
+});
+
 describe("link points on a table", () => {
   it("has no point for a line inside the table, whose edge would clip it, or in each cell", async () => {
     const { text } = tableCanvas((file, t) => {
