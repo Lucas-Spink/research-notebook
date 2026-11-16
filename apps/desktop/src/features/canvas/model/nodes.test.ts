@@ -3,7 +3,11 @@ import { newCanvasFile } from "./canvasFiles";
 import {
   DEFAULT_CARD,
   MIN_CARD,
+  FIT_LONGEST,
   artefactNodes,
+  fitHeight,
+  fitSize,
+  isDefaultSize,
   moveNode,
   pinResults,
   pinnedIds,
@@ -213,5 +217,77 @@ describe("viewport", () => {
     const next = setViewport(file, { x: 5.2, y: 6.7, zoom: 2 });
     expect(next.viewport).toEqual({ x: 5, y: 7, zoom: 2 });
     expect(setViewport(next, { x: 5.2, y: 6.7, zoom: 2 })).toBe(next);
+  });
+});
+
+describe("fitSize", () => {
+  const CHROME = { width: 10, height: 56 };
+
+  it("gives a landscape picture its own shape, the long side being the fit length", () => {
+    expect(fitSize(4 / 3, CHROME)).toEqual({
+      width: FIT_LONGEST + CHROME.width,
+      height: Math.round(FIT_LONGEST / (4 / 3)) + CHROME.height,
+    });
+  });
+
+  it("gives a portrait picture its own shape, the tall side being the fit length", () => {
+    expect(fitSize(3 / 4, CHROME)).toEqual({
+      width: Math.round(FIT_LONGEST * (3 / 4)) + CHROME.width,
+      height: FIT_LONGEST + CHROME.height,
+    });
+  });
+
+  it("gives a square picture a square picture area", () => {
+    const size = fitSize(1, CHROME);
+    expect(size.height - CHROME.height).toBe(size.width - CHROME.width);
+  });
+
+  it("never goes below the least a card may be", () => {
+    const wide = fitSize(20, CHROME);
+    expect(wide.width).toBeGreaterThanOrEqual(MIN_CARD.width);
+    expect(wide.height).toBeGreaterThanOrEqual(MIN_CARD.height);
+    const tall = fitSize(1 / 20, CHROME);
+    expect(tall.width).toBeGreaterThanOrEqual(MIN_CARD.width);
+  });
+
+  it("is whole pixels", () => {
+    const { width, height } = fitSize(1.618, CHROME);
+    expect(Number.isInteger(width)).toBe(true);
+    expect(Number.isInteger(height)).toBe(true);
+  });
+
+  it("ignores an aspect it cannot use, keeping the default shape", () => {
+    expect(fitSize(0, CHROME)).toEqual(DEFAULT_CARD);
+    expect(fitSize(Number.NaN, CHROME)).toEqual(DEFAULT_CARD);
+    expect(fitSize(Number.POSITIVE_INFINITY, CHROME)).toEqual(DEFAULT_CARD);
+  });
+
+  it("agrees with fitHeight: the height it gives is the one that fits its width", () => {
+    for (const aspect of [0.6, 1, 1.5, 2.4]) {
+      const size = fitSize(aspect, CHROME);
+      expect(
+        Math.abs(fitHeight(size.width, aspect, CHROME) - size.height),
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe("fitHeight", () => {
+  const CHROME = { width: 10, height: 56 };
+
+  it("is the height that leaves a picture of this shape no empty space at the width", () => {
+    expect(fitHeight(410, 2, CHROME)).toBe(200 + 56);
+  });
+
+  it("is never below the least a card may be", () => {
+    expect(fitHeight(400, 100, CHROME)).toBe(MIN_CARD.height);
+  });
+});
+
+describe("isDefaultSize", () => {
+  it("is true only for the size a new card has", () => {
+    expect(isDefaultSize({ ...DEFAULT_CARD })).toBe(true);
+    expect(isDefaultSize({ width: 361, height: 280 })).toBe(false);
+    expect(isDefaultSize({ width: 360, height: 281 })).toBe(false);
   });
 });
